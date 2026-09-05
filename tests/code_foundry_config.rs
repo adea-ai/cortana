@@ -616,12 +616,10 @@ fn release_caller_targets_main_without_staging_preflight() {
             "release job must keep input `{input}`:\n{release_job}"
         );
     }
-    for secret in [
-        "CODE_FOUNDRY_TOKEN",
-        "RELEASE_PLEASE_TOKEN",
-        "STAGING_DEPLOY_KEY",
-        "NPM_TOKEN",
-    ] {
+    // The v1.0.0 runtime declares only CODE_FOUNDRY_TOKEN, STAGING_DEPLOY_KEY,
+    // and NPM_TOKEN on its release workflow; RELEASE_PLEASE_TOKEN was removed
+    // with the single-identity upgrade.
+    for secret in ["CODE_FOUNDRY_TOKEN", "STAGING_DEPLOY_KEY", "NPM_TOKEN"] {
         assert!(
             release_job.contains(&format!("{secret}: ${{{{ secrets.{secret} }}}}")),
             "release job must keep passing `{secret}`:\n{release_job}"
