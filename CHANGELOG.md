@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.56.13](https://github.com/adea-ai/cortana/compare/v0.56.12...v0.56.13) (2026-09-06)
+
+
+### Bug Fixes
+
+* **release:** reconcile v0.56.12 release drift ([#2260](https://github.com/adea-ai/cortana/issues/2260)) ([ea187f7](https://github.com/adea-ai/cortana/commit/ea187f7ca0d6f9b91481e981634525217828fc14))
+
 ## [0.56.12](https://github.com/adea-ai/cortana/compare/v0.56.11...v0.56.12) (2026-09-06)
 
 
