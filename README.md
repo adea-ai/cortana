@@ -17,7 +17,7 @@ Cortana separates three authorities and one derived output:
 
 - **Evidence** — source-backed documents, messages, notes, calendar records, and code. Evidence retains stable source identity, provenance, workspace scope, update time, and ACLs.
 - **Native memory** — bounded conclusions deliberately retained by a user or authorized agent. Memory has its own provenance, confidence, importance, expiry, supersession, redaction, and revision lifecycle.
-- **External task state** — harness scratchpads, Agent HQ ProjectState, Control Plane ContextPackages, workflow checkpoints, and conversation history remain owned by their respective systems.
+- **External task state** — harness scratchpads, Adea ProjectState, Control Plane ContextPackages, workflow checkpoints, and conversation history remain owned by their respective systems.
 - **ContextBundle** — a disposable, token-bounded compilation of authorized evidence and relevant memory for one query or objective.
 
 The governing rule is:

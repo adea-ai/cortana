@@ -5,7 +5,7 @@ Contract version: `cortana.provider.v1`. Portable fixture version:
 
 This contract exposes Cortana as an optional, provider-neutral source of bounded evidence and
 explicit native-memory effects. It does not expose SQLite, connector credentials, filesystem paths,
-native Rust types, consumer execution state, or a generic command runner. Agent HQ, Control Plane,
+native Rust types, consumer execution state, or a generic command runner. Adea, Control Plane,
 and third-party clients consume this public boundary without becoming Cortana dependencies.
 
 ## Identity and mapping

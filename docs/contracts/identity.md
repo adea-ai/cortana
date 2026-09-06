@@ -1,6 +1,6 @@
 # Workspace, project, principal, and ACL mapping
 
-The identity contract is `cortana.identity.v1`. It prevents a UI workspace, Agent HQ workspace, and
+The identity contract is `cortana.identity.v1`. It prevents a UI workspace, Adea workspace, and
 Cortana project from being treated as interchangeable identifiers.
 
 ## Terms
@@ -9,7 +9,7 @@ Cortana project from being treated as interchangeable identifiers.
 - **Project:** persisted Cortana scope used by documents, memories, sources, and retrieval.
 - **Principal:** owner or bearer identity authenticated by a configured credential and scopes.
 - **ACL label:** an explicit visibility label attached to canonical records.
-- **External execution identity:** an Agent HQ/Control Plane identity mapped to a Cortana principal;
+- **External execution identity:** an Adea/Control Plane identity mapped to a Cortana principal;
   it is never assumed equal to a Cortana ID.
 
 Each mapping has an opaque local ID, external system/name, target project, principal, allowed scopes,

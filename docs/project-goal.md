@@ -35,7 +35,7 @@ Cortana provides:
 - External sources remain authoritative for their original content.
 - Cortana owns its normalized local evidence, derived indexes, native memory, and ContextBundles.
 - Native memory contains bounded conclusions, not full source documents or transcripts.
-- Harness scratchpads, Agent HQ ProjectState, Control Plane ContextPackages, workflow checkpoints, and native sessions remain owned by their respective systems.
+- Harness scratchpads, Adea ProjectState, Control Plane ContextPackages, workflow checkpoints, and native sessions remain owned by their respective systems.
 - Evidence may support citations. Native memory is operational context and cannot substitute for source evidence.
 - Retrieval does not mutate evidence, memory, ProjectState, or task state.
 
@@ -49,7 +49,7 @@ Cortana provides:
 - Credentials and private content are excluded from default audit telemetry.
 - The Desktop renderer receives only narrow, typed, allowlisted native capabilities.
 - Derived graph or memory representations retain provenance, scope, confidence where applicable, and invalidation behavior.
-- The standalone local product remains useful without Agent HQ, the Control Plane, a hosted service, or an external memory engine.
+- The standalone local product remains useful without Adea, the Control Plane, a hosted service, or an external memory engine.
 
 ## Completion criteria
 

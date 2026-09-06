@@ -250,7 +250,7 @@ Cover:
 
 Zero unauthorized or cross-workspace disclosure is required.
 
-### Agent HQ and Control Plane integration
+### Adea and Control Plane integration
 
 Use disposable integration environments.
 
