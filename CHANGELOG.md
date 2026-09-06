@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.56.14](https://github.com/adea-ai/cortana/compare/v0.56.13...v0.56.14) (2026-09-06)
+
+
+### Documentation
+
+* rename Agent HQ product references to Adea ([#2262](https://github.com/adea-ai/cortana/issues/2262)) ([5c8fe17](https://github.com/adea-ai/cortana/commit/5c8fe170efb70cdd28849b0a7c74e45a29424bfa))
+
 ## [0.56.13](https://github.com/adea-ai/cortana/compare/v0.56.12...v0.56.13) (2026-09-06)
 
 
