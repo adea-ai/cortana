@@ -137,6 +137,8 @@ def project_release_versions(root: Path = ROOT) -> dict[str, str]:
         path = root / relative_path
         document = tomllib.loads(path.read_text(encoding="utf-8"))
         packages = document.get("package")
+        if not isinstance(packages, list):
+            raise AssertionError(f"{label} has no package table")
         value = next(
             (package.get("version") for package in packages if package.get("name") == package_name),
             None,
