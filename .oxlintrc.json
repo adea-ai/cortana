@@ -4,10 +4,5 @@
     "correctness": "error",
     "suspicious": "warn"
   },
-  "ignorePatterns": [
-    "node_modules/**",
-    "apps/web/dist/**",
-    "coverage/**",
-    "target/**"
-  ]
+  "ignorePatterns": ["node_modules/**", "apps/web/dist/**", "coverage/**", "target/**"]
 }
