@@ -50,13 +50,16 @@ export function buildServiceStatusPlan({ core }) {
 }
 
 function boundedOutput(value) {
-  return redactEvidence(String(value ?? ''))
-    .replace(
-      /(?:\/(?:Users|private|home|tmp|var|runner|workspace|builds|opt\/runner)\/[^\s\n]+|[A-Za-z]:\\[^\s\n]+|\\\\[^\s\n]+)/g,
-      '[PATH]'
-    )
-    .replace(/[\u0000-\u001f\u007f]/g, ' ')
-    .slice(0, 1_000)
+  return (
+    redactEvidence(String(value ?? ''))
+      .replace(
+        /(?:\/(?:Users|private|home|tmp|var|runner|workspace|builds|opt\/runner)\/[^\s\n]+|[A-Za-z]:\\[^\s\n]+|\\\\[^\s\n]+)/g,
+        '[PATH]'
+      )
+      // eslint-disable-next-line no-control-regex -- intentional control-character sanitizer for evidence output
+      .replace(/[\u0000-\u001f\u007f]/g, ' ')
+      .slice(0, 1_000)
+  )
 }
 
 function commandFailure(result) {

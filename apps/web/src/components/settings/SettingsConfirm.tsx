@@ -121,7 +121,6 @@ export function SettingsConfirmProvider({ children }: { children: ReactNode }) {
 }
 
 // The hook and provider intentionally share one module-scoped confirmation context.
-// eslint-disable-next-line react-refresh/only-export-components
 export function useSettingsConfirm() {
   return useContext(SettingsConfirmContext)
 }

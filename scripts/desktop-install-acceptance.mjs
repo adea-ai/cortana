@@ -467,7 +467,8 @@ export function runInstallAcceptance({ target, version, archiveRoot, msiPath }) 
     try {
       rmSync(stateRoot, { recursive: true, force: true })
       cleanup = { status: 'passed', state_root_removed: !existsSync(stateRoot) }
-      if (!cleanup.state_root_removed) throw new Error('release installer state was not removed')
+      if (!cleanup.state_root_removed && !failure)
+        failure = new Error('release installer state was not removed')
     } catch (error) {
       if (!failure) failure = error
     }
@@ -527,7 +528,6 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   }
   const target = values.target || process.env.CORTANA_DESKTOP_TARGET
   const version = values.version || process.env.CORTANA_RELEASE_VERSION
-  const msiPath = values.msi || process.env.CORTANA_WINDOWS_MSI
   const evidenceDirectory =
     values['evidence-dir'] ||
     process.env.CORTANA_EVIDENCE_DIRECTORY ||

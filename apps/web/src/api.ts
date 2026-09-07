@@ -556,7 +556,13 @@ export async function classifyMemoryCandidate(id: string): Promise<MemoryCandida
 }
 
 export type MemoryCandidateAction =
-  'approve' | 'edit-approve' | 'working' | 'supersede' | 'reject' | 'redact' | 'retry'
+  | 'approve'
+  | 'edit-approve'
+  | 'working'
+  | 'supersede'
+  | 'reject'
+  | 'redact'
+  | 'retry'
 
 export async function actOnMemoryCandidate(
   id: string,

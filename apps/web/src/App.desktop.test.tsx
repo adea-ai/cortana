@@ -274,7 +274,8 @@ const state = {
   pathPickerCalls: [] as string[],
   serviceAction: null as (() => Promise<DesktopServiceReport>) | null,
   readinessScan: null as
-    (() => Promise<Awaited<ReturnType<typeof realApi.scanDesktopReadiness>>>) | null,
+    | (() => Promise<Awaited<ReturnType<typeof realApi.scanDesktopReadiness>>>)
+    | null,
   installerJob: null as DesktopInstallJob | null,
 }
 
@@ -2757,7 +2758,8 @@ test('shell restores the latest durable service activity from native status', as
 test('readiness activity survives leaving Settings while a scan is running', async () => {
   const originalScan = state.readinessScan
   let resolveScan:
-    ((value: Awaited<ReturnType<typeof realApi.scanDesktopReadiness>>) => void) | undefined
+    | ((value: Awaited<ReturnType<typeof realApi.scanDesktopReadiness>>) => void)
+    | undefined
   state.readinessScan = () =>
     new Promise((resolve) => {
       resolveScan = resolve

@@ -275,7 +275,12 @@ export type ConfiguredSourceSummary = {
     max_seconds: number
     error: string | null
     error_category?:
-      'timeout' | 'authorization' | 'missing-credential-or-path' | 'budget' | 'connector' | null
+      | 'timeout'
+      | 'authorization'
+      | 'missing-credential-or-path'
+      | 'budget'
+      | 'connector'
+      | null
   } | null
 }
 
@@ -596,7 +601,8 @@ export type DesktopInitialSyncPlan = {
 }
 
 export type DesktopInitialSyncOutcome =
-  (DesktopInitialSyncPlan & { outcome: 'plan' }) | (DesktopSourceJob & { outcome: 'job' })
+  | (DesktopInitialSyncPlan & { outcome: 'plan' })
+  | (DesktopSourceJob & { outcome: 'job' })
 
 export type DesktopSetupOpen = {
   source: string
@@ -753,7 +759,11 @@ export type ReflectResponse = {
   contract_version: string
   request_digest: string
   status:
-    'completed' | 'fallback' | 'provider_unavailable' | 'provider_failed' | 'deadline_exceeded'
+    | 'completed'
+    | 'fallback'
+    | 'provider_unavailable'
+    | 'provider_failed'
+    | 'deadline_exceeded'
   objective: string
   project?: string | null
   memory_revision: number

@@ -1,15 +1,10 @@
 {
   "name": "cortana-workspace",
   "private": true,
-  "type": "module",
-  "packageManager": "bun@1.4.0",
   "workspaces": [
     "apps/*"
   ],
-  "overrides": {
-    "brace-expansion": "5.0.9",
-    "minimatch": "10.2.6"
-  },
+  "type": "module",
   "scripts": {
     "build": "bun run --cwd apps/web build",
     "desktop:build": "bun run --cwd apps/desktop build",
@@ -22,9 +17,9 @@
     "desktop:test": "bun run --cwd apps/desktop test",
     "desktop:test:native": "bun run --cwd apps/desktop test:native",
     "dev": "bun run --cwd apps/web dev",
-    "format": "prettier --check .",
-    "format:write": "prettier --write .",
-    "lint": "eslint apps/web/src",
+    "format": "oxfmt --check .",
+    "format:write": "oxfmt .",
+    "lint": "oxlint",
     "docs:check": "uv run python scripts/check-docs-consistency.py",
     "test": "bun scripts/run-js-tests.mjs",
     "test:unit": "bun scripts/run-js-tests.mjs && uv run pytest -m 'not integration and not smoke' && uv run python scripts/check-docs-consistency.py && bun run test:eval",
@@ -37,7 +32,6 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
-    "@eslint/js": "^9.39.5",
     "@happy-dom/global-registrator": "^20.11.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
@@ -45,14 +39,15 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.7.0",
-    "eslint": "^9.39.5",
-    "eslint-plugin-react-hooks": "^6.1.1",
-    "eslint-plugin-react-refresh": "^0.5.5",
-    "globals": "^17.12.0",
+    "oxfmt": "^0.66.0",
+    "oxlint": "^1.81.0",
     "playwright": "^1.62.1",
-    "prettier": "^3.9.6",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.65.0",
     "vite": "^7.3.6"
-  }
+  },
+  "overrides": {
+    "brace-expansion": "5.0.9",
+    "minimatch": "10.2.6"
+  },
+  "packageManager": "bun@1.4.0"
 }

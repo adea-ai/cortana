@@ -111,7 +111,8 @@ const PROGRESS_PEAK_METRICS = Object.freeze([
 
 function boundedProgressLabel(value) {
   return typeof value === 'string'
-    ? value.replace(/[\u0000-\u001f\u007f]/g, ' ').slice(0, 128)
+    ? // eslint-disable-next-line no-control-regex -- intentional control-character sanitizer for progress labels
+      value.replace(/[\u0000-\u001f\u007f]/g, ' ').slice(0, 128)
     : null
 }
 
@@ -204,6 +205,7 @@ function sanitizeAcceptanceProgress(value) {
               surface,
               width: screenshot.width,
               height: screenshot.height,
+              // eslint-disable-next-line no-control-regex -- intentional control-character sanitizer for file names
               file: file.replace(/[\u0000-\u001f\u007f]/g, ' ').slice(0, 256),
             },
           ]
@@ -230,6 +232,7 @@ export function buildKnowledgeAcceptanceFailureEvidence({
   progress,
 }) {
   const message = String(error instanceof Error ? error.message : error)
+    // eslint-disable-next-line no-control-regex -- intentional control-character sanitizer for error messages
     .replace(/[\u0000-\u001f\u007f]/g, ' ')
     .slice(0, 1_000)
   return {

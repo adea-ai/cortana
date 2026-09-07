@@ -54,17 +54,20 @@ export function requiredPackageArtifacts(target) {
 }
 
 export function redactEvidence(value) {
-  return String(value)
-    .replace(
-      /\b(password|passwd|token|secret|api[_-]?key|private[_-]?key)\s*=\s*[^\s,;]+/gi,
-      (_, key) => `${key}=[REDACTED]`
-    )
-    .replace(
-      /(["']?)(password|passwd|token|secret|api[_-]?key|private[_-]?key)\1\s*:\s*(["']?)([^,"'\s}]+)\3/gi,
-      (_, quote, key, valueQuote) => `${quote}${key}${quote}:${valueQuote}[REDACTED]${valueQuote}`
-    )
-    .replace(/[\u0000-\u001f\u007f]/g, ' ')
-    .slice(0, MAX_OUTPUT_LENGTH)
+  return (
+    String(value)
+      .replace(
+        /\b(password|passwd|token|secret|api[_-]?key|private[_-]?key)\s*=\s*[^\s,;]+/gi,
+        (_, key) => `${key}=[REDACTED]`
+      )
+      .replace(
+        /(["']?)(password|passwd|token|secret|api[_-]?key|private[_-]?key)\1\s*:\s*(["']?)([^,"'\s}]+)\3/gi,
+        (_, quote, key, valueQuote) => `${quote}${key}${quote}:${valueQuote}[REDACTED]${valueQuote}`
+      )
+      // eslint-disable-next-line no-control-regex -- intentional control-character sanitizer for evidence output
+      .replace(/[\u0000-\u001f\u007f]/g, ' ')
+      .slice(0, MAX_OUTPUT_LENGTH)
+  )
 }
 
 export function validateEvidenceOutputPath(directory, outputPath) {

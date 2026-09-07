@@ -93,7 +93,13 @@ import { WorkspaceLogo } from '@/workspaceLogos'
 type WorkspaceOption = { id: string; name: string; color: string | null }
 
 export type AppView =
-  'knowledge' | 'settings' | 'inbox' | 'conversations' | 'agent-tools' | 'index' | 'help'
+  | 'knowledge'
+  | 'settings'
+  | 'inbox'
+  | 'conversations'
+  | 'agent-tools'
+  | 'index'
+  | 'help'
 
 export type M7NavigationProps = {
   view: AppView
