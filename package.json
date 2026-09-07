@@ -38,12 +38,12 @@
     "@types/bun": "^1.4.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^4.7.0",
+    "@vitejs/plugin-react": "^6.1.1",
     "oxfmt": "^0.66.0",
     "oxlint": "^1.81.0",
     "playwright": "^1.62.1",
-    "typescript": "^5.9.3",
-    "vite": "^7.3.6"
+    "typescript": "^6.0.3",
+    "vite": "^8.2.2"
   },
   "overrides": {
     "brace-expansion": "5.0.9",
