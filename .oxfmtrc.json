@@ -1,0 +1,21 @@
+{
+  "semi": false,
+  "singleQuote": true,
+  "trailingComma": "es5",
+  "printWidth": 100,
+  "ignorePatterns": [
+    "CHANGELOG.md",
+    ".github/.code-foundry",
+    ".github/actions/",
+    "apps/desktop/src-tauri/tauri.conf.json",
+    "third_party/",
+    "apps/web/dist",
+    "apps/desktop/src-tauri/gen",
+    "coverage",
+    "target",
+    "uv.lock",
+    "Cargo.lock",
+    "docs/design/*.png",
+    ".code-foundry"
+  ]
+}

@@ -72,7 +72,8 @@ const state = {
       ) => Promise<ContextBundle>)
     | null,
   reflection: null as
-    ((objective: string, project?: string, source?: string) => Promise<ReflectResponse>) | null,
+    | ((objective: string, project?: string, source?: string) => Promise<ReflectResponse>)
+    | null,
   reflectionCalls: [] as Array<{ objective: string; project?: string; source?: string }>,
   getDocument: null as ((id: string, signal?: AbortSignal) => Promise<BrainDocument>) | null,
   document: canonicalDocument,

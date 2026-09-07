@@ -79,7 +79,7 @@ test('clean host state can detect an implicit connector installation', () => {
     })
     writeFileSync(
       configPath,
-      `${readFileSync(configPath, 'utf8')}\n[connectors]\ncommand = [\"/tmp/cortana-connectors\"]\n`
+      `${readFileSync(configPath, 'utf8')}\n[connectors]\ncommand = ["/tmp/cortana-connectors"]\n`
     )
     expect(inspectFirstRunState(root, configPath)).toEqual({
       no_implicit_connector_install: false,
