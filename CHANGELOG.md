@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.56.16](https://github.com/adea-ai/cortana/compare/v0.56.15...v0.56.16) (2026-09-07)
+
+
+### Maintenance
+
+* **ci:** upgrade code-foundry runtime to v1.3.1 and migrate to oxlint/oxfmt ([#2268](https://github.com/adea-ai/cortana/issues/2268)) ([2ae6919](https://github.com/adea-ai/cortana/commit/2ae69192cb3eb729da4f269b184038981caf09e0))
+
 ## [0.56.15](https://github.com/adea-ai/cortana/compare/v0.56.14...v0.56.15) (2026-09-06)
 
 
