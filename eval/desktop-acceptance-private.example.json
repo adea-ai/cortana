@@ -3,7 +3,9 @@
   "approved": false,
   "governance": {
     "raw_data_location": "external-encrypted-store",
-    "reviewer_ids": ["opaque-reviewer-id"],
+    "reviewer_ids": [
+      "opaque-reviewer-id"
+    ],
     "secrets_allowed": false,
     "private_paths_allowed": false,
     "retention_days": 90,
@@ -129,7 +131,7 @@
     ]
   },
   "release": {
-    "version": "0.56.17",
+    "version": "0.56.18",
     "release_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
     "source": "published-release-assets"
   },
@@ -147,61 +149,81 @@
           "case_id": "clean-install-first-run",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "source-authorization-discovery",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "services-tray-autostart",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "backup-restore-dialogs",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "updater-lifecycle",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "recovery-failure-paths",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "accessibility-screen-reader",
           "method": "manual-screen-reader-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "resource-large-list",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "uninstall-and-data-preservation",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "os-trust",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         }
       ],
       "metrics": {
@@ -227,61 +249,81 @@
           "case_id": "clean-install-first-run",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "source-authorization-discovery",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "services-tray-autostart",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "backup-restore-dialogs",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "updater-lifecycle",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "recovery-failure-paths",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "accessibility-screen-reader",
           "method": "manual-screen-reader-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "resource-large-list",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "uninstall-and-data-preservation",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "os-trust",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         }
       ],
       "metrics": {
@@ -307,61 +349,81 @@
           "case_id": "clean-install-first-run",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "source-authorization-discovery",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "services-tray-autostart",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "backup-restore-dialogs",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "updater-lifecycle",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "recovery-failure-paths",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "accessibility-screen-reader",
           "method": "manual-screen-reader-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "resource-large-list",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "uninstall-and-data-preservation",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         },
         {
           "case_id": "os-trust",
           "method": "manual-review",
           "result": "not-run",
-          "evidence_ids": ["opaque-evidence-id"]
+          "evidence_ids": [
+            "opaque-evidence-id"
+          ]
         }
       ],
       "metrics": {
