@@ -1,11 +1,13 @@
 {
   "contract_version": "cortana.relationship-quality-private.v3",
-  "release_version": "0.56.18",
+  "release_version": "0.56.19",
   "approved": false,
   "raw_data_location": "external-encrypted-store",
   "graph_activation_authorized": false,
   "governance": {
-    "reviewer_ids": ["opaque-reviewer-id"],
+    "reviewer_ids": [
+      "opaque-reviewer-id"
+    ],
     "corpus_revision": "opaque-approved-corpus-revision",
     "deletion_contact": "local-owner",
     "secrets_allowed": false
@@ -14,7 +16,12 @@
     {
       "id": "explicit-links",
       "category": "explicit",
-      "edge_kinds": ["contains", "references", "supports", "derives"],
+      "edge_kinds": [
+        "contains",
+        "references",
+        "supports",
+        "derives"
+      ],
       "result": "not-run",
       "metrics": {
         "edge_precision": null,
@@ -34,7 +41,9 @@
     {
       "id": "thread-series",
       "category": "thread",
-      "edge_kinds": ["same-thread"],
+      "edge_kinds": [
+        "same-thread"
+      ],
       "result": "not-run",
       "metrics": {
         "edge_precision": null,
@@ -54,7 +63,10 @@
     {
       "id": "temporal-adjacency",
       "category": "temporal",
-      "edge_kinds": ["temporal", "nearby"],
+      "edge_kinds": [
+        "temporal",
+        "nearby"
+      ],
       "result": "not-run",
       "metrics": {
         "edge_precision": null,
@@ -74,7 +86,10 @@
     {
       "id": "entity-mentions",
       "category": "entity",
-      "edge_kinds": ["mentions", "authored-by"],
+      "edge_kinds": [
+        "mentions",
+        "authored-by"
+      ],
       "result": "not-run",
       "metrics": {
         "edge_precision": null,
@@ -94,7 +109,9 @@
     {
       "id": "backlink-navigation",
       "category": "backlink",
-      "edge_kinds": ["backlink"],
+      "edge_kinds": [
+        "backlink"
+      ],
       "result": "not-run",
       "metrics": {
         "edge_precision": null,
@@ -114,7 +131,11 @@
     {
       "id": "semantic-neighbors",
       "category": "semantic-neighbor",
-      "edge_kinds": ["semantically-related", "reinforces", "observes"],
+      "edge_kinds": [
+        "semantically-related",
+        "reinforces",
+        "observes"
+      ],
       "result": "not-run",
       "metrics": {
         "edge_precision": null,
@@ -134,7 +155,9 @@
     {
       "id": "contradiction-review",
       "category": "contradiction",
-      "edge_kinds": ["contradicts"],
+      "edge_kinds": [
+        "contradicts"
+      ],
       "result": "not-run",
       "metrics": {
         "edge_precision": null,
@@ -154,7 +177,9 @@
     {
       "id": "supersession-review",
       "category": "supersession",
-      "edge_kinds": ["supersedes"],
+      "edge_kinds": [
+        "supersedes"
+      ],
       "result": "not-run",
       "metrics": {
         "edge_precision": null,
@@ -174,7 +199,12 @@
     {
       "id": "code-dependencies",
       "category": "code-dependency",
-      "edge_kinds": ["depends-on", "defines", "calls", "imports"],
+      "edge_kinds": [
+        "depends-on",
+        "defines",
+        "calls",
+        "imports"
+      ],
       "result": "not-run",
       "metrics": {
         "edge_precision": null,

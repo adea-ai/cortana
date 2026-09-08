@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.56.19](https://github.com/adea-ai/cortana/compare/v0.56.18...v0.56.19) (2026-09-08)
+
+
+### Bug Fixes
+
+* **acceptance:** stop Windows renderer server ([#2281](https://github.com/adea-ai/cortana/issues/2281)) ([e7249e7](https://github.com/adea-ai/cortana/commit/e7249e7473c82868004c1f143ab4fd36b927fcf2))
+
 ## [0.56.18](https://github.com/adea-ai/cortana/compare/v0.56.17...v0.56.18) (2026-09-08)
 
 
