@@ -91,6 +91,53 @@
     {
       "type": "generic",
       "path": "src/cortana/__init__.py"
+    },
+    {
+      "type": "generic",
+      "path": "docs/desktop-ux-audit.md"
+    },
+    {
+      "type": "generic",
+      "path": "docs/evaluation.md"
+    },
+    {
+      "type": "generic",
+      "path": "docs/getting-started.md"
+    },
+    {
+      "type": "generic",
+      "path": "docs/ingestion.md"
+    },
+    {
+      "type": "generic",
+      "path": "docs/integrations.md"
+    },
+    {
+      "type": "generic",
+      "path": "docs/memory.md"
+    },
+    {
+      "type": "generic",
+      "path": "docs/query.md"
+    },
+    {
+      "type": "generic",
+      "path": "docs/releases.md"
+    },
+    {
+      "type": "json",
+      "path": "eval/desktop-acceptance-private.example.json",
+      "jsonpath": "$.release.version"
+    },
+    {
+      "type": "json",
+      "path": "eval/live-manifest.example.json",
+      "jsonpath": "$.release_version"
+    },
+    {
+      "type": "json",
+      "path": "eval/relationship-quality-private.example.json",
+      "jsonpath": "$.release_version"
     }
   ]
 }

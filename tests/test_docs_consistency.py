@@ -16,6 +16,12 @@ spec.loader.exec_module(module)
 
 def test_current_release_heading_is_unambiguous() -> None:
     assert module.current_release_version("## Current release: v1.2.3\n") == "1.2.3"
+    assert (
+        module.current_release_version(
+            "## Current release: v1.2.3 <!-- x-release-please-version -->\n"
+        )
+        == "1.2.3"
+    )
 
     with pytest.raises(AssertionError):
         module.current_release_version("")
