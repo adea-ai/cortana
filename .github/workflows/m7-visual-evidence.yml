@@ -3,7 +3,7 @@ name: M7 visual evidence
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    types: [ready_for_review]
     paths:
       - 'apps/web/**'
       - 'scripts/capture-m7-visuals.mjs'
