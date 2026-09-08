@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.56.17](https://github.com/adea-ai/cortana/compare/v0.56.16...v0.56.17) (2026-09-08)
+
+
+### Bug Fixes
+
+* **desktop:** package renderer evidence assets ([#2276](https://github.com/adea-ai/cortana/issues/2276)) ([936c12d](https://github.com/adea-ai/cortana/commit/936c12de5d69dcbe77aea097f7a75419153ef96e))
+
+
+### Maintenance
+
+* **code-foundry:** upgrade to v1.4.1 ([#2271](https://github.com/adea-ai/cortana/issues/2271)) ([4b3f56b](https://github.com/adea-ai/cortana/commit/4b3f56b2a3f09682ef3979e0ee9f48f9f538db56))
+
 ## [0.56.16](https://github.com/adea-ai/cortana/compare/v0.56.15...v0.56.16) (2026-09-07)
 
 
