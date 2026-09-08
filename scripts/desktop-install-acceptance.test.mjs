@@ -116,6 +116,17 @@ test('installer environment isolates user state and disables service side effect
   }
 })
 
+test('installer environment prepares the parent directory for the isolated config', () => {
+  const root = mkdtempSync(join(tmpdir(), 'cortana-install-config-test-'))
+  try {
+    const environment = buildInstallEnvironment({ root, baseEnvironment: {} })
+
+    expect(() => writeFileSync(environment.CORTANA_CONFIG, '[query]\n')).not.toThrow()
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
 test('archive validation requires the release installer payload', () => {
   const root = mkdtempSync(join(tmpdir(), 'cortana-install-archive-test-'))
   try {

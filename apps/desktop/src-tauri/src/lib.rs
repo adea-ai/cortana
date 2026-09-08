@@ -1381,7 +1381,9 @@ fn show_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
             .windows
             .iter()
             .find(|window| window.label == MAIN_WINDOW)?;
-        match tauri::WebviewWindowBuilder::from_config(app, config).and_then(|builder| builder.build()) {
+        match tauri::WebviewWindowBuilder::from_config(app, config)
+            .and_then(|builder| builder.build())
+        {
             Ok(window) => Some(window),
             Err(error) => {
                 eprintln!("create configured Cortana window: {error}");
