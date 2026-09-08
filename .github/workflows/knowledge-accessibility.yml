@@ -17,6 +17,7 @@ on:
       - 'package.json'
   pull_request:
     branches: [main]
+    types: [ready_for_review]
     paths:
       - '.github/workflows/knowledge-accessibility.yml'
       - 'apps/web/**'
@@ -41,6 +42,7 @@ concurrency:
 jobs:
   acceptance:
     name: Chromium, axe, keyboard, and zoom
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

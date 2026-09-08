@@ -140,7 +140,7 @@ fn release_version_files_stay_aligned() {
 fn release_merge_policy_matches_runtime_contract() {
     assert_eq!(config_value("git_workflow"), "direct");
     assert_eq!(config_value("merge_strategy"), "squash");
-    assert_eq!(config_value("release_merge_strategy"), "rebase");
+    assert_eq!(config_value("release_merge_strategy"), "squash");
 }
 
 /// Rust CodeQL shards across the three standalone Cargo manifests: the root
@@ -195,6 +195,7 @@ fn single_canonical_validation_caller() {
 #[test]
 fn validation_caller_pins_runtime_and_has_no_push_trigger() {
     let caller = read(".github/workflows/validation.yml");
+    let audit_caller = read(".github/workflows/validation-audit.yml");
     // Mode-job checkout ref and orchestrator input must both be the pinned tag.
     assert_eq!(
         caller
@@ -214,10 +215,18 @@ fn validation_caller_pins_runtime_and_has_no_push_trigger() {
         !caller.lines().any(|line| line.trim() == "push:"),
         "validation caller must not trigger on push; push+pull_request duplicates are forbidden:\n{caller}"
     );
-    for event in ["pull_request:", "schedule:", "workflow_dispatch:"] {
+    assert!(
+        caller.lines().any(|line| line.trim() == "pull_request:"),
+        "validation caller must keep the pull_request trigger"
+    );
+    assert!(
+        !audit_caller.lines().any(|line| line.trim() == "push:"),
+        "audit caller must not trigger on push:\n{audit_caller}"
+    );
+    for event in ["schedule:", "workflow_dispatch:"] {
         assert!(
-            caller.lines().any(|line| line.trim() == event),
-            "validation caller must keep the {event} trigger"
+            audit_caller.lines().any(|line| line.trim() == event),
+            "audit caller must keep the {event} trigger"
         );
     }
 }
@@ -312,9 +321,9 @@ fn desktop_linux_release_compile_is_gated() {
     }
 
     // The fast aggregate keeps the stable required-check name and fans out to
-    // the detector plus every parallel job. It always runs after needs
-    // (`!cancelled()`), fails only on dependency failure or cancellation, and
-    // treats skipped dependencies (release-please version PRs) as acceptable.
+    // the detector plus every parallel job. It runs after needs for ready PRs
+    // and manual dispatches, stays dormant for drafts, fails only on dependency
+    // failure or cancellation, and treats skipped release PR jobs as acceptable.
     let aggregate = job_block(&desktop, "aggregate");
     assert!(
         aggregate.contains("name: Tauri 2 / Linux"),
@@ -328,8 +337,9 @@ fn desktop_linux_release_compile_is_gated() {
         "aggregate job must depend on the detector and all six parallel jobs:\n{aggregate}"
     );
     assert!(
-        aggregate.contains("if: ${{ !cancelled() }}"),
-        "aggregate job must always run after needs, even when dependencies are skipped:\n{aggregate}"
+        aggregate.contains("!cancelled()")
+            && aggregate.contains("github.event.pull_request.draft == false"),
+        "aggregate job must run after needs for non-draft PRs while staying dormant for drafts:\n{aggregate}"
     );
     assert!(
         aggregate.contains("timeout-minutes:"),
@@ -616,15 +626,18 @@ fn release_caller_targets_main_without_staging_preflight() {
             "release job must keep input `{input}`:\n{release_job}"
         );
     }
-    // The v1.0.0 runtime declares only CODE_FOUNDRY_TOKEN, STAGING_DEPLOY_KEY,
-    // and NPM_TOKEN on its release workflow; RELEASE_PLEASE_TOKEN was removed
-    // with the single-identity upgrade.
-    for secret in ["CODE_FOUNDRY_TOKEN", "STAGING_DEPLOY_KEY", "NPM_TOKEN"] {
+    // The direct workflow has no staging credential. The runtime declares only
+    // CODE_FOUNDRY_TOKEN and NPM_TOKEN on its release workflow.
+    for secret in ["CODE_FOUNDRY_TOKEN", "NPM_TOKEN"] {
         assert!(
             release_job.contains(&format!("{secret}: ${{{{ secrets.{secret} }}}}")),
             "release job must keep passing `{secret}`:\n{release_job}"
         );
     }
+    assert!(
+        !release_job.contains("STAGING_DEPLOY_KEY"),
+        "direct release job must not pass a staging credential:\n{release_job}"
+    );
     for permission in [
         "actions: write",
         "contents: write",

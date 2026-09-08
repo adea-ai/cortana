@@ -197,9 +197,8 @@ release and incident evidence and should be labeled historical when a newer patc
 
 The v0.34.10 source was the release boundary for native agentic memory and the post-v0.31.12
 hardening, bounded live-index evaluation harness, and readiness-budget diagnostics described below.
-Future source-tree changes
-must still use the protected staging and promotion flow, followed by the release verifier, before
-being called downloadable-release behavior.
+Future source-tree changes must use a protected pull request directly into `main`, followed by the
+release verifier, before being called downloadable-release behavior.
 
 The historical source gate was also explicit. On 2026-08-22, 13 sources were enabled and the installed
 v0.34.10 CLI refreshed all of them at the safe 25-document/5 MiB/60-second validation bound. Ten
@@ -482,30 +481,27 @@ sources, enable recurring sync, alter credentials, or trigger a memory write. Th
 version PR, published assets, and strict 18-asset verifier have completed successfully.
 
 Generated version pull requests are restricted to changelog and configured
-version files, then merged automatically without running the code-change test
-matrix. Topic pull requests target the protected `main` branch and squash after
-the required validation gates. Release Please version PRs also target `main`
-and rebase through the protected release contract.
+version files, run the full validation matrix plus the release-diff policy, and
+merge automatically after every required check passes. Topic pull requests
+target the protected `main` branch and squash after the required validation
+gates. Release Please version PRs also target `main` and squash through the
+protected release contract.
 
 ## Direct-main invariant
 
 The repository uses Code Foundry's `direct` workflow. Topic branches start from
 `main` and merge there with squash after the required validation gates. Release
-Please version PRs also target `main` and rebase through the protected release
+Please version PRs also target `main` and squash through the protected release
 contract.
 
 The release caller (`release.yml`) triggers only on pushes to `main` and
-delegates the Release Please contract to the pinned Code Foundry runtime. The
-normal direct workflow requires no staging promotion caller or branch reconciliation. A retained
-legacy branch must not be treated as an active integration lane or replayed into `main` without an
-explicit evidence-backed migration.
+delegates the Release Please contract to the pinned Code Foundry runtime.
 
 The `uv.lock` project entry carries a Release Please version annotation and is
 covered by the package-version regression test, keeping Python lock metadata
 aligned with the shared release manifest after an automated release.
 
-The merge methods are intentionally distinct: topic PRs squash into `main`,
-while Release Please version PRs rebase into `main`. This keeps the protected
+Topic and Release Please PRs both squash into `main`, keeping the protected
 release branch linear without a second integration branch.
 
 ## 0.19.0 release-history recovery
@@ -596,12 +592,7 @@ manual Desktop and source-authorization gates remain separate.
 
 ## Desktop release gates
 
-The desktop pipeline follows a protected two-lane policy:
-
-- **Staging PRs run the required fast aggregate.** `desktop.yml` listens to `staging` so the
-  protected branch always receives the stable `Tauri 2 / Linux` result. Its job-level guards skip
-  the long Linux audit jobs on staging; this keeps staging suitable for rapid integration while
-  still failing closed if the aggregate itself is cancelled or fails.
+The desktop pipeline follows a protected direct-to-`main` policy:
 
 - **Main PRs run the desktop aggregate.** `desktop.yml` exposes the stable
   `Tauri 2 / Linux` aggregate for main-targeted pull requests. Its six

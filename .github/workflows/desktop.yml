@@ -5,6 +5,7 @@ on:
     # Emit the required aggregate for protected main PRs. Job-level guards
     # reserve long desktop audits for main and explicit dispatches.
     branches: [main]
+    types: [ready_for_review]
   # Explicit manual final audit path: dispatch this workflow to force the
   # Linux release compilation on any branch, independent of PR state.
   workflow_dispatch:
@@ -21,6 +22,7 @@ jobs:
   # without starting the expensive desktop jobs for backend-only changes.
   changes:
     name: Detect desktop changes
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-slim
     timeout-minutes: 5
     outputs:
@@ -379,7 +381,7 @@ jobs:
     name: Tauri 2 / Linux
     needs:
       [changes, gtk_provenance, gtk_iterator, security_audit, desktop_test, desktop_clippy, release]
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
