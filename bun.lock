@@ -22,14 +22,14 @@
     },
     "apps/desktop": {
       "name": "@cortana/desktop",
-      "version": "0.56.14",
+      "version": "0.56.17", // x-release-please-version
       "devDependencies": {
         "@tauri-apps/cli": "^2.11.4",
       },
     },
     "apps/web": {
       "name": "@cortana/web",
-      "version": "0.56.14",
+      "version": "0.56.17", // x-release-please-version
       "dependencies": {
         "@base-ui/react": "^1.7.0",
         "@fontsource-variable/geist": "^5.3.0",

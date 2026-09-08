@@ -75,10 +75,31 @@ def test_current_release_matches_all_versioned_project_manifests() -> None:
     assert set(versions.values()) == {release}
 
 
+def test_release_bound_evidence_fixtures_match_current_release() -> None:
+    release = module.current_release_version(
+        (ROOT / "docs" / "releases.md").read_text(encoding="utf-8")
+    )
+
+    versions = module.release_bound_fixture_versions()
+
+    assert versions
+    assert set(versions.values()) == {release}
+
+
 def test_repository_check_rejects_a_stale_project_manifest(monkeypatch: pytest.MonkeyPatch) -> None:
     versions = module.project_release_versions()
     versions["Web app"] = "0.56.2"
     monkeypatch.setattr(module, "project_release_versions", lambda: versions)
+
+    assert module.main() == 1
+
+
+def test_repository_check_rejects_a_stale_release_bound_fixture(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    versions = module.release_bound_fixture_versions()
+    versions["Live evaluation manifest"] = "0.56.2"
+    monkeypatch.setattr(module, "release_bound_fixture_versions", lambda: versions)
 
     assert module.main() == 1
 

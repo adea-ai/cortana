@@ -43,6 +43,40 @@ VERSIONED_PROJECT_MANIFESTS = (
     ("Web app", Path("apps/web/package.json"), "json"),
     ("Desktop app", Path("apps/desktop/package.json"), "json"),
 )
+VERSIONED_JSON_FILES = (
+    ("Release Please manifest", Path(".release-please-manifest.json"), "."),
+    ("Desktop Tauri config", Path("apps/desktop/src-tauri/tauri.conf.json"), "version"),
+)
+VERSIONED_PYTHON_FILES = (("Python module", Path("src/cortana/__init__.py")),)
+VERSIONED_LOCK_PACKAGES = (
+    ("Rust core lock", Path("Cargo.lock"), "cortana"),
+    ("Desktop Rust lock", Path("apps/desktop/src-tauri/Cargo.lock"), "cortana-desktop"),
+    ("Python lock", Path("uv.lock"), "cortana-brain"),
+)
+BUN_WORKSPACES = (
+    ("Bun desktop workspace", "apps/desktop", "@cortana/desktop"),
+    ("Bun web workspace", "apps/web", "@cortana/web"),
+)
+RELEASE_BOUND_FIXTURES = (
+    ("Live evaluation manifest", Path("eval/live-manifest.example.json"), ("release_version",)),
+    (
+        "Relationship-quality evidence fixture",
+        Path("eval/relationship-quality-private.example.json"),
+        ("release_version",),
+    ),
+    (
+        "Desktop acceptance evidence fixture",
+        Path("eval/desktop-acceptance-private.example.json"),
+        ("release", "version"),
+    ),
+)
+PYTHON_VERSION_PATTERN = re.compile(
+    r"""(?m)^__version__\s*=\s*["'](?P<version>\d+\.\d+\.\d+)["']"""
+)
+BUN_WORKSPACE_VERSION_PATTERN = (
+    r"""(?ms)"{workspace}":\s*\{{\s*"name":\s*"{name}","""
+    r'''\s*"version":\s*"(?P<version>\d+\.\d+\.\d+)"'''
+)
 
 FORBIDDEN_PLANNING_HEADINGS = [
     re.compile(r"(?mi)^##+\s+Current status\s*$"),
@@ -81,6 +115,66 @@ def project_release_versions(root: Path = ROOT) -> dict[str, str]:
             value = document.get(section, {}).get("version")
         if not isinstance(value, str) or not re.fullmatch(r"\d+\.\d+\.\d+", value):
             raise AssertionError(f"{label} manifest has no semantic release version")
+        versions[label] = value
+
+    for label, relative_path, key in VERSIONED_JSON_FILES:
+        path = root / relative_path
+        document = json.loads(path.read_text(encoding="utf-8"))
+        value = document.get(key)
+        if not isinstance(value, str) or not re.fullmatch(r"\d+\.\d+\.\d+", value):
+            raise AssertionError(f"{label} has no semantic release version")
+        versions[label] = value
+
+    for label, relative_path in VERSIONED_PYTHON_FILES:
+        path = root / relative_path
+        match = PYTHON_VERSION_PATTERN.search(path.read_text(encoding="utf-8"))
+        value = match.group("version") if match else None
+        if value is None:
+            raise AssertionError(f"{label} has no semantic release version")
+        versions[label] = value
+
+    for label, relative_path, package_name in VERSIONED_LOCK_PACKAGES:
+        path = root / relative_path
+        document = tomllib.loads(path.read_text(encoding="utf-8"))
+        packages = document.get("package")
+        if not isinstance(packages, list):
+            raise AssertionError(f"{label} has no package table")
+        value = next(
+            (package.get("version") for package in packages if package.get("name") == package_name),
+            None,
+        )
+        if not isinstance(value, str) or not re.fullmatch(r"\d+\.\d+\.\d+", value):
+            raise AssertionError(f"{label} has no semantic release version")
+        versions[label] = value
+
+    bun_lock = (root / "bun.lock").read_text(encoding="utf-8")
+    for label, workspace, package_name in BUN_WORKSPACES:
+        pattern = re.compile(
+            BUN_WORKSPACE_VERSION_PATTERN.format(
+                workspace=re.escape(workspace),
+                name=re.escape(package_name),
+            )
+        )
+        match = pattern.search(bun_lock)
+        value = match.group("version") if match else None
+        if value is None:
+            raise AssertionError(f"{label} has no semantic release version")
+        versions[label] = value
+
+    return versions
+
+
+def release_bound_fixture_versions(root: Path = ROOT) -> dict[str, str]:
+    versions: dict[str, str] = {}
+    for label, relative_path, fields in RELEASE_BOUND_FIXTURES:
+        value: object = json.loads((root / relative_path).read_text(encoding="utf-8"))
+        for field in fields:
+            if not isinstance(value, dict):
+                value = None
+                break
+            value = value.get(field)
+        if not isinstance(value, str) or not re.fullmatch(r"\d+\.\d+\.\d+", value):
+            raise AssertionError(f"{label} has no semantic release version")
         versions[label] = value
     return versions
 
@@ -187,6 +281,21 @@ def main() -> int:
                 )
         except (AssertionError, OSError, json.JSONDecodeError, tomllib.TOMLDecodeError) as exc:
             errors.append(f"project release manifest check failed: {exc}")
+
+        try:
+            fixture_versions = release_bound_fixture_versions()
+            mismatches = [
+                f"{label}={version}"
+                for label, version in fixture_versions.items()
+                if version != release_version
+            ]
+            if mismatches:
+                errors.append(
+                    "release-bound evidence fixtures do not match docs/releases.md current release: "
+                    + ", ".join(mismatches)
+                )
+        except (AssertionError, OSError, json.JSONDecodeError) as exc:
+            errors.append(f"release-bound evidence fixture check failed: {exc}")
 
     for path in PLANNING_AUTHORITY_FILES:
         try:
