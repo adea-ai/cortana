@@ -21,6 +21,7 @@ import {
   setViewportAndWaitForLayout,
   waitForInitialKeyboardTarget,
 } from './knowledge-accessibility-browser.mjs'
+import { stopDetachedChild } from './detached-child.mjs'
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const PROJECT_VERSION = JSON.parse(
@@ -110,26 +111,6 @@ async function waitForServer(timeoutMs = 30_000) {
     await new Promise((resolveWait) => setTimeout(resolveWait, 100))
   }
   throw new Error('knowledge accessibility server did not become ready')
-}
-
-async function stopServer(server) {
-  if (!server?.pid || server.exitCode !== null) return
-  try {
-    process.kill(-server.pid, 'SIGTERM')
-  } catch (error) {
-    if (error?.code !== 'ESRCH') server.kill('SIGTERM')
-  }
-  await Promise.race([
-    new Promise((resolveWait) => server.once('exit', resolveWait)),
-    new Promise((resolveWait) => setTimeout(resolveWait, 2_000)),
-  ])
-  if (server.exitCode === null) {
-    try {
-      process.kill(-server.pid, 'SIGKILL')
-    } catch (error) {
-      if (error?.code !== 'ESRCH') server.kill('SIGKILL')
-    }
-  }
 }
 
 async function assertAxe(page, surface) {
@@ -789,7 +770,7 @@ async function run() {
   } finally {
     await largePage?.close()
     await browser?.close()
-    await stopServer(server)
+    await stopDetachedChild(server)
   }
 }
 
