@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.56.18](https://github.com/adea-ai/cortana/compare/v0.56.17...v0.56.18) (2026-09-08)
+
+
+### Bug Fixes
+
+* **acceptance:** complete packaged M10 evidence gate ([#2278](https://github.com/adea-ai/cortana/issues/2278)) ([bd31330](https://github.com/adea-ai/cortana/commit/bd31330c389b928a2fd618b366bec33c7b28a311))
+* **release:** gate docs and evidence version drift ([#2275](https://github.com/adea-ai/cortana/issues/2275)) ([1b35eca](https://github.com/adea-ai/cortana/commit/1b35eca4397a85ddf30d700ae572f46243bc45f7))
+* **release:** update evidence with release versions ([#2280](https://github.com/adea-ai/cortana/issues/2280)) ([f15c7c8](https://github.com/adea-ai/cortana/commit/f15c7c8ddcc3407e7e3d781a8faac94e823d190e))
+
 ## [0.56.17](https://github.com/adea-ai/cortana/compare/v0.56.16...v0.56.17) (2026-09-08)
 
 
