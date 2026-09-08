@@ -321,9 +321,9 @@ fn desktop_linux_release_compile_is_gated() {
     }
 
     // The fast aggregate keeps the stable required-check name and fans out to
-    // the detector plus every parallel job. It always runs after needs
-    // (`!cancelled()`), fails only on dependency failure or cancellation, and
-    // treats skipped dependencies (release-please version PRs) as acceptable.
+    // the detector plus every parallel job. It runs after needs for ready PRs
+    // and manual dispatches, stays dormant for drafts, fails only on dependency
+    // failure or cancellation, and treats skipped release PR jobs as acceptable.
     let aggregate = job_block(&desktop, "aggregate");
     assert!(
         aggregate.contains("name: Tauri 2 / Linux"),
@@ -337,8 +337,9 @@ fn desktop_linux_release_compile_is_gated() {
         "aggregate job must depend on the detector and all six parallel jobs:\n{aggregate}"
     );
     assert!(
-        aggregate.contains("if: ${{ !cancelled() }}"),
-        "aggregate job must always run after needs, even when dependencies are skipped:\n{aggregate}"
+        aggregate.contains("!cancelled()")
+            && aggregate.contains("github.event.pull_request.draft == false"),
+        "aggregate job must run after needs for non-draft PRs while staying dormant for drafts:\n{aggregate}"
     );
     assert!(
         aggregate.contains("timeout-minutes:"),
