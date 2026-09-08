@@ -33,7 +33,10 @@ ACTIVE_DOCUMENTATION_FILES = [
 MILESTONE_LINK = "https://github.com/adea-ai/cortana/milestones"
 ISSUE_LINK = "https://github.com/adea-ai/cortana/issues"
 
-CURRENT_RELEASE_PATTERN = re.compile(r"(?m)^## Current release: v(?P<version>\d+\.\d+\.\d+)\s*$")
+CURRENT_RELEASE_PATTERN = re.compile(
+    r"(?m)^## Current release: v(?P<version>\d+\.\d+\.\d+)"
+    r"(?:\s+<!-- x-release-please-version -->)?\s*$"
+)
 VERSION_REFERENCE_PATTERN = re.compile(r"\bv(?P<version>\d+\.\d+\.\d+)\b")
 
 VERSIONED_PROJECT_MANIFESTS = (
