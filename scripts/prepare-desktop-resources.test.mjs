@@ -35,6 +35,7 @@ test('prepares a complete connector tree and leaves no staging directories', () 
   const root = makeFixture()
   try {
     const destination = prepareResources(root)
+    expect(existsSync(join(root, 'apps', 'web', 'dist'))).toBe(true)
     expect(readFileSync(join(destination, 'pyproject.toml'), 'utf8')).toContain('fixture')
     expect(readFileSync(join(destination, 'src', 'cortana', 'connector.py'), 'utf8')).toContain(
       'ok'
