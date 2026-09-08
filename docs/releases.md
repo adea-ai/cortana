@@ -197,9 +197,8 @@ release and incident evidence and should be labeled historical when a newer patc
 
 The v0.34.10 source was the release boundary for native agentic memory and the post-v0.31.12
 hardening, bounded live-index evaluation harness, and readiness-budget diagnostics described below.
-Future source-tree changes
-must still use the protected staging and promotion flow, followed by the release verifier, before
-being called downloadable-release behavior.
+Future source-tree changes must use a protected pull request directly into `main`, followed by the
+release verifier, before being called downloadable-release behavior.
 
 The historical source gate was also explicit. On 2026-08-22, 13 sources were enabled and the installed
 v0.34.10 CLI refreshed all of them at the safe 25-document/5 MiB/60-second validation bound. Ten
@@ -593,12 +592,7 @@ manual Desktop and source-authorization gates remain separate.
 
 ## Desktop release gates
 
-The desktop pipeline follows a protected two-lane policy:
-
-- **Staging PRs run the required fast aggregate.** `desktop.yml` listens to `staging` so the
-  protected branch always receives the stable `Tauri 2 / Linux` result. Its job-level guards skip
-  the long Linux audit jobs on staging; this keeps staging suitable for rapid integration while
-  still failing closed if the aggregate itself is cancelled or fails.
+The desktop pipeline follows a protected direct-to-`main` policy:
 
 - **Main PRs run the desktop aggregate.** `desktop.yml` exposes the stable
   `Tauri 2 / Linux` aggregate for main-targeted pull requests. Its six
