@@ -622,7 +622,7 @@ fn release_caller_targets_main_without_staging_preflight() {
     for secret in ["CODE_FOUNDRY_TOKEN", "STAGING_DEPLOY_KEY", "NPM_TOKEN"] {
         assert!(
             release_job.contains(&format!("{secret}: ${{{{ secrets.{secret} }}}}")),
-            "release job must keep passing `{secret}`:\n{release_job}"
+            "release job must keep passing the required secret mapping"
         );
     }
     for permission in [
