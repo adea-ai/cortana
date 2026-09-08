@@ -44,12 +44,12 @@ def test_acceptance_workflow_gates_the_macos_native_lifecycle_lane() -> None:
     assert "continue-on-error" not in workflow[start:end]
 
 
-def test_acceptance_workflow_uses_the_release_compatible_renderer_fixture() -> None:
+def test_acceptance_workflow_runs_the_packaged_large_renderer_fixture() -> None:
     workflow = WORKFLOW.read_text(encoding="utf-8")
 
-    assert workflow.count("CORTANA_KNOWLEDGE_RUN_LARGE=false") == 1
-    assert workflow.count("$env:CORTANA_KNOWLEDGE_RUN_LARGE = 'false'") == 1
-    assert "CORTANA_KNOWLEDGE_RUN_LARGE=true" not in workflow
+    assert workflow.count("CORTANA_KNOWLEDGE_RUN_LARGE=true") == 1
+    assert workflow.count("$env:CORTANA_KNOWLEDGE_RUN_LARGE = 'true'") == 1
+    assert "CORTANA_KNOWLEDGE_RUN_LARGE=false" not in workflow
 
 
 def test_acceptance_workflow_labels_published_renderer_provenance() -> None:

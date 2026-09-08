@@ -109,6 +109,7 @@ export function buildInstallEnvironment({ root, baseEnvironment = process.env })
   for (const directory of [
     stateRoot,
     configHome,
+    resolve(configHome, 'cortana'),
     dataHome,
     prefix,
     tempHome,

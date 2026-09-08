@@ -393,7 +393,7 @@ jobs:
           CORTANA_KNOWLEDGE_VERSION="$CORTANA_VERSION" \
           CORTANA_KNOWLEDGE_REVISION="$RELEASE_TAG" \
           CORTANA_KNOWLEDGE_INSTALLATION_TYPE=published-package-renderer \
-          CORTANA_KNOWLEDGE_RUN_LARGE=false \
+          CORTANA_KNOWLEDGE_RUN_LARGE=true \
           node scripts/knowledge-accessibility-acceptance.mjs
 
       - name: Run packaged knowledge accessibility acceptance (Windows)
@@ -407,7 +407,7 @@ jobs:
           $env:CORTANA_KNOWLEDGE_VERSION = $env:CORTANA_VERSION
           $env:CORTANA_KNOWLEDGE_REVISION = $env:RELEASE_TAG
           $env:CORTANA_KNOWLEDGE_INSTALLATION_TYPE = 'published-package-renderer'
-          $env:CORTANA_KNOWLEDGE_RUN_LARGE = 'false'
+          $env:CORTANA_KNOWLEDGE_RUN_LARGE = 'true'
           node scripts/knowledge-accessibility-acceptance.mjs
 
       - name: Upload acceptance evidence
