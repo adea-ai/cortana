@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.56.20](https://github.com/adea-ai/cortana/compare/v0.56.19...v0.56.20) (2026-09-08)
+
+
+### Maintenance
+
+* **ci:** upgrade Code Foundry to v1.9.11 ([#2277](https://github.com/adea-ai/cortana/issues/2277)) ([5f352be](https://github.com/adea-ai/cortana/commit/5f352be86e9ee5f39a462cf7fb75c5964197a694))
+
 ## [0.56.19](https://github.com/adea-ai/cortana/compare/v0.56.18...v0.56.19) (2026-09-08)
 
 
