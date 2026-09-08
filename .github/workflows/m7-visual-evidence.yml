@@ -3,6 +3,7 @@ name: M7 visual evidence
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
       - 'apps/web/**'
       - 'scripts/capture-m7-visuals.mjs'
@@ -20,6 +21,7 @@ concurrency:
 jobs:
   capture:
     name: Capture and audit
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
