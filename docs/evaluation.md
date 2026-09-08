@@ -352,11 +352,10 @@ resizes.
 
 The published-package acceptance workflow also extracts the exact release bundle's
 `share/cortana/web` directory and runs the standard document/graph acceptance against that immutable
-renderer through a loopback static server. The current `v0.56.17` bundle predates the provider-free
-large-corpus fixture, so the workflow sets `CORTANA_KNOWLEDGE_RUN_LARGE=false` for that release and
-records the release-compatible document/graph screenshots and resource measurements. The current
-source/preview lane sets the large fixture explicitly; a future published bundle that contains it
-may set `CORTANA_KNOWLEDGE_RUN_LARGE=true`. That lane still checks keyboard operation, responsive layout,
+renderer through a loopback static server. The current `v0.56.17` bundle includes the provider-free
+large-corpus fixture, so the workflow sets `CORTANA_KNOWLEDGE_RUN_LARGE=true` and records its bounded
+document/graph screenshots and resource measurements. The current source/preview lane also sets the
+large fixture explicitly. The package lane still checks keyboard operation, responsive layout,
 axe, provenance, graph controls, console cleanliness, screenshots, and resource observations; a
 failure is written as `report.json` and remains a failure. It does not convert the current source
 renderer report into evidence for an older immutable package.

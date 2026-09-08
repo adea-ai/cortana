@@ -30,3 +30,6 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           HEAD_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
         run: python3 scripts/check-release-version.py --base "$BASE_SHA" --head "$HEAD_SHA" --head-ref "$HEAD_REF"
+      - name: Validate release metadata and evidence
+        if: startsWith(github.event.pull_request.head.ref || github.ref_name, 'release-please--branches--main')
+        run: python3 scripts/check-docs-consistency.py
