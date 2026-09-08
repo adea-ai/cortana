@@ -36,9 +36,10 @@
     "externalBin": [
       "binaries/cortana"
     ],
-    "resources": [
-      "resources/cortana-connectors"
-    ],
+    "resources": {
+      "../../web/dist": "share/cortana/web",
+      "resources/cortana-connectors": "resources/cortana-connectors"
+    },
     "category": "Productivity",
     "copyright": "Copyright 2026 Cortana contributors",
     "createUpdaterArtifacts": true,

@@ -56,6 +56,10 @@ function acquireLock(lockPath) {
 
 export function prepareResources(root = resolve(dirname(fileURLToPath(import.meta.url)), '..')) {
   const source = resolve(root, 'src/cortana')
+  // Cargo-only desktop checks do not run Tauri's beforeBuildCommand. Keep the
+  // declared renderer resource present in fresh checkouts; release builds
+  // replace this empty directory with the compiled web application.
+  mkdirSync(resolve(root, 'apps/web/dist'), { recursive: true })
   const destination = resolve(root, 'apps/desktop/src-tauri/resources/cortana-connectors')
   const parent = dirname(destination)
   mkdirSync(parent, { recursive: true })

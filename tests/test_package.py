@@ -68,3 +68,14 @@ def test_release_manifest_has_one_shared_application_version() -> None:
         "test:native",
     ):
         assert "../../scripts/run-desktop-command.mjs" in desktop["scripts"][script_name]
+
+
+def test_desktop_package_exposes_the_renderer_for_packaged_acceptance() -> None:
+    desktop_config = json.loads(
+        (ROOT / "apps/desktop/src-tauri/tauri.conf.json").read_text(encoding="utf-8")
+    )
+
+    assert desktop_config["bundle"]["resources"] == {
+        "../../web/dist": "share/cortana/web",
+        "resources/cortana-connectors": "resources/cortana-connectors",
+    }
