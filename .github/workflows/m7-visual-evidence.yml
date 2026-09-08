@@ -40,7 +40,7 @@ jobs:
         run: |
           bun run dev -- --host 127.0.0.1 --port 4173 > "$RUNNER_TEMP/cortana-vite.log" 2>&1 &
           echo "VITE_PID=$!" >> "$GITHUB_ENV"
-          for attempt in {1..30}; do
+          for _ in {1..30}; do
             curl --fail --silent http://127.0.0.1:4173/ >/dev/null && exit 0
             sleep 1
           done

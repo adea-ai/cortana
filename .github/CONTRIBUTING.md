@@ -1,5 +1,7 @@
 # Contributing
 
+<!-- code-foundry-managed: config-aware-policy -->
+
 This guide is the operating contract for humans and automation contributing to this repository.
 
 It applies to TypeScript, Rust, Python, and mixed-language projects using this template.
@@ -17,18 +19,11 @@ Agents must follow these rules before changing code:
 1. Read this file, `AGENTS.md`, and the relevant project documentation.
 2. Inspect the current branch, worktree, remotes, and existing changes before editing.
 3. Preserve user-owned changes. Never discard or overwrite unrelated work.
-4. Branch from `main` and target feature pull requests at `main`; do not push directly to `main`.
+4. Branch from `main` and target pull requests at `main`; do not push directly to `main`.
 5. Keep the change focused. Do not expand scope without documenting why.
-6. Run the applicable format, lint, type-check, build, unit, integration, E2E, smoke, and security checks.
+6. Run the applicable format, lint, type-check, build, unit, performance, integration, E2E, smoke, and security checks.
 7. Report exact validation results, skipped checks, known limitations, and remaining risks.
 8. Never commit secrets, credentials, local environment files, generated artifacts, or machine-specific paths.
-9. Keep user-facing documentation synchronized with the change. For a feature or safety change,
-   update the relevant guide and check [the documentation index](../docs/README.md) and root
-   [README](../README.md) when durable behavior or document ownership changes. GitHub milestones
-   and issues remain authoritative for current work and status. For a release, update the
-   current-release section in `docs/releases.md` and link any evaluation, operations,
-   source-rollout, or packaged-Desktop evidence from that release record or the owning issue;
-   do not add parallel status sections to durable guides.
 
 Agents must not:
 
@@ -53,15 +48,15 @@ docs/*  test/*  refactor/*         │
 | `main`                                                         | Protected release branch | Merge through pull requests only. No direct pushes.    |
 | `feat/*`, `fix/*`, `chore/*`, `refactor/*`, `docs/*`, `test/*` | Focused work             | Branch from `main`; keep changes small and reviewable. |
 
-The Git workflow is `direct`: topic branches **squash** directly into `main`, and the Release Please version PR **rebases** into `main` (`release_merge_strategy: rebase`). Release automation never defaults to a merge method and never merges with `--admin`; `code-foundry doctor` and `code-foundry sync` fail closed on any other release merge strategy.
+The Git workflow is `direct`: topic branches **squash** directly into `main`, and the Release Please version PR **squashes** into `main` (`release_merge_strategy: squash`). Release automation never defaults to a merge method and never merges with `--admin`; `code-foundry doctor` and `code-foundry sync` fail closed on any other release merge strategy. Feature branches never touch `staging`; repositories with a preview/staging environment opt into `git_workflow: staging-release` explicitly.
 
 ## Before you start
 
 ### Toolchain
 
-1. Run `bunx code-foundry init` to detect the repository and enable hooks.
+1. Run `npx code-foundry init` to detect the repository and enable hooks.
 2. Follow `toolchain: auto` in `.github/code-foundry.yml`; install mise only if the repository already uses it or explicitly selects it.
-3. Use `bunx code-foundry doctor` when setup, lockfiles, or hooks appear out of sync.
+3. Use `npx code-foundry doctor` when setup, lockfiles, or hooks appear out of sync.
 4. Use the repository's existing package manager and lockfile. Do not introduce a second package manager.
 5. Copy `.env.example` to the appropriate local environment file when provided. Never commit the copy.
 
@@ -82,11 +77,11 @@ If the worktree is dirty, stop and understand the existing changes before switch
 The repository runtime detects supported tools and skips checks that do not apply:
 
 ```sh
-bunx code-foundry doctor
-bun run format
-bun run lint
-bun run type-check
-bun run test
+npx code-foundry doctor
+npm run format:check   # or the package manager's equivalent
+npm run lint
+npm run type-check
+npm test
 Security and dependency audits run through the GitHub Security workflow.
 ```
 
@@ -112,7 +107,7 @@ For maintainers, trusted contributors, and automation agents:
 
 8. Push the branch and open a pull request into `main`.
 9. Address review feedback and failed checks on the same branch.
-10. Merge feature pull requests with a squash after required checks pass; Release Please version PRs use the required rebase contract.
+10. Merge with a squash after required checks pass and the change is ready; feature PRs land on `main` with squash merges.
 
 ### Internal agent handoff
 
@@ -158,19 +153,17 @@ Keep pull requests focused and reviewable. Include screenshots or recordings for
 
 ## Workflow and check behavior
 
-| Event                                              | Expected automation                                                                   |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Pull request targeting `main`                      | Audit validation: CI, full tests, Security, and CodeQL, ending in `Validation / Gate` |
-| Exact Release Please pull request targeting `main` | Release-policy validation only, ending in `Validation / Gate`                         |
-| Scheduled or manual validation                     | Full audit tier                                                                       |
-| Push to a working branch                           | Draft PR workflow                                                                     |
-| Push to `main`                                     | Release workflow; canonical validation already ran on the merged PR                   |
+| Event | Expected automation |
+|------------------------------------------------------------------------------------------------------------------------------------------------|
+| Draft pull request targeting `main` | No runner-heavy validation; run local checks before requesting review |
+| Ready pull request targeting `main` | Audit validation: CI, full tests, Security, and CodeQL, ending in `Validation / Gate` |
+| Exact Release Please pull request targeting `main` | Release-policy validation only, ending in `Validation / Gate` |
+| Scheduled or manual validation | Full audit tier |
+| Push to a working branch | Draft PR workflow |
+| Push to `main` | Release workflow; canonical validation already ran on the merged PR |
+Draft pull requests do not start runner-heavy validation. Marking a pull request ready for review starts the applicable validation tier; converting it back to draft cancels in-flight validation, and no replacement starts until it is ready again.
 
-The single validation caller uses `main` as the protected integration and release target. It keys
-concurrency by event and pull-request head. A newer update to the same pull request cancels its
-superseded validation run; scheduled and manual audits remain independent. The mode-aware
-orchestrator fans out only the jobs required by that event and always concludes with the stable
-aggregate gate.
+Pull-request validation keys concurrency by event and pull-request head, so a newer update cancels its superseded run. Scheduled and manual audits use a separate caller pinned to the protected default branch; this prevents caller-selected runtime code from executing with default-branch cache access. Both callers use the mode-aware orchestrator, which fans out only the required jobs and concludes with the stable aggregate gate.
 
 Required checks are enforced by branch protection rulesets/branch protection. Do not duplicate their checklists in the pull request description; document validation commands and results instead.
 
@@ -182,11 +175,10 @@ Security checks can be skipped when repository visibility or the GitHub plan doe
 
 ## Review and merge protocol
 
-| Change                    | Target | Merge method                                    | Merge gate                              |
-| ------------------------- | ------ | ----------------------------------------------- | --------------------------------------- |
-| Working branch            | `main` | Squash                                          | All applicable required checks pass     |
-| Release Please version PR | `main` | Rebase (`release_merge_strategy`, fails closed) | Validation gate and release policy pass |
-
+| Change | Target | Merge method | Merge gate |
+|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Working branch | `main` | Squash | All applicable required checks pass |
+| Release Please version PR | `main` | Squash (`release_merge_strategy`) | Validation gate and release policy pass |
 Reviewers focus on correctness, security, maintainability, test coverage, operational impact, and compatibility. Authors remain responsible for responding to feedback and verifying the final commit.
 
 ## Security and emergencies

@@ -140,7 +140,7 @@ fn release_version_files_stay_aligned() {
 fn release_merge_policy_matches_runtime_contract() {
     assert_eq!(config_value("git_workflow"), "direct");
     assert_eq!(config_value("merge_strategy"), "squash");
-    assert_eq!(config_value("release_merge_strategy"), "rebase");
+    assert_eq!(config_value("release_merge_strategy"), "squash");
 }
 
 /// Rust CodeQL shards across the three standalone Cargo manifests: the root
@@ -195,6 +195,7 @@ fn single_canonical_validation_caller() {
 #[test]
 fn validation_caller_pins_runtime_and_has_no_push_trigger() {
     let caller = read(".github/workflows/validation.yml");
+    let audit_caller = read(".github/workflows/validation-audit.yml");
     // Mode-job checkout ref and orchestrator input must both be the pinned tag.
     assert_eq!(
         caller
@@ -214,10 +215,18 @@ fn validation_caller_pins_runtime_and_has_no_push_trigger() {
         !caller.lines().any(|line| line.trim() == "push:"),
         "validation caller must not trigger on push; push+pull_request duplicates are forbidden:\n{caller}"
     );
-    for event in ["pull_request:", "schedule:", "workflow_dispatch:"] {
+    assert!(
+        caller.lines().any(|line| line.trim() == "pull_request:"),
+        "validation caller must keep the pull_request trigger"
+    );
+    assert!(
+        !audit_caller.lines().any(|line| line.trim() == "push:"),
+        "audit caller must not trigger on push:\n{audit_caller}"
+    );
+    for event in ["schedule:", "workflow_dispatch:"] {
         assert!(
-            caller.lines().any(|line| line.trim() == event),
-            "validation caller must keep the {event} trigger"
+            audit_caller.lines().any(|line| line.trim() == event),
+            "audit caller must keep the {event} trigger"
         );
     }
 }
