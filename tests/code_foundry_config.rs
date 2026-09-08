@@ -626,15 +626,18 @@ fn release_caller_targets_main_without_staging_preflight() {
             "release job must keep input `{input}`:\n{release_job}"
         );
     }
-    // The v1.0.0 runtime declares only CODE_FOUNDRY_TOKEN, STAGING_DEPLOY_KEY,
-    // and NPM_TOKEN on its release workflow; RELEASE_PLEASE_TOKEN was removed
-    // with the single-identity upgrade.
-    for secret in ["CODE_FOUNDRY_TOKEN", "STAGING_DEPLOY_KEY", "NPM_TOKEN"] {
+    // The direct workflow has no staging credential. The runtime declares only
+    // CODE_FOUNDRY_TOKEN and NPM_TOKEN on its release workflow.
+    for secret in ["CODE_FOUNDRY_TOKEN", "NPM_TOKEN"] {
         assert!(
             release_job.contains(&format!("{secret}: ${{{{ secrets.{secret} }}}}")),
             "release job must keep passing `{secret}`:\n{release_job}"
         );
     }
+    assert!(
+        !release_job.contains("STAGING_DEPLOY_KEY"),
+        "direct release job must not pass a staging credential:\n{release_job}"
+    );
     for permission in [
         "actions: write",
         "contents: write",
