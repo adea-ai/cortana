@@ -4,6 +4,11 @@
 node_modules
 target
 apps/*/node_modules
+# The server image builds the React app, not the Tauri desktop shell. Keep the
+# package manifest available so the pre-change benchmark Dockerfile remains
+# reproducible, but exclude the desktop source and native build context.
+apps/desktop/*
+!apps/desktop/package.json
 apps/*/dist
 artifacts
 dist

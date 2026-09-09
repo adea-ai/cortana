@@ -9,15 +9,16 @@ on:
       - .dockerignore
       - deploy/self-hosted/**
       - src/**
+      - eval/**
       - Cargo.toml
       - Cargo.lock
       - pyproject.toml
-      - uv.lock
       - apps/web/**
       - scripts/self-hosted-conformance.sh
-      - tests/test_self_hosted_deployment.py
+      - scripts/check-web-*.mjs
       - package.json
       - bun.lock
+      - bunfig.toml
       - .github/workflows/container.yml
   push:
     tags:
@@ -26,30 +27,51 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 concurrency:
   group: container-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Do not interrupt publication halfway through updating release aliases.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  BUILDKIT_PROGRESS: plain
+  DOCKER_BUILD_RECORD_RETENTION_DAYS: 7
 
 jobs:
   image:
-    name: Build
+    name: Build (${{ matrix.arch }})
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Set up QEMU
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4.3.0
+      - name: Prepare image references
+        id: prepare
+        env:
+          REPOSITORY: ghcr.io/${{ github.repository }}
+        run: |
+          echo "image=${REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          echo "local=cortana:conformance" >> "$GITHUB_OUTPUT"
+          mkdir -p reports
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
 
       - name: Log in to GHCR
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
@@ -60,29 +82,147 @@ jobs:
         id: metadata
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=ref,event=tag
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
-            type=raw,value=conformance,enable=${{ !startsWith(github.ref, 'refs/tags/v') }}
+          images: ${{ steps.prepare.outputs.image }}
 
-      - name: Build and publish image
+      - name: Start build timer
+        run: date +%s > reports/build-started
+
+      - name: Build image
+        id: build
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
           context: .
-          push: ${{ startsWith(github.ref, 'refs/tags/v') }}
-          load: ${{ !startsWith(github.ref, 'refs/tags/v') }}
-          platforms: ${{ startsWith(github.ref, 'refs/tags/v') && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
-          tags: ${{ steps.metadata.outputs.tags }}
+          platforms: linux/${{ matrix.arch }}
+          push: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+          load: ${{ github.event_name != 'push' }}
+          # Push immutable digests only. Release aliases are promoted after both gates.
+          outputs: ${{ github.event_name == 'push' && format('type=image,name={0},push-by-digest=true,name-canonical=true,push=true', steps.prepare.outputs.image) || '' }}
+          tags: ${{ github.event_name == 'push' && steps.prepare.outputs.image || steps.prepare.outputs.local }}
           labels: ${{ steps.metadata.outputs.labels }}
           build-args: CORTANA_VERSION=${{ github.ref_name }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          provenance: ${{ startsWith(github.ref, 'refs/tags/v') && 'mode=max' || false }}
-          sbom: ${{ startsWith(github.ref, 'refs/tags/v') }}
+          # Tags can read default-branch caches, not another tag's cache. The manual
+          # benchmark primes these two scopes on main; PRs/tags never export caches.
+          cache-from: type=gha,scope=container-native-v1-${{ matrix.arch }}
+          provenance: ${{ github.event_name == 'push' && 'mode=max' || false }}
+          sbom: ${{ github.event_name == 'push' }}
+
+      - name: Record build timings
+        if: always() && steps.build.outcome != 'skipped'
+        continue-on-error: true
+        run: |
+          date +%s > reports/build-finished
+          docker buildx history logs --progress rawjson 2> reports/build.jsonl
+          python scripts/container_release.py timings --log reports/build.jsonl \
+            --started reports/build-started --finished reports/build-finished \
+            --output reports/timings.json \
+            --strategy native --platforms linux/${{ matrix.arch }} --cache warm
+
+      - name: Verify published platform evidence
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          IMAGE: ${{ steps.prepare.outputs.image }}@${{ steps.build.outputs.digest }}
+        run: python scripts/container_release.py verify --image "$IMAGE" --platforms linux/${{ matrix.arch }}
 
       - name: Run self-hosted provider conformance
-        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         env:
-          CORTANA_CONFORMANCE_IMAGE: ${{ steps.metadata.outputs.tags }}
-        run: scripts/self-hosted-conformance.sh
+          CORTANA_CONFORMANCE_IMAGE: ${{ github.event_name == 'push' && format('{0}@{1}', steps.prepare.outputs.image, steps.build.outputs.digest) || steps.prepare.outputs.local }}
+        run: |
+          set -euo pipefail
+          bash scripts/self-hosted-conformance.sh 2>&1 | tee reports/conformance.log
+
+      - name: Export validated digest
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          mkdir -p digests
+          touch "digests/${DIGEST#sha256:}"
+
+      - name: Upload validated digest
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: image-digest-${{ matrix.arch }}
+          path: digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: container-${{ matrix.arch }}-${{ github.run_attempt }}
+          path: reports/
+          retention-days: 7
+
+  publish:
+    name: Publish manifest
+    needs: image
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    concurrency:
+      group: container-publish
+      cancel-in-progress: false
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download validated digests
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: image-digest-*
+          path: digests
+          merge-multiple: true
+      - name: Verify and publish manifest
+        env:
+          REPOSITORY: ghcr.io/${{ github.repository }}
+        run: |
+          set -euo pipefail
+          IMAGE="${REPOSITORY,,}"
+          sources=()
+          for file in digests/*; do
+            digest="${file##*/}"
+            [[ "$digest" =~ ^[0-9a-f]{64}$ ]]
+            sources+=("$IMAGE@sha256:$digest")
+          done
+          test "${#sources[@]}" -eq 2
+          # This checks the exact merged descriptors before any tag is changed.
+          docker buildx imagetools create --dry-run "${sources[@]}" > candidate-index.json
+          python scripts/container_release.py verify --index candidate-index.json
+          docker buildx imagetools create --metadata-file manifest-metadata.json \
+            --tag "$IMAGE:$GITHUB_REF_NAME" --tag "$IMAGE:latest" "${sources[@]}"
+          DIGEST="$(jq -er '."containerimage.descriptor".digest' manifest-metadata.json)"
+          python scripts/container_release.py verify --image "$IMAGE@$DIGEST"
+          export IMAGE DIGEST
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          image = f"{os.environ['IMAGE']}@{os.environ['DIGEST']}"
+          data = {"image": image, "digest": os.environ["DIGEST"],
+                  "ref": os.environ["GITHUB_REF_NAME"], "sha": os.environ["GITHUB_SHA"]}
+          Path("release-image.json").write_text(json.dumps(data, indent=2) + "\n")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as stream:
+              stream.write(f"## Verified release image\n\n`{image}`\n")
+          PY
+      - name: Upload verified release metadata
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-image-${{ github.sha }}
+          path: |
+            release-image.json
+            candidate-index.json
+            manifest-metadata.json
+          if-no-files-found: error
+          retention-days: 7

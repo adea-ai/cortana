@@ -47,23 +47,22 @@ def test_container_release_workflow_is_tag_scoped_and_publishes_ghcr() -> None:
     assert "tags:" in workflow and "- 'v*'" in workflow
     assert "packages: write" in workflow
     assert "ghcr.io/${{ github.repository }}" in workflow
-    assert "push: ${{ startsWith(github.ref, 'refs/tags/v') }}" in workflow
-    assert (
-        "provenance: ${{ startsWith(github.ref, 'refs/tags/v') && 'mode=max' || false }}"
-        in workflow
-    )
-    assert "sbom: ${{ startsWith(github.ref, 'refs/tags/v') }}" in workflow
-    assert "docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a" in workflow
+    assert "github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')" in workflow
+    assert "provenance: ${{ github.event_name == 'push' && 'mode=max' || false }}" in workflow
+    assert "sbom: ${{ github.event_name == 'push' }}" in workflow
+    assert "docker/setup-qemu-action" not in workflow
+    assert "runner: ubuntu-24.04-arm" in workflow
+    assert "platforms: linux/${{ matrix.arch }}" in workflow
     assert "docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e" in workflow
     assert "docker/login-action@dbcb813823bdd20940b903addbd779551569679f" in workflow
     assert "docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302" in workflow
     assert "docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a" in workflow
-    assert (
-        "platforms: ${{ startsWith(github.ref, 'refs/tags/v') "
-        "&& 'linux/amd64,linux/arm64' || 'linux/amd64' }}" in workflow
-    )
-    assert "CORTANA_CONFORMANCE_IMAGE: ${{ steps.metadata.outputs.tags }}" in workflow
+    assert "push-by-digest=true" in workflow
+    assert "needs: image" in workflow
+    assert "CORTANA_CONFORMANCE_IMAGE:" in workflow
     assert "scripts/self-hosted-conformance.sh" in workflow
+    assert "verify --image" in workflow
+    assert "release-image.json" in workflow
 
 
 def test_multiarch_build_isolates_architecture_specific_cargo_caches() -> None:
@@ -71,7 +70,8 @@ def test_multiarch_build_isolates_architecture_specific_cargo_caches() -> None:
 
     assert "ARG TARGETARCH" in dockerfile
     assert "id=cargo-registry-${TARGETARCH}" in dockerfile
-    assert "id=cargo-target-${TARGETARCH}" in dockerfile
+    assert "cargo-skeleton/src" in dockerfile
+    assert "id=cargo-target-${TARGETARCH}" not in dockerfile
 
 
 def test_self_hosted_conformance_drill_is_bounded_and_cleans_up() -> None:
