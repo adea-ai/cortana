@@ -48,8 +48,9 @@ for (const id of cacheJobs) {
     const source = cache(id)
     assert.match(source, /actions\/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9/)
     const prefix =
-      '${{ runner.os }}-${{ runner.arch }}-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v2-${{ github.job }}-'
+      '${{ runner.os }}-${{ runner.arch }}-ubuntu-24.04-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v2-${{ github.job }}-'
     assert.ok(key(id).startsWith(prefix), key(id))
+    assert.match(job(id), /runs-on: ubuntu-24\.04\n/)
     assert.match(key(id), /hashFiles\('rust-toolchain.toml', '\.cargo\/config\*'/)
     assert.match(key(id), /hashFiles\('Cargo.toml', 'Cargo.lock'/)
     assert.match(key(id), /hashFiles\('apps\/desktop\/src-tauri\/Cargo.lock'\)/)
