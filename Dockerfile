@@ -26,17 +26,21 @@ WORKDIR /src
 COPY Cargo.toml Cargo.lock ./
 # Keep the dependency graph in a reusable layer. Source changes then rebuild
 # only the application crate instead of recompiling every dependency.
+# Container builds favor iteration speed; keep the desktop release profile's
+# ThinLTO/single-codegen-unit settings unchanged outside this image.
 RUN --mount=type=cache,id=cargo-registry-${TARGETARCH},target=/usr/local/cargo/registry \
     mkdir -p cargo-skeleton/src \
     && cp Cargo.toml Cargo.lock cargo-skeleton/ \
     && printf '\n[workspace]\n' >> cargo-skeleton/Cargo.toml \
     && printf 'fn main() {}\n' > cargo-skeleton/src/main.rs \
-    && cargo build --manifest-path cargo-skeleton/Cargo.toml --target-dir /src/target \
+    && CARGO_PROFILE_RELEASE_LTO=false CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16 \
+      cargo build --manifest-path cargo-skeleton/Cargo.toml --target-dir /src/target \
       --release --locked --bin cortana \
     && rm -rf cargo-skeleton
 COPY src src
 COPY eval eval
 RUN --mount=type=cache,id=cargo-registry-${TARGETARCH},target=/usr/local/cargo/registry \
+    CARGO_PROFILE_RELEASE_LTO=false CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16 \
     cargo build --release --locked --bin cortana \
     && cp /src/target/release/cortana /usr/local/bin/cortana
 

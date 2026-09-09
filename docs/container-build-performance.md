@@ -58,8 +58,19 @@ volumes, network exposure, dependencies and lockfiles are unchanged.
 The Rust stage compiles a minimal `cargo-skeleton` in a dependency-only layer
 before copying application sources. A source change can therefore reuse the
 large dependency layer from the GHA cache and compile only the application
-crate. The registry cache mount is architecture-specific and includes the Rust
-1.88 toolchain boundary. It remains builder-local: the GHA backend does **not**
+crate. The container-only release commands override `CARGO_PROFILE_RELEASE_LTO=false`
+and `CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16`; the desktop build keeps Cargo's
+normal ThinLTO/single-codegen-unit release profile. This favors container
+turnaround while keeping the desktop binary's existing optimization settings.
+
+On the local ARM64 BuildKit probe, the override reduced the Rust stage from
+167.8 seconds to 67.9 seconds. The loaded image grew from 88.2 MB to 89.3 MB,
+and the binary grew from 14.6 MB to 18.0 MB; the self-hosted conformance drill
+still passed. These are local directional measurements, not a substitute for
+the hosted benchmark's runtime and cold/warm comparison.
+
+The registry cache mount is architecture-specific and includes the Rust 1.88
+toolchain boundary. It remains builder-local: the GHA backend does **not**
 persist cache-mount contents, but the dependency layer itself is portable within
 an architecture. Durable Cargo mount export, cargo-chef, and registry cache
 policy changes are intentionally deferred until measurements justify their

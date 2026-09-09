@@ -326,6 +326,8 @@ class ConfigurationTests(unittest.TestCase):
         self.assertIn("mkdir -p cargo-skeleton/src", dockerfile)
         self.assertIn("[workspace]", dockerfile)
         self.assertIn("cargo build --release --locked --bin cortana", dockerfile)
+        self.assertEqual(dockerfile.count("CARGO_PROFILE_RELEASE_LTO=false"), 2)
+        self.assertEqual(dockerfile.count("CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16"), 2)
         self.assertNotIn("id=cargo-target-${TARGETARCH}", dockerfile)
         self.assertIn("USER 10001:10001", dockerfile)
         self.assertIn("bun install --frozen-lockfile", dockerfile)
