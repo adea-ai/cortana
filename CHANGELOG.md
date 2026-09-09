@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.56.22](https://github.com/adea-ai/cortana/compare/v0.56.21...v0.56.22) (2026-09-09)
+
+
+### Bug Fixes
+
+* **ci:** isolate desktop Rust caches by job ([#2290](https://github.com/adea-ai/cortana/issues/2290)) ([f7a8629](https://github.com/adea-ai/cortana/commit/f7a862994602309ba4fa53d0756e09374567be54))
+
 ## [0.56.21](https://github.com/adea-ai/cortana/compare/v0.56.20...v0.56.21) (2026-09-09)
 
 
