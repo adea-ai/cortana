@@ -315,8 +315,12 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_web_platform_and_late_version_metadata(self):
         dockerfile = (ROOT / "Dockerfile").read_text()
-        self.assertIn("FROM --platform=$BUILDPLATFORM oven/bun:1.4.0-slim AS bun-runtime", dockerfile)
-        self.assertIn("FROM --platform=$BUILDPLATFORM node:22-bookworm-slim AS web-builder", dockerfile)
+        self.assertIn(
+            "FROM --platform=$BUILDPLATFORM oven/bun:1.4.0-slim AS bun-runtime", dockerfile
+        )
+        self.assertIn(
+            "FROM --platform=$BUILDPLATFORM node:22-bookworm-slim AS web-builder", dockerfile
+        )
         self.assertNotIn("COPY apps/desktop/package.json", dockerfile)
         dockerignore = (ROOT / ".dockerignore").read_text()
         self.assertIn("apps/desktop/*", dockerignore)
