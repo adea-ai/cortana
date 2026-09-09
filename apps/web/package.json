@@ -1,6 +1,6 @@
 {
   "name": "@cortana/web",
-  "version": "0.56.20",
+  "version": "0.56.21",
   "private": true,
   "type": "module",
   "scripts": {
