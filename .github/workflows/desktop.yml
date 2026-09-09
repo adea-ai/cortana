@@ -13,6 +13,11 @@ on:
 permissions:
   contents: read
 
+# All Linux desktop checks compile the same host-targeted sidecar. Keep the
+# target explicit so cached artifacts cannot cross a future target change.
+env:
+  CORTANA_DESKTOP_TARGET: x86_64-unknown-linux-gnu
+
 concurrency:
   group: desktop-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -114,16 +119,6 @@ jobs:
           bun-version: 1.4.0
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      - name: Cache Rust build artifacts
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: >-
-            ${{ runner.os }}-${{ runner.arch }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-
       - name: Verify patched GTK dependency provenance
         run: bun scripts/verify-vendored-glib.mjs
 
@@ -167,9 +162,9 @@ jobs:
             ~/.cargo/git
             third_party/glib-0.18.5/target
           key: >-
-            ${{ runner.os }}-${{ runner.arch }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}
+            ${{ runner.os }}-${{ runner.arch }}-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-
+            ${{ runner.os }}-${{ runner.arch }}-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-
       - name: Test patched GTK iterator in release mode
         run: cargo test --manifest-path third_party/glib-0.18.5/Cargo.toml --release --lib variant_iter
 
@@ -199,9 +194,9 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
           key: >-
-            ${{ runner.os }}-${{ runner.arch }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}
+            ${{ runner.os }}-${{ runner.arch }}-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-
+            ${{ runner.os }}-${{ runner.arch }}-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-
       # Warm the exact pinned binary under a stable per-OS/arch key so
       # repeated final audits restore cargo-audit without recompiling it.
       - name: Cache cargo-audit binary
@@ -257,9 +252,9 @@ jobs:
             target
             apps/desktop/src-tauri/target
           key: >-
-            ${{ runner.os }}-${{ runner.arch }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}
+            ${{ runner.os }}-${{ runner.arch }}-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-
+            ${{ runner.os }}-${{ runner.arch }}-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-
       # Repository type-check/build is owned by Code Foundry Validation / CI,
       # which already runs the root Python, Rust, and web checks on the same
       # main-targeting PR SHA. This job keeps only desktop tests.
@@ -305,9 +300,9 @@ jobs:
             target
             apps/desktop/src-tauri/target
           key: >-
-            ${{ runner.os }}-${{ runner.arch }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}
+            ${{ runner.os }}-${{ runner.arch }}-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-
+            ${{ runner.os }}-${{ runner.arch }}-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-
       # Repository type-check/build is owned by Code Foundry Validation / CI,
       # which already runs the root Python, Rust, and web checks on the same
       # main-targeting PR SHA. This job keeps only desktop clippy.
@@ -353,9 +348,9 @@ jobs:
             target
             apps/desktop/src-tauri/target
           key: >-
-            ${{ runner.os }}-${{ runner.arch }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}
+            ${{ runner.os }}-${{ runner.arch }}-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-
+            ${{ runner.os }}-${{ runner.arch }}-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-
       # Linux release compilation is reserved for ordinary main code PRs and
       # explicit manual final audits. It is skipped for Release Please
       # version-only PRs.
@@ -367,8 +362,6 @@ jobs:
           (github.event_name == 'pull_request' &&
            github.event.pull_request.base.ref == 'main' &&
            !startsWith(github.event.pull_request.head.ref, 'release-please--branches--main'))
-        env:
-          CORTANA_DESKTOP_TARGET: x86_64-unknown-linux-gnu
         run: bun run desktop:build
 
   # Fast aggregate carrying the stable required check name. It always runs
