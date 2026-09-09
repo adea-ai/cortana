@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.56.21](https://github.com/adea-ai/cortana/compare/v0.56.20...v0.56.21) (2026-09-09)
+
+
+### CI
+
+* **container:** add native multi-architecture image builds ([#2287](https://github.com/adea-ai/cortana/issues/2287)) ([42e6ee4](https://github.com/adea-ai/cortana/commit/42e6ee48ed78f8497699838cdac864246cfeef22))
+
 ## [0.56.20](https://github.com/adea-ai/cortana/compare/v0.56.19...v0.56.20) (2026-09-08)
 
 
