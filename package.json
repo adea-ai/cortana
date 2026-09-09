@@ -47,7 +47,9 @@
   },
   "overrides": {
     "brace-expansion": "5.0.9",
-    "minimatch": "10.2.6"
+    "js-yaml": "4.3.2",
+    "minimatch": "10.2.6",
+    "qs": "6.16.0"
   },
   "packageManager": "bun@1.4.0"
 }

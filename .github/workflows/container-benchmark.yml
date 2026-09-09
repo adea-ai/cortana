@@ -1,0 +1,92 @@
+name: Container benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      strategy:
+        description: Native, QEMU with optimized Dockerfile, or pre-change QEMU baseline
+        type: choice
+        options: [native, qemu, baseline]
+        default: native
+      cache:
+        description: Cold disables cache reads and writes; warm may prime main caches
+        type: choice
+        options: [cold, warm]
+        default: warm
+
+permissions:
+  contents: read
+
+concurrency:
+  group: container-benchmark-${{ github.ref }}-${{ inputs.strategy }}
+  cancel-in-progress: false
+
+env:
+  BUILDKIT_PROGRESS: plain
+  DOCKER_BUILD_RECORD_RETENTION_DAYS: 7
+
+jobs:
+  benchmark:
+    name: Measure (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(inputs.strategy == 'native' && '[{"arch":"amd64","runner":"ubuntu-24.04","platforms":"linux/amd64"},{"arch":"arm64","runner":"ubuntu-24.04-arm","platforms":"linux/arm64"}]' || '[{"arch":"both","runner":"ubuntu-24.04","platforms":"linux/amd64,linux/arm64"}]') }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up QEMU for baseline only
+        if: inputs.strategy != 'native'
+        uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4.3.0
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+      - name: Restore pre-change Dockerfile for baseline
+        if: inputs.strategy == 'baseline'
+        env:
+          BASELINE_SHA: 3164aaa421365ef3f76571c2ddb5e4225053ebde
+        run: |
+          git fetch --depth=1 origin "$BASELINE_SHA"
+          git show "$BASELINE_SHA:Dockerfile" > "$RUNNER_TEMP/Dockerfile.baseline"
+      - name: Start build timer
+        run: |
+          mkdir -p reports
+          date +%s > reports/build-started
+      - name: Build benchmark image without publishing
+        id: build
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: ${{ inputs.strategy == 'baseline' && format('{0}/Dockerfile.baseline', runner.temp) || 'Dockerfile' }}
+          platforms: ${{ matrix.platforms }}
+          push: false
+          outputs: type=oci,dest=${{ runner.temp }}/cortana.oci.tar
+          build-args: CORTANA_VERSION=benchmark
+          provenance: mode=max
+          sbom: true
+          no-cache: ${{ inputs.cache == 'cold' }}
+          cache-from: ${{ inputs.cache == 'warm' && format('type=gha,scope=container-{0}-v1-{1}', inputs.strategy, matrix.arch) || '' }}
+          # Fixed scopes, no per-tag/per-PR exports or registry cache image versions.
+          # Only trusted main executions prime caches that releases can consume.
+          cache-to: ${{ inputs.cache == 'warm' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && format('type=gha,scope=container-{0}-v1-{1},mode=max,timeout=10m', inputs.strategy, matrix.arch) || '' }}
+      - name: Record timings and exported size
+        if: always() && steps.build.outcome != 'skipped'
+        run: |
+          date +%s > reports/build-finished
+          docker buildx history logs --progress rawjson 2> reports/build.jsonl
+          python scripts/container_release.py timings --log reports/build.jsonl \
+            --started reports/build-started --finished reports/build-finished \
+            --output reports/timings.json \
+            --strategy '${{ inputs.strategy == 'native' && 'native' || 'qemu' }}' \
+            --dockerfile '${{ inputs.strategy == 'baseline' && 'baseline' || 'current' }}' \
+            --platforms '${{ matrix.platforms }}' \
+            --cache '${{ inputs.cache }}'
+          if test -f "$RUNNER_TEMP/cortana.oci.tar"; then
+            python scripts/container_release.py sizes --oci "$RUNNER_TEMP/cortana.oci.tar" --output reports/size.json
+          fi
+      - name: Upload measurements, not the large OCI archive
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: container-benchmark-${{ inputs.strategy }}-${{ inputs.cache }}-${{ matrix.arch }}-${{ github.run_attempt }}
+          path: reports/
+          retention-days: 7

@@ -1,13 +1,15 @@
 # syntax=docker/dockerfile:1
 
-FROM oven/bun:1.4.0 AS bun-runtime
+# The static web bundle is target-independent. Both build tools must match the
+# build host, including when the benchmark emulates an ARM64 runtime image.
+FROM --platform=$BUILDPLATFORM oven/bun:1.4.0-slim AS bun-runtime
 
-FROM node:22-bookworm AS web-builder
+FROM --platform=$BUILDPLATFORM node:22-bookworm-slim AS web-builder
 COPY --from=bun-runtime /usr/local/bin/bun /usr/local/bin/bun
 WORKDIR /src
 COPY package.json bun.lock bunfig.toml ./
+# The container serves the web app; keep the Tauri workspace out of this install.
 COPY apps/web/package.json apps/web/package.json
-COPY apps/desktop/package.json apps/desktop/package.json
 RUN bun install --frozen-lockfile
 COPY apps/web apps/web
 COPY scripts/check-web-ui-contract.mjs scripts/check-web-ui-contract.mjs
@@ -22,20 +24,27 @@ FROM rust:1.88-bookworm AS rust-builder
 ARG TARGETARCH
 WORKDIR /src
 COPY Cargo.toml Cargo.lock ./
+# Keep the dependency graph in a reusable layer. Source changes then rebuild
+# only the application crate instead of recompiling every dependency.
+# Container builds favor iteration speed; keep the desktop release profile's
+# ThinLTO/single-codegen-unit settings unchanged outside this image.
+RUN --mount=type=cache,id=cargo-registry-${TARGETARCH},target=/usr/local/cargo/registry \
+    mkdir -p cargo-skeleton/src \
+    && cp Cargo.toml Cargo.lock cargo-skeleton/ \
+    && printf '\n[workspace]\n' >> cargo-skeleton/Cargo.toml \
+    && printf 'fn main() {}\n' > cargo-skeleton/src/main.rs \
+    && CARGO_PROFILE_RELEASE_LTO=false CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16 \
+      cargo build --manifest-path cargo-skeleton/Cargo.toml --target-dir /src/target \
+      --release --locked --bin cortana \
+    && rm -rf cargo-skeleton
 COPY src src
 COPY eval eval
 RUN --mount=type=cache,id=cargo-registry-${TARGETARCH},target=/usr/local/cargo/registry \
-    --mount=type=cache,id=cargo-target-${TARGETARCH},target=/src/target \
+    CARGO_PROFILE_RELEASE_LTO=false CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16 \
     cargo build --release --locked --bin cortana \
     && cp /src/target/release/cortana /usr/local/bin/cortana
 
 FROM python:3.11-slim-bookworm AS runtime
-ARG CORTANA_VERSION=dev
-LABEL org.opencontainers.image.title="Cortana" \
-      org.opencontainers.image.description="Local-first single-node ContextProvider" \
-      org.opencontainers.image.source="https://github.com/adea-ai/cortana" \
-      org.opencontainers.image.version="${CORTANA_VERSION}" \
-      org.opencontainers.image.licenses="Apache-2.0"
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends ca-certificates curl tini \
@@ -54,6 +63,14 @@ RUN install -d -o 10001 -g 10001 \
       /var/lib/cortana \
       /var/lib/cortana/backups \
       /var/cache/cortana/models
+
+# A new release version must not invalidate apt/pip and runtime assembly layers.
+ARG CORTANA_VERSION=dev
+LABEL org.opencontainers.image.title="Cortana" \
+      org.opencontainers.image.description="Local-first single-node ContextProvider" \
+      org.opencontainers.image.source="https://github.com/adea-ai/cortana" \
+      org.opencontainers.image.version="${CORTANA_VERSION}" \
+      org.opencontainers.image.licenses="Apache-2.0"
 
 VOLUME ["/var/lib/cortana", "/var/lib/cortana/backups", "/var/cache/cortana/models"]
 EXPOSE 7331
