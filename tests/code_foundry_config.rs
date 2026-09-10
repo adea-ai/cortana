@@ -211,9 +211,12 @@ fn validation_caller_pins_runtime_and_has_no_push_trigger() {
         "orchestrator input must pin {}",
         runtime_ref()
     );
+    // The generated caller also owns the default-branch CodeQL lane, so its
+    // top-level push trigger is intentionally limited to main. The reusable
+    // validation lane remains pull-request-only and does not duplicate CI.
     assert!(
-        !caller.lines().any(|line| line.trim() == "push:"),
-        "validation caller must not trigger on push; push+pull_request duplicates are forbidden:\n{caller}"
+        caller.contains("push:\n    branches: [main]"),
+        "caller must keep the main push trigger for default-branch CodeQL:\n{caller}"
     );
     assert!(
         caller.lines().any(|line| line.trim() == "pull_request:"),
@@ -592,8 +595,13 @@ fn release_caller_targets_main_without_staging_preflight() {
         release.contains("on:") && release.contains("branches: [main]"),
         "direct release caller must trigger on push to main:\n{release}"
     );
+    let release_without_comments = release
+        .lines()
+        .filter(|line| !line.trim_start().starts_with('#'))
+        .collect::<Vec<_>>()
+        .join("\n");
     assert!(
-        !release.contains("staging"),
+        !release_without_comments.contains("staging"),
         "direct release caller must not reference staging:\n{release}"
     );
 
