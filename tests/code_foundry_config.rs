@@ -144,14 +144,14 @@ fn release_merge_policy_matches_runtime_contract() {
 }
 
 /// Rust CodeQL shards across the three standalone Cargo manifests: the root
-/// package, the desktop Tauri app, and the vendored glib. Two CodeQL threads
-/// per shard and three shards in parallel cut wall-clock time while capping
-/// total runner cost.
+/// package (including its integration tests), the desktop Tauri app, and the
+/// vendored glib. Two CodeQL threads per shard and three shards in parallel
+/// cut wall-clock time while capping total runner cost.
 #[test]
 fn rust_codeql_shards_standalone_manifests() {
     assert_eq!(
         config_value("codeql_rust_shards"),
-        "'[\"src\",\"apps/desktop/src-tauri\",\"third_party/glib-0.18.5\"]'"
+        "'[\"src,tests\",\"apps/desktop/src-tauri\",\"third_party/glib-0.18.5\"]'"
     );
     assert_eq!(config_value("codeql_rust_threads"), "2");
     assert_eq!(config_value("codeql_rust_max_parallel"), "3");
@@ -159,7 +159,7 @@ fn rust_codeql_shards_standalone_manifests() {
     let caller = read(".github/workflows/validation.yml");
     assert!(
         caller.contains(
-            "rust-shards: '[\"src\",\"apps/desktop/src-tauri\",\"third_party/glib-0.18.5\"]'"
+            "rust-shards: '[\"src,tests\",\"apps/desktop/src-tauri\",\"third_party/glib-0.18.5\"]'"
         ),
         "validation caller must forward the shard list:\n{caller}"
     );

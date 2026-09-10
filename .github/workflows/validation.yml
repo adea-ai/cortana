@@ -92,7 +92,7 @@ jobs:
       security-runner: ubuntu-slim
       eval-runner: ubuntu-latest
       codeql-runner: ubuntu-latest
-      rust-shards: '["src","apps/desktop/src-tauri","third_party/glib-0.18.5"]'
+      rust-shards: '["src,tests","apps/desktop/src-tauri","third_party/glib-0.18.5"]'
       rust-threads: '2'
       rust-max-parallel: 3
     secrets:
