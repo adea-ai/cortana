@@ -69,13 +69,13 @@ test('static web server serves a packaged index on an ephemeral loopback port', 
       child.once('exit', (code) => reject(new Error(`static server exited: ${code}`)))
     })
     const response = await new Promise((resolveResponse, reject) => {
-      httpGet(address, (response) => {
+      httpGet(address, (httpResponse) => {
         let body = ''
-        response.setEncoding('utf8')
-        response.on('data', (chunk) => {
+        httpResponse.setEncoding('utf8')
+        httpResponse.on('data', (chunk) => {
           body += chunk
         })
-        response.on('end', () => resolveResponse({ status: response.statusCode, body }))
+        httpResponse.on('end', () => resolveResponse({ status: httpResponse.statusCode, body }))
       }).on('error', reject)
     })
     expect(response).toEqual({ status: 200, body: '<!doctype html><title>packaged</title>' })

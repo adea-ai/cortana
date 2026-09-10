@@ -408,6 +408,7 @@ test('closing and reopening graph aborts and discards a stale expansion response
     staleSignal = signal
     return stale.promise
   }
+  // oxlint-disable-next-line unicorn/consistent-function-scoping -- test-local page fixture
   const page = (label: string): BrainGraphPage => ({
     nodes: [
       {

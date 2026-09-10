@@ -593,7 +593,7 @@ fn release_caller_targets_main_without_staging_preflight() {
     // The caller triggers on pushes to main and nothing else.
     assert!(
         release.contains("on:") && release.contains("branches: [main]"),
-        "direct release caller must trigger on push to main:\n{release}"
+        "direct release caller must trigger on push to main"
     );
     let release_without_comments = release
         .lines()
@@ -602,17 +602,17 @@ fn release_caller_targets_main_without_staging_preflight() {
         .join("\n");
     assert!(
         !release_without_comments.contains("staging"),
-        "direct release caller must not reference staging:\n{release}"
+        "direct release caller must not reference staging"
     );
 
     // No staging promotion preflight job exists in the direct topology.
     assert!(
         !release.contains("\n  preflight:"),
-        "direct release caller must not declare a staging preflight job:\n{release}"
+        "direct release caller must not declare a staging preflight job"
     );
     assert!(
         !release.contains("git fetch --no-tags origin main staging"),
-        "direct release caller must not fetch staging:\n{release}"
+        "direct release caller must not fetch staging"
     );
 
     // The release job pins the reusable workflow and its inputs.
@@ -622,7 +622,7 @@ fn release_caller_targets_main_without_staging_preflight() {
             "uses: 0xPlayerOne/code-foundry/.github/workflows/release.yml@{}",
             runtime_ref()
         )),
-        "release job must keep the pinned reusable workflow:\n{release_job}"
+        "release job must keep the pinned reusable workflow"
     );
     for input in [
         "runner: ubuntu-slim",
@@ -631,7 +631,7 @@ fn release_caller_targets_main_without_staging_preflight() {
     ] {
         assert!(
             release_job.contains(input),
-            "release job must keep input `{input}`:\n{release_job}"
+            "release job must keep the required input"
         );
     }
     // The direct workflow has no staging credential. The runtime declares only
@@ -639,12 +639,12 @@ fn release_caller_targets_main_without_staging_preflight() {
     for secret in ["CODE_FOUNDRY_TOKEN", "NPM_TOKEN"] {
         assert!(
             release_job.contains(&format!("{secret}: ${{{{ secrets.{secret} }}}}")),
-            "release job must keep passing `{secret}`:\n{release_job}"
+            "release job must keep the required secret mapping"
         );
     }
     assert!(
         !release_job.contains("STAGING_DEPLOY_KEY"),
-        "direct release job must not pass a staging credential:\n{release_job}"
+        "direct release job must not pass a staging credential"
     );
     for permission in [
         "actions: write",
@@ -668,10 +668,10 @@ fn release_preflight_metadata_contract_stays_in_runtime() {
     let release = read(".github/workflows/release.yml");
     assert!(
         !release.contains("RELEASE_FILES:"),
-        "direct release caller must not duplicate the Release Please metadata contract:\n{release}"
+        "direct release caller must not duplicate the Release Please metadata contract"
     );
     assert!(
         release.contains("uses: 0xPlayerOne/code-foundry/.github/workflows/release.yml@"),
-        "release caller must delegate the release contract to the pinned runtime:\n{release}"
+        "release caller must delegate the release contract to the pinned runtime"
     );
 }

@@ -421,6 +421,7 @@ export async function getContext(
   if (isDemoMode) {
     const evidence = demoEvidence
       .filter((item) => !source || item.source === source)
+      // oxlint-disable-next-line unicorn/no-array-sort -- filter returns a fresh array
       .sort((left, right) => right.score - left.score)
     const context = buildAgentContext(query, evidence)
     return {
@@ -975,6 +976,7 @@ export async function getAnswer(
   if (isDemoMode) {
     const evidence = demoEvidence
       .filter((item) => !source || item.source === source)
+      // oxlint-disable-next-line unicorn/no-array-sort -- filter returns a fresh array
       .sort((left, right) => right.score - left.score)
     return {
       query,
@@ -1030,7 +1032,9 @@ async function invokeDesktop<T>(
     return result
   } catch (caught) {
     if (caught instanceof Error) throw caught
-    throw new Error(typeof caught === 'string' ? caught : 'Desktop request failed')
+    throw new Error(typeof caught === 'string' ? caught : 'Desktop request failed', {
+      cause: caught,
+    })
   }
 }
 

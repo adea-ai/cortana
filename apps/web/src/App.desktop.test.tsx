@@ -922,6 +922,7 @@ test('desktop setup does not query documents before the control plane is ready',
 
 test('desktop shell pauses passive health polling while hidden and refreshes on restore', async () => {
   const descriptor = Object.getOwnPropertyDescriptor(document, 'visibilityState')
+  // oxlint-disable-next-line unicorn/consistent-function-scoping -- test-local visibility state
   const setVisibility = (value: 'hidden' | 'visible') => {
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
@@ -1060,6 +1061,7 @@ test('audit trail export downloads exactly the loaded redacted events as JSON', 
     }
     expect(payload.runtime).toEqual(runtimeAuditEvents)
     expect(payload.desktop).toEqual(desktopAuditEvents)
+    // oxlint-disable-next-line unicorn/no-array-sort -- test assertion uses a copied key list
     expect(Object.keys(payload).sort()).toEqual(['desktop', 'exported_at', 'runtime'])
     expect(Number.isNaN(Date.parse(payload.exported_at))).toBe(false)
 

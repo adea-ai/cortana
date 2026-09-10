@@ -143,6 +143,10 @@ function boundedSampleWarning(
   return `${lead} validation was a bounded sample (${new Date(validation.validated_at).toLocaleString()}) and cannot authorize recurring sync; re-validate the complete source`
 }
 
+function validationRequiredLabel(labelSuffix: string): string {
+  return `Validation ${labelSuffix}; re-validate before recurring sync`
+}
+
 function validationCompletenessWarning(
   validation: NonNullable<OperationalSource['validation']>,
   lead: string
@@ -184,9 +188,6 @@ export function sourceHealth(source: OperationalSource, nowMilliseconds = Date.n
       }
     }
   }
-  const validationRequiredLabel = (labelSuffix: string) =>
-    `Validation ${labelSuffix}; re-validate before recurring sync`
-
   if (!source.sync) {
     if (source.validation?.status === 'succeeded') {
       if (source.validation.fresh === false) {

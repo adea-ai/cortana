@@ -304,7 +304,9 @@ function jsonStringArray(raw, name) {
   try {
     parsed = JSON.parse(raw)
   } catch (error) {
-    throw new Error(`${name} must be a JSON string array: ${redactEvidence(error)}`)
+    throw new Error(`${name} must be a JSON string array: ${redactEvidence(error)}`, {
+      cause: error,
+    })
   }
   if (
     !Array.isArray(parsed) ||

@@ -308,6 +308,7 @@ function rendererSummary({ path, report }, version) {
   const reportDirectory = resolve(path, '..')
   const screenshotFiles = screenshots.map((screenshot) => screenshot?.file)
   const screenshotManifest = Array.isArray(report.screenshots) ? report.screenshots : []
+  // oxlint-disable-next-line unicorn/consistent-function-scoping -- local report key helper
   const screenshotKey = (screenshot) =>
     JSON.stringify([screenshot?.surface, screenshot?.width, screenshot?.height, screenshot?.file])
   const screenshotMatrixKeys = new Set(screenshots.map(screenshotKey))

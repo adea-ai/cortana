@@ -279,7 +279,7 @@ const PEAK_METRICS = Object.freeze([
 ])
 
 function percentile(values, fraction) {
-  const ordered = [...values].sort((left, right) => left - right)
+  const ordered = values.toSorted((left, right) => left - right)
   return ordered[Math.max(0, Math.ceil(ordered.length * fraction) - 1)]
 }
 

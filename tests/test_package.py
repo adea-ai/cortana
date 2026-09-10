@@ -26,6 +26,7 @@ def test_release_manifest_has_one_shared_application_version() -> None:
     desktop_lock_text = (ROOT / "apps/desktop/src-tauri/Cargo.lock").read_text()
     desktop_lock = tomllib.loads(desktop_lock_text)
     desktop_config = json.loads((ROOT / "apps/desktop/src-tauri/tauri.conf.json").read_text())
+    bun_lock_text = (ROOT / "bun.lock").read_text()
     desktop_lock_version = next(
         package["version"]
         for package in desktop_lock["package"]
@@ -56,6 +57,9 @@ def test_release_manifest_has_one_shared_application_version() -> None:
     assert (
         f'name = "cortana-desktop"\nversion = "{manifest["."]}" # x-release-please-version'
         in desktop_lock_text
+    )
+    assert (
+        bun_lock_text.count('"version": "' + manifest["."] + '", // x-release-please-version') == 2
     )
     for script_name in (
         "build",

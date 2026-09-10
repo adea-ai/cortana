@@ -18,6 +18,7 @@ function readFavoriteIds(): Set<string> {
 
 function writeFavoriteIds(ids: Set<string>): void {
   try {
+    // oxlint-disable-next-line unicorn/no-array-sort -- stable ES2020-compatible copy
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids].sort()))
   } catch {
     // A storage failure should not turn a local document action into an error.

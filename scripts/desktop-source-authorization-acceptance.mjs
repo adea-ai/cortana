@@ -252,7 +252,7 @@ export function snapshotTree(root) {
     const metadata = lstatSync(path)
     if (metadata.isDirectory()) {
       entries.push(`${relativePath}/`)
-      for (const entry of readdirSync(path).sort()) {
+      for (const entry of readdirSync(path).toSorted()) {
         const childRelativePath = join(relativePath, entry)
         if (
           childRelativePath === ROSETTA_CACHE_PATH ||
@@ -272,7 +272,7 @@ export function snapshotTree(root) {
     entries.push(`${relativePath}:special`)
   }
   visit(root, '.')
-  return entries.sort().join('\n')
+  return entries.toSorted().join('\n')
 }
 
 function requireCore(core) {

@@ -300,8 +300,8 @@ function SettingsViewContent({
         liveProvider.provider !== captured.mode ||
         liveProvider.api_key_env !== captured.key_env
       ) {
-        setModelsError((current) => ({
-          ...current,
+        setModelsError((previous) => ({
+          ...previous,
           [kind]: 'Provider endpoint changed while refreshing; run refresh again.',
         }))
         return
@@ -319,8 +319,8 @@ function SettingsViewContent({
       ])
     } catch (caught) {
       if (!componentMounted.current) return
-      setModelsError((current) => ({
-        ...current,
+      setModelsError((previous) => ({
+        ...previous,
         [kind]: caught instanceof Error ? caught.message : 'Unable to refresh provider models',
       }))
     } finally {
@@ -437,7 +437,8 @@ function SettingsViewContent({
   }
 
   const referencedSecretIdentityKey = settings
-    ? Array.from(referencedSecretNames(settings)).sort().join('\n')
+    ? // oxlint-disable-next-line unicorn/no-array-sort -- stable ES2020-compatible copy
+      Array.from(referencedSecretNames(settings)).sort().join('\n')
     : ''
 
   useEffect(() => {
@@ -1095,6 +1096,8 @@ function ServicesSection({
     }
   }
 
+  // This helper intentionally stays local with the service action state.
+  // oxlint-disable-next-line unicorn/consistent-function-scoping -- keeps service state local
   const serviceIsRunning = (service: DesktopServiceReport['services'][number]) =>
     service.state === 'running' || (service.loaded && service.state === null)
 
@@ -2629,18 +2632,18 @@ function WorkspaceSection({
         : currentWorkspace.id
     if (nextId !== currentWorkspace.id) {
       moveWorkspaceThemePreference(currentWorkspace.id, nextId)
-      setWorkspaceThemes((current) => {
-        const theme = current[currentWorkspace.id]
-        if (!theme) return current
-        const next = { ...current }
+      setWorkspaceThemes((previous) => {
+        const theme = previous[currentWorkspace.id]
+        if (!theme) return previous
+        const next = { ...previous }
         delete next[currentWorkspace.id]
         next[nextId] = theme
         return next
       })
     }
     update((current) => {
-      const currentWorkspace = current.workspaces[index]
-      if (!currentWorkspace) return current
+      const workspaceToUpdate = current.workspaces[index]
+      if (!workspaceToUpdate) return current
 
       return {
         ...current,

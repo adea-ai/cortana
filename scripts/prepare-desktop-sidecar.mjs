@@ -94,13 +94,13 @@ try {
   releaseLock()
 }
 
-function capture(command, args) {
-  const result = spawnSync(command, args, { cwd: root, encoding: 'utf8' })
+function capture(command, commandArgs) {
+  const result = spawnSync(command, commandArgs, { cwd: root, encoding: 'utf8' })
   if (result.status !== 0) throw new Error(`${command} failed: ${result.stderr || result.error}`)
   return result.stdout.trim()
 }
 
-function run(command, args) {
-  const result = spawnSync(command, args, { cwd: root, stdio: 'inherit' })
+function run(command, commandArgs) {
+  const result = spawnSync(command, commandArgs, { cwd: root, stdio: 'inherit' })
   if (result.status !== 0) throw new Error(`${command} failed with status ${result.status}`)
 }

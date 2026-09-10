@@ -413,6 +413,7 @@ test('a shared active source job locks source actions until it finishes', async 
 test('standalone source polling pauses while Settings is backgrounded', async () => {
   const originalConfirm = window.confirm
   const visibilityDescriptor = Object.getOwnPropertyDescriptor(document, 'visibilityState')
+  // oxlint-disable-next-line unicorn/consistent-function-scoping -- test-local visibility state
   const setVisibility = (value: 'hidden' | 'visible') => {
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
