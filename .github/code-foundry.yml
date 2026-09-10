@@ -6,7 +6,7 @@ codeql: auto
 dependency_review: auto
 package_manager: bun
 runtime_repository: 0xPlayerOne/code-foundry
-runtime_ref: v1.9.11
+runtime_ref: v1.28.4
 runner: ubuntu-latest
 unit_runner: ubuntu-latest
 ci_runner: ubuntu-latest
@@ -43,3 +43,8 @@ performance: auto
 performance_command:
 performance_profile:
 performance_budget_file: performance-package-budgets.json
+draft_protection: true
+required_capabilities:
+coverage_enforcement: auto
+coverage_metrics: lines
+coverage_report:
