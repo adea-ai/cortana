@@ -31,11 +31,11 @@ post_release_workflow:
 post_release_mode: auto
 sync_mode: overlay
 custom_workflows: preserve
-# Shard Rust CodeQL by manifest path; include the root integration tests with
-# the root package so pull-request scans can verify test-only remediations.
-codeql_rust_shards: '["src,tests","apps/desktop/src-tauri","third_party/glib-0.18.5"]'
+# Use the same complete Rust CodeQL configuration as the default-branch lane
+# so pull-request differential scans compare the same analysis configuration.
+codeql_rust_shards: '["all"]'
 codeql_rust_threads: 2
-codeql_rust_max_parallel: 3
+codeql_rust_max_parallel: 1
 release_merge_strategy: squash
 opencode_security_model:
 performance_runner: ubuntu-latest

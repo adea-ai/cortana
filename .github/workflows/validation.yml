@@ -92,9 +92,9 @@ jobs:
       security-runner: ubuntu-slim
       eval-runner: ubuntu-latest
       codeql-runner: ubuntu-latest
-      rust-shards: '["src,tests","apps/desktop/src-tauri","third_party/glib-0.18.5"]'
+      rust-shards: '["all"]'
       rust-threads: '2'
-      rust-max-parallel: 3
+      rust-max-parallel: 1
     secrets:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
