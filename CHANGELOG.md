@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.56.23](https://github.com/adea-ai/cortana/compare/v0.56.22...v0.56.23) (2026-09-10)
+
+
+### Maintenance
+
+* roll up dependencies and Code Foundry v1.28.6 ([#2293](https://github.com/adea-ai/cortana/issues/2293)) ([487c9df](https://github.com/adea-ai/cortana/commit/487c9df867e7de144eae7e1d8e715af7473406d9))
+
 ## [0.56.22](https://github.com/adea-ai/cortana/compare/v0.56.21...v0.56.22) (2026-09-09)
 
 
