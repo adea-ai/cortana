@@ -41,7 +41,9 @@ export function staticImportKeys(manifest, roots) {
 export function verifyWebBundleBudget() {
   const manifest = JSON.parse(readFileSync(resolve(dist, '.vite/manifest.json'), 'utf8'))
   const entryKey = Object.entries(manifest).find(([, entry]) => entry.isEntry)?.[0]
-  const appKey = Object.keys(manifest).find((key) => key.startsWith('_App-'))
+  const appKey = Object.keys(manifest).find(
+    (key) => key.startsWith('_App-') || key.endsWith('/App.tsx') || key === 'src/App.tsx'
+  )
   if (!entryKey || !appKey) throw new Error('Vite manifest is missing the application entry')
 
   const initialKeys = staticImportKeys(manifest, [entryKey, appKey])
