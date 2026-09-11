@@ -353,9 +353,12 @@ test('graph view renders indexed document nodes when the graph endpoint responds
     const node = screen.getByRole('button', { name: 'Open document: Release process' })
     node.focus()
     fireEvent.keyDown(node, { key: 'Enter' })
-    fireEvent.click(node)
-    const selection = await waitFor(() =>
-      screen.getByRole('complementary', { name: 'Selected graph node' })
+    // Re-query at click time so a slow-runner re-render cannot leave the
+    // click targeting a detached button.
+    fireEvent.click(screen.getByRole('button', { name: 'Open document: Release process' }))
+    const selection = await waitFor(
+      () => screen.getByRole('complementary', { name: 'Selected graph node' }),
+      { timeout: 15_000 }
     )
     expect(selection.getAttribute('aria-live')).toBe('polite')
     expect(within(selection).getByRole('button', { name: 'Open document' })).toBeTruthy()
@@ -388,7 +391,9 @@ test('large graph pages render through a bounded keyboard-operable window', asyn
     expect(screen.getAllByRole('button', { name: /^Open document: Document/ })).toHaveLength(12)
     const showMore = screen.getByRole('button', { name: 'Show more nodes' })
     showMore.focus()
-    fireEvent.click(showMore)
+    // Re-query at click time so a slow-runner re-render cannot leave the
+    // click targeting a detached button.
+    fireEvent.click(screen.getByRole('button', { name: 'Show more nodes' }))
     await waitFor(
       () => expect(screen.getByText('Showing 24 of 30 documents · 0 links')).toBeTruthy(),
       { timeout: 15_000 }
