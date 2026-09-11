@@ -143,22 +143,30 @@ fn release_merge_policy_matches_runtime_contract() {
     assert_eq!(config_value("release_merge_strategy"), "squash");
 }
 
-/// Pull-request Rust CodeQL uses the complete workspace configuration so its
-/// differential results match the default-branch CodeQL configuration. Two
-/// CodeQL threads keep the full scan bounded to one runner.
+/// Pull-request Rust CodeQL reports the complete workspace scan (matching the
+/// default-branch lane for differential parity) alongside the three standalone
+/// manifest shards. GitHub code scanning tracks every analysis category it has
+/// seen and blocks the merge gate until each tracked category reports, so a
+/// shard cannot simply be dropped. Two CodeQL threads per shard and three
+/// shards in parallel cut wall-clock time while capping total runner cost.
 #[test]
 fn rust_codeql_shards_standalone_manifests() {
-    assert_eq!(config_value("codeql_rust_shards"), "'[\"all\"]'");
+    assert_eq!(
+        config_value("codeql_rust_shards"),
+        "'[\"all\",\"src\",\"apps/desktop/src-tauri\",\"third_party/glib-0.18.5\"]'"
+    );
     assert_eq!(config_value("codeql_rust_threads"), "2");
-    assert_eq!(config_value("codeql_rust_max_parallel"), "1");
+    assert_eq!(config_value("codeql_rust_max_parallel"), "3");
 
     let caller = read(".github/workflows/validation.yml");
     assert!(
-        caller.contains("rust-shards: '[\"all\"]'"),
+        caller.contains(
+            "rust-shards: '[\"all\",\"src\",\"apps/desktop/src-tauri\",\"third_party/glib-0.18.5\"]'"
+        ),
         "validation caller must forward the shard list:\n{caller}"
     );
     assert!(caller.contains("rust-threads: '2'"), "{caller}");
-    assert!(caller.contains("rust-max-parallel: 1"), "{caller}");
+    assert!(caller.contains("rust-max-parallel: 3"), "{caller}");
 }
 
 /// The tiered validation caller is the single canonical validation entry
