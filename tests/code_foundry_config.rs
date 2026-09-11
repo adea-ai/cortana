@@ -148,18 +148,13 @@ fn release_merge_policy_matches_runtime_contract() {
 /// CodeQL threads keep the full scan bounded to one runner.
 #[test]
 fn rust_codeql_shards_standalone_manifests() {
-    assert_eq!(
-        config_value("codeql_rust_shards"),
-        "'[\"all\"]'"
-    );
+    assert_eq!(config_value("codeql_rust_shards"), "'[\"all\"]'");
     assert_eq!(config_value("codeql_rust_threads"), "2");
     assert_eq!(config_value("codeql_rust_max_parallel"), "1");
 
     let caller = read(".github/workflows/validation.yml");
     assert!(
-        caller.contains(
-            "rust-shards: '[\"all\"]'"
-        ),
+        caller.contains("rust-shards: '[\"all\"]'"),
         "validation caller must forward the shard list:\n{caller}"
     );
     assert!(caller.contains("rust-threads: '2'"), "{caller}");
