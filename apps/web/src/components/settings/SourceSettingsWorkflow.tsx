@@ -374,9 +374,9 @@ export function SourcesSection({
     // Editing or renaming that source invalidates the plan; force a fresh
     // plan/validation rather than leaving an old plan ID in the UI.
     if (initialSync && current?.name === initialSync.source) setInitialSync(null)
-    update((current) => ({
-      ...current,
-      sources: current.sources.map((source, position) =>
+    update((previous) => ({
+      ...previous,
+      sources: previous.sources.map((source, position) =>
         position === index ? { ...source, ...patch } : source
       ),
     }))

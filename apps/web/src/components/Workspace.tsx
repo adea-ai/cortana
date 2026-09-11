@@ -1198,6 +1198,7 @@ function TimelineView({
       <h1>Evidence timeline</h1>
       {evidence
         .map((item) => item)
+        // oxlint-disable-next-line unicorn/no-array-sort -- preserve compatibility with the webview target
         .sort((left, right) => right.updated_at.localeCompare(left.updated_at))
         .map((item) => (
           <WorkspaceInteractive

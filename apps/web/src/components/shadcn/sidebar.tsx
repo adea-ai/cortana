@@ -67,10 +67,10 @@ function SidebarProvider({
 
   // Helper to toggle the sidebar.
   const toggleSidebar = React.useCallback(() => {
-    if (!isMobile) return setOpen((open) => !open)
-    return setOpenMobile((open) => {
-      if (!open) mobileFinalFocusRef.current = mobileTriggerRef.current
-      return !open
+    if (!isMobile) return setOpen((isOpen) => !isOpen)
+    return setOpenMobile((mobileOpen) => {
+      if (!mobileOpen) mobileFinalFocusRef.current = mobileTriggerRef.current
+      return !mobileOpen
     })
   }, [isMobile, setOpen, setOpenMobile])
 

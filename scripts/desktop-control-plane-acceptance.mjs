@@ -142,7 +142,7 @@ export function snapshotDirectory(path) {
   const entries = []
 
   function visit(directory, relativeDirectory = '') {
-    for (const entry of readdirSync(directory, { withFileTypes: true }).sort((left, right) =>
+    for (const entry of readdirSync(directory, { withFileTypes: true }).toSorted((left, right) =>
       left.name.localeCompare(right.name)
     )) {
       const entryPath = join(directory, entry.name)

@@ -20,7 +20,7 @@ test('walks the complete static import graph without double counting cycles', ()
     base: { imports: ['entry'] },
   }
 
-  expect([...staticImportKeys(manifest, ['entry'])].sort()).toEqual([
+  expect([...staticImportKeys(manifest, ['entry'])].toSorted()).toEqual([
     'base',
     'entry',
     'feature',

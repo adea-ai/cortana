@@ -63,6 +63,7 @@ async function readBrowserResourceSnapshot(page) {
   return page.evaluate(() => {
     const resources = performance.getEntriesByType('resource')
     const memory = performance.memory
+    // oxlint-disable-next-line unicorn/consistent-function-scoping -- browser-evaluation helper
     const byteSize = (entry) =>
       entry.transferSize || entry.encodedBodySize || entry.decodedBodySize || 0
     return {
@@ -137,8 +138,12 @@ async function assertControlExposed(page, label, viewportWidth) {
     `${label} does not reflow inside the ${viewportWidth}px viewport`
   )
   const exposed = await control.evaluate((element) => {
-    const box = element.getBoundingClientRect()
-    const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)
+    const controlRect = element.getBoundingClientRect()
+    const hit = document.elementFromPoint(
+      controlRect.x + controlRect.width / 2,
+      controlRect.y + controlRect.height / 2
+    )
+    // oxlint-disable-next-line unicorn/consistent-function-scoping -- browser-evaluation helper
     const rectangle = (selector) => {
       const candidate = document.querySelector(selector)
       if (!candidate) return null
@@ -153,10 +158,10 @@ async function assertControlExposed(page, label, viewportWidth) {
     return {
       visible: hit === element || element.contains(hit),
       box: {
-        x: box.x,
-        y: box.y,
-        width: box.width,
-        height: box.height,
+        x: controlRect.x,
+        y: controlRect.y,
+        width: controlRect.width,
+        height: controlRect.height,
       },
       toolbar: rectangle('.graph-toolbar'),
       kindFilter: rectangle('.graph-kind-filter'),

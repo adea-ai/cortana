@@ -40,7 +40,9 @@ export function mergeJobSnapshots(
   // Native snapshots are newest-first. Apply them oldest-first so the final
   // list keeps the same newest-first ordering as upsertJob while still using
   // its stale-poll protection for ids already remembered by the shell.
+  // oxlint-disable-next-line unicorn/no-array-reverse -- copy before reducing for ES2020 webviews
   const merged = [...recovered].reverse().reduce(upsertJob, jobs)
+  // oxlint-disable-next-line unicorn/no-array-sort -- sort a local merged snapshot
   return merged.sort(compareJobRecency).slice(0, MAX_SOURCE_JOB_SNAPSHOTS)
 }
 

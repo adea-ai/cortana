@@ -334,7 +334,7 @@ test('acceptance evidence records the packaged contract required by the audit', 
         status: 'not_exercised',
       },
     })
-    expect(Object.keys(evidence.package_checksums).sort()).toEqual([...artifacts].sort())
+    expect(Object.keys(evidence.package_checksums).toSorted()).toEqual([...artifacts].toSorted())
     expect(Object.values(evidence.package_checksums)).toEqual(
       artifacts.map(() => expect.stringMatching(/^[a-f0-9]{64}$/))
     )

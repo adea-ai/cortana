@@ -36,12 +36,10 @@ export default defineConfig({
     manifest: true,
     rollupOptions: {
       output: {
-        onlyExplicitManualChunks: true,
         manualChunks(id) {
           if (
             id.endsWith('/M7ApplicationShell.tsx') ||
             id.endsWith('/M7ActivityInbox.tsx') ||
-            id.includes('/components/shadcn/') ||
             id.endsWith('/hooks/use-mobile.ts') ||
             id.endsWith('/lib/utils.ts') ||
             id.includes('/node_modules/@base-ui/react/') ||
@@ -52,6 +50,7 @@ export default defineConfig({
           ) {
             return 'm7-production-shell'
           }
+          if (id.includes('/components/shadcn/')) return 'shadcn-ui'
         },
       },
     },

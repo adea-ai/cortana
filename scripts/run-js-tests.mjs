@@ -30,7 +30,7 @@ function collectTests(directory) {
   return files
 }
 
-const tests = testRoots.flatMap(collectTests).sort()
+const tests = testRoots.flatMap(collectTests).toSorted()
 if (tests.length === 0) {
   console.error('No JavaScript test files were found.')
   process.exit(1)

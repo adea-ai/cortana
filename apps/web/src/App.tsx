@@ -98,6 +98,20 @@ const INSTALLER_POLL_MS = 1_000
 const MAX_DOCUMENT_QUERY_BYTES = 256
 const textEncoder = new TextEncoder()
 
+function isAbort(caught: unknown) {
+  return caught instanceof DOMException
+    ? caught.name === 'AbortError'
+    : (caught as { name?: string } | null)?.name === 'AbortError'
+}
+
+function searchScope(nextSource: string, nextWorkspace: string, query: string) {
+  return `${nextWorkspace}\u0000${nextSource}\u0000${query}`
+}
+
+function contextScope(nextQuery: string, nextWorkspace: string, nextSource: string) {
+  return `${nextWorkspace}\u0000${nextSource}\u0000${nextQuery}`
+}
+
 export function App() {
   return (
     <AppErrorBoundary>
@@ -867,34 +881,20 @@ function CortanaApplication() {
     [activeQuery, evidence]
   )
 
-  function isAbort(caught: unknown) {
-    return caught instanceof DOMException
-      ? caught.name === 'AbortError'
-      : (caught as { name?: string } | null)?.name === 'AbortError'
-  }
-
-  function searchScope(nextSource: string, nextWorkspace: string, query: string) {
-    return `${nextWorkspace}\u0000${nextSource}\u0000${query}`
-  }
-
-  function boundDocumentQuery(query: string) {
-    if (textEncoder.encode(query).length <= MAX_DOCUMENT_QUERY_BYTES) {
-      return query
+  function boundDocumentQuery(boundedQuery: string) {
+    if (textEncoder.encode(boundedQuery).length <= MAX_DOCUMENT_QUERY_BYTES) {
+      return boundedQuery
     }
 
     const parts: string[] = []
     let bytes = 0
-    for (const token of query) {
+    for (const token of boundedQuery) {
       const nextBytes = textEncoder.encode(token).length
       if (bytes + nextBytes > MAX_DOCUMENT_QUERY_BYTES) break
       bytes += nextBytes
       parts.push(token)
     }
     return parts.join('')
-  }
-
-  function contextScope(nextQuery: string, nextWorkspace: string, nextSource: string) {
-    return `${nextWorkspace}\u0000${nextSource}\u0000${nextQuery}`
   }
 
   function abortSearchRequest(): void {
@@ -1021,7 +1021,7 @@ function CortanaApplication() {
     setError('')
     setWorkspaceTab('answer')
     try {
-      const reflection = await getReflection(
+      const reflectionResult = await getReflection(
         value,
         effectiveWorkspace || undefined,
         source || undefined,
@@ -1030,7 +1030,7 @@ function CortanaApplication() {
       if (searchRequestRef.current !== requestId || searchScopeRef.current !== requestedScope)
         return
       setAnswer(null)
-      setReflection(reflection)
+      setReflection(reflectionResult)
       setEvidence([])
       setActiveQuery(value)
       setSelected(0)

@@ -99,15 +99,23 @@ export function readWorkspaceLogoFile(file: File): Promise<string> {
   const readAsDataUrl = (): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader()
-      reader.onerror = () => reject(new Error('Workspace logo could not be read.'))
-      reader.onload = () => {
-        const value = typeof reader.result === 'string' ? reader.result : ''
-        if (!isWorkspaceLogoDataUrl(value)) {
-          reject(new Error('Workspace logo could not be validated.'))
-          return
-        }
-        resolve(value)
-      }
+      reader.addEventListener(
+        'error',
+        () => reject(new Error('Workspace logo could not be read.')),
+        { once: true }
+      )
+      reader.addEventListener(
+        'load',
+        () => {
+          const value = typeof reader.result === 'string' ? reader.result : ''
+          if (!isWorkspaceLogoDataUrl(value)) {
+            reject(new Error('Workspace logo could not be validated.'))
+            return
+          }
+          resolve(value)
+        },
+        { once: true }
+      )
       reader.readAsDataURL(readableFile)
     })
 
@@ -123,16 +131,37 @@ function loadLogoImage(file: Blob): Promise<HTMLImageElement> {
     }
     const image = new Image()
     let objectUrl: string | null = null
+    let onLoad: (() => void) | null = null
+    let onError: (() => void) | null = null
     const cleanup = () => {
       if (objectUrl && typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
         URL.revokeObjectURL(objectUrl)
       }
-      image.onload = null
-      image.onerror = null
+      if (onLoad) {
+        if (typeof image.removeEventListener === 'function')
+          image.removeEventListener('load', onLoad)
+        else {
+          // oxlint-disable-next-line unicorn/prefer-add-event-listener -- compatibility with minimal test doubles
+          image.onload = null
+        }
+      }
+      if (onError) {
+        if (typeof image.removeEventListener === 'function')
+          image.removeEventListener('error', onError)
+        else {
+          // oxlint-disable-next-line unicorn/prefer-add-event-listener -- compatibility with minimal test doubles
+          image.onerror = null
+        }
+      }
     }
-    image.onload = () => {
+    onLoad = () => {
       cleanup()
       resolve(image)
+    }
+    if (typeof image.addEventListener === 'function') image.addEventListener('load', onLoad)
+    else {
+      // oxlint-disable-next-line unicorn/prefer-add-event-listener -- compatibility with minimal test doubles
+      image.onload = onLoad
     }
     const readWithFileReader = () => {
       if (objectUrl && typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
@@ -140,28 +169,41 @@ function loadLogoImage(file: Blob): Promise<HTMLImageElement> {
       }
       objectUrl = null
       const reader = new FileReader()
-      reader.onerror = () => {
-        cleanup()
-        reject(new Error('Workspace logo could not be read.'))
-      }
-      reader.onload = () => {
-        const value = typeof reader.result === 'string' ? reader.result : ''
-        if (!value) {
+      reader.addEventListener(
+        'error',
+        () => {
           cleanup()
           reject(new Error('Workspace logo could not be read.'))
-          return
-        }
-        image.src = value
-      }
+        },
+        { once: true }
+      )
+      reader.addEventListener(
+        'load',
+        () => {
+          const value = typeof reader.result === 'string' ? reader.result : ''
+          if (!value) {
+            cleanup()
+            reject(new Error('Workspace logo could not be read.'))
+            return
+          }
+          image.src = value
+        },
+        { once: true }
+      )
       reader.readAsDataURL(file)
     }
-    image.onerror = () => {
+    onError = () => {
       if (objectUrl) {
         readWithFileReader()
         return
       }
       cleanup()
       reject(new Error('Workspace logo could not be decoded. Try exporting it as PNG or JPEG.'))
+    }
+    if (typeof image.addEventListener === 'function') image.addEventListener('error', onError)
+    else {
+      // oxlint-disable-next-line unicorn/prefer-add-event-listener -- compatibility with minimal test doubles
+      image.onerror = onError
     }
     if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
       try {
@@ -208,8 +250,16 @@ async function compressWorkspaceLogo(file: Blob): Promise<string> {
       if (!blob || blob.size > MAX_LOGO_BYTES) continue
       const value = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
-        reader.onerror = () => reject(new Error('Workspace logo could not be read.'))
-        reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '')
+        reader.addEventListener(
+          'error',
+          () => reject(new Error('Workspace logo could not be read.')),
+          { once: true }
+        )
+        reader.addEventListener(
+          'load',
+          () => resolve(typeof reader.result === 'string' ? reader.result : ''),
+          { once: true }
+        )
         reader.readAsDataURL(blob)
       })
       if (isWorkspaceLogoDataUrl(value)) return value

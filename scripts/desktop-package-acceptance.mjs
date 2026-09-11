@@ -290,7 +290,9 @@ function runCore(core, version) {
     try {
       report = JSON.parse(evaluation.stdout)
     } catch (error) {
-      throw new Error(`packaged core evaluation was not JSON: ${redactEvidence(error)}`)
+      throw new Error(`packaged core evaluation was not JSON: ${redactEvidence(error)}`, {
+        cause: error,
+      })
     }
     if (report?.passed !== true) throw new Error('packaged core offline evaluation did not pass')
     return { reported_version: reportedVersion, offline_evaluation: 'passed' }
