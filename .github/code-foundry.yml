@@ -36,7 +36,7 @@ custom_workflows: preserve
 # scanning tracks every analysis category it has seen and blocks the merge
 # gate until each tracked category reports, so dropping a shard orphans its
 # category and stalls the gate as "configurations not found".
-codeql_rust_shards: '["all","src","apps/desktop/src-tauri","third_party/glib-0.18.5"]'
+codeql_rust_shards: '["src","apps/desktop/src-tauri","third_party/glib-0.18.5"]'
 codeql_rust_threads: 2
 codeql_rust_max_parallel: 3
 release_merge_strategy: squash
