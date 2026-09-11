@@ -352,7 +352,7 @@ resizes.
 
 The published-package acceptance workflow also extracts the exact release bundle's
 `share/cortana/web` directory and runs the standard document/graph acceptance against that immutable
-renderer through a loopback static server. The current `v0.56.22` bundle includes the provider-free <!-- x-release-please-version -->
+renderer through a loopback static server. The current `v0.56.23` bundle includes the provider-free <!-- x-release-please-version -->
 large-corpus fixture, so the workflow sets `CORTANA_KNOWLEDGE_RUN_LARGE=true` and records its bounded
 document/graph screenshots and resource measurements. The current source/preview lane also sets the
 large fixture explicitly. The package lane still checks keyboard operation, responsive layout,
