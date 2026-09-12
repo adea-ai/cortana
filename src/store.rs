@@ -1370,6 +1370,31 @@ impl Store {
             .map_err(Into::into)
     }
 
+    /// Read one bounded metadata value from the key-value meta table.
+    pub fn meta_get(&self, key: &str) -> Result<Option<String>> {
+        let connection = self.connection.lock().expect("store lock poisoned");
+        let mut statement = connection.prepare("SELECT value FROM meta WHERE key = ?1")?;
+        let mut rows = statement.query([key])?;
+        match rows.next()? {
+            Some(row) => Ok(Some(row.get(0)?)),
+            None => Ok(None),
+        }
+    }
+
+    /// Write one bounded metadata value into the key-value meta table.
+    pub fn meta_set(&self, key: &str, value: &str) -> Result<()> {
+        let connection = self.connection.lock().expect("store lock poisoned");
+        optional_write(&connection, || {
+            connection.execute(
+                "INSERT INTO meta(key, value) VALUES(?1, ?2)
+                 ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                params![key, value],
+            )
+        })?
+        .map(|_| ())
+        .ok_or_else(|| anyhow::anyhow!("meta write skipped while the store was busy"))
+    }
+
     /// Return the retained metadata-only audit trail for an operator export.
     ///
     /// The HTTP endpoint intentionally caps responses at 500 rows. Exports

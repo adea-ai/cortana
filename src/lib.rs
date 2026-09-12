@@ -11,6 +11,7 @@ pub mod consolidation;
 pub mod context;
 pub mod contracts;
 pub mod derived;
+pub mod device_identity;
 pub mod discord_rpc;
 pub mod embed;
 pub mod evaluation;
