@@ -162,6 +162,11 @@ enum Command {
         #[command(subcommand)]
         action: AuditAction,
     },
+    /// Manage cryptographic device identity for future synchronized modes.
+    Identity {
+        #[command(subcommand)]
+        action: IdentityAction,
+    },
     /// Export authorized canonical documents as a derived Obsidian Markdown vault.
     ExportVault {
         #[arg(value_name = "DIRECTORY")]
@@ -680,6 +685,68 @@ enum AuditAction {
     },
 }
 
+const DEFAULT_RECOVERY_KEY_ENV: &str = "CORTANA_IDENTITY_RECOVERY_KEY";
+const DEFAULT_NEW_RECOVERY_KEY_ENV: &str = "CORTANA_IDENTITY_RECOVERY_NEW_KEY";
+
+#[derive(Clone, Debug, Subcommand)]
+enum IdentityAction {
+    /// Create the account root and local device identity. The recovery key is
+    /// printed exactly once and never stored.
+    Init {
+        /// Display name for this device.
+        #[arg(long, default_value = "local")]
+        name: String,
+    },
+    /// Print the public trust view; secrets are never printed.
+    Show,
+    /// Enroll a new device with freshly generated keypairs.
+    Enroll {
+        #[arg(long)]
+        name: String,
+        #[arg(long, value_name = "VAR", default_value = DEFAULT_RECOVERY_KEY_ENV)]
+        recovery_key_env: String,
+    },
+    /// Replace a device's keypairs and advance its key version.
+    Rotate {
+        #[arg(long)]
+        device_id: String,
+        #[arg(long, value_name = "VAR", default_value = DEFAULT_RECOVERY_KEY_ENV)]
+        recovery_key_env: String,
+    },
+    /// Revoke a device: it can never derive post-revocation purpose keys.
+    Revoke {
+        #[arg(long)]
+        device_id: String,
+    },
+    /// Destroy a device's retained secret material in this store.
+    Wipe {
+        #[arg(long)]
+        device_id: String,
+    },
+    /// Re-seal all identity material under a new recovery key.
+    Recover {
+        #[arg(long, value_name = "VAR", default_value = DEFAULT_RECOVERY_KEY_ENV)]
+        recovery_key_env: String,
+        #[arg(long, value_name = "VAR", default_value = DEFAULT_NEW_RECOVERY_KEY_ENV)]
+        new_recovery_key_env: String,
+    },
+    /// Rotate the account root secret and advance the key generation.
+    RotateRoot {
+        #[arg(long, value_name = "VAR", default_value = DEFAULT_RECOVERY_KEY_ENV)]
+        recovery_key_env: String,
+    },
+}
+
+fn recovery_key_from_env(variable: &str) -> Result<String> {
+    std::env::var(variable)
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .with_context(|| {
+            format!("set {variable} to the base64 recovery key printed at identity initialization")
+        })
+}
+
 #[derive(Clone, Copy, Debug, ValueEnum)]
 enum AuditExportFormat {
     Json,
@@ -1035,6 +1102,9 @@ async fn main() -> Result<()> {
     if let Some(Command::Audit { action }) = cli.command.as_ref() {
         return manage_audit(&config, &store, action);
     }
+    if let Some(Command::Identity { action }) = cli.command.as_ref() {
+        return manage_identity(&config, &store, action);
+    }
     if let Some(Command::ExportVault {
         output,
         workspaces,
@@ -1135,6 +1205,7 @@ async fn main() -> Result<()> {
             | Command::Readiness { .. }
             | Command::Acl { .. }
             | Command::Audit { .. }
+            | Command::Identity { .. }
             | Command::ProviderModels { .. },
         ) => {
             unreachable!()
@@ -2930,6 +3001,120 @@ fn manage_audit(config: &Config, store: &Store, action: &AuditAction) -> Result<
             Ok(())
         }
     }
+}
+
+fn manage_identity(config: &Config, store: &Store, action: &IdentityAction) -> Result<()> {
+    use cortana::device_identity;
+    let audit_max = config.auth.audit_max_events;
+    match action {
+        IdentityAction::Init { name } => {
+            let outcome = device_identity::initialize(store, name, audit_max)?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&outcome.local_device)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+            println!(
+                "\nRecovery key (store it outside this machine; it is never shown again):\n{}\n",
+                outcome.recovery_key.expose()
+            );
+        }
+        IdentityAction::Show => {
+            let registry = device_identity::load(store)?
+                .filter(|_| true)
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "device identity is not initialized; run `cortana identity init`"
+                    )
+                })?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&serde_json::json!({
+                    "contract_version": registry.contract_version,
+                    "key_hierarchy_version": registry.key_hierarchy_version,
+                    "account_id": registry.account_id,
+                    "root_generation": registry.root_generation,
+                    "root_signing_fingerprint": registry.root_signing_public,
+                    "devices": device_identity::trust_view(&registry),
+                }))?
+            );
+        }
+        IdentityAction::Enroll {
+            name,
+            recovery_key_env,
+        } => {
+            let mut registry = device_identity::load(store)?
+                .ok_or_else(|| anyhow::anyhow!("device identity is not initialized"))?;
+            let recovery = recovery_key_from_env(recovery_key_env)?;
+            let enrolled =
+                device_identity::enroll(store, &mut registry, &recovery, name, audit_max)?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&enrolled)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
+        IdentityAction::Rotate {
+            device_id,
+            recovery_key_env,
+        } => {
+            let mut registry = device_identity::load(store)?
+                .ok_or_else(|| anyhow::anyhow!("device identity is not initialized"))?;
+            let recovery = recovery_key_from_env(recovery_key_env)?;
+            let rotated = device_identity::rotate_device(
+                store,
+                &mut registry,
+                &recovery,
+                device_id,
+                audit_max,
+            )?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&rotated)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
+        IdentityAction::Revoke { device_id } => {
+            let mut registry = device_identity::load(store)?
+                .ok_or_else(|| anyhow::anyhow!("device identity is not initialized"))?;
+            let revoked =
+                device_identity::revoke_device(store, &mut registry, device_id, audit_max)?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&revoked)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
+        IdentityAction::Wipe { device_id } => {
+            let mut registry = device_identity::load(store)?
+                .ok_or_else(|| anyhow::anyhow!("device identity is not initialized"))?;
+            let wiped = device_identity::wipe_device(store, &mut registry, device_id, audit_max)?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&wiped)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
+        IdentityAction::Recover {
+            recovery_key_env,
+            new_recovery_key_env,
+        } => {
+            let mut registry = device_identity::load(store)?
+                .ok_or_else(|| anyhow::anyhow!("device identity is not initialized"))?;
+            let recovery = recovery_key_from_env(recovery_key_env)?;
+            let fresh = recovery_key_from_env(new_recovery_key_env)?;
+            device_identity::recover(store, &mut registry, &recovery, &fresh, audit_max)?;
+            println!("identity material resealed under the new recovery key");
+        }
+        IdentityAction::RotateRoot { recovery_key_env } => {
+            let mut registry = device_identity::load(store)?
+                .ok_or_else(|| anyhow::anyhow!("device identity is not initialized"))?;
+            let recovery = recovery_key_from_env(recovery_key_env)?;
+            device_identity::rotate_root(store, &mut registry, &recovery, audit_max)?;
+            println!("root rotated to generation {}", registry.root_generation);
+        }
+    }
+    Ok(())
 }
 
 fn write_audit_export(
