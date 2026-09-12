@@ -14,7 +14,7 @@
       "id": "store",
       "path": "src/store.rs",
       "symbol": "code_relations",
-      "expected_line": 4491,
+      "expected_line": 4516,
       "expected_fragment": "pub fn code_relations"
     },
     {
