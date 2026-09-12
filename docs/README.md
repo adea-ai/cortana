@@ -23,6 +23,8 @@ Cortana documentation is divided by authority. Each document should define one d
 | Evaluation methods and evidence                         | [Evaluation](evaluation.md)                                                                                                       |
 | Planning and documentation ownership                    | [Planning and tracking](planning.md)                                                                                              |
 | Architecture diagrams                                   | [Architecture](architecture/)                                                                                                     |
+| Future multi-device and managed modes                   | [ADR 0003](architecture/0003-multi-device-and-managed-modes.md)                                                                   |
+| Managed and multi-device threat model                   | [Managed threat model](architecture/managed-threat-model.md)                                                                      |
 | Canonical entities and persistence                      | [Core entity contract](contracts/core-entities.md)                                                                                |
 | Structured retrieval units                              | [Structured chunking](chunking.md)                                                                                                |
 | Revision-aware code indexes and retrieval               | [Code intelligence](code-intelligence.md)                                                                                         |
