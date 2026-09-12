@@ -1,6 +1,6 @@
 # ADR 0003: Future multi-device and managed-hosted modes
 
-Status: proposed
+Status: accepted (2026-09-12)
 
 ## Context
 
