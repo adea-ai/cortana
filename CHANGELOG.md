@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.56.24](https://github.com/adea-ai/cortana/compare/v0.56.23...v0.56.24) (2026-09-12)
+
+
+### Bug Fixes
+
+* **format:** ignore release-please rewritten eval example JSONs ([#2300](https://github.com/adea-ai/cortana/issues/2300)) ([dcfbc4b](https://github.com/adea-ai/cortana/commit/dcfbc4be5369aff40d58f29dfbe50c48e518fc10))
+
+
+### Maintenance
+
+* **code-foundry:** upgrade runtime to v1.28.14 ([#2298](https://github.com/adea-ai/cortana/issues/2298)) ([bae7b2d](https://github.com/adea-ai/cortana/commit/bae7b2df8bab2a443327ba49766a048059747a91))
+
 ## [0.56.23](https://github.com/adea-ai/cortana/compare/v0.56.22...v0.56.23) (2026-09-11)
 
 
