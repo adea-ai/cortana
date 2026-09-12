@@ -13,10 +13,12 @@ on:
 # only the scopes their own validation path consumes.
 permissions: {}
 
-# Superseded PR updates cancel the previous run.
+# Superseded PR updates cancel the previous run. Post-merge runs on main are
+# never cancelled: a cancelled run attaches to the merged pull request and
+# marks it failed even though its content was superseded by a newer main push.
 concurrency:
   group: code-foundry-validation-${{ github.event_name }}-${{ github.event.pull_request.head.repo.full_name || github.repository }}-${{ github.event.pull_request.head.ref || github.ref_name }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   mode:

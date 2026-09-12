@@ -37,7 +37,9 @@ permissions:
 
 concurrency:
   group: knowledge-accessibility-${{ github.event.pull_request.head.ref || github.ref_name }}
-  cancel-in-progress: true
+  # Never cancel post-merge runs on main: a cancelled run attaches to the
+  # merged pull request and marks it failed.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   acceptance:
