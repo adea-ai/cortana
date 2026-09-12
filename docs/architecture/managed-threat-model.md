@@ -51,7 +51,9 @@ separate local stores.
 Unresolved until their implementation ADRs land: exact synchronization protocol and tombstone
 retention; key-recovery user experience and its abuse trade-offs; residency guarantees achievable
 per provider; coordinator transactional design and its audit schema; fleet attestation and
-sandboxing strength; and all provider/build-buy selections. These gaps are acceptable while no
+sandboxing strength; and all provider/build-buy selections. Device identity and key-hierarchy
+choices are specified separately in ADR 0004 and are prerequisite material for the
+multi-device and team modes. These gaps are acceptable while no
 mode ships; they block implementation, not documentation.
 
 ## Review boundary
