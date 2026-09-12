@@ -56,7 +56,9 @@ Audit events contain principal, operation, scope labels, outcome, bounded result
 they do not contain query text, document content, memory content, tokens, or private absolute paths.
 Backups are owner-only files and must pass verify/restore drills before being trusted. A suspected
 credential compromise requires revoke/rotate, auth reload, audit review, backup review, and a clean
-release/restore decision. Hosted deployment requires a separate tenancy and incident ADR.
+release/restore decision. Hosted deployment requires a separate tenancy and incident ADR; the
+future-mode boundary is defined in [ADR 0003](architecture/0003-multi-device-and-managed-modes.md)
+and its [managed threat model](architecture/managed-threat-model.md).
 
 ## Residual risks
 
