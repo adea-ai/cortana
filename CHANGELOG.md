@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.57.0](https://github.com/adea-ai/cortana/compare/v0.56.25...v0.57.0) (2026-09-12)
+
+
+### Features
+
+* **identity:** add encrypted device identity and key hierarchy ([#2304](https://github.com/adea-ai/cortana/issues/2304)) ([a68826c](https://github.com/adea-ai/cortana/commit/a68826cb02ccbe66dd5b122851f9b37eb9ccd4f2))
+
+
+### Documentation
+
+* **architecture:** define future multi-device and managed modes with threat model ([#2303](https://github.com/adea-ai/cortana/issues/2303)) ([8b0376b](https://github.com/adea-ai/cortana/commit/8b0376be4e8a3c72fd06e15299d59b570606ba2c))
+
 ## [0.56.25](https://github.com/adea-ai/cortana/compare/v0.56.24...v0.56.25) (2026-09-12)
 
 
