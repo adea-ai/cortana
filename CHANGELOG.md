@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.56.25](https://github.com/adea-ai/cortana/compare/v0.56.24...v0.56.25) (2026-09-12)
+
+
+### Bug Fixes
+
+* **ci:** stop cancelling post-merge validation on main ([#2301](https://github.com/adea-ai/cortana/issues/2301)) ([c5056ac](https://github.com/adea-ai/cortana/commit/c5056ac305e196f59cd626f765ced675127e576d))
+
 ## [0.56.24](https://github.com/adea-ai/cortana/compare/v0.56.23...v0.56.24) (2026-09-12)
 
 
