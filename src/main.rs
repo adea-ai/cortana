@@ -788,6 +788,8 @@ enum SyncBundleAction {
         #[arg(long, default_value_t = 50)]
         limit: usize,
     },
+    /// Drop superseded journal entries every peer has acknowledged.
+    Compact,
     /// Resolve a conflict by accepting the preserved remote payload.
     Resolve {
         #[arg(long)]
@@ -3318,6 +3320,10 @@ fn manage_sync(config: &Config, store: &Store, action: &SyncBundleAction) -> Res
                 "{}",
                 serde_json::to_string_pretty(&store.sync_list_conflicts(*limit)?)?
             );
+        }
+        SyncBundleAction::Compact => {
+            let removed = store.sync_compact()?;
+            println!("compacted {removed} journal entries");
         }
         SyncBundleAction::Resolve {
             conflict_id,

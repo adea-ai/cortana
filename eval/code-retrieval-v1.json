@@ -84,7 +84,7 @@
       "id": "api",
       "path": "src/api.rs",
       "symbol": "code_symbols",
-      "expected_line": 2578,
+      "expected_line": 2585,
       "expected_fragment": "async fn code_symbols"
     }
   ],
