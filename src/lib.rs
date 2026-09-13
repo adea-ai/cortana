@@ -40,5 +40,6 @@ pub mod source_validation;
 pub mod store;
 pub mod supervisor;
 pub mod sync_engine;
+pub mod team;
 pub mod tenant;
 pub mod vault_export;

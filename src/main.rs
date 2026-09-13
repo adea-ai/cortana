@@ -182,6 +182,11 @@ enum Command {
         #[command(subcommand)]
         action: TenantAction,
     },
+    /// Manage team brain workspaces, membership, and deletion.
+    Team {
+        #[command(subcommand)]
+        action: TeamAction,
+    },
     /// Export authorized canonical documents as a derived Obsidian Markdown vault.
     ExportVault {
         #[arg(value_name = "DIRECTORY")]
@@ -764,6 +769,121 @@ enum TenantAction {
 }
 
 #[derive(Clone, Debug, Subcommand)]
+enum TeamAction {
+    /// Create a workspace with the creator as owner; residency is pinned.
+    CreateWorkspace {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        name: String,
+        #[arg(long)]
+        residency: String,
+        #[arg(long)]
+        store_path: PathBuf,
+        #[arg(long)]
+        owner_member_id: String,
+    },
+    /// List workspace records, including deletion receipts.
+    List {
+        #[arg(long)]
+        registry: PathBuf,
+    },
+    /// Invite one member id at one role; admin or above.
+    Invite {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        workspace_id: String,
+        #[arg(long)]
+        actor: String,
+        #[arg(long)]
+        invitee: String,
+        #[arg(long, value_enum, default_value_t = TeamRoleArg::Contributor)]
+        role: TeamRoleArg,
+        #[arg(long, default_value_t = 3600)]
+        ttl_seconds: i64,
+    },
+    /// Accept an invitation as the invitee.
+    AcceptInvitation {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        invitation_id: String,
+        #[arg(long)]
+        acceptor: String,
+    },
+    /// Remove a member; admin or above, owners only via deletion.
+    RemoveMember {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        workspace_id: String,
+        #[arg(long)]
+        actor: String,
+        #[arg(long)]
+        member_id: String,
+    },
+    /// Leave a workspace as a non-owner member.
+    Leave {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        workspace_id: String,
+        #[arg(long)]
+        member_id: String,
+    },
+    /// Print the effective role and allowed operations for a member.
+    Access {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        workspace_id: String,
+        #[arg(long)]
+        member_id: String,
+    },
+    /// Record deletion intent; owner only.
+    RequestDelete {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        workspace_id: String,
+        #[arg(long)]
+        actor: String,
+    },
+    /// Destroy the workspace data plane and retain the deletion receipt.
+    Delete {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        workspace_id: String,
+        #[arg(long)]
+        actor: String,
+    },
+    /// Workspace lifecycle counts; no content is shown.
+    Status {
+        #[arg(long)]
+        registry: PathBuf,
+    },
+}
+
+#[derive(Clone, Copy, Debug, clap::ValueEnum)]
+enum TeamRoleArg {
+    Reader,
+    Contributor,
+    Admin,
+}
+
+impl From<TeamRoleArg> for cortana::team::MemberRole {
+    fn from(value: TeamRoleArg) -> Self {
+        match value {
+            TeamRoleArg::Reader => cortana::team::MemberRole::Reader,
+            TeamRoleArg::Contributor => cortana::team::MemberRole::Contributor,
+            TeamRoleArg::Admin => cortana::team::MemberRole::Admin,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Subcommand)]
 enum FleetAction {
     /// Issue a signed, expiring task grant for one worker device.
     Issue {
@@ -1283,6 +1403,9 @@ async fn main() -> Result<()> {
     if let Some(Command::Tenant { action }) = cli.command.as_ref() {
         return manage_tenant(action);
     }
+    if let Some(Command::Team { action }) = cli.command.as_ref() {
+        return manage_team(action);
+    }
     if let Some(Command::ExportVault {
         output,
         workspaces,
@@ -1387,6 +1510,7 @@ async fn main() -> Result<()> {
             | Command::SyncBundle { .. }
             | Command::Fleet { .. }
             | Command::Tenant { .. }
+            | Command::Team { .. }
             | Command::ProviderModels { .. },
         ) => {
             unreachable!()
@@ -3573,6 +3697,132 @@ fn manage_tenant(action: &TenantAction) -> Result<()> {
             print_record(&control(registry)?.confirm_purge(tenant_id, tenant_id)?)?;
         }
         TenantAction::Status { registry } => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&control(registry)?.status()?)?
+            );
+        }
+    }
+    Ok(())
+}
+
+fn manage_team(action: &TeamAction) -> Result<()> {
+    use cortana::team::{TeamControlPlane, WorkspaceRecord};
+    fn control(registry: &std::path::Path) -> Result<TeamControlPlane> {
+        TeamControlPlane::open(registry)
+    }
+    fn print_record(record: &WorkspaceRecord) -> Result<()> {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(record)
+                .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+        );
+        Ok(())
+    }
+    match action {
+        TeamAction::CreateWorkspace {
+            registry,
+            name,
+            residency,
+            store_path,
+            owner_member_id,
+        } => {
+            let record =
+                control(registry)?.create_workspace(&cortana::team::CreateWorkspaceRequest {
+                    name: name.clone(),
+                    residency: residency.clone(),
+                    store_path: store_path.clone(),
+                    owner_member_id: owner_member_id.clone(),
+                })?;
+            print_record(&record)?;
+        }
+        TeamAction::List { registry } => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&control(registry)?.list()?)?
+            );
+        }
+        TeamAction::Invite {
+            registry,
+            workspace_id,
+            actor,
+            invitee,
+            role,
+            ttl_seconds,
+        } => {
+            let invitation = control(registry)?.invite(
+                workspace_id,
+                actor,
+                invitee,
+                cortana::team::MemberRole::from(*role),
+                *ttl_seconds,
+            )?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&invitation)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
+        TeamAction::AcceptInvitation {
+            registry,
+            invitation_id,
+            acceptor,
+        } => {
+            let member = control(registry)?.accept_invitation(invitation_id, acceptor)?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&member)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
+        TeamAction::RemoveMember {
+            registry,
+            workspace_id,
+            actor,
+            member_id,
+        } => {
+            let removed = control(registry)?.remove_member(workspace_id, actor, member_id)?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&removed)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
+        TeamAction::Leave {
+            registry,
+            workspace_id,
+            member_id,
+        } => {
+            let departed = control(registry)?.leave(workspace_id, member_id)?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&departed)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
+        TeamAction::Access {
+            registry,
+            workspace_id,
+            member_id,
+        } => {
+            let explanation = control(registry)?.access_explanation(workspace_id, member_id)?;
+            println!("{}", serde_json::to_string_pretty(&explanation)?);
+        }
+        TeamAction::RequestDelete {
+            registry,
+            workspace_id,
+            actor,
+        } => {
+            print_record(&control(registry)?.request_delete(workspace_id, actor)?)?;
+        }
+        TeamAction::Delete {
+            registry,
+            workspace_id,
+            actor,
+        } => {
+            print_record(&control(registry)?.confirm_delete(workspace_id, actor, workspace_id)?)?;
+        }
+        TeamAction::Status { registry } => {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&control(registry)?.status()?)?
