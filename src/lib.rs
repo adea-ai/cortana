@@ -38,4 +38,5 @@ pub mod source_status;
 pub mod source_validation;
 pub mod store;
 pub mod supervisor;
+pub mod sync_engine;
 pub mod vault_export;

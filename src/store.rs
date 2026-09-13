@@ -334,6 +334,35 @@ impl Store {
                id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT NOT NULL,
                principal TEXT NOT NULL, action TEXT NOT NULL, project TEXT, source TEXT,
                outcome TEXT NOT NULL, result_count INTEGER, latency_ms INTEGER NOT NULL);
+             CREATE TABLE IF NOT EXISTS sync_journal(
+               journal_id INTEGER PRIMARY KEY AUTOINCREMENT,
+               object_kind TEXT NOT NULL,
+               object_id TEXT NOT NULL,
+               revision INTEGER NOT NULL,
+               origin_device TEXT NOT NULL,
+               fingerprint TEXT NOT NULL,
+               tombstone INTEGER NOT NULL DEFAULT 0,
+               changed_at TEXT NOT NULL,
+               UNIQUE(object_kind, object_id, revision));
+             CREATE INDEX IF NOT EXISTS idx_sync_journal_object
+               ON sync_journal(object_kind, object_id, revision DESC);
+             CREATE TABLE IF NOT EXISTS sync_watermarks(
+               peer_device TEXT PRIMARY KEY,
+               imported_watermark INTEGER NOT NULL DEFAULT 0,
+               acked_watermark INTEGER NOT NULL DEFAULT 0,
+               updated_at TEXT NOT NULL);
+             CREATE TABLE IF NOT EXISTS sync_conflicts(
+               conflict_id INTEGER PRIMARY KEY AUTOINCREMENT,
+               object_kind TEXT NOT NULL,
+               object_id TEXT NOT NULL,
+               local_revision INTEGER NOT NULL,
+               remote_revision INTEGER NOT NULL,
+               local_origin TEXT NOT NULL,
+               remote_origin TEXT NOT NULL,
+               resolution TEXT NOT NULL,
+               payload_json TEXT NOT NULL,
+               created_at TEXT NOT NULL,
+               resolved_at TEXT);
              CREATE TABLE IF NOT EXISTS memories(
                id TEXT PRIMARY KEY,
                kind TEXT NOT NULL,
@@ -945,6 +974,7 @@ impl Store {
             )?;
         }
         replace_code_index(&transaction, &id, document)?;
+        crate::sync_engine::journal_in_transaction(&transaction, "document", &id)?;
         bump_corpus_revision(&transaction)?;
         transaction.commit()?;
         Ok(true)
@@ -1093,6 +1123,7 @@ impl Store {
             )?;
         }
         replace_code_index(&transaction, &id, document)?;
+        crate::sync_engine::journal_in_transaction(&transaction, "document", &id)?;
         bump_corpus_revision(&transaction)?;
         transaction.commit()?;
         Ok(true)
@@ -1196,6 +1227,7 @@ impl Store {
                 [id],
             )?;
             transaction.execute("DELETE FROM documents WHERE id=?1", [id])?;
+            crate::sync_engine::journal_in_transaction(&transaction, "document", id)?;
         }
         if !stale.is_empty() {
             bump_corpus_revision(&transaction)?;
@@ -1368,6 +1400,11 @@ impl Store {
             })?
             .collect::<rusqlite::Result<Vec<_>>>()
             .map_err(Into::into)
+    }
+
+    /// Write-side connection for the sync engine, which owns its transactions.
+    pub(crate) fn sync_write_connection(&self) -> &std::sync::Mutex<Connection> {
+        &self.connection
     }
 
     /// Read one bounded metadata value from the key-value meta table.
@@ -1699,6 +1736,7 @@ impl Store {
             "INSERT INTO memories_fts(memory_id,title,content) VALUES(?1,?2,?3)",
             params![id, input.title, input.content],
         )?;
+        crate::sync_engine::journal_in_transaction(transaction, "memory", &id)?;
         bump_memory_revision(transaction)?;
         Ok(id)
     }
@@ -3582,6 +3620,7 @@ impl Store {
         )?;
         if changed == 1 {
             transaction.execute("DELETE FROM memories_fts WHERE memory_id=?1", [id])?;
+            crate::sync_engine::journal_in_transaction(&transaction, "memory", id)?;
             bump_memory_revision(&transaction)?;
         }
         transaction.commit()?;
@@ -6235,7 +6274,7 @@ fn observation_candidate_from_row(
     })
 }
 
-fn stable_id(source: &str, source_id: &str) -> String {
+pub(crate) fn stable_id(source: &str, source_id: &str) -> String {
     hex_digest(format!("{source}\0{source_id}").as_bytes())
 }
 
