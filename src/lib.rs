@@ -15,6 +15,7 @@ pub mod device_identity;
 pub mod discord_rpc;
 pub mod embed;
 pub mod evaluation;
+pub mod fleet;
 pub mod github_oauth;
 pub mod google_oauth;
 pub mod integration;

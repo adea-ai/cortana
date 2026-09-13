@@ -172,6 +172,11 @@ enum Command {
         #[command(subcommand)]
         action: SyncBundleAction,
     },
+    /// Issue and verify connector fleet task grants.
+    Fleet {
+        #[command(subcommand)]
+        action: FleetAction,
+    },
     /// Export authorized canonical documents as a derived Obsidian Markdown vault.
     ExportVault {
         #[arg(value_name = "DIRECTORY")]
@@ -691,6 +696,39 @@ enum AuditAction {
 }
 
 const DEFAULT_RECOVERY_KEY_ENV: &str = "CORTANA_IDENTITY_RECOVERY_KEY";
+
+#[derive(Clone, Debug, Subcommand)]
+enum FleetAction {
+    /// Issue a signed, expiring task grant for one worker device.
+    Issue {
+        #[arg(long)]
+        audience: String,
+        #[arg(long)]
+        job_id: String,
+        #[arg(long)]
+        capability: String,
+        #[arg(long)]
+        workspace: String,
+        #[arg(long, value_delimiter = ',')]
+        source_scope: Vec<String>,
+        #[arg(long)]
+        credential_reference: Option<String>,
+        #[arg(long, default_value_t = 3600)]
+        ttl_seconds: i64,
+        #[arg(long, default_value_t = 1000)]
+        max_documents: u32,
+        #[arg(long, default_value_t = 64 * 1024 * 1024)]
+        max_bytes: u64,
+        #[arg(long, value_name = "VAR", default_value = DEFAULT_RECOVERY_KEY_ENV)]
+        recovery_key_env: String,
+    },
+    /// Verify a task grant on a worker device and print its claims.
+    Verify {
+        /// Path to the grant JSON file.
+        #[arg(long)]
+        token_file: PathBuf,
+    },
+}
 const DEFAULT_NEW_RECOVERY_KEY_ENV: &str = "CORTANA_IDENTITY_RECOVERY_NEW_KEY";
 
 #[derive(Clone, Debug, Subcommand)]
@@ -1173,6 +1211,9 @@ async fn main() -> Result<()> {
     if let Some(Command::SyncBundle { action }) = cli.command.as_ref() {
         return manage_sync(&config, &store, action);
     }
+    if let Some(Command::Fleet { action }) = cli.command.as_ref() {
+        return manage_fleet(&config, &store, action);
+    }
     if let Some(Command::ExportVault {
         output,
         workspaces,
@@ -1275,6 +1316,7 @@ async fn main() -> Result<()> {
             | Command::Audit { .. }
             | Command::Identity { .. }
             | Command::SyncBundle { .. }
+            | Command::Fleet { .. }
             | Command::ProviderModels { .. },
         ) => {
             unreachable!()
@@ -3333,6 +3375,65 @@ fn manage_sync(config: &Config, store: &Store, action: &SyncBundleAction) -> Res
             println!("conflict {conflict_id} resolved");
         }
     }
+    Ok(())
+}
+
+fn manage_fleet(config: &Config, store: &Store, action: &FleetAction) -> Result<()> {
+    use cortana::fleet;
+    match action {
+        FleetAction::Issue {
+            audience,
+            job_id,
+            capability,
+            workspace,
+            source_scope,
+            credential_reference,
+            ttl_seconds,
+            max_documents,
+            max_bytes,
+            recovery_key_env,
+        } => {
+            let registry = cortana::device_identity::load(store)?
+                .ok_or_else(|| anyhow::anyhow!("device identity is not initialized"))?;
+            let recovery = recovery_key_from_env(recovery_key_env)?;
+            let token = fleet::issue_task_grant(
+                store,
+                &registry,
+                &recovery,
+                &fleet::TaskGrantRequest {
+                    audience: audience.clone(),
+                    job_id: job_id.clone(),
+                    capability: capability.clone(),
+                    workspace: workspace.clone(),
+                    source_scope: source_scope.clone(),
+                    credential_reference: credential_reference.clone(),
+                    ttl_seconds: *ttl_seconds,
+                    max_documents: *max_documents,
+                    max_bytes: *max_bytes,
+                },
+            )?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&token)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
+        FleetAction::Verify { token_file } => {
+            let raw = std::fs::read_to_string(token_file)
+                .with_context(|| format!("failed to read grant {}", token_file.display()))?;
+            let token: fleet::TaskGrant = serde_json::from_str(&raw)
+                .with_context(|| format!("grant {} is not valid JSON", token_file.display()))?;
+            let registry = cortana::device_identity::load(store)?
+                .ok_or_else(|| anyhow::anyhow!("device identity is not initialized"))?;
+            let claims = fleet::verify_task_grant(store, &registry, &token, chrono::Utc::now())?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&claims)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
+    }
+    let _ = config;
     Ok(())
 }
 

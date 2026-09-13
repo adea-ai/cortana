@@ -49,9 +49,9 @@ impl RecoveryKey {
 }
 
 /// Device keypairs held only in memory while mutating the registry.
-struct DeviceSecrets {
-    signing: SigningKey,
-    agreement: AgreementSecret,
+pub(crate) struct DeviceSecrets {
+    pub(crate) signing: SigningKey,
+    pub(crate) agreement: AgreementSecret,
 }
 
 impl Drop for DeviceSecrets {
@@ -103,7 +103,7 @@ pub struct DeviceSummary {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeviceEntry {
     #[serde(flatten)]
-    summary: DeviceSummary,
+    pub(crate) summary: DeviceSummary,
     /// Sealed signing+agreement seeds; `None` once the device is wiped.
     sealed_secrets: Option<SealedBlob>,
     retired_public_keys: Vec<RetiredPublicKey>,
@@ -149,7 +149,7 @@ fn now_rfc3339() -> String {
     chrono::Utc::now().to_rfc3339()
 }
 
-fn random_bytes(length: usize) -> Result<Vec<u8>> {
+pub(crate) fn random_bytes(length: usize) -> Result<Vec<u8>> {
     let mut buffer = vec![0u8; length];
     getrandom::getrandom(&mut buffer)
         .map_err(|error| anyhow::anyhow!("secure randomness unavailable: {error}"))?;
@@ -188,7 +188,7 @@ fn unseal(key: &[u8; 32], blob: &SealedBlob) -> Result<Vec<u8>> {
 }
 
 /// Derive the at-rest sealing key from the owner recovery key and registry salt.
-fn storage_seal_key(recovery_key: &str, salt: &[u8]) -> Result<[u8; 32]> {
+pub(crate) fn storage_seal_key(recovery_key: &str, salt: &[u8]) -> Result<[u8; 32]> {
     let recovery_bytes = BASE64
         .decode(recovery_key.trim())
         .context("recovery key is not valid base64")?;
@@ -218,7 +218,7 @@ pub fn purpose_key(root_secret: &[u8; 32], generation: u32, purpose: &str) -> Re
     derive_key(root_secret, &generation.to_be_bytes(), purpose)
 }
 
-fn fingerprint(signing_public: &[u8]) -> String {
+pub(crate) fn fingerprint(signing_public: &[u8]) -> String {
     let digest = Sha256::digest(signing_public);
     let mut short = String::with_capacity(16);
     for byte in &digest[..8] {
@@ -955,7 +955,7 @@ fn sync_self_device(store: &Store) -> Result<Option<String>> {
     store.meta_get(crate::sync_engine::SYNC_SELF_DEVICE_META)
 }
 
-fn unseal_self_secrets(
+pub(crate) fn unseal_self_secrets(
     seal_key: &[u8; 32],
     registry: &Registry,
     self_device: &str,
