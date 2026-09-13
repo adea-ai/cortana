@@ -167,6 +167,11 @@ enum Command {
         #[command(subcommand)]
         action: IdentityAction,
     },
+    /// Export and apply revisioned encrypted sync bundles between devices.
+    SyncBundle {
+        #[command(subcommand)]
+        action: SyncBundleAction,
+    },
     /// Export authorized canonical documents as a derived Obsidian Markdown vault.
     ExportVault {
         #[arg(value_name = "DIRECTORY")]
@@ -735,6 +740,64 @@ enum IdentityAction {
         #[arg(long, value_name = "VAR", default_value = DEFAULT_RECOVERY_KEY_ENV)]
         recovery_key_env: String,
     },
+    /// Export a device's sealed credential plus the account trust view for
+    /// pairing a new device. The file stays sealed; the recovery key travels
+    /// with the owner, never inside the export.
+    Export {
+        #[arg(long)]
+        device_id: String,
+    },
+    /// Adopt an exported device credential into this store.
+    Adopt {
+        /// Path to the exported credential file.
+        #[arg(long)]
+        from: PathBuf,
+        #[arg(long, value_name = "VAR", default_value = DEFAULT_RECOVERY_KEY_ENV)]
+        recovery_key_env: String,
+    },
+}
+
+#[derive(Clone, Debug, Subcommand)]
+enum SyncBundleAction {
+    /// Export pending encrypted changes for a peer device as a bundle file.
+    Export {
+        #[arg(long)]
+        device_id: String,
+        /// Destination bundle path; refuses to overwrite without --force.
+        #[arg(long)]
+        output: PathBuf,
+        #[arg(long, help = "Replace an existing bundle file")]
+        force: bool,
+        #[arg(long, value_name = "VAR", default_value = DEFAULT_RECOVERY_KEY_ENV)]
+        recovery_key_env: String,
+        #[arg(long, default_value_t = 500)]
+        limit: usize,
+    },
+    /// Import and atomically apply an encrypted bundle from a peer device.
+    Import {
+        /// Path to the bundle file.
+        #[arg(long)]
+        input: PathBuf,
+        #[arg(long, value_name = "VAR", default_value = DEFAULT_RECOVERY_KEY_ENV)]
+        recovery_key_env: String,
+    },
+    /// Print journal, watermark, freshness, and conflict status.
+    Status,
+    /// List sync conflicts, including the deterministic resolution taken.
+    Conflicts {
+        #[arg(long, default_value_t = 50)]
+        limit: usize,
+    },
+    /// Resolve a conflict by accepting the preserved remote payload.
+    Resolve {
+        #[arg(long)]
+        conflict_id: i64,
+        #[arg(
+            long,
+            help = "Keep the local version instead of applying the remote payload"
+        )]
+        keep_local: bool,
+    },
 }
 
 fn recovery_key_from_env(variable: &str) -> Result<String> {
@@ -1105,6 +1168,9 @@ async fn main() -> Result<()> {
     if let Some(Command::Identity { action }) = cli.command.as_ref() {
         return manage_identity(&config, &store, action);
     }
+    if let Some(Command::SyncBundle { action }) = cli.command.as_ref() {
+        return manage_sync(&config, &store, action);
+    }
     if let Some(Command::ExportVault {
         output,
         workspaces,
@@ -1206,6 +1272,7 @@ async fn main() -> Result<()> {
             | Command::Acl { .. }
             | Command::Audit { .. }
             | Command::Identity { .. }
+            | Command::SyncBundle { .. }
             | Command::ProviderModels { .. },
         ) => {
             unreachable!()
@@ -3019,6 +3086,33 @@ fn manage_identity(config: &Config, store: &Store, action: &IdentityAction) -> R
                 outcome.recovery_key.expose()
             );
         }
+        IdentityAction::Export { device_id } => {
+            let registry = device_identity::load(store)?
+                .ok_or_else(|| anyhow::anyhow!("device identity is not initialized"))?;
+            let exported = device_identity::export_device(&registry, device_id)?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&exported)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
+        IdentityAction::Adopt {
+            from,
+            recovery_key_env,
+        } => {
+            let raw = std::fs::read_to_string(from)
+                .with_context(|| format!("failed to read device export {}", from.display()))?;
+            let exported: device_identity::DeviceExport = serde_json::from_str(&raw)
+                .with_context(|| format!("device export {} is not valid JSON", from.display()))?;
+            let recovery = recovery_key_from_env(recovery_key_env)?;
+            let adopted =
+                device_identity::adopt(store, &exported, &recovery, config.auth.audit_max_events)?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&adopted)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
         IdentityAction::Show => {
             let registry = device_identity::load(store)?
                 .filter(|_| true)
@@ -3112,6 +3206,125 @@ fn manage_identity(config: &Config, store: &Store, action: &IdentityAction) -> R
             let recovery = recovery_key_from_env(recovery_key_env)?;
             device_identity::rotate_root(store, &mut registry, &recovery, audit_max)?;
             println!("root rotated to generation {}", registry.root_generation);
+        }
+    }
+    Ok(())
+}
+
+fn manage_sync(config: &Config, store: &Store, action: &SyncBundleAction) -> Result<()> {
+    use cortana::device_identity;
+    use cortana::sync_engine::SyncEntry;
+    let _ = config;
+    match action {
+        SyncBundleAction::Export {
+            device_id,
+            output,
+            force,
+            recovery_key_env,
+            limit,
+        } => {
+            let registry = device_identity::load(store)?
+                .ok_or_else(|| anyhow::anyhow!("device identity is not initialized"))?;
+            let recovery = recovery_key_from_env(recovery_key_env)?;
+            anyhow::ensure!(
+                *force || !output.exists(),
+                "bundle destination already exists: {}; rerun with --force",
+                output.display()
+            );
+            reject_symlink_path(output)?;
+            let (entries, up_to) = store.sync_export_entries(device_id, *limit)?;
+            let payload = serde_json::json!({
+                "entries": entries,
+                "up_to_journal_id": up_to,
+                "sender_device": store.sync_self_device()?,
+            });
+            let bundle = device_identity::seal_sync_bundle(
+                store,
+                &registry,
+                &recovery,
+                device_id,
+                payload.to_string().as_bytes(),
+            )?;
+            let mut options = std::fs::OpenOptions::new();
+            options.write(true).create(true).truncate(true);
+            configure_no_follow(&mut options);
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::OpenOptionsExt;
+                options.mode(0o600);
+            }
+            let mut file = options
+                .open(output)
+                .with_context(|| format!("failed to create sync bundle {}", output.display()))?;
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                file.set_permissions(std::fs::Permissions::from_mode(0o600))?;
+            }
+            file.write_all(&bundle)?;
+            println!(
+                "sync bundle wrote {} entries up to journal {} for {}: {}",
+                entries.len(),
+                up_to,
+                device_id,
+                output.display()
+            );
+        }
+        SyncBundleAction::Import {
+            input,
+            recovery_key_env,
+        } => {
+            let registry = device_identity::load(store)?
+                .ok_or_else(|| anyhow::anyhow!("device identity is not initialized"))?;
+            let recovery = recovery_key_from_env(recovery_key_env)?;
+            let bundle = std::fs::read(input)
+                .with_context(|| format!("failed to read sync bundle {}", input.display()))?;
+            let (header, payload_bytes) =
+                device_identity::open_sync_bundle(store, &registry, &recovery, &bundle)?;
+            let sender_device = header
+                .get("sender_device")
+                .and_then(serde_json::Value::as_str)
+                .ok_or_else(|| anyhow::anyhow!("bundle header is missing the sender"))?
+                .to_string();
+            let payload: serde_json::Value = serde_json::from_slice(&payload_bytes)?;
+            let entries: Vec<SyncEntry> = serde_json::from_value(
+                payload
+                    .get("entries")
+                    .cloned()
+                    .ok_or_else(|| anyhow::anyhow!("bundle payload is missing entries"))?,
+            )?;
+            let up_to = payload
+                .get("up_to_journal_id")
+                .and_then(serde_json::Value::as_i64)
+                .ok_or_else(|| anyhow::anyhow!("bundle payload is missing the watermark"))?;
+            let report = store.sync_import_entries(&sender_device, entries, up_to)?;
+            if let Some(ack) = header
+                .get("ack_for_peer")
+                .and_then(serde_json::Value::as_i64)
+            {
+                store.sync_acknowledge_peer(&sender_device, ack)?;
+            }
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&report)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
+        SyncBundleAction::Status => {
+            println!("{}", serde_json::to_string_pretty(&store.sync_status()?)?);
+        }
+        SyncBundleAction::Conflicts { limit } => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&store.sync_list_conflicts(*limit)?)?
+            );
+        }
+        SyncBundleAction::Resolve {
+            conflict_id,
+            keep_local,
+        } => {
+            store.sync_resolve_conflict(*conflict_id, !*keep_local)?;
+            println!("conflict {conflict_id} resolved");
         }
     }
     Ok(())
