@@ -177,6 +177,11 @@ enum Command {
         #[command(subcommand)]
         action: FleetAction,
     },
+    /// Manage the managed-mode tenant control plane.
+    Tenant {
+        #[command(subcommand)]
+        action: TenantAction,
+    },
     /// Export authorized canonical documents as a derived Obsidian Markdown vault.
     ExportVault {
         #[arg(value_name = "DIRECTORY")]
@@ -698,6 +703,67 @@ enum AuditAction {
 const DEFAULT_RECOVERY_KEY_ENV: &str = "CORTANA_IDENTITY_RECOVERY_KEY";
 
 #[derive(Clone, Debug, Subcommand)]
+enum TenantAction {
+    /// Provision a tenant data plane and register it.
+    Provision {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        name: String,
+        #[arg(long)]
+        residency: String,
+        #[arg(long, default_value = "cloud")]
+        source_of_truth: String,
+        #[arg(long)]
+        store_path: PathBuf,
+        #[arg(long, default_value_t = 1_000_000)]
+        max_documents: u64,
+        #[arg(long, default_value_t = 10 * 1024 * 1024 * 1024)]
+        storage_quota_bytes: u64,
+        #[arg(long, default_value_t = 90)]
+        retention_days: u32,
+    },
+    /// List tenant records, including purge receipts.
+    List {
+        #[arg(long)]
+        registry: PathBuf,
+    },
+    /// Suspend a tenant; the data plane will not open until reinstated.
+    Suspend {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        tenant_id: String,
+    },
+    /// Reinstate a suspended tenant.
+    Activate {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        tenant_id: String,
+    },
+    /// Record purge intent for a tenant.
+    RequestPurge {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        tenant_id: String,
+    },
+    /// Destroy a tenant data plane and retain the purge receipt.
+    Purge {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        tenant_id: String,
+    },
+    /// Control-plane lifecycle counts; no tenant content is shown.
+    Status {
+        #[arg(long)]
+        registry: PathBuf,
+    },
+}
+
+#[derive(Clone, Debug, Subcommand)]
 enum FleetAction {
     /// Issue a signed, expiring task grant for one worker device.
     Issue {
@@ -1214,6 +1280,9 @@ async fn main() -> Result<()> {
     if let Some(Command::Fleet { action }) = cli.command.as_ref() {
         return manage_fleet(&config, &store, action);
     }
+    if let Some(Command::Tenant { action }) = cli.command.as_ref() {
+        return manage_tenant(action);
+    }
     if let Some(Command::ExportVault {
         output,
         workspaces,
@@ -1317,6 +1386,7 @@ async fn main() -> Result<()> {
             | Command::Identity { .. }
             | Command::SyncBundle { .. }
             | Command::Fleet { .. }
+            | Command::Tenant { .. }
             | Command::ProviderModels { .. },
         ) => {
             unreachable!()
@@ -3434,6 +3504,81 @@ fn manage_fleet(config: &Config, store: &Store, action: &FleetAction) -> Result<
         }
     }
     let _ = config;
+    Ok(())
+}
+
+fn manage_tenant(action: &TenantAction) -> Result<()> {
+    use cortana::tenant::{TenantControlPlane, TenantRecord};
+    fn control(registry: &std::path::Path) -> Result<TenantControlPlane> {
+        TenantControlPlane::open(registry)
+    }
+    fn print_record(record: &TenantRecord) -> Result<()> {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(record)
+                .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+        );
+        Ok(())
+    }
+    match action {
+        TenantAction::Provision {
+            registry,
+            name,
+            residency,
+            source_of_truth,
+            store_path,
+            max_documents,
+            storage_quota_bytes,
+            retention_days,
+        } => {
+            let record = control(registry)?.provision(&cortana::tenant::ProvisionRequest {
+                name: name.clone(),
+                residency: residency.clone(),
+                source_of_truth: source_of_truth.clone(),
+                store_path: store_path.clone(),
+                max_documents: *max_documents,
+                storage_quota_bytes: *storage_quota_bytes,
+                retention_days: *retention_days,
+            })?;
+            print_record(&record)?;
+        }
+        TenantAction::List { registry } => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&control(registry)?.list()?)?
+            );
+        }
+        TenantAction::Suspend {
+            registry,
+            tenant_id,
+        } => {
+            print_record(&control(registry)?.suspend(tenant_id)?)?;
+        }
+        TenantAction::Activate {
+            registry,
+            tenant_id,
+        } => {
+            print_record(&control(registry)?.activate(tenant_id)?)?;
+        }
+        TenantAction::RequestPurge {
+            registry,
+            tenant_id,
+        } => {
+            print_record(&control(registry)?.request_purge(tenant_id)?)?;
+        }
+        TenantAction::Purge {
+            registry,
+            tenant_id,
+        } => {
+            print_record(&control(registry)?.confirm_purge(tenant_id, tenant_id)?)?;
+        }
+        TenantAction::Status { registry } => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&control(registry)?.status()?)?
+            );
+        }
+    }
     Ok(())
 }
 
