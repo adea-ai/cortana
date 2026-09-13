@@ -851,6 +851,12 @@ pub fn router(state: AppState) -> Router {
         )
         .route("/v1/answer", post(answer))
         .route("/v1/audit", get(audit_events))
+        .route("/v1/sync/status", get(sync_status))
+        .route("/v1/sync/conflicts", get(sync_conflicts))
+        .route(
+            "/v1/sync/conflicts/{id}/resolve",
+            post(resolve_sync_conflict),
+        )
         .route("/v1/auth/reload", post(reload_auth))
         .layer(DefaultBodyLimit::max(1024 * 1024))
         .layer(TimeoutLayer::with_status_code(
@@ -914,6 +920,7 @@ async fn authorize(
     };
     let required_scope = match path {
         "/metrics" | "/v1/audit" | "/v1/auth/reload" => ADMIN_SCOPE,
+        path if path.starts_with("/v1/sync/") => ADMIN_SCOPE,
         "/v1/memory"
         | "/v1/memory/recall"
         | "/v1/memory/forget"
@@ -4197,6 +4204,71 @@ struct AuditParams {
     limit: usize,
 }
 
+async fn sync_status(
+    State(state): State<AppState>,
+    Extension(_principal): Extension<Principal>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    state.store.sync_status().map(Json).map_err(internal_error)
+}
+
+#[derive(Debug, Deserialize)]
+struct SyncConflictsParams {
+    limit: Option<usize>,
+}
+
+async fn sync_conflicts(
+    State(state): State<AppState>,
+    Extension(_principal): Extension<Principal>,
+    AxumQuery(params): AxumQuery<SyncConflictsParams>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let conflicts = state
+        .store
+        .sync_list_conflicts(params.limit.unwrap_or(50).clamp(1, 500))
+        .map_err(internal_error)?;
+    Ok(Json(serde_json::json!({
+        "contract_version": API_CONTRACT_VERSION,
+        "conflicts": conflicts,
+    })))
+}
+
+#[derive(Debug, Deserialize)]
+struct SyncConflictResolveRequest {
+    accept_remote: bool,
+}
+
+async fn resolve_sync_conflict(
+    State(state): State<AppState>,
+    Extension(principal): Extension<Principal>,
+    axum::extract::Path(conflict_id): axum::extract::Path<i64>,
+    Json(request): Json<SyncConflictResolveRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let started = Instant::now();
+    state
+        .store
+        .sync_resolve_conflict(conflict_id, request.accept_remote)
+        .map_err(|_| {
+            (
+                StatusCode::NOT_FOUND,
+                "unknown or already-resolved conflict".into(),
+            )
+        })?;
+    record_audit(
+        &state,
+        &principal,
+        "sync.resolve",
+        None,
+        None,
+        "ok",
+        None,
+        started,
+    );
+    Ok(Json(serde_json::json!({
+        "resolved": true,
+        "conflict_id": conflict_id,
+        "accepted_remote": request.accept_remote,
+    })))
+}
+
 async fn audit_events(
     State(state): State<AppState>,
     Extension(_principal): Extension<Principal>,
@@ -4501,6 +4573,101 @@ mod tests {
             .expect("fingerprint");
         let embedder: Arc<dyn Embedder> = Arc::new(DeterministicEmbedder::new(16));
         (directory, AppState::new(store, embedder))
+    }
+
+    #[tokio::test]
+    async fn sync_endpoints_require_admin_and_surface_status() {
+        let (_directory, state) = test_state();
+        let mut config = Config::default();
+        config
+            .environment
+            .insert("WORK_TOKEN".into(), "work-secret".into());
+        config
+            .environment
+            .insert("ADMIN_TOKEN".into(), "admin-secret".into());
+        config.auth.tokens = vec![
+            AuthTokenConfig {
+                principal: "work-agent".into(),
+                token_env: "WORK_TOKEN".into(),
+                scopes: vec![QUERY_SCOPE.into()],
+                acl: vec!["work".into()],
+            },
+            AuthTokenConfig {
+                principal: "owner".into(),
+                token_env: "ADMIN_TOKEN".into(),
+                scopes: vec![ADMIN_SCOPE.into()],
+                acl: vec!["work".into()],
+            },
+        ];
+        let app = router(state.with_auth_policy(AuthPolicy::from_config(&config).expect("policy")));
+
+        let query_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri("/v1/sync/status")
+                    .header(header::AUTHORIZATION, "Bearer work-secret")
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("query-scope response");
+        assert_eq!(query_response.status(), StatusCode::FORBIDDEN);
+
+        let status_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri("/v1/sync/status")
+                    .header(header::AUTHORIZATION, "Bearer admin-secret")
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("admin status response");
+        assert_eq!(status_response.status(), StatusCode::OK);
+        let body = to_bytes(status_response.into_body(), 64 * 1024)
+            .await
+            .expect("status body");
+        let value: serde_json::Value = serde_json::from_slice(&body).expect("status JSON");
+        assert_eq!(value["journal_entries"], 0);
+        assert_eq!(value["open_conflicts"], 0);
+
+        let conflicts_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri("/v1/sync/conflicts")
+                    .header(header::AUTHORIZATION, "Bearer admin-secret")
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("conflicts response");
+        assert_eq!(conflicts_response.status(), StatusCode::OK);
+        let body = to_bytes(conflicts_response.into_body(), 64 * 1024)
+            .await
+            .expect("conflicts body");
+        let value: serde_json::Value = serde_json::from_slice(&body).expect("conflicts JSON");
+        assert_eq!(value["contract_version"], API_CONTRACT_VERSION);
+        assert_eq!(value["conflicts"], serde_json::json!([]));
+
+        let resolve_response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/v1/sync/conflicts/999/resolve")
+                    .header(header::AUTHORIZATION, "Bearer admin-secret")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(r#"{"accept_remote":true}"#))
+                    .expect("request"),
+            )
+            .await
+            .expect("resolve response");
+        assert_eq!(resolve_response.status(), StatusCode::NOT_FOUND);
     }
 
     #[tokio::test]

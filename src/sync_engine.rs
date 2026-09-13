@@ -478,7 +478,31 @@ impl Store {
             params![peer_device, up_to, chrono::Utc::now().to_rfc3339()],
         )?;
         transaction.commit()?;
+        // Release the connection mutex before compacting; sync_compact takes
+        // the same lock and std Mutexes are not reentrant.
+        drop(connection);
+        // Acks may have advanced; drop superseded entries every peer holds.
+        self.sync_compact()?;
         Ok(report)
+    }
+
+    /// Compact the journal, dropping superseded entries that every peer has
+    /// acknowledged. The latest entry per object always stays: conflict
+    /// detection and catch-up decisions read it.
+    pub fn sync_compact(&self) -> Result<usize> {
+        let connection = self
+            .sync_write_connection()
+            .lock()
+            .expect("store lock poisoned");
+        let deleted = connection.execute(
+            "DELETE FROM sync_journal
+             WHERE journal_id <= COALESCE((SELECT MIN(acked_watermark) FROM sync_watermarks), 0)
+               AND journal_id NOT IN (
+                 SELECT MAX(journal_id) FROM sync_journal GROUP BY object_kind, object_id
+               )",
+            [],
+        )?;
+        Ok(deleted)
     }
 
     /// What this store has imported from the peer so far, used as the ack a
@@ -1137,6 +1161,57 @@ mod tests {
             device_identity::open_sync_bundle(&store_a, &registry, &recovery, &bundle_bytes)
                 .is_err(),
             "bundle must stay sealed to its target device"
+        );
+    }
+
+    #[test]
+    fn compaction_keeps_latest_and_unacked_entries() {
+        let peers = paired_stores();
+        let device_a = peers.device_a.clone();
+        let device_b = peers.device_b.clone();
+        let PeerStores {
+            store_a,
+            store_b,
+            recovery,
+            ..
+        } = peers;
+        assert!(
+            store_a
+                .upsert(&document("doc-1", "version one"), &[])
+                .expect("upsert")
+        );
+        assert!(
+            store_a
+                .upsert(&document("doc-1", "version two"), &[])
+                .expect("upsert")
+        );
+        assert!(
+            store_a
+                .upsert(&document("doc-2", "other document"), &[])
+                .expect("upsert")
+        );
+        assert_eq!(journal_count(&store_a), 3);
+
+        // Before any ack nothing is removable.
+        assert_eq!(store_a.sync_compact().expect("compact"), 0);
+
+        // Deliver to B; the return trip carries B's ack for A's journal.
+        exchange(&store_a, &device_b, &recovery, &store_b);
+        exchange(&store_b, &device_a, &recovery, &store_a);
+        let removed = store_a.sync_compact().expect("compact");
+        assert_eq!(removed, 1, "only the superseded, fully-acked entry goes");
+        assert_eq!(
+            journal_count(&store_a),
+            2,
+            "latest revision per object stays"
+        );
+
+        // The surviving state still syncs correctly: B is already current.
+        let report = exchange(&store_a, &device_b, &recovery, &store_b);
+        assert_eq!(report.entries, 0);
+        assert_eq!(
+            document_content(&store_b, "doc-1").as_deref(),
+            Some("version two")
         );
     }
 
