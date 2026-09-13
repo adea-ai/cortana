@@ -35,6 +35,7 @@ Cortana documentation is divided by authority. Each document should define one d
 | Knowledge graph identity and relationship semantics     | [Knowledge graph contract](contracts/knowledge-graph.md)                                                                          |
 | ContextProvider compatibility and fixtures              | [ContextProvider contract](contracts/context-provider.md)                                                                         |
 | Supported single-node container and VPS operations      | [Self-hosted deployment](self-hosted.md)                                                                                          |
+| SLOs, durability, chaos catalog, and error budgets      | [Reliability and recovery contracts](reliability.md)                                                                              |
 | Security assets and trust boundaries                    | [Security and trust model](security-model.md)                                                                                     |
 | Native memory taxonomy                                  | [Memory contract](contracts/memory.md)                                                                                            |
 | Bounded non-mutating memory reasoning                   | [Reflection contract](contracts/reflection.md)                                                                                    |
