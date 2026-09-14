@@ -23,8 +23,11 @@ exactly as in Self-hosted; the control plane never brokers content. This keeps t
 rule everywhere and makes "tenant isolation" a deployment fact — separate stores, separate
 credentials, separate volumes — instead of a query-time filter that one bug can bypass.
 
-Persistence selection. Technologies are chosen behind the existing store contract with
-postgres-class engines as the first candidate swap for a tenant data plane. The swap is evaluated
+Persistence selection. **Decided (2026-09-13): per-tenant SQLite is the selected persistence for
+tenant data planes**, matching the managed personal cloud's one-node-per-owner isolation. A
+postgres-class engine is the gated candidate for a later swap — triggered only by measured
+thresholds (sustained write concurrency, corpus size, or backup-window pressure that SQLite
+demonstrably cannot meet) — and must then preserve the store contract. The swap is evaluated
 against measured benefit (ADR 0002's rule) and must preserve: single-writer per tenant, verified
 backups, revision and audit integrity, ACL semantics, and the public MCP/HTTP/ContextBundle
 contracts. Until such a swap ships with evidence, SQLite per tenant is the supported persistence.
