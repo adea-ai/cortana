@@ -61,3 +61,13 @@ predicates = "3.1"
 lto = "thin"
 codegen-units = 1
 strip = true
+
+# Dev builds keep application code fully debuggable while compiling
+# dependencies optimized: tests, the eval latency gates, and host-launch
+# runs exercise dependency-heavy paths (HTTP, SQLite, crypto) where
+# unoptimized dependency code skewed wall-clock budgets.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+opt-level = 2
