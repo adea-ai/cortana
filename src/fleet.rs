@@ -231,7 +231,7 @@ pub fn seal_result(
     let mut envelope_key = [0u8; 32];
     hkdf.expand(b"cortana.fleet.v1/result", &mut envelope_key)?;
     let cipher = ChaCha20Poly1305::new_from_slice(&envelope_key)?;
-    let nonce = Nonce::from_slice(&nonce_bytes);
+    let nonce = &Nonce::try_from(&nonce_bytes[..]).expect("nonce is 12 bytes");
 
     let header = json!({
         "format": FLEET_CONTRACT,
@@ -364,7 +364,7 @@ pub fn open_result(
     let mut envelope_key = [0u8; 32];
     hkdf.expand(b"cortana.fleet.v1/result", &mut envelope_key)?;
     let cipher = ChaCha20Poly1305::new_from_slice(&envelope_key)?;
-    let nonce = Nonce::from_slice(&nonce_bytes);
+    let nonce = &Nonce::try_from(&nonce_bytes[..]).expect("nonce is 12 bytes");
     let payload = cipher
         .decrypt(
             nonce,

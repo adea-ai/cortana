@@ -166,7 +166,7 @@ fn encode_blob(nonce: &[u8], ciphertext: &[u8]) -> SealedBlob {
 fn seal(key: &[u8; 32], plaintext: &[u8]) -> Result<SealedBlob> {
     let cipher = ChaCha20Poly1305::new_from_slice(key)?;
     let nonce_bytes = random_bytes(12)?;
-    let nonce = Nonce::from_slice(&nonce_bytes);
+    let nonce = &Nonce::try_from(&nonce_bytes[..]).expect("nonce is 12 bytes");
     let ciphertext = cipher
         .encrypt(nonce, plaintext)
         .map_err(|_| anyhow::anyhow!("identity sealing failed"))?;
@@ -181,7 +181,7 @@ fn unseal(key: &[u8; 32], blob: &SealedBlob) -> Result<Vec<u8>> {
     let ciphertext = BASE64
         .decode(&blob.ciphertext)
         .context("sealed identity ciphertext is not valid base64")?;
-    let nonce = Nonce::from_slice(&nonce_bytes);
+    let nonce = &Nonce::try_from(&nonce_bytes[..]).expect("nonce is 12 bytes");
     cipher
         .decrypt(nonce, ciphertext.as_ref())
         .map_err(|_| anyhow::anyhow!("sealed identity material failed to open"))
@@ -790,7 +790,7 @@ pub fn seal_sync_bundle(
     let mut bundle_key = [0u8; 32];
     hkdf.expand(b"cortana.sync.bundle.v1/key", &mut bundle_key)?;
     let cipher = ChaCha20Poly1305::new_from_slice(&bundle_key)?;
-    let nonce = Nonce::from_slice(&nonce_bytes);
+    let nonce = &Nonce::try_from(&nonce_bytes[..]).expect("nonce is 12 bytes");
 
     let header = json!({
         "format": "cortana.sync.bundle.v1",
@@ -937,7 +937,7 @@ pub fn open_sync_bundle(
     let mut bundle_key = [0u8; 32];
     hkdf.expand(b"cortana.sync.bundle.v1/key", &mut bundle_key)?;
     let cipher = ChaCha20Poly1305::new_from_slice(&bundle_key)?;
-    let nonce = Nonce::from_slice(&nonce_bytes);
+    let nonce = &Nonce::try_from(&nonce_bytes[..]).expect("nonce is 12 bytes");
     let payload = cipher
         .decrypt(
             nonce,
