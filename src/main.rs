@@ -5501,55 +5501,6 @@ fn write_bounded_candidate_json<W: Write, T: serde::Serialize>(
     Ok(())
 }
 
-#[allow(dead_code)]
-fn chunk(content: &str) -> Vec<String> {
-    const TARGET: usize = 1_600;
-    const OVERLAP: usize = 200;
-    let mut output = Vec::new();
-    let mut start = 0;
-    while start < content.len() {
-        while start < content.len() && !content.is_char_boundary(start) {
-            start += 1;
-        }
-        let hard_end = (start + TARGET).min(content.len());
-        let mut end = hard_end;
-        while end > start && !content.is_char_boundary(end) {
-            end -= 1;
-        }
-        if end < content.len() {
-            let window = &content[start..end];
-            let preferred_floor = window.len() / 2;
-            end = window
-                .rfind("\n\n")
-                .filter(|position| *position >= preferred_floor)
-                .map(|position| start + position + 2)
-                .or_else(|| {
-                    window
-                        .rfind('\n')
-                        .filter(|position| *position >= preferred_floor)
-                        .map(|position| start + position + 1)
-                })
-                .unwrap_or(end);
-        }
-        let text = content[start..end].trim();
-        if !text.is_empty() {
-            output.push(text.to_string());
-        }
-        if end == content.len() {
-            break;
-        }
-        let mut next = end.saturating_sub(OVERLAP);
-        while next < end && !content.is_char_boundary(next) {
-            next += 1;
-        }
-        if next <= start {
-            next = end;
-        }
-        start = next;
-    }
-    output
-}
-
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
@@ -5563,7 +5514,7 @@ mod tests {
 
     use super::{
         AclAction, Cancellation, Cli, Command, DEFAULT_CONTEXT_LIMIT, MemoryAction, ServiceAction,
-        SourceControl, SourceLimits, SyncLock, SyncOverrides, SyncRunStatus, chunk,
+        SourceControl, SourceLimits, SyncLock, SyncOverrides, SyncRunStatus,
         cleanup_connector_spools, configured_connector_command, context_bundle,
         ensure_recurring_sync_validated, failure_status, flush_ingest_batch, ingest_documents,
         is_budget_exceeded, manage_memory, private_file, require_sync_validation,
@@ -6668,16 +6619,6 @@ mod tests {
         fn request_concurrency(&self) -> usize {
             4
         }
-    }
-
-    #[test]
-    fn chunk_bounds_unbroken_content_and_preserves_unicode() {
-        let content = format!("{}{}", "a".repeat(5_000), "🧠".repeat(300));
-        let chunks = chunk(&content);
-
-        assert!(chunks.len() > 3);
-        assert!(chunks.iter().all(|item| item.len() <= 1_600));
-        assert!(chunks.iter().any(|item| item.contains('🧠')));
     }
 
     #[cfg(unix)]
