@@ -136,6 +136,11 @@ impl TenantControlPlane {
         let store = Store::open(&request.store_path.join("store.sqlite3"))?;
         let tenant_id = uuid::Uuid::new_v4().to_string();
         store.meta_set(DATA_PLANE_MARKER, &tenant_id)?;
+        store.meta_set("tenant.max_documents", &request.max_documents.to_string())?;
+        store.meta_set(
+            "tenant.storage_quota_bytes",
+            &request.storage_quota_bytes.to_string(),
+        )?;
         // The data plane is created and stamped above, so provisioning
         // completes within this call.
         let record = TenantRecord {
@@ -357,6 +362,18 @@ mod tests {
             .expect("open data plane");
         let marker = data_plane.meta_get(DATA_PLANE_MARKER).expect("marker");
         assert_eq!(marker.as_deref(), Some(record.tenant_id.as_str()));
+        // Provisioning writes the quota bounds into the data plane so the
+        // store can enforce them locally.
+        assert_eq!(
+            data_plane.meta_get("tenant.max_documents").expect("max"),
+            Some("1000000".to_string())
+        );
+        assert_eq!(
+            data_plane
+                .meta_get("tenant.storage_quota_bytes")
+                .expect("bytes"),
+            Some((10u64 * 1024 * 1024 * 1024).to_string())
+        );
     }
 
     #[test]
