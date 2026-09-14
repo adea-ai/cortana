@@ -187,6 +187,11 @@ enum Command {
         #[command(subcommand)]
         action: TeamAction,
     },
+    /// Manage the schema migration ledger and maintenance gate.
+    Migrations {
+        #[command(subcommand)]
+        action: MigrationsAction,
+    },
     /// Export authorized canonical documents as a derived Obsidian Markdown vault.
     ExportVault {
         #[arg(value_name = "DIRECTORY")]
@@ -884,6 +889,28 @@ impl From<TeamRoleArg> for cortana::team::MemberRole {
 }
 
 #[derive(Clone, Debug, Subcommand)]
+enum MigrationsAction {
+    /// List recorded migrations newest-first.
+    List,
+    /// Record an applied migration; idempotent per id.
+    Record {
+        #[arg(long)]
+        id: String,
+        #[arg(long, help = "The migration ran inside a held maintenance window")]
+        maintenance_gated: bool,
+        #[arg(long, help = "The migration's contract promises reversibility")]
+        reversible: bool,
+    },
+    /// Hold the maintenance gate for gated migrations.
+    AcquireGate {
+        #[arg(long)]
+        reason: String,
+    },
+    /// Release the maintenance gate.
+    ReleaseGate,
+}
+
+#[derive(Clone, Debug, Subcommand)]
 enum FleetAction {
     /// Issue a signed, expiring task grant for one worker device.
     Issue {
@@ -1406,6 +1433,9 @@ async fn main() -> Result<()> {
     if let Some(Command::Team { action }) = cli.command.as_ref() {
         return manage_team(action);
     }
+    if let Some(Command::Migrations { action }) = cli.command.as_ref() {
+        return manage_migrations(&store, action);
+    }
     if let Some(Command::ExportVault {
         output,
         workspaces,
@@ -1511,6 +1541,7 @@ async fn main() -> Result<()> {
             | Command::Fleet { .. }
             | Command::Tenant { .. }
             | Command::Team { .. }
+            | Command::Migrations { .. }
             | Command::ProviderModels { .. },
         ) => {
             unreachable!()
@@ -3827,6 +3858,38 @@ fn manage_team(action: &TeamAction) -> Result<()> {
                 "{}",
                 serde_json::to_string_pretty(&control(registry)?.status()?)?
             );
+        }
+    }
+    Ok(())
+}
+
+fn manage_migrations(store: &Store, action: &MigrationsAction) -> Result<()> {
+    match action {
+        MigrationsAction::List => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&store.list_migrations()?)?
+            );
+        }
+        MigrationsAction::Record {
+            id,
+            maintenance_gated,
+            reversible,
+        } => {
+            let recorded = store.record_migration(id, *maintenance_gated, *reversible)?;
+            if recorded {
+                println!("migration {id} recorded");
+            } else {
+                println!("migration {id} was already recorded");
+            }
+        }
+        MigrationsAction::AcquireGate { reason } => {
+            store.acquire_maintenance_gate(reason)?;
+            println!("maintenance gate held");
+        }
+        MigrationsAction::ReleaseGate => {
+            store.release_maintenance_gate()?;
+            println!("maintenance gate released");
         }
     }
     Ok(())
