@@ -334,6 +334,35 @@ impl Store {
                id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT NOT NULL,
                principal TEXT NOT NULL, action TEXT NOT NULL, project TEXT, source TEXT,
                outcome TEXT NOT NULL, result_count INTEGER, latency_ms INTEGER NOT NULL);
+             CREATE TABLE IF NOT EXISTS sync_journal(
+               journal_id INTEGER PRIMARY KEY AUTOINCREMENT,
+               object_kind TEXT NOT NULL,
+               object_id TEXT NOT NULL,
+               revision INTEGER NOT NULL,
+               origin_device TEXT NOT NULL,
+               fingerprint TEXT NOT NULL,
+               tombstone INTEGER NOT NULL DEFAULT 0,
+               changed_at TEXT NOT NULL,
+               UNIQUE(object_kind, object_id, revision));
+             CREATE INDEX IF NOT EXISTS idx_sync_journal_object
+               ON sync_journal(object_kind, object_id, revision DESC);
+             CREATE TABLE IF NOT EXISTS sync_watermarks(
+               peer_device TEXT PRIMARY KEY,
+               imported_watermark INTEGER NOT NULL DEFAULT 0,
+               acked_watermark INTEGER NOT NULL DEFAULT 0,
+               updated_at TEXT NOT NULL);
+             CREATE TABLE IF NOT EXISTS sync_conflicts(
+               conflict_id INTEGER PRIMARY KEY AUTOINCREMENT,
+               object_kind TEXT NOT NULL,
+               object_id TEXT NOT NULL,
+               local_revision INTEGER NOT NULL,
+               remote_revision INTEGER NOT NULL,
+               local_origin TEXT NOT NULL,
+               remote_origin TEXT NOT NULL,
+               resolution TEXT NOT NULL,
+               payload_json TEXT NOT NULL,
+               created_at TEXT NOT NULL,
+               resolved_at TEXT);
              CREATE TABLE IF NOT EXISTS memories(
                id TEXT PRIMARY KEY,
                kind TEXT NOT NULL,
@@ -902,6 +931,7 @@ impl Store {
             return Ok(false);
         }
         let transaction = connection.transaction()?;
+        Self::enforce_tenant_quota(&transaction, &id, document.content.len() as u64)?;
         transaction.execute(
             "DELETE FROM chunks_fts WHERE chunk_id IN (SELECT id FROM chunks WHERE document_id=?1)",
             [&id],
@@ -945,6 +975,7 @@ impl Store {
             )?;
         }
         replace_code_index(&transaction, &id, document)?;
+        crate::sync_engine::journal_in_transaction(&transaction, "document", &id)?;
         bump_corpus_revision(&transaction)?;
         transaction.commit()?;
         Ok(true)
@@ -1041,6 +1072,7 @@ impl Store {
             return Ok(false);
         }
         let transaction = connection.transaction()?;
+        Self::enforce_tenant_quota(&transaction, &id, document.content.len() as u64)?;
         transaction.execute(
             "DELETE FROM chunks_fts WHERE chunk_id IN (SELECT id FROM chunks WHERE document_id=?1)",
             [&id],
@@ -1093,6 +1125,7 @@ impl Store {
             )?;
         }
         replace_code_index(&transaction, &id, document)?;
+        crate::sync_engine::journal_in_transaction(&transaction, "document", &id)?;
         bump_corpus_revision(&transaction)?;
         transaction.commit()?;
         Ok(true)
@@ -1195,7 +1228,9 @@ impl Store {
                  (SELECT id FROM chunks WHERE document_id=?1)",
                 [id],
             )?;
+            Self::release_tenant_bytes(&transaction, id)?;
             transaction.execute("DELETE FROM documents WHERE id=?1", [id])?;
+            crate::sync_engine::journal_in_transaction(&transaction, "document", id)?;
         }
         if !stale.is_empty() {
             bump_corpus_revision(&transaction)?;
@@ -1368,6 +1403,200 @@ impl Store {
             })?
             .collect::<rusqlite::Result<Vec<_>>>()
             .map_err(Into::into)
+    }
+
+    /// Write-side connection for the sync engine, which owns its transactions.
+    pub(crate) fn sync_write_connection(&self) -> &std::sync::Mutex<Connection> {
+        &self.connection
+    }
+
+    /// Enforce tenant data-plane quotas inside the caller's transaction.
+    ///
+    /// Only tenant data planes carry the marker bounds; local stores have no
+    /// quota meta and pay nothing. New documents count against the document
+    /// quota; storage accounting tracks content bytes incrementally so
+    /// updates and deletions correct the running total.
+    pub(crate) fn enforce_tenant_quota(
+        transaction: &Transaction<'_>,
+        document_id: &str,
+        incoming_bytes: u64,
+    ) -> Result<()> {
+        let meta_value = |key: &str| -> Option<u64> {
+            transaction
+                .query_row(
+                    "SELECT value FROM meta WHERE key = ?1",
+                    params![key],
+                    |row| row.get::<_, String>(0),
+                )
+                .ok()
+                .and_then(|value| value.parse().ok())
+        };
+        let Some(max_documents) = meta_value("tenant.max_documents") else {
+            return Ok(());
+        };
+        let exists: bool = transaction
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM documents WHERE id = ?1)",
+                params![document_id],
+                |row| row.get(0),
+            )
+            .unwrap_or(false);
+        if !exists {
+            let count: i64 =
+                transaction.query_row("SELECT COUNT(*) FROM documents", [], |row| row.get(0))?;
+            if count as u64 >= max_documents {
+                bail!("tenant document quota exceeded: {count} of {max_documents} documents");
+            }
+        }
+        let Some(storage_quota) = meta_value("tenant.storage_quota_bytes") else {
+            return Ok(());
+        };
+        let old_bytes: u64 = transaction
+            .query_row(
+                "SELECT COALESCE(length(content), 0) FROM documents WHERE id = ?1",
+                params![document_id],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap_or(0)
+            .unsigned_abs();
+        let used: u64 = meta_value("tenant.bytes_used").unwrap_or(0);
+        let new_used = used
+            .saturating_add(incoming_bytes)
+            .saturating_sub(old_bytes);
+        if new_used > storage_quota {
+            bail!("tenant storage quota exceeded: {new_used} of {storage_quota} bytes");
+        }
+        transaction.execute(
+            "INSERT INTO meta(key, value) VALUES('tenant.bytes_used', ?1)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            params![new_used.to_string()],
+        )?;
+        Ok(())
+    }
+
+    /// Correct the tenant byte accounting after a document deletion.
+    pub(crate) fn release_tenant_bytes(
+        transaction: &Transaction<'_>,
+        document_id: &str,
+    ) -> Result<()> {
+        let marked: bool = transaction
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM meta WHERE key = 'tenant.max_documents')",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap_or(false);
+        if !marked {
+            return Ok(());
+        }
+        let freed: u64 = transaction
+            .query_row(
+                "SELECT COALESCE(length(content), 0) FROM documents WHERE id = ?1",
+                params![document_id],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap_or(0)
+            .unsigned_abs();
+        let used: u64 = transaction
+            .query_row(
+                "SELECT value FROM meta WHERE key = 'tenant.bytes_used'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .ok()
+            .and_then(|value| value.parse().ok())
+            .unwrap_or(0);
+        let new_used = used.saturating_sub(freed);
+        transaction.execute(
+            "INSERT INTO meta(key, value) VALUES('tenant.bytes_used', ?1)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            params![new_used.to_string()],
+        )?;
+        Ok(())
+    }
+
+    /// Whether a schema migration has already been applied (idempotent gate).
+    pub fn migration_applied(&self, id: &str) -> Result<bool> {
+        let Some(raw) = self.meta_get("migrations.ledger")? else {
+            return Ok(false);
+        };
+        let ledger: Vec<serde_json::Value> =
+            serde_json::from_str(&raw).context("migration ledger is not valid JSON")?;
+        Ok(ledger
+            .iter()
+            .any(|entry| entry.get("id").and_then(Value::as_str) == Some(id)))
+    }
+
+    /// Record an applied schema migration in the observable ledger.
+    ///
+    /// Maintenance-gated migrations are refused unless the gate is held, so
+    /// the ledger cannot silently record a live-traffic migration that
+    /// promised a window.
+    pub fn record_migration(
+        &self,
+        id: &str,
+        maintenance_gated: bool,
+        reversible: bool,
+    ) -> Result<bool> {
+        if self.migration_applied(id)? {
+            return Ok(false);
+        }
+        if maintenance_gated && self.meta_get("migrations.maintenance_gate")?.is_none() {
+            bail!("migration {id} is maintenance-gated; hold the gate first");
+        }
+        let mut ledger: Vec<serde_json::Value> = match self.meta_get("migrations.ledger")? {
+            Some(raw) => {
+                serde_json::from_str(&raw).context("migration ledger is not valid JSON")?
+            }
+            None => Vec::new(),
+        };
+        ledger.push(serde_json::json!({
+            "id": id,
+            "applied_at": chrono::Utc::now().to_rfc3339(),
+            "maintenance_gated": maintenance_gated,
+            "reversible": reversible,
+        }));
+        self.meta_set("migrations.ledger", &serde_json::to_string(&ledger)?)?;
+        Ok(true)
+    }
+
+    /// List recorded migrations newest-first.
+    pub fn list_migrations(&self) -> Result<Vec<serde_json::Value>> {
+        match self.meta_get("migrations.ledger")? {
+            Some(raw) => {
+                let mut ledger: Vec<serde_json::Value> =
+                    serde_json::from_str(&raw).context("migration ledger is not valid JSON")?;
+                ledger.reverse();
+                Ok(ledger)
+            }
+            None => Ok(Vec::new()),
+        }
+    }
+
+    /// Hold the maintenance gate for explicitly gated migrations.
+    pub fn acquire_maintenance_gate(&self, reason: &str) -> Result<()> {
+        if self.meta_get("migrations.maintenance_gate")?.is_some() {
+            bail!("maintenance gate is already held");
+        }
+        self.meta_set(
+            "migrations.maintenance_gate",
+            &serde_json::json!({ "reason": reason, "acquired_at": chrono::Utc::now().to_rfc3339() })
+                .to_string(),
+        )?;
+        Ok(())
+    }
+
+    /// Release the maintenance gate.
+    pub fn release_maintenance_gate(&self) -> Result<()> {
+        if self.meta_get("migrations.maintenance_gate")?.is_none() {
+            bail!("maintenance gate is not held");
+        }
+        let connection = self.connection.lock().expect("store lock poisoned");
+        connection.execute(
+            "DELETE FROM meta WHERE key = 'migrations.maintenance_gate'",
+            [],
+        )?;
+        Ok(())
     }
 
     /// Read one bounded metadata value from the key-value meta table.
@@ -1699,6 +1928,7 @@ impl Store {
             "INSERT INTO memories_fts(memory_id,title,content) VALUES(?1,?2,?3)",
             params![id, input.title, input.content],
         )?;
+        crate::sync_engine::journal_in_transaction(transaction, "memory", &id)?;
         bump_memory_revision(transaction)?;
         Ok(id)
     }
@@ -3582,6 +3812,7 @@ impl Store {
         )?;
         if changed == 1 {
             transaction.execute("DELETE FROM memories_fts WHERE memory_id=?1", [id])?;
+            crate::sync_engine::journal_in_transaction(&transaction, "memory", id)?;
             bump_memory_revision(&transaction)?;
         }
         transaction.commit()?;
@@ -6235,7 +6466,7 @@ fn observation_candidate_from_row(
     })
 }
 
-fn stable_id(source: &str, source_id: &str) -> String {
+pub(crate) fn stable_id(source: &str, source_id: &str) -> String {
     hex_digest(format!("{source}\0{source_id}").as_bytes())
 }
 
@@ -7379,6 +7610,126 @@ mod tests {
             )
             .expect("lexical search");
         assert_eq!(ids[0], format!("{}:0", stable_id("test", "relevant")));
+    }
+
+    #[test]
+    fn tenant_quotas_bound_new_documents_and_bytes_in_data_planes() {
+        let directory = tempdir().expect("temporary directory");
+        let store = Store::open(&directory.path().join("store.sqlite3")).expect("open store");
+        store
+            .meta_set("tenant.max_documents", "2")
+            .expect("document quota");
+        store
+            .meta_set("tenant.storage_quota_bytes", "40")
+            .expect("storage quota");
+
+        assert!(store.upsert(&document("q1", "aaaa"), &[]).expect("first"));
+        assert!(store.upsert(&document("q2", "bbbb"), &[]).expect("second"));
+        // Document quota blocks the third new document.
+        assert!(
+            store.upsert(&document("q3", "cccc"), &[]).is_err(),
+            "document quota must refuse a third new document"
+        );
+        // Updates of existing documents stay allowed.
+        assert!(
+            store
+                .upsert(&document("q1", "updated"), &[])
+                .expect("update")
+        );
+
+        // Storage quota accounts bytes incrementally; a document too large is
+        // refused outright.
+        assert!(store.upsert(&document("q3", "cccc"), &[]).is_err());
+        let oversized = document("q3", &"x".repeat(64));
+        assert!(
+            store.upsert(&oversized, &[]).is_err(),
+            "storage quota must refuse growth beyond the bound"
+        );
+    }
+
+    #[test]
+    fn local_stores_without_tenant_markers_have_no_quotas() {
+        let directory = tempdir().expect("temporary directory");
+        let store = Store::open(&directory.path().join("store.sqlite3")).expect("open store");
+        for index in 0..5 {
+            assert!(
+                store
+                    .upsert(&document(&format!("doc-{index}"), &"x".repeat(1000)), &[])
+                    .expect("upsert")
+            );
+        }
+    }
+
+    #[test]
+    fn reconcile_releases_tenant_byte_accounting() {
+        let directory = tempdir().expect("temporary directory");
+        let store = Store::open(&directory.path().join("store.sqlite3")).expect("open store");
+        store.meta_set("tenant.max_documents", "10").expect("quota");
+        store
+            .meta_set("tenant.storage_quota_bytes", "10000")
+            .expect("quota");
+        assert!(
+            store
+                .upsert(&document("gone", &"x".repeat(500)), &[])
+                .expect("upsert")
+        );
+        let used_before: u64 = store
+            .meta_get("tenant.bytes_used")
+            .expect("bytes meta")
+            .and_then(|value| value.parse().ok())
+            .unwrap_or(0);
+        assert_eq!(used_before, 500);
+        store.reconcile("test", "demo", &[]).expect("reconcile");
+        let used_after: u64 = store
+            .meta_get("tenant.bytes_used")
+            .expect("bytes meta")
+            .and_then(|value| value.parse().ok())
+            .unwrap_or(0);
+        assert_eq!(used_after, 0, "deletion must release accounted bytes");
+    }
+
+    #[test]
+    fn migration_ledger_is_idempotent_and_enforces_the_maintenance_gate() {
+        let directory = tempdir().expect("temporary directory");
+        let store = Store::open(&directory.path().join("store.sqlite3")).expect("open store");
+
+        assert!(!store.migration_applied("001-ids").expect("check"));
+        assert!(
+            store
+                .record_migration("001-ids", false, true)
+                .expect("record")
+        );
+        assert!(
+            !store
+                .record_migration("001-ids", false, true)
+                .expect("re-record"),
+            "recording is idempotent per id"
+        );
+
+        // A maintenance-gated migration is refused until the gate is held.
+        assert!(store.record_migration("002-big", true, false).is_err());
+        store
+            .acquire_maintenance_gate("index rebuild")
+            .expect("acquire");
+        assert!(
+            store.acquire_maintenance_gate("again").is_err(),
+            "gate is exclusive"
+        );
+        assert!(
+            store
+                .record_migration("002-big", true, false)
+                .expect("record")
+        );
+        store.release_maintenance_gate().expect("release");
+        assert!(
+            store.release_maintenance_gate().is_err(),
+            "release is one-shot"
+        );
+
+        let ledger = store.list_migrations().expect("list");
+        assert_eq!(ledger.len(), 2);
+        assert_eq!(ledger[0]["id"], serde_json::json!("002-big"));
+        assert_eq!(ledger[1]["reversible"], serde_json::json!(true));
     }
 
     #[test]

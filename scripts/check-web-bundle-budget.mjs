@@ -66,7 +66,11 @@ export function verifyWebBundleBudget() {
 
   for (const [label, bytes, budget] of measurements) {
     assertWithinBudget(label, bytes, budget)
-    console.log(`${label}: ${bytes}/${budget} bytes`)
+    const headroom = budget - bytes
+    const headroomPercent = ((headroom / budget) * 100).toFixed(1)
+    console.log(
+      `${label}: ${bytes}/${budget} bytes — headroom ${headroom} bytes (${headroomPercent}%)`
+    )
   }
 }
 

@@ -5,6 +5,7 @@ import {
   copyFileSync,
   existsSync,
   mkdirSync,
+  readFileSync,
   mkdtempSync,
   renameSync,
   rmSync,
@@ -35,6 +36,18 @@ const lockWaitMs = 100
 const lockTimeoutMs = 60_000
 const lockStaleMs = 10 * 60_000
 
+function lockHolderIsDead() {
+  try {
+    const owner = readFileSync(resolve(lockPath, 'owner'), 'utf8').trim()
+    // Signal 0 probes liveness: ESRCH means the owning build died without
+    // releasing the lock, so it must be stolen instead of waited on.
+    process.kill(Number(owner), 0)
+    return false
+  } catch (error) {
+    return error?.code === 'ESRCH'
+  }
+}
+
 function acquireLock() {
   const startedAt = Date.now()
   mkdirSync(sidecarDirectory, { recursive: true })
@@ -44,14 +57,17 @@ function acquireLock() {
       writeFileSync(resolve(lockPath, 'owner'), `${process.pid}\n`, { flag: 'wx' })
       return () => rmSync(lockPath, { recursive: true, force: true })
     } catch (error) {
+      if (error?.code !== 'EEXIST') throw error
       if (existsSync(lockPath)) {
+        let stale = false
         try {
-          if (Date.now() - statSync(lockPath).mtimeMs > lockStaleMs) {
-            rmSync(lockPath, { recursive: true, force: true })
-            continue
-          }
+          stale = lockHolderIsDead() || Date.now() - statSync(lockPath).mtimeMs > lockStaleMs
         } catch {
           // Another process may be completing the lock acquisition.
+        }
+        if (stale) {
+          rmSync(lockPath, { recursive: true, force: true })
+          continue
         }
       }
       if (Date.now() - startedAt >= lockTimeoutMs) {

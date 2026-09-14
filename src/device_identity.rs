@@ -14,9 +14,10 @@ use chacha20poly1305::{
     ChaCha20Poly1305, Nonce,
     aead::{Aead, KeyInit},
 };
-use ed25519_dalek::{SigningKey, Verifier};
+use ed25519_dalek::{Signer, SigningKey, Verifier, VerifyingKey};
 use hkdf::Hkdf;
 use serde::{Deserialize, Serialize};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::fmt::Write as _;
 use x25519_dalek::{PublicKey as AgreementPublic, StaticSecret as AgreementSecret};
@@ -48,9 +49,9 @@ impl RecoveryKey {
 }
 
 /// Device keypairs held only in memory while mutating the registry.
-struct DeviceSecrets {
-    signing: SigningKey,
-    agreement: AgreementSecret,
+pub(crate) struct DeviceSecrets {
+    pub(crate) signing: SigningKey,
+    pub(crate) agreement: AgreementSecret,
 }
 
 impl Drop for DeviceSecrets {
@@ -102,7 +103,7 @@ pub struct DeviceSummary {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeviceEntry {
     #[serde(flatten)]
-    summary: DeviceSummary,
+    pub(crate) summary: DeviceSummary,
     /// Sealed signing+agreement seeds; `None` once the device is wiped.
     sealed_secrets: Option<SealedBlob>,
     retired_public_keys: Vec<RetiredPublicKey>,
@@ -117,8 +118,24 @@ pub struct Registry {
     pub root_generation: u32,
     pub salt: String,
     pub root_signing_public: String,
-    pub sealed_root_secret: SealedBlob,
+    /// `None` on adopted devices, which never hold account root material.
+    pub sealed_root_secret: Option<SealedBlob>,
     pub devices: Vec<DeviceEntry>,
+}
+
+/// Sealed credential + trust view handed to a new device during pairing.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeviceExport {
+    pub contract_version: String,
+    pub key_hierarchy_version: String,
+    pub account_id: String,
+    pub root_generation: u32,
+    pub root_signing_public: String,
+    /// Account KDF salt; public material, re-sealed per adopting store.
+    pub salt: String,
+    pub device_id: String,
+    pub devices: Vec<DeviceSummary>,
+    pub credential: SealedBlob,
 }
 
 /// Returned once by [`initialize`]; the recovery key is never persisted.
@@ -132,7 +149,7 @@ fn now_rfc3339() -> String {
     chrono::Utc::now().to_rfc3339()
 }
 
-fn random_bytes(length: usize) -> Result<Vec<u8>> {
+pub(crate) fn random_bytes(length: usize) -> Result<Vec<u8>> {
     let mut buffer = vec![0u8; length];
     getrandom::getrandom(&mut buffer)
         .map_err(|error| anyhow::anyhow!("secure randomness unavailable: {error}"))?;
@@ -171,7 +188,7 @@ fn unseal(key: &[u8; 32], blob: &SealedBlob) -> Result<Vec<u8>> {
 }
 
 /// Derive the at-rest sealing key from the owner recovery key and registry salt.
-fn storage_seal_key(recovery_key: &str, salt: &[u8]) -> Result<[u8; 32]> {
+pub(crate) fn storage_seal_key(recovery_key: &str, salt: &[u8]) -> Result<[u8; 32]> {
     let recovery_bytes = BASE64
         .decode(recovery_key.trim())
         .context("recovery key is not valid base64")?;
@@ -201,7 +218,7 @@ pub fn purpose_key(root_secret: &[u8; 32], generation: u32, purpose: &str) -> Re
     derive_key(root_secret, &generation.to_be_bytes(), purpose)
 }
 
-fn fingerprint(signing_public: &[u8]) -> String {
+pub(crate) fn fingerprint(signing_public: &[u8]) -> String {
     let digest = Sha256::digest(signing_public);
     let mut short = String::with_capacity(16);
     for byte in &digest[..8] {
@@ -262,7 +279,10 @@ fn audit(store: &Store, action: &str, outcome: &str, audit_max: usize) {
 /// Without this check a mistyped recovery key would silently re-seal material
 /// under the wrong key and corrupt the registry.
 fn verify_recovery_possession(seal_key: &[u8; 32], registry: &Registry) -> Result<()> {
-    let mut root_secret = unseal(seal_key, &registry.sealed_root_secret)
+    let Some(blob) = &registry.sealed_root_secret else {
+        bail!("this store does not hold account root material");
+    };
+    let mut root_secret = unseal(seal_key, blob)
         .map_err(|_| anyhow::anyhow!("recovery key does not open this identity registry"))?;
     root_secret.zeroize();
     Ok(())
@@ -327,7 +347,7 @@ pub fn initialize(
         root_generation: 0,
         salt: BASE64.encode(&salt),
         root_signing_public: BASE64.encode(root_signing.verifying_key().as_bytes()),
-        sealed_root_secret,
+        sealed_root_secret: Some(sealed_root_secret),
         devices: vec![DeviceEntry {
             summary,
             sealed_secrets: Some(sealed_secrets),
@@ -337,6 +357,10 @@ pub fn initialize(
     root_secret.zeroize();
     drop(secrets);
     save(store, &registry)?;
+    store.meta_set(
+        crate::sync_engine::SYNC_SELF_DEVICE_META,
+        &registry.devices[0].summary.device_id,
+    )?;
     audit(store, "identity.initialize", "ok", audit_max);
     let local_device = registry.devices[0].summary.clone();
     Ok(InitializedIdentity {
@@ -514,9 +538,15 @@ pub fn recover(
     let current_seal_key = storage_seal_key(current_recovery_key, &salt)?;
     let new_seal_key = storage_seal_key(new_recovery_key, &salt)?;
 
-    let mut root_secret = unseal(&current_seal_key, &registry.sealed_root_secret)?;
-    let sealed_root_secret = seal(&new_seal_key, &root_secret)?;
-    root_secret.zeroize();
+    let sealed_root_secret = match &registry.sealed_root_secret {
+        Some(blob) => {
+            let mut root_secret = unseal(&current_seal_key, blob)?;
+            let resealed = seal(&new_seal_key, &root_secret);
+            root_secret.zeroize();
+            Some(resealed?)
+        }
+        None => None,
+    };
 
     let mut resealed = Vec::new();
     for entry in &registry.devices {
@@ -555,6 +585,9 @@ pub fn rotate_root(
 ) -> Result<()> {
     let seal_key = storage_seal_key(recovery_key, &BASE64.decode(&registry.salt)?)?;
     verify_recovery_possession(&seal_key, registry)?;
+    if registry.sealed_root_secret.is_none() {
+        bail!("root rotation must run on the store that holds account root material");
+    }
     let mut root_secret = random_bytes(ROOT_SECRET_BYTES)?;
     let root_signing = SigningKey::from_bytes(&purpose_key(
         root_secret.as_slice().try_into()?,
@@ -565,7 +598,7 @@ pub fn rotate_root(
     root_secret.zeroize();
     registry.root_generation += 1;
     registry.root_signing_public = BASE64.encode(root_signing.verifying_key().as_bytes());
-    registry.sealed_root_secret = sealed_root_secret;
+    registry.sealed_root_secret = Some(sealed_root_secret);
     save(store, registry)?;
     audit(store, "identity.rotate_root", "ok", audit_max);
     Ok(())
@@ -611,10 +644,337 @@ fn device_entry_mut<'a>(
         .ok_or_else(|| anyhow::anyhow!("unknown device {device_id}"))
 }
 
+/// Export one device's sealed credential plus the account trust view.
+///
+/// The credential stays sealed under the account recovery key, so the owner
+/// carries both through their own channel during pairing; nothing networked
+/// is involved.
+pub fn export_device(registry: &Registry, device_id: &str) -> Result<DeviceExport> {
+    let entry = registry
+        .devices
+        .iter()
+        .find(|entry| entry.summary.device_id == device_id)
+        .ok_or_else(|| anyhow::anyhow!("unknown device {device_id}"))?;
+    let credential = entry
+        .sealed_secrets
+        .clone()
+        .ok_or_else(|| anyhow::anyhow!("device {device_id} has no retained credential"))?;
+    Ok(DeviceExport {
+        contract_version: registry.contract_version.clone(),
+        key_hierarchy_version: registry.key_hierarchy_version.clone(),
+        account_id: registry.account_id.clone(),
+        root_generation: registry.root_generation,
+        root_signing_public: registry.root_signing_public.clone(),
+        salt: registry.salt.clone(),
+        device_id: device_id.to_string(),
+        devices: trust_view(registry),
+        credential,
+    })
+}
+
+/// Adopt an exported device credential into this store.
+///
+/// The store receives the account trust view and its own sealed credential,
+/// re-sealed under this store's own random salt; account root material is
+/// never transferred. Recovery-key possession is proven by opening the
+/// credential before anything is persisted.
+pub fn adopt(
+    store: &Store,
+    exported: &DeviceExport,
+    recovery_key: &str,
+    audit_max: usize,
+) -> Result<DeviceSummary> {
+    if load(store)?.is_some() {
+        bail!("device identity already initialized for this store");
+    }
+    if exported.contract_version != CONTRACT_VERSION {
+        bail!(
+            "device export contract {} is not supported",
+            exported.contract_version
+        );
+    }
+    if exported.key_hierarchy_version != KEY_HIERARCHY_VERSION {
+        bail!(
+            "device export hierarchy {} is not supported",
+            exported.key_hierarchy_version
+        );
+    }
+    let account_salt = BASE64
+        .decode(&exported.salt)
+        .context("device export salt is not valid base64")?;
+    let account_seal_key = storage_seal_key(recovery_key, &account_salt)?;
+    let secrets = unseal_device_secrets(&account_seal_key, &exported.credential)
+        .map_err(|_| anyhow::anyhow!("recovery key does not open this device credential"))?;
+
+    let salt = random_bytes(RECOVERY_SALT_BYTES)?;
+    let local_seal_key = storage_seal_key(recovery_key, &salt)?;
+    let sealed_secrets = seal_device_secrets(&local_seal_key, &secrets)?;
+    drop(secrets);
+
+    let mut devices: Vec<DeviceEntry> = exported
+        .devices
+        .iter()
+        .map(|summary| DeviceEntry {
+            summary: summary.clone(),
+            sealed_secrets: None,
+            retired_public_keys: Vec::new(),
+        })
+        .collect();
+    let summary = devices
+        .iter_mut()
+        .find(|entry| entry.summary.device_id == exported.device_id)
+        .ok_or_else(|| anyhow::anyhow!("export is missing the credential device"))?;
+    summary.sealed_secrets = Some(sealed_secrets);
+    let local_summary = summary.summary.clone();
+
+    let registry = Registry {
+        contract_version: exported.contract_version.clone(),
+        key_hierarchy_version: exported.key_hierarchy_version.clone(),
+        account_id: exported.account_id.clone(),
+        created_at: chrono::Utc::now().to_rfc3339(),
+        root_generation: exported.root_generation,
+        salt: BASE64.encode(&salt),
+        root_signing_public: exported.root_signing_public.clone(),
+        sealed_root_secret: None,
+        devices,
+    };
+    save(store, &registry)?;
+    store.meta_set(
+        crate::sync_engine::SYNC_SELF_DEVICE_META,
+        &local_summary.device_id,
+    )?;
+    audit(store, "identity.adopt", "ok", audit_max);
+    Ok(local_summary)
+}
+
+/// Seal a synchronization bundle for one target device.
+///
+/// Payload confidentiality comes from static-static X25519 agreement between
+/// the sender and target device keys; authenticity comes from the sender's
+/// Ed25519 signature over the header and ciphertext. The header travels as
+/// associated data, so tampering breaks decryption.
+pub fn seal_sync_bundle(
+    store: &Store,
+    registry: &Registry,
+    recovery_key: &str,
+    target_device: &str,
+    payload: &[u8],
+) -> Result<Vec<u8>> {
+    let self_device = sync_self_device(store)?
+        .ok_or_else(|| anyhow::anyhow!("this store has no adopted device identity"))?;
+    if self_device == target_device {
+        bail!("target device must differ from the sending device");
+    }
+    let target = registry
+        .devices
+        .iter()
+        .find(|entry| entry.summary.device_id == target_device)
+        .ok_or_else(|| anyhow::anyhow!("unknown target device {target_device}"))?;
+    if !matches!(target.summary.status, DeviceStatus::Active) {
+        bail!("target device {target_device} is not active");
+    }
+    let target_agreement = BASE64
+        .decode(&target.summary.agreement_public)
+        .context("target agreement key is not valid base64")?;
+    let mut target_key = [0u8; 32];
+    target_key.copy_from_slice(&target_agreement);
+
+    let seal_key = storage_seal_key(recovery_key, &BASE64.decode(&registry.salt)?)?;
+    let secrets = unseal_self_secrets(&seal_key, registry, &self_device)?;
+
+    let nonce_bytes = random_bytes(12)?;
+    let shared = secrets
+        .agreement
+        .diffie_hellman(&AgreementPublic::from(target_key));
+    let hkdf = Hkdf::<Sha256>::new(Some(&nonce_bytes), shared.as_bytes());
+    let mut bundle_key = [0u8; 32];
+    hkdf.expand(b"cortana.sync.bundle.v1/key", &mut bundle_key)?;
+    let cipher = ChaCha20Poly1305::new_from_slice(&bundle_key)?;
+    let nonce = Nonce::from_slice(&nonce_bytes);
+
+    let header = json!({
+        "format": "cortana.sync.bundle.v1",
+        "account_id": registry.account_id,
+        "sender_device": self_device,
+        "target_device": target_device,
+        "sender_signing_public": BASE64.encode(secrets.signing.verifying_key().as_bytes()),
+        "payload_sha256": fingerprint(payload),
+        "ack_for_peer": store.sync_imported_watermark(target_device)?,
+    });
+    let header_bytes = serde_json::to_vec(&header)?;
+    let ciphertext = cipher
+        .encrypt(
+            nonce,
+            chacha20poly1305::aead::Payload {
+                msg: payload,
+                aad: &header_bytes,
+            },
+        )
+        .map_err(|_| anyhow::anyhow!("bundle sealing failed"))?;
+
+    let mut signed = Sha256::new();
+    signed.update(&header_bytes);
+    signed.update(&nonce_bytes);
+    signed.update(&ciphertext);
+    let signature = secrets.signing.sign(&signed.finalize()).to_bytes().to_vec();
+
+    let bundle = json!({
+        "header": header,
+        "nonce": BASE64.encode(&nonce_bytes),
+        "ciphertext": BASE64.encode(&ciphertext),
+        "signature": BASE64.encode(&signature),
+    });
+    serde_json::to_vec(&bundle).context("bundle serialization failed")
+}
+
+/// Open a synchronization bundle addressed to this device.
+///
+/// Verifies the sender signature against the local trust view, derives the
+/// same agreement key, and returns the authenticated header and payload.
+pub fn open_sync_bundle(
+    store: &Store,
+    registry: &Registry,
+    recovery_key: &str,
+    bundle: &[u8],
+) -> Result<(Value, Vec<u8>)> {
+    let self_device = sync_self_device(store)?
+        .ok_or_else(|| anyhow::anyhow!("this store has no adopted device identity"))?;
+    let value: Value = serde_json::from_slice(bundle).context("sync bundle is not valid JSON")?;
+    let header = value
+        .get("header")
+        .cloned()
+        .ok_or_else(|| anyhow::anyhow!("sync bundle is missing its header"))?;
+    if header.get("format").and_then(Value::as_str) != Some("cortana.sync.bundle.v1") {
+        bail!("unrecognized sync bundle format");
+    }
+    if header.get("target_device").and_then(Value::as_str) != Some(self_device.as_str()) {
+        bail!("sync bundle is addressed to a different device");
+    }
+    if header.get("account_id").and_then(Value::as_str) != Some(registry.account_id.as_str()) {
+        bail!("sync bundle belongs to a different account");
+    }
+    let sender_device = header
+        .get("sender_device")
+        .and_then(Value::as_str)
+        .ok_or_else(|| anyhow::anyhow!("sync bundle header is missing the sender"))?;
+    let sender = registry
+        .devices
+        .iter()
+        .find(|entry| entry.summary.device_id == sender_device)
+        .ok_or_else(|| anyhow::anyhow!("unknown bundle sender {sender_device}"))?;
+    if matches!(
+        sender.summary.status,
+        DeviceStatus::Revoked { .. } | DeviceStatus::Wiped { .. }
+    ) {
+        bail!("bundle sender {sender_device} is not active");
+    }
+    let sender_signing = header
+        .get("sender_signing_public")
+        .and_then(Value::as_str)
+        .ok_or_else(|| anyhow::anyhow!("bundle header is missing the sender signing key"))?;
+    if sender_signing != sender.summary.signing_public {
+        bail!("bundle sender signing key does not match the trust view");
+    }
+
+    let nonce_bytes = BASE64
+        .decode(
+            value
+                .get("nonce")
+                .and_then(Value::as_str)
+                .unwrap_or_default(),
+        )
+        .context("bundle nonce is not valid base64")?;
+    let ciphertext = BASE64
+        .decode(
+            value
+                .get("ciphertext")
+                .and_then(Value::as_str)
+                .unwrap_or_default(),
+        )
+        .context("bundle ciphertext is not valid base64")?;
+    let signature = BASE64
+        .decode(
+            value
+                .get("signature")
+                .and_then(Value::as_str)
+                .unwrap_or_default(),
+        )
+        .context("bundle signature is not valid base64")?;
+
+    let mut header_bytes = serde_json::to_vec(&header)?;
+    let mut signed = Sha256::new();
+    signed.update(&header_bytes);
+    signed.update(&nonce_bytes);
+    signed.update(&ciphertext);
+    let verifying = VerifyingKey::from_bytes(
+        &BASE64
+            .decode(sender_signing)
+            .context("sender signing key is not valid base64")?
+            .as_slice()
+            .try_into()
+            .context("sender signing key has the wrong length")?,
+    )?;
+    verifying
+        .verify(
+            &signed.finalize(),
+            &ed25519_dalek::Signature::from_slice(&signature)
+                .context("bundle signature encoding is invalid")?,
+        )
+        .map_err(|_| anyhow::anyhow!("sync bundle signature verification failed"))?;
+
+    let sender_agreement = BASE64
+        .decode(&sender.summary.agreement_public)
+        .context("sender agreement key is not valid base64")?;
+    let mut sender_key = [0u8; 32];
+    sender_key.copy_from_slice(&sender_agreement);
+
+    let seal_key = storage_seal_key(recovery_key, &BASE64.decode(&registry.salt)?)?;
+    let secrets = unseal_self_secrets(&seal_key, registry, &self_device)?;
+    let shared = secrets
+        .agreement
+        .diffie_hellman(&AgreementPublic::from(sender_key));
+    let hkdf = Hkdf::<Sha256>::new(Some(&nonce_bytes), shared.as_bytes());
+    let mut bundle_key = [0u8; 32];
+    hkdf.expand(b"cortana.sync.bundle.v1/key", &mut bundle_key)?;
+    let cipher = ChaCha20Poly1305::new_from_slice(&bundle_key)?;
+    let nonce = Nonce::from_slice(&nonce_bytes);
+    let payload = cipher
+        .decrypt(
+            nonce,
+            chacha20poly1305::aead::Payload {
+                msg: ciphertext.as_ref(),
+                aad: &header_bytes,
+            },
+        )
+        .map_err(|_| anyhow::anyhow!("sync bundle failed to open for this device"))?;
+    header_bytes.zeroize();
+    Ok((header, payload))
+}
+
+fn sync_self_device(store: &Store) -> Result<Option<String>> {
+    store.meta_get(crate::sync_engine::SYNC_SELF_DEVICE_META)
+}
+
+pub(crate) fn unseal_self_secrets(
+    seal_key: &[u8; 32],
+    registry: &Registry,
+    self_device: &str,
+) -> Result<DeviceSecrets> {
+    let entry = registry
+        .devices
+        .iter()
+        .find(|entry| entry.summary.device_id == self_device)
+        .ok_or_else(|| anyhow::anyhow!("registry is missing the local device {self_device}"))?;
+    let blob = entry
+        .sealed_secrets
+        .as_ref()
+        .ok_or_else(|| anyhow::anyhow!("local device credential is missing"))?;
+    unseal_device_secrets(seal_key, blob)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ed25519_dalek::Signer;
     use tempfile::tempdir;
 
     fn test_store() -> (tempfile::TempDir, Store) {

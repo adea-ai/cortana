@@ -167,6 +167,31 @@ enum Command {
         #[command(subcommand)]
         action: IdentityAction,
     },
+    /// Export and apply revisioned encrypted sync bundles between devices.
+    SyncBundle {
+        #[command(subcommand)]
+        action: SyncBundleAction,
+    },
+    /// Issue and verify connector fleet task grants.
+    Fleet {
+        #[command(subcommand)]
+        action: FleetAction,
+    },
+    /// Manage the managed-mode tenant control plane.
+    Tenant {
+        #[command(subcommand)]
+        action: TenantAction,
+    },
+    /// Manage team brain workspaces, membership, and deletion.
+    Team {
+        #[command(subcommand)]
+        action: TeamAction,
+    },
+    /// Manage the schema migration ledger and maintenance gate.
+    Migrations {
+        #[command(subcommand)]
+        action: MigrationsAction,
+    },
     /// Export authorized canonical documents as a derived Obsidian Markdown vault.
     ExportVault {
         #[arg(value_name = "DIRECTORY")]
@@ -686,6 +711,237 @@ enum AuditAction {
 }
 
 const DEFAULT_RECOVERY_KEY_ENV: &str = "CORTANA_IDENTITY_RECOVERY_KEY";
+
+#[derive(Clone, Debug, Subcommand)]
+enum TenantAction {
+    /// Provision a tenant data plane and register it.
+    Provision {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        name: String,
+        #[arg(long)]
+        residency: String,
+        #[arg(long, default_value = "cloud")]
+        source_of_truth: String,
+        #[arg(long)]
+        store_path: PathBuf,
+        #[arg(long, default_value_t = 1_000_000)]
+        max_documents: u64,
+        #[arg(long, default_value_t = 10 * 1024 * 1024 * 1024)]
+        storage_quota_bytes: u64,
+        #[arg(long, default_value_t = 90)]
+        retention_days: u32,
+    },
+    /// List tenant records, including purge receipts.
+    List {
+        #[arg(long)]
+        registry: PathBuf,
+    },
+    /// Suspend a tenant; the data plane will not open until reinstated.
+    Suspend {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        tenant_id: String,
+    },
+    /// Reinstate a suspended tenant.
+    Activate {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        tenant_id: String,
+    },
+    /// Record purge intent for a tenant.
+    RequestPurge {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        tenant_id: String,
+    },
+    /// Destroy a tenant data plane and retain the purge receipt.
+    Purge {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        tenant_id: String,
+    },
+    /// Control-plane lifecycle counts; no tenant content is shown.
+    Status {
+        #[arg(long)]
+        registry: PathBuf,
+    },
+}
+
+#[derive(Clone, Debug, Subcommand)]
+enum TeamAction {
+    /// Create a workspace with the creator as owner; residency is pinned.
+    CreateWorkspace {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        name: String,
+        #[arg(long)]
+        residency: String,
+        #[arg(long)]
+        store_path: PathBuf,
+        #[arg(long)]
+        owner_member_id: String,
+    },
+    /// List workspace records, including deletion receipts.
+    List {
+        #[arg(long)]
+        registry: PathBuf,
+    },
+    /// Invite one member id at one role; admin or above.
+    Invite {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        workspace_id: String,
+        #[arg(long)]
+        actor: String,
+        #[arg(long)]
+        invitee: String,
+        #[arg(long, value_enum, default_value_t = TeamRoleArg::Contributor)]
+        role: TeamRoleArg,
+        #[arg(long, default_value_t = 3600)]
+        ttl_seconds: i64,
+    },
+    /// Accept an invitation as the invitee.
+    AcceptInvitation {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        invitation_id: String,
+        #[arg(long)]
+        acceptor: String,
+    },
+    /// Remove a member; admin or above, owners only via deletion.
+    RemoveMember {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        workspace_id: String,
+        #[arg(long)]
+        actor: String,
+        #[arg(long)]
+        member_id: String,
+    },
+    /// Leave a workspace as a non-owner member.
+    Leave {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        workspace_id: String,
+        #[arg(long)]
+        member_id: String,
+    },
+    /// Print the effective role and allowed operations for a member.
+    Access {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        workspace_id: String,
+        #[arg(long)]
+        member_id: String,
+    },
+    /// Record deletion intent; owner only.
+    RequestDelete {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        workspace_id: String,
+        #[arg(long)]
+        actor: String,
+    },
+    /// Destroy the workspace data plane and retain the deletion receipt.
+    Delete {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        workspace_id: String,
+        #[arg(long)]
+        actor: String,
+    },
+    /// Workspace lifecycle counts; no content is shown.
+    Status {
+        #[arg(long)]
+        registry: PathBuf,
+    },
+}
+
+#[derive(Clone, Copy, Debug, clap::ValueEnum)]
+enum TeamRoleArg {
+    Reader,
+    Contributor,
+    Admin,
+}
+
+impl From<TeamRoleArg> for cortana::team::MemberRole {
+    fn from(value: TeamRoleArg) -> Self {
+        match value {
+            TeamRoleArg::Reader => cortana::team::MemberRole::Reader,
+            TeamRoleArg::Contributor => cortana::team::MemberRole::Contributor,
+            TeamRoleArg::Admin => cortana::team::MemberRole::Admin,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Subcommand)]
+enum MigrationsAction {
+    /// List recorded migrations newest-first.
+    List,
+    /// Record an applied migration; idempotent per id.
+    Record {
+        #[arg(long)]
+        id: String,
+        #[arg(long, help = "The migration ran inside a held maintenance window")]
+        maintenance_gated: bool,
+        #[arg(long, help = "The migration's contract promises reversibility")]
+        reversible: bool,
+    },
+    /// Hold the maintenance gate for gated migrations.
+    AcquireGate {
+        #[arg(long)]
+        reason: String,
+    },
+    /// Release the maintenance gate.
+    ReleaseGate,
+}
+
+#[derive(Clone, Debug, Subcommand)]
+enum FleetAction {
+    /// Issue a signed, expiring task grant for one worker device.
+    Issue {
+        #[arg(long)]
+        audience: String,
+        #[arg(long)]
+        job_id: String,
+        #[arg(long)]
+        capability: String,
+        #[arg(long)]
+        workspace: String,
+        #[arg(long, value_delimiter = ',')]
+        source_scope: Vec<String>,
+        #[arg(long)]
+        credential_reference: Option<String>,
+        #[arg(long, default_value_t = 3600)]
+        ttl_seconds: i64,
+        #[arg(long, default_value_t = 1000)]
+        max_documents: u32,
+        #[arg(long, default_value_t = 64 * 1024 * 1024)]
+        max_bytes: u64,
+        #[arg(long, value_name = "VAR", default_value = DEFAULT_RECOVERY_KEY_ENV)]
+        recovery_key_env: String,
+    },
+    /// Verify a task grant on a worker device and print its claims.
+    Verify {
+        /// Path to the grant JSON file.
+        #[arg(long)]
+        token_file: PathBuf,
+    },
+}
 const DEFAULT_NEW_RECOVERY_KEY_ENV: &str = "CORTANA_IDENTITY_RECOVERY_NEW_KEY";
 
 #[derive(Clone, Debug, Subcommand)]
@@ -734,6 +990,66 @@ enum IdentityAction {
     RotateRoot {
         #[arg(long, value_name = "VAR", default_value = DEFAULT_RECOVERY_KEY_ENV)]
         recovery_key_env: String,
+    },
+    /// Export a device's sealed credential plus the account trust view for
+    /// pairing a new device. The file stays sealed; the recovery key travels
+    /// with the owner, never inside the export.
+    Export {
+        #[arg(long)]
+        device_id: String,
+    },
+    /// Adopt an exported device credential into this store.
+    Adopt {
+        /// Path to the exported credential file.
+        #[arg(long)]
+        from: PathBuf,
+        #[arg(long, value_name = "VAR", default_value = DEFAULT_RECOVERY_KEY_ENV)]
+        recovery_key_env: String,
+    },
+}
+
+#[derive(Clone, Debug, Subcommand)]
+enum SyncBundleAction {
+    /// Export pending encrypted changes for a peer device as a bundle file.
+    Export {
+        #[arg(long)]
+        device_id: String,
+        /// Destination bundle path; refuses to overwrite without --force.
+        #[arg(long)]
+        output: PathBuf,
+        #[arg(long, help = "Replace an existing bundle file")]
+        force: bool,
+        #[arg(long, value_name = "VAR", default_value = DEFAULT_RECOVERY_KEY_ENV)]
+        recovery_key_env: String,
+        #[arg(long, default_value_t = 500)]
+        limit: usize,
+    },
+    /// Import and atomically apply an encrypted bundle from a peer device.
+    Import {
+        /// Path to the bundle file.
+        #[arg(long)]
+        input: PathBuf,
+        #[arg(long, value_name = "VAR", default_value = DEFAULT_RECOVERY_KEY_ENV)]
+        recovery_key_env: String,
+    },
+    /// Print journal, watermark, freshness, and conflict status.
+    Status,
+    /// List sync conflicts, including the deterministic resolution taken.
+    Conflicts {
+        #[arg(long, default_value_t = 50)]
+        limit: usize,
+    },
+    /// Drop superseded journal entries every peer has acknowledged.
+    Compact,
+    /// Resolve a conflict by accepting the preserved remote payload.
+    Resolve {
+        #[arg(long)]
+        conflict_id: i64,
+        #[arg(
+            long,
+            help = "Keep the local version instead of applying the remote payload"
+        )]
+        keep_local: bool,
     },
 }
 
@@ -1105,6 +1421,21 @@ async fn main() -> Result<()> {
     if let Some(Command::Identity { action }) = cli.command.as_ref() {
         return manage_identity(&config, &store, action);
     }
+    if let Some(Command::SyncBundle { action }) = cli.command.as_ref() {
+        return manage_sync(&config, &store, action);
+    }
+    if let Some(Command::Fleet { action }) = cli.command.as_ref() {
+        return manage_fleet(&config, &store, action);
+    }
+    if let Some(Command::Tenant { action }) = cli.command.as_ref() {
+        return manage_tenant(action);
+    }
+    if let Some(Command::Team { action }) = cli.command.as_ref() {
+        return manage_team(action);
+    }
+    if let Some(Command::Migrations { action }) = cli.command.as_ref() {
+        return manage_migrations(&store, action);
+    }
     if let Some(Command::ExportVault {
         output,
         workspaces,
@@ -1206,6 +1537,11 @@ async fn main() -> Result<()> {
             | Command::Acl { .. }
             | Command::Audit { .. }
             | Command::Identity { .. }
+            | Command::SyncBundle { .. }
+            | Command::Fleet { .. }
+            | Command::Tenant { .. }
+            | Command::Team { .. }
+            | Command::Migrations { .. }
             | Command::ProviderModels { .. },
         ) => {
             unreachable!()
@@ -3019,6 +3355,33 @@ fn manage_identity(config: &Config, store: &Store, action: &IdentityAction) -> R
                 outcome.recovery_key.expose()
             );
         }
+        IdentityAction::Export { device_id } => {
+            let registry = device_identity::load(store)?
+                .ok_or_else(|| anyhow::anyhow!("device identity is not initialized"))?;
+            let exported = device_identity::export_device(&registry, device_id)?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&exported)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
+        IdentityAction::Adopt {
+            from,
+            recovery_key_env,
+        } => {
+            let raw = std::fs::read_to_string(from)
+                .with_context(|| format!("failed to read device export {}", from.display()))?;
+            let exported: device_identity::DeviceExport = serde_json::from_str(&raw)
+                .with_context(|| format!("device export {} is not valid JSON", from.display()))?;
+            let recovery = recovery_key_from_env(recovery_key_env)?;
+            let adopted =
+                device_identity::adopt(store, &exported, &recovery, config.auth.audit_max_events)?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&adopted)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
         IdentityAction::Show => {
             let registry = device_identity::load(store)?
                 .filter(|_| true)
@@ -3112,6 +3475,421 @@ fn manage_identity(config: &Config, store: &Store, action: &IdentityAction) -> R
             let recovery = recovery_key_from_env(recovery_key_env)?;
             device_identity::rotate_root(store, &mut registry, &recovery, audit_max)?;
             println!("root rotated to generation {}", registry.root_generation);
+        }
+    }
+    Ok(())
+}
+
+fn manage_sync(config: &Config, store: &Store, action: &SyncBundleAction) -> Result<()> {
+    use cortana::device_identity;
+    use cortana::sync_engine::SyncEntry;
+    let _ = config;
+    match action {
+        SyncBundleAction::Export {
+            device_id,
+            output,
+            force,
+            recovery_key_env,
+            limit,
+        } => {
+            let registry = device_identity::load(store)?
+                .ok_or_else(|| anyhow::anyhow!("device identity is not initialized"))?;
+            let recovery = recovery_key_from_env(recovery_key_env)?;
+            anyhow::ensure!(
+                *force || !output.exists(),
+                "bundle destination already exists: {}; rerun with --force",
+                output.display()
+            );
+            reject_symlink_path(output)?;
+            let (entries, up_to) = store.sync_export_entries(device_id, *limit)?;
+            let payload = serde_json::json!({
+                "entries": entries,
+                "up_to_journal_id": up_to,
+                "sender_device": store.sync_self_device()?,
+            });
+            let bundle = device_identity::seal_sync_bundle(
+                store,
+                &registry,
+                &recovery,
+                device_id,
+                payload.to_string().as_bytes(),
+            )?;
+            let mut options = std::fs::OpenOptions::new();
+            options.write(true).create(true).truncate(true);
+            configure_no_follow(&mut options);
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::OpenOptionsExt;
+                options.mode(0o600);
+            }
+            let mut file = options
+                .open(output)
+                .with_context(|| format!("failed to create sync bundle {}", output.display()))?;
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                file.set_permissions(std::fs::Permissions::from_mode(0o600))?;
+            }
+            file.write_all(&bundle)?;
+            println!(
+                "sync bundle wrote {} entries up to journal {} for {}: {}",
+                entries.len(),
+                up_to,
+                device_id,
+                output.display()
+            );
+        }
+        SyncBundleAction::Import {
+            input,
+            recovery_key_env,
+        } => {
+            let registry = device_identity::load(store)?
+                .ok_or_else(|| anyhow::anyhow!("device identity is not initialized"))?;
+            let recovery = recovery_key_from_env(recovery_key_env)?;
+            let bundle = std::fs::read(input)
+                .with_context(|| format!("failed to read sync bundle {}", input.display()))?;
+            let (header, payload_bytes) =
+                device_identity::open_sync_bundle(store, &registry, &recovery, &bundle)?;
+            let sender_device = header
+                .get("sender_device")
+                .and_then(serde_json::Value::as_str)
+                .ok_or_else(|| anyhow::anyhow!("bundle header is missing the sender"))?
+                .to_string();
+            let payload: serde_json::Value = serde_json::from_slice(&payload_bytes)?;
+            let entries: Vec<SyncEntry> = serde_json::from_value(
+                payload
+                    .get("entries")
+                    .cloned()
+                    .ok_or_else(|| anyhow::anyhow!("bundle payload is missing entries"))?,
+            )?;
+            let up_to = payload
+                .get("up_to_journal_id")
+                .and_then(serde_json::Value::as_i64)
+                .ok_or_else(|| anyhow::anyhow!("bundle payload is missing the watermark"))?;
+            let report = store.sync_import_entries(&sender_device, entries, up_to)?;
+            if let Some(ack) = header
+                .get("ack_for_peer")
+                .and_then(serde_json::Value::as_i64)
+            {
+                store.sync_acknowledge_peer(&sender_device, ack)?;
+            }
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&report)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
+        SyncBundleAction::Status => {
+            println!("{}", serde_json::to_string_pretty(&store.sync_status()?)?);
+        }
+        SyncBundleAction::Conflicts { limit } => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&store.sync_list_conflicts(*limit)?)?
+            );
+        }
+        SyncBundleAction::Compact => {
+            let removed = store.sync_compact()?;
+            println!("compacted {removed} journal entries");
+        }
+        SyncBundleAction::Resolve {
+            conflict_id,
+            keep_local,
+        } => {
+            store.sync_resolve_conflict(*conflict_id, !*keep_local)?;
+            println!("conflict {conflict_id} resolved");
+        }
+    }
+    Ok(())
+}
+
+fn manage_fleet(config: &Config, store: &Store, action: &FleetAction) -> Result<()> {
+    use cortana::fleet;
+    match action {
+        FleetAction::Issue {
+            audience,
+            job_id,
+            capability,
+            workspace,
+            source_scope,
+            credential_reference,
+            ttl_seconds,
+            max_documents,
+            max_bytes,
+            recovery_key_env,
+        } => {
+            let registry = cortana::device_identity::load(store)?
+                .ok_or_else(|| anyhow::anyhow!("device identity is not initialized"))?;
+            let recovery = recovery_key_from_env(recovery_key_env)?;
+            let token = fleet::issue_task_grant(
+                store,
+                &registry,
+                &recovery,
+                &fleet::TaskGrantRequest {
+                    audience: audience.clone(),
+                    job_id: job_id.clone(),
+                    capability: capability.clone(),
+                    workspace: workspace.clone(),
+                    source_scope: source_scope.clone(),
+                    credential_reference: credential_reference.clone(),
+                    ttl_seconds: *ttl_seconds,
+                    max_documents: *max_documents,
+                    max_bytes: *max_bytes,
+                },
+            )?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&token)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
+        FleetAction::Verify { token_file } => {
+            let raw = std::fs::read_to_string(token_file)
+                .with_context(|| format!("failed to read grant {}", token_file.display()))?;
+            let token: fleet::TaskGrant = serde_json::from_str(&raw)
+                .with_context(|| format!("grant {} is not valid JSON", token_file.display()))?;
+            let registry = cortana::device_identity::load(store)?
+                .ok_or_else(|| anyhow::anyhow!("device identity is not initialized"))?;
+            let claims = fleet::verify_task_grant(store, &registry, &token, chrono::Utc::now())?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&claims)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
+    }
+    let _ = config;
+    Ok(())
+}
+
+fn manage_tenant(action: &TenantAction) -> Result<()> {
+    use cortana::tenant::{TenantControlPlane, TenantRecord};
+    fn control(registry: &std::path::Path) -> Result<TenantControlPlane> {
+        TenantControlPlane::open(registry)
+    }
+    fn print_record(record: &TenantRecord) -> Result<()> {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(record)
+                .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+        );
+        Ok(())
+    }
+    match action {
+        TenantAction::Provision {
+            registry,
+            name,
+            residency,
+            source_of_truth,
+            store_path,
+            max_documents,
+            storage_quota_bytes,
+            retention_days,
+        } => {
+            let record = control(registry)?.provision(&cortana::tenant::ProvisionRequest {
+                name: name.clone(),
+                residency: residency.clone(),
+                source_of_truth: source_of_truth.clone(),
+                store_path: store_path.clone(),
+                max_documents: *max_documents,
+                storage_quota_bytes: *storage_quota_bytes,
+                retention_days: *retention_days,
+            })?;
+            print_record(&record)?;
+        }
+        TenantAction::List { registry } => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&control(registry)?.list()?)?
+            );
+        }
+        TenantAction::Suspend {
+            registry,
+            tenant_id,
+        } => {
+            print_record(&control(registry)?.suspend(tenant_id)?)?;
+        }
+        TenantAction::Activate {
+            registry,
+            tenant_id,
+        } => {
+            print_record(&control(registry)?.activate(tenant_id)?)?;
+        }
+        TenantAction::RequestPurge {
+            registry,
+            tenant_id,
+        } => {
+            print_record(&control(registry)?.request_purge(tenant_id)?)?;
+        }
+        TenantAction::Purge {
+            registry,
+            tenant_id,
+        } => {
+            print_record(&control(registry)?.confirm_purge(tenant_id, tenant_id)?)?;
+        }
+        TenantAction::Status { registry } => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&control(registry)?.status()?)?
+            );
+        }
+    }
+    Ok(())
+}
+
+fn manage_team(action: &TeamAction) -> Result<()> {
+    use cortana::team::{TeamControlPlane, WorkspaceRecord};
+    fn control(registry: &std::path::Path) -> Result<TeamControlPlane> {
+        TeamControlPlane::open(registry)
+    }
+    fn print_record(record: &WorkspaceRecord) -> Result<()> {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(record)
+                .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+        );
+        Ok(())
+    }
+    match action {
+        TeamAction::CreateWorkspace {
+            registry,
+            name,
+            residency,
+            store_path,
+            owner_member_id,
+        } => {
+            let record =
+                control(registry)?.create_workspace(&cortana::team::CreateWorkspaceRequest {
+                    name: name.clone(),
+                    residency: residency.clone(),
+                    store_path: store_path.clone(),
+                    owner_member_id: owner_member_id.clone(),
+                })?;
+            print_record(&record)?;
+        }
+        TeamAction::List { registry } => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&control(registry)?.list()?)?
+            );
+        }
+        TeamAction::Invite {
+            registry,
+            workspace_id,
+            actor,
+            invitee,
+            role,
+            ttl_seconds,
+        } => {
+            let invitation = control(registry)?.invite(
+                workspace_id,
+                actor,
+                invitee,
+                cortana::team::MemberRole::from(*role),
+                *ttl_seconds,
+            )?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&invitation)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
+        TeamAction::AcceptInvitation {
+            registry,
+            invitation_id,
+            acceptor,
+        } => {
+            let member = control(registry)?.accept_invitation(invitation_id, acceptor)?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&member)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
+        TeamAction::RemoveMember {
+            registry,
+            workspace_id,
+            actor,
+            member_id,
+        } => {
+            let removed = control(registry)?.remove_member(workspace_id, actor, member_id)?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&removed)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
+        TeamAction::Leave {
+            registry,
+            workspace_id,
+            member_id,
+        } => {
+            let departed = control(registry)?.leave(workspace_id, member_id)?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&departed)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
+        TeamAction::Access {
+            registry,
+            workspace_id,
+            member_id,
+        } => {
+            let explanation = control(registry)?.access_explanation(workspace_id, member_id)?;
+            println!("{}", serde_json::to_string_pretty(&explanation)?);
+        }
+        TeamAction::RequestDelete {
+            registry,
+            workspace_id,
+            actor,
+        } => {
+            print_record(&control(registry)?.request_delete(workspace_id, actor)?)?;
+        }
+        TeamAction::Delete {
+            registry,
+            workspace_id,
+            actor,
+        } => {
+            print_record(&control(registry)?.confirm_delete(workspace_id, actor, workspace_id)?)?;
+        }
+        TeamAction::Status { registry } => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&control(registry)?.status()?)?
+            );
+        }
+    }
+    Ok(())
+}
+
+fn manage_migrations(store: &Store, action: &MigrationsAction) -> Result<()> {
+    match action {
+        MigrationsAction::List => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&store.list_migrations()?)?
+            );
+        }
+        MigrationsAction::Record {
+            id,
+            maintenance_gated,
+            reversible,
+        } => {
+            let recorded = store.record_migration(id, *maintenance_gated, *reversible)?;
+            if recorded {
+                println!("migration {id} recorded");
+            } else {
+                println!("migration {id} was already recorded");
+            }
+        }
+        MigrationsAction::AcquireGate { reason } => {
+            store.acquire_maintenance_gate(reason)?;
+            println!("maintenance gate held");
+        }
+        MigrationsAction::ReleaseGate => {
+            store.release_maintenance_gate()?;
+            println!("maintenance gate released");
         }
     }
     Ok(())
@@ -4723,55 +5501,6 @@ fn write_bounded_candidate_json<W: Write, T: serde::Serialize>(
     Ok(())
 }
 
-#[allow(dead_code)]
-fn chunk(content: &str) -> Vec<String> {
-    const TARGET: usize = 1_600;
-    const OVERLAP: usize = 200;
-    let mut output = Vec::new();
-    let mut start = 0;
-    while start < content.len() {
-        while start < content.len() && !content.is_char_boundary(start) {
-            start += 1;
-        }
-        let hard_end = (start + TARGET).min(content.len());
-        let mut end = hard_end;
-        while end > start && !content.is_char_boundary(end) {
-            end -= 1;
-        }
-        if end < content.len() {
-            let window = &content[start..end];
-            let preferred_floor = window.len() / 2;
-            end = window
-                .rfind("\n\n")
-                .filter(|position| *position >= preferred_floor)
-                .map(|position| start + position + 2)
-                .or_else(|| {
-                    window
-                        .rfind('\n')
-                        .filter(|position| *position >= preferred_floor)
-                        .map(|position| start + position + 1)
-                })
-                .unwrap_or(end);
-        }
-        let text = content[start..end].trim();
-        if !text.is_empty() {
-            output.push(text.to_string());
-        }
-        if end == content.len() {
-            break;
-        }
-        let mut next = end.saturating_sub(OVERLAP);
-        while next < end && !content.is_char_boundary(next) {
-            next += 1;
-        }
-        if next <= start {
-            next = end;
-        }
-        start = next;
-    }
-    output
-}
-
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
@@ -4785,7 +5514,7 @@ mod tests {
 
     use super::{
         AclAction, Cancellation, Cli, Command, DEFAULT_CONTEXT_LIMIT, MemoryAction, ServiceAction,
-        SourceControl, SourceLimits, SyncLock, SyncOverrides, SyncRunStatus, chunk,
+        SourceControl, SourceLimits, SyncLock, SyncOverrides, SyncRunStatus,
         cleanup_connector_spools, configured_connector_command, context_bundle,
         ensure_recurring_sync_validated, failure_status, flush_ingest_batch, ingest_documents,
         is_budget_exceeded, manage_memory, private_file, require_sync_validation,
@@ -5890,16 +6619,6 @@ mod tests {
         fn request_concurrency(&self) -> usize {
             4
         }
-    }
-
-    #[test]
-    fn chunk_bounds_unbroken_content_and_preserves_unicode() {
-        let content = format!("{}{}", "a".repeat(5_000), "🧠".repeat(300));
-        let chunks = chunk(&content);
-
-        assert!(chunks.len() > 3);
-        assert!(chunks.iter().all(|item| item.len() <= 1_600));
-        assert!(chunks.iter().any(|item| item.contains('🧠')));
     }
 
     #[cfg(unix)]
