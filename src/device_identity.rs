@@ -151,7 +151,7 @@ fn now_rfc3339() -> String {
 
 pub(crate) fn random_bytes(length: usize) -> Result<Vec<u8>> {
     let mut buffer = vec![0u8; length];
-    getrandom::getrandom(&mut buffer)
+    getrandom::fill(&mut buffer)
         .map_err(|error| anyhow::anyhow!("secure randomness unavailable: {error}"))?;
     Ok(buffer)
 }
@@ -229,10 +229,10 @@ pub(crate) fn fingerprint(signing_public: &[u8]) -> String {
 
 fn generate_device_secrets() -> Result<DeviceSecrets> {
     let mut signing_seed = [0u8; 32];
-    getrandom::getrandom(&mut signing_seed)
+    getrandom::fill(&mut signing_seed)
         .map_err(|error| anyhow::anyhow!("secure randomness unavailable: {error}"))?;
     let mut agreement_seed = [0u8; 32];
-    getrandom::getrandom(&mut agreement_seed)
+    getrandom::fill(&mut agreement_seed)
         .map_err(|error| anyhow::anyhow!("secure randomness unavailable: {error}"))?;
     Ok(DeviceSecrets {
         signing: SigningKey::from_bytes(&signing_seed),
