@@ -19,6 +19,8 @@ import {
   openDesktopSecretFile,
   startDesktopVaultExport,
 } from '../../api'
+import { cn } from '@/lib/utils'
+
 import type { DesktopSettings, DesktopVaultExport } from '../../types'
 import { useSettingsConfirm } from './SettingsConfirm'
 import { Field, NumberField, SettingsSection, type SettingsSectionProps } from './SettingsLayout'
@@ -297,7 +299,7 @@ export function AdvancedSettingsSection({
       </div>
       {(portableNotice || portableError) && (
         <SettingsAlert
-          className={`safety-note ${portableError ? 'error' : ''}`}
+          className={cn('safety-note', portableError && 'error')}
           variant={portableError ? 'destructive' : 'default'}
           role={portableError ? 'alert' : 'status'}
         >
@@ -378,7 +380,7 @@ export function AdvancedSettingsSection({
       </div>
       {vaultJob && (
         <SettingsAlert
-          className={`safety-note ${vaultJob.status === 'failed' ? 'error' : ''}`}
+          className={cn('safety-note', vaultJob.status === 'failed' && 'error')}
           variant={vaultJob.status === 'failed' ? 'destructive' : 'default'}
           role={vaultJob.status === 'failed' ? 'alert' : 'status'}
           aria-live="polite"

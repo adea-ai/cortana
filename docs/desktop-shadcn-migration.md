@@ -240,3 +240,21 @@ secret indicators without secret values. It lets the visual evidence job exercis
 composition in a browser without adding Tauri capabilities, invoking native commands, or exposing
 host state. The issue #2166 evidence set contains 95 screenshots covering the configured matrix and
 explicit setup, busy, success, warning, failure, cancelled, retry, and recovery states.
+
+## shadcn lint enforcement
+
+`@shadcn/lint` runs inside the shared Oxlint pass (`.oxlintrc.json`, `bun run lint`) with all six
+rules at error severity: `no-restyle`, `no-raw-colors`, `no-arbitrary-values`, `no-inline-styles`,
+`no-unknown-classes`, and `require-static-classes`.
+
+- Application classes defined in `apps/web/src/shadcn.css` are allowlisted per rule; add new
+  project class prefixes to the matching `allow` globs when introducing them.
+- Generated components under `apps/web/src/components/shadcn/**` form the primitive boundary and
+  carry a scoped override so registry code can import Base UI and restyle freely. Application code
+  must reach primitives only through that directory: `eslint/no-restricted-imports` rejects direct
+  `@base-ui/*`, `@radix-ui/*`, and `radix-*` imports elsewhere.
+- `RendererErrorBoundary` keeps inline styles deliberately because it renders before the CSS
+  bundle loads; `shadcn/no-inline-styles` is off for that file only.
+- Synchronous `setState` inside effects is a warning (`react/set-state-in-effect`): prefer
+  render-time adjustment for prop-driven resets, and use a documented `oxlint-disable` comment
+  only for reconciliation effects that also perform side effects.

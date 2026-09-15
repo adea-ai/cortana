@@ -1031,6 +1031,7 @@ select:focus-visible {
   align-self: center;
   justify-self: center;
   flex: 0 0 auto;
+  color: var(--source-icon-color);
 }
 
 .source-tree button {
@@ -1264,6 +1265,11 @@ select:focus-visible {
 
 .virtual-document-space {
   position: relative;
+  height: var(--virtual-total-height, auto);
+}
+
+.virtual-document-window {
+  transform: translateY(var(--virtual-offset, 0px));
 }
 
 .virtual-document-space button {
@@ -1284,6 +1290,7 @@ select:focus-visible {
   /* Nest document rows under the workspace/source breadcrumb: the left
      padding steps the list in from the flat source-tree edge so the
      explorer visibly reads workspace -> source -> documents. */
+  height: var(--virtual-row-height, 32px);
   padding-left: 26px;
 }
 
@@ -4271,6 +4278,7 @@ select:focus-visible {
 .update-progress i {
   position: absolute;
   inset: 0 auto 0 0;
+  width: var(--update-progress, 0);
   background: #315839;
 }
 
@@ -4549,6 +4557,15 @@ select:focus-visible {
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--panel);
+}
+
+.memory-virtual-space {
+  position: relative;
+  height: var(--virtual-total-height, auto);
+}
+
+.memory-virtual-window {
+  transform: translateY(var(--virtual-offset, 0px));
 }
 
 .memory-candidate-row {
@@ -5810,6 +5827,10 @@ select:focus-visible {
   .m7-production-shell [data-m7-activity-inbox] .activity-card-status-row > p {
     text-align: left;
   }
+}
+
+.m7-panel-boundary {
+  width: min(390px, 92vw);
 }
 
 .m7-panel-boundary :is(.source-panel, .context-panel) {

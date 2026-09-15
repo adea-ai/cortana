@@ -296,9 +296,9 @@ export function M7ActivityInbox({
             onOpenSettings={onOpenSettings}
           />
         ) : (
-          <div className="space-y-6">
+          <div className="flex flex-col gap-6">
             {attention.length ? (
-              <section className="space-y-3" aria-labelledby="m7-sync-attention">
+              <section className="flex flex-col gap-3" aria-labelledby="m7-sync-attention">
                 <h2 id="m7-sync-attention" className="font-heading text-base font-medium">
                   Sync attention
                 </h2>
@@ -313,7 +313,7 @@ export function M7ActivityInbox({
               </section>
             ) : null}
             {activeJobs.length ? (
-              <section className="space-y-3" aria-labelledby="m7-active-source-jobs">
+              <section className="flex flex-col gap-3" aria-labelledby="m7-active-source-jobs">
                 <h2 id="m7-active-source-jobs" className="font-heading text-base font-medium">
                   Active source jobs
                 </h2>
@@ -325,7 +325,7 @@ export function M7ActivityInbox({
               </section>
             ) : null}
             {completedJobs.length ? (
-              <section className="space-y-3" aria-labelledby="m7-recent-source-jobs">
+              <section className="flex flex-col gap-3" aria-labelledby="m7-recent-source-jobs">
                 <h2 id="m7-recent-source-jobs" className="font-heading text-base font-medium">
                   Recent source jobs
                 </h2>

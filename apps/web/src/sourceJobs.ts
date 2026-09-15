@@ -168,7 +168,6 @@ export function useSourceJobs() {
   const jobsRef = useRef(jobs)
   const foregroundRef = useRef(foreground)
   const pollEpochRef = useRef(0)
-  jobsRef.current = jobs
 
   const remember = useCallback((job: DesktopSourceJob) => {
     setError('')
@@ -176,8 +175,15 @@ export function useSourceJobs() {
   }, [])
 
   useEffect(() => {
+    jobsRef.current = jobs
+  }, [jobs])
+
+  useEffect(() => {
     foregroundRef.current = foreground
     pollEpochRef.current += 1
+  }, [foreground])
+
+  useEffect(() => {
     const visibility = { current: document.visibilityState !== 'hidden' }
     const focused = { current: true }
     const syncForeground = () => {
@@ -213,6 +219,7 @@ export function useSourceJobs() {
                 focused.current = payload
                 syncForeground()
               }
+              return null
             })
             .catch(() => {
               // Browser focus events remain the fallback when the native
@@ -228,6 +235,7 @@ export function useSourceJobs() {
         .then((unlisten) => {
           if (disposed) unlisten()
           else unlistenFocus = unlisten
+          return null
         })
         .catch(() => {
           // Browser focus events remain the fallback when the native focus
@@ -254,9 +262,10 @@ export function useSourceJobs() {
     let polling = false
     void getDesktopSourceJobs()
       .then((next) => {
-        if (disposed || pollEpochRef.current !== pollEpoch || !foregroundRef.current) return
+        if (disposed || pollEpochRef.current !== pollEpoch || !foregroundRef.current) return null
         setJobs((current) => mergeJobSnapshots(current, next))
         setError('')
+        return null
       })
       .catch((caught: unknown) => {
         if (disposed || pollEpochRef.current !== pollEpoch || !foregroundRef.current) return
@@ -273,7 +282,7 @@ export function useSourceJobs() {
       polling = true
       void Promise.allSettled(ids.map((id) => getDesktopSourceValidation(id)))
         .then((results) => {
-          if (disposed || pollEpochRef.current !== pollEpoch || !foregroundRef.current) return
+          if (disposed || pollEpochRef.current !== pollEpoch || !foregroundRef.current) return null
           let nextError: string | null = null
           results.forEach((result, index) => {
             if (result.status === 'fulfilled') {
@@ -296,6 +305,7 @@ export function useSourceJobs() {
           ) {
             setError('')
           }
+          return null
         })
         .finally(() => {
           polling = false

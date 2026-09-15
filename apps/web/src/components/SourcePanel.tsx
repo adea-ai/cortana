@@ -14,6 +14,8 @@ import { type ComponentProps, useMemo, useState } from 'react'
 import { activeJobs, describeSourceJobProgress } from '../sourceJobs'
 import { operationalSources, sourceHealth, type OperationalSource } from '../operations'
 import { SourceIcon } from './sourceIcons'
+import { cn } from '@/lib/utils'
+
 import { sourceDisplayName } from './sourceIconData'
 import { TooltipButton as Button } from './cortana/TooltipButton'
 import { Input } from './shadcn/input'
@@ -28,6 +30,8 @@ import type {
   WorkspaceSettings,
 } from '../types'
 import { VirtualDocumentList } from './VirtualDocumentList'
+
+const EMPTY_JOBS: DesktopSourceJob[] = []
 
 type ActionButtonProps = Omit<ComponentProps<typeof Button>, 'variant' | 'size'> & {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'icon' | 'compact'
@@ -82,7 +86,7 @@ export function SourcePanel({
   sourceToggleNotice = '',
   onClose,
   onCancelSourceJob,
-  jobs = [],
+  jobs = EMPTY_JOBS,
 }: {
   open: boolean
   status: BrainStatus | null
@@ -153,7 +157,7 @@ export function SourcePanel({
 
   return (
     <aside
-      className={`source-panel ${open ? 'mobile-open' : ''} m7-source-panel`}
+      className={cn('source-panel m7-source-panel', open && 'mobile-open')}
       data-m7-source-panel=""
     >
       <div className="panel-heading">
@@ -260,7 +264,11 @@ export function SourcePanel({
         </p>
       )}
       {statusLoading ? (
-        <div className="space-y-2 p-3" role="status" aria-label="Loading source index and health">
+        <div
+          className="flex flex-col gap-2 p-3"
+          role="status"
+          aria-label="Loading source index and health"
+        >
           <Skeleton className="h-8 w-full" />
           <Skeleton className="h-8 w-5/6" />
           <span className="sr-only">Loading source index and health…</span>
@@ -335,7 +343,7 @@ export function SourcePanel({
                       <Button
                         variant="ghost"
                         type="button"
-                        className={`source-select ${isSelected ? 'selected' : ''}`}
+                        className={cn('source-select', isSelected && 'selected')}
                         aria-pressed={isSelected}
                         aria-label={`${item.source} ${item.documents.toLocaleString()}`}
                         onClick={() => onSelect(item.source, item.project)}

@@ -19,15 +19,18 @@ import {
   X,
 } from 'lucide-react'
 import {
+  type CSSProperties,
   type FormEvent,
   lazy,
   type ReactNode,
   Suspense,
+  useCallback,
   useEffect,
   useId,
   useRef,
   useState,
 } from 'react'
+import { cn } from '../lib/utils'
 import { DEFAULT_THEME, SUPPORTED_THEMES, type ThemeMode } from '../theme'
 import { WorkspaceLogo } from '../workspaceLogos'
 import { readWorkspaceLogoFile, writeWorkspaceLogo } from '../workspaceLogoStore'
@@ -267,10 +270,13 @@ function SettingsViewContent({
     query: '',
   })
 
-  const applyLoadedSettings = (next: DesktopSettings) => {
-    setSettings(next)
-    onLoaded?.(next)
-  }
+  const applyLoadedSettings = useCallback(
+    (next: DesktopSettings) => {
+      setSettings(next)
+      onLoaded?.(next)
+    },
+    [onLoaded]
+  )
 
   /**
    * Fetch the models advertised by the configured provider through the
@@ -372,9 +378,13 @@ function SettingsViewContent({
       .catch((caught: unknown) =>
         setError(caught instanceof Error ? caught.message : 'Unable to load settings')
       )
-  }, [externalSettings, dirty, onLoaded])
+  }, [externalSettings, dirty, applyLoadedSettings, onLoaded])
 
-  useEffect(() => setSection(initialSection), [initialSection])
+  const [previousInitialSection, setPreviousInitialSection] = useState(initialSection)
+  if (initialSection !== previousInitialSection) {
+    setPreviousInitialSection(initialSection)
+    setSection(initialSection)
+  }
 
   useEffect(() => {
     if (typeof window.matchMedia !== 'function') return
@@ -413,6 +423,7 @@ function SettingsViewContent({
         setSettings(cleared)
         onSaved(cleared)
         setSaved(false)
+        return null
       })
       .catch((caught: unknown) => {
         if (!componentMounted.current) return
@@ -441,7 +452,11 @@ function SettingsViewContent({
       Array.from(referencedSecretNames(settings)).sort().join('\n')
     : ''
 
-  useEffect(() => {
+  const [previousSecretIdentityKey, setPreviousSecretIdentityKey] = useState(
+    referencedSecretIdentityKey
+  )
+  if (referencedSecretIdentityKey !== previousSecretIdentityKey) {
+    setPreviousSecretIdentityKey(referencedSecretIdentityKey)
     const referenced = new Set(referencedSecretIdentityKey.split('\n').filter(Boolean))
     setSecretValues((current) =>
       Object.fromEntries(Object.entries(current).filter(([name]) => referenced.has(name)))
@@ -449,7 +464,7 @@ function SettingsViewContent({
     setClearedSecrets(
       (current) => new Set(Array.from(current).filter((name) => referenced.has(name)))
     )
-  }, [referencedSecretIdentityKey])
+  }
 
   const stageSecrets = (values: Record<string, string>) => {
     setSecretValues(values)
@@ -655,7 +670,7 @@ function SettingsViewContent({
                 variant="ghost"
                 type="button"
                 key={item}
-                className={`settings-nav-item ${section === item ? 'active' : ''}`}
+                className={cn('settings-nav-item', section === item && 'active')}
                 aria-current={section === item ? 'page' : undefined}
                 onClick={() => setSection(item)}
               >
@@ -668,7 +683,7 @@ function SettingsViewContent({
                 variant="ghost"
                 type="button"
                 key={item}
-                className={`settings-nav-item ${section === item ? 'active' : ''}`}
+                className={cn('settings-nav-item', section === item && 'active')}
                 aria-current={section === item ? 'page' : undefined}
                 onClick={() => setSection(item)}
               >
@@ -678,7 +693,7 @@ function SettingsViewContent({
             <Button
               variant="ghost"
               type="button"
-              className={`settings-nav-item ${section === 'memory' ? 'active' : ''}`}
+              className={cn('settings-nav-item', section === 'memory' && 'active')}
               aria-current={section === 'memory' ? 'page' : undefined}
               onClick={() => setSection('memory')}
             >
@@ -843,7 +858,7 @@ function SettingsViewContent({
         </div>
         {(error || saved || settings.restart_required) && (
           <SettingsAlert
-            className={`settings-banner ${error || restartFailed ? 'error' : ''}`}
+            className={cn('settings-banner', (error || restartFailed) && 'error')}
             variant={error || restartFailed ? 'destructive' : 'default'}
             role={error || restartFailed ? 'alert' : 'status'}
           >
@@ -930,7 +945,7 @@ function SetupGuide({
             variant="ghost"
             type="button"
             key={step.section}
-            className={step.complete ? 'complete' : ''}
+            className={cn(step.complete && 'complete')}
             onClick={() => onOpen(step.section)}
           >
             <i>{step.complete ? <Check size={13} /> : index + 1}</i>
@@ -985,8 +1000,10 @@ function ServicesSection({
   const setInfo = onDesktopInfo ?? setLocalInfo
   const [busy, setBusy] = useState('')
   const [localError, setLocalError] = useState('')
-  const [schedule, setSchedule] = useState<DesktopSchedule | null>(null)
-  const [scheduleDraft, setScheduleDraft] = useState<DesktopSchedule | null>(null)
+  const [schedule, setSchedule] = useState<DesktopSchedule | null>(
+    isDesktopApp ? null : { sync_interval_seconds: 3600, backup_interval_seconds: 86400 }
+  )
+  const [scheduleDraft, setScheduleDraft] = useState<DesktopSchedule | null>(schedule)
   const [scheduleError, setScheduleError] = useState('')
   const [scheduleSaving, setScheduleSaving] = useState(false)
   const [scheduleApplyPending, setScheduleApplyPending] = useState(false)
@@ -1006,20 +1023,23 @@ function ServicesSection({
     }
   }, [])
 
-  const isFreshServicesRequest = (requestId: number) => {
-    return mountedRef.current && requestId === servicesRequestRef.current
-  }
+  const isFreshServicesRequest = useCallback(
+    (requestId: number) => mountedRef.current && requestId === servicesRequestRef.current,
+    []
+  )
 
   // Desktop shells own service status errors. When a parent shell refresh
   // succeeds after a previous section-local failure, clear stale local messages
   // so the user-visible banner is driven by the latest snapshot.
-  useEffect(() => {
+  const [previousServicesError, setPreviousServicesError] = useState(externalServicesError)
+  if (externalServicesError !== previousServicesError) {
+    setPreviousServicesError(externalServicesError)
     if (externalServicesError !== undefined && externalServicesError.length === 0) {
       setLocalError('')
     }
-  }, [externalServicesError])
+  }
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     if (refreshInFlightRef.current || actionInFlightRef.current) return
     refreshInFlightRef.current = true
     const requestId = ++servicesRequestRef.current
@@ -1039,7 +1059,7 @@ function ServicesSection({
     } finally {
       if (servicesRequestRef.current === requestId) refreshInFlightRef.current = false
     }
-  }
+  }, [isFreshServicesRequest, onServicesError, setInfo, setReport])
 
   useEffect(() => {
     if (externalServices !== undefined || !foreground) return
@@ -1050,23 +1070,18 @@ function ServicesSection({
       servicesRequestRef.current += 1
       refreshInFlightRef.current = false
     }
-  }, [externalServices, foreground])
+  }, [externalServices, foreground, refresh])
 
   useEffect(() => {
-    if (!isDesktopApp) {
-      const demoSchedule = { sync_interval_seconds: 3600, backup_interval_seconds: 86400 }
-      setSchedule(demoSchedule)
-      setScheduleDraft(demoSchedule)
-      setScheduleError('')
-      return
-    }
+    if (!isDesktopApp) return
     let active = true
     void getDesktopSchedule()
-      .then((next) => {
-        if (!active) return
-        setSchedule(next)
-        setScheduleDraft(next)
+      .then((result) => {
+        if (!active) return null
+        setSchedule(result)
+        setScheduleDraft(result)
         setScheduleError('')
+        return null
       })
       .catch((caught) => {
         if (!active) return
@@ -1456,7 +1471,10 @@ function ServicesSection({
       </div>
       {(error || scheduleError || actionMessage) && (
         <SettingsAlert
-          className={`safety-note ${error || scheduleError || serviceActivity?.status === 'failed' ? 'error' : ''}`}
+          className={cn(
+            'safety-note',
+            (error || scheduleError || serviceActivity?.status === 'failed') && 'error'
+          )}
           variant={
             error || scheduleError || serviceActivity?.status === 'failed'
               ? 'destructive'
@@ -1572,7 +1590,7 @@ function ServicesSection({
       </div>
       {(databaseResult || databaseError) && (
         <SettingsAlert
-          className={`safety-note ${databaseError ? 'error' : ''}`}
+          className={cn('safety-note', databaseError && 'error')}
           variant={databaseError ? 'destructive' : 'default'}
           role={databaseError ? 'alert' : 'status'}
         >
@@ -1590,7 +1608,7 @@ function ServicesSection({
           return (
             <SettingsCard className="service-card" key={service.name}>
               <header>
-                <i className={`service-state ${running ? 'ready' : failed ? 'failed' : ''}`} />
+                <i className={cn('service-state', running ? 'ready' : failed && 'failed')} />
                 <div>
                   <strong>{service.name[0].toUpperCase() + service.name.slice(1)}</strong>
                   <small>{service.label}</small>
@@ -1660,9 +1678,10 @@ function UpdatesSection({
       return
     }
     void getDesktopUpdate()
-      .then((next) => {
-        setUpdate(next)
-        if (!next.error) setError('')
+      .then((result) => {
+        setUpdate(result)
+        if (!result.error) setError('')
+        return null
       })
       .catch((caught: unknown) => {
         setError(caught instanceof Error ? caught.message : 'Updater status unavailable')
@@ -1676,9 +1695,10 @@ function UpdatesSection({
       if (requestInFlight) return
       requestInFlight = true
       void getDesktopUpdate()
-        .then((next) => {
-          setUpdate(next)
-          if (!next.error) setError('')
+        .then((result) => {
+          setUpdate(result)
+          if (!result.error) setError('')
+          return null
         })
         .catch((caught: unknown) => {
           setError(caught instanceof Error ? caught.message : 'Updater status unavailable')
@@ -1689,7 +1709,7 @@ function UpdatesSection({
     }
     const timer = window.setInterval(poll, 400)
     return () => window.clearInterval(timer)
-  }, [busy, externalDesktopUpdate, foreground])
+  }, [busy, externalDesktopUpdate, foreground, setUpdate])
 
   const check = async () => {
     setBusy('check')
@@ -1832,7 +1852,7 @@ function UpdatesSection({
       </SettingsCard>
       {percent !== null && (
         <div className="update-progress" role="progressbar" aria-valuenow={percent}>
-          <i style={{ width: `${percent}%` }} />
+          <i style={{ '--update-progress': `${percent}%` } as CSSProperties} />
           <span>{percent}% downloaded</span>
         </div>
       )}
@@ -1975,6 +1995,7 @@ function AccessSection({
         {settings.auth_principals.map((principal, index) => {
           const secret = settings.secrets.find((item) => item.name === principal.token_env)
           return (
+            // oxlint-disable-next-line react/no-array-index-key -- principals render in settings order
             <SettingsCard className="principal-card" key={`${principal.principal}:${index}`}>
               <header>
                 <KeyRound size={16} />
@@ -2096,14 +2117,12 @@ function AccessSection({
 function AuditSection() {
   const [runtime, setRuntime] = useState<AuditEvent[]>([])
   const [desktop, setDesktop] = useState<AuditEvent[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const refreshRequestRef = useRef(0)
 
   const refresh = async () => {
     const requestId = ++refreshRequestRef.current
-    setLoading(true)
-    setError('')
     const [runtimeResult, desktopResult] = await Promise.allSettled([
       getRuntimeAudit(100),
       getDesktopAudit(100),
@@ -2123,7 +2142,7 @@ function AuditSection() {
   }
 
   useEffect(() => {
-    void refresh()
+    queueMicrotask(() => void refresh())
     return () => {
       refreshRequestRef.current += 1
     }
@@ -2163,7 +2182,15 @@ function AuditSection() {
           {runtime.length} runtime · {desktop.length} Desktop events
         </span>
         <div className="service-actions">
-          <Button variant="compact" disabled={loading} onClick={() => void refresh()}>
+          <Button
+            variant="compact"
+            disabled={loading}
+            onClick={() => {
+              setLoading(true)
+              setError('')
+              void refresh()
+            }}
+          >
             {loading ? <LoaderCircle className="spin" size={14} /> : <RefreshCw size={14} />}
             Refresh
           </Button>
@@ -2191,6 +2218,7 @@ function AuditList({ title, events }: { title: string; events: AuditEvent[] }) {
         <p>No events available.</p>
       ) : (
         events.map((event, index) => (
+          // oxlint-disable-next-line react/no-array-index-key -- audit events render in fetch order
           <article key={`${String(event['id'] || event['at_unix_seconds'] || 'event')}:${index}`}>
             <strong className={`audit-event-title ${auditOutcome(event)}`}>
               {String(event['event'] || event['action'] || 'event')}
@@ -2255,16 +2283,17 @@ function ReadinessSection({
     let active = true
     const timer = window.setTimeout(() => {
       void getDesktopInstaller(job.id)
-        .then((next) => {
-          if (!active) return
-          onJob(next)
-          if (next.status === 'succeeded') {
+        .then((result) => {
+          if (!active) return null
+          onJob(result)
+          if (result.status === 'succeeded') {
             onResult(null)
             setScanning(true)
             void (onReadinessScan ? onReadinessScan() : scanDesktopReadiness())
               .then((scan) => {
-                if (!active) return
+                if (!active) return null
                 onResult(scan)
+                return null
               })
               .catch((caught: unknown) => {
                 if (active) {
@@ -2277,6 +2306,7 @@ function ReadinessSection({
                 if (active) setScanning(false)
               })
           }
+          return null
         })
         .catch((caught: unknown) => {
           if (active) {
@@ -2355,9 +2385,10 @@ function ReadinessSection({
     setScanning(true)
     setError('')
     void (onReadinessScan ? onReadinessScan() : scanDesktopReadiness())
-      .then((next) => {
-        if (!active) return
-        onResult(next)
+      .then((result) => {
+        if (!active) return null
+        onResult(result)
+        return null
       })
       .catch((caught: unknown) => {
         if (active) {
@@ -2717,7 +2748,10 @@ function WorkspaceSection({
                 <small>Workspace identity</small>
               </div>
               <label
-                className={`workspace-logo-upload ${logoLoading === workspace.id ? 'is-loading' : ''}`}
+                className={cn(
+                  'workspace-logo-upload',
+                  logoLoading === workspace.id && 'is-loading'
+                )}
                 title={
                   logoLoading === workspace.id ? 'Saving workspace logo' : 'Upload workspace logo'
                 }
@@ -2890,6 +2924,7 @@ function renderMarkdownToNodes(text: string): ReactNode[] {
       nodes.push(
         <ol key={`list-${key}`}>
           {currentList.items.map((item, index) => (
+            // oxlint-disable-next-line react/no-array-index-key -- markdown list items are positional
             <li key={`${key}-${index}`}>{parseInlineMarkdown(item)}</li>
           ))}
         </ol>
@@ -2898,6 +2933,7 @@ function renderMarkdownToNodes(text: string): ReactNode[] {
       nodes.push(
         <ul key={`list-${key}`}>
           {currentList.items.map((item, index) => (
+            // oxlint-disable-next-line react/no-array-index-key -- markdown list items are positional
             <li key={`${key}-${index}`}>{parseInlineMarkdown(item)}</li>
           ))}
         </ul>
@@ -3193,9 +3229,12 @@ function ProviderSection<T extends ProviderValue>({
   const modelMode: 'catalog' | 'custom' =
     explicitModelMode ?? (catalogValues.includes(provider.model) ? 'catalog' : 'custom')
 
-  useEffect(() => {
+  const catalogKey = catalogValues.join('\u0000')
+  const [previousCatalogKey, setPreviousCatalogKey] = useState(catalogKey)
+  if (catalogKey !== previousCatalogKey) {
+    setPreviousCatalogKey(catalogKey)
     setExplicitModelMode(null)
-  }, [catalogValues.join('\u0000')])
+  }
 
   const modelInput = (
     <Field label="Model" controlId={modelFieldId}>

@@ -1,8 +1,295 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "typescript",
+    "unicorn",
+    "oxc",
+    "import",
+    "promise",
+    "react",
+    "react-perf",
+    "jsx-a11y"
+  ],
   "categories": {
     "correctness": "error",
-    "suspicious": "warn"
+    "suspicious": "error",
+    "perf": "warn"
   },
+  "jsPlugins": ["@shadcn/lint"],
+  "settings": {
+    "shadcn": {
+      "note": "Project classes are defined in apps/web/src/shadcn.css. See .agents/skills/shadcn for the full component rules (composition, forms, icons, chat)."
+    }
+  },
+  "rules": {
+    "react/react-in-jsx-scope": "off",
+    "eslint/no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "@base-ui/react",
+            "message": "Import Base UI primitives only through components/shadcn/*."
+          }
+        ],
+        "patterns": [
+          {
+            "group": ["@base-ui/react/*", "@radix-ui/*", "radix-*"],
+            "message": "Strict primitives are Base UI via components/shadcn/*; no direct primitive imports."
+          }
+        ]
+      }
+    ],
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "eslint/no-await-in-loop": "off",
+    "import/no-unassigned-import": "off",
+    "react/set-state-in-effect": "warn",
+    "react/exhaustive-effect-dependencies": "off",
+    "react/static-components": "warn",
+    "react/refs": "warn",
+    "react/immutability": "warn",
+    "react-hooks/exhaustive-deps": "error",
+    "jsx-a11y/label-has-associated-control": [
+      "error",
+      {
+        "depth": 5,
+        "controlComponents": [
+          "Checkbox",
+          "Input",
+          "MemoryInput",
+          "MemoryTextarea",
+          "Select",
+          "SettingsCheckbox",
+          "SettingsRadio",
+          "SettingsSwitch"
+        ]
+      }
+    ],
+    "jsx-a11y/click-events-have-key-events": "warn",
+    "jsx-a11y/no-noninteractive-element-interactions": "warn",
+    "jsx-a11y/anchor-has-content": "warn",
+    "promise/always-return": "warn",
+    "promise/no-callback-in-promise": "warn",
+    "react-perf/jsx-no-new-function-as-prop": "off",
+    "react-perf/jsx-no-new-array-as-prop": "off",
+    "react-perf/jsx-no-new-object-as-prop": "off",
+    "react-perf/jsx-no-jsx-as-prop": "off",
+    "shadcn/no-restyle": [
+      "error",
+      {
+        "deny": ["color", "typography", "shape", "effects", "motion"],
+        "contracts": [
+          {
+            "pattern": "^Alert$",
+            "allow": [
+              "layout",
+              "spacing",
+              "safety-note",
+              "settings-banner",
+              "error",
+              "warning",
+              "border-success",
+              "text-success",
+              "border-warning",
+              "text-warning",
+              "border-destructive",
+              "text-destructive"
+            ],
+            "deny": []
+          },
+          {
+            "pattern": "^Empty$",
+            "allow": ["layout", "spacing", "border"],
+            "deny": ["color", "typography", "effects", "motion"]
+          },
+          {
+            "pattern": "^Tabs$",
+            "allow": ["layout", "spacing", "border-b"],
+            "deny": ["color", "typography", "effects", "motion"]
+          },
+          {
+            "pattern": "^Badge$",
+            "allow": [
+              "layout",
+              "spacing",
+              "border-success",
+              "bg-success",
+              "text-success",
+              "border-warning",
+              "bg-warning",
+              "text-warning",
+              "border-destructive",
+              "bg-destructive",
+              "text-destructive",
+              "border-primary",
+              "bg-primary",
+              "text-primary",
+              "border-muted-foreground",
+              "bg-muted",
+              "text-muted-foreground",
+              "memory-status"
+            ],
+            "deny": []
+          },
+          {
+            "pattern": "^(ComboboxInput|SelectTrigger)$",
+            "allow": [
+              "layout",
+              "spacing",
+              "bg-background",
+              "border-border",
+              "shadow-xs",
+              "settings-*"
+            ],
+            "deny": []
+          }
+        ]
+      }
+    ],
+    "shadcn/no-raw-colors": "error",
+    "shadcn/no-arbitrary-values": "error",
+    "shadcn/no-inline-styles": "error",
+    "shadcn/no-unknown-classes": [
+      "error",
+      {
+        "allow": [
+          "active",
+          "activity-*",
+          "answer-*",
+          "attention",
+          "audit-*",
+          "brand-*",
+          "breadcrumbs",
+          "byline",
+          "canonical-content",
+          "canonical-document",
+          "command-*",
+          "compact",
+          "complete",
+          "context-*",
+          "copy-area",
+          "core-readiness",
+          "count-pill",
+          "demo-badge",
+          "disabled",
+          "discord-*",
+          "document-*",
+          "empty-*",
+          "enabled",
+          "error",
+          "evidence-*",
+          "explorer-*",
+          "eyebrow",
+          "failed",
+          "failure",
+          "form-*",
+          "graph-*",
+          "health",
+          "healthy",
+          "history-buttons",
+          "ingestion-health",
+          "initial-*",
+          "installer-*",
+          "is-loading",
+          "keyboard-active",
+          "lead",
+          "link-button",
+          "load-more-documents",
+          "manual",
+          "m7-*",
+          "memory-*",
+          "mobile-*",
+          "model-*",
+          "optional",
+          "pane-resizer",
+          "panel-heading",
+          "passed",
+          "path-input",
+          "pending",
+          "portable-settings",
+          "principal-*",
+          "provenance",
+          "query-summary",
+          "rail-*",
+          "reachable",
+          "readiness-*",
+          "ready",
+          "release-notes",
+          "retrieval-diagnostics",
+          "rule",
+          "running",
+          "runtime-error",
+          "safe-markdown",
+          "safety-note",
+          "scheduled",
+          "scope-options",
+          "search-form",
+          "secret-input",
+          "section-*",
+          "selected-*",
+          "selected",
+          "server-context",
+          "service-*",
+          "settings-*",
+          "setup-*",
+          "shell",
+          "sidebar-workspace-select",
+          "sidecar-health",
+          "skip-link",
+          "source-*",
+          "spin",
+          "status-*",
+          "statusbar",
+          "succeeded",
+          "success",
+          "timeline-view",
+          "title-actions",
+          "titlebar",
+          "toggle-row",
+          "tree-toggle",
+          "unavailable",
+          "update-*",
+          "utility-*",
+          "vault-workspace-picker",
+          "virtual-*",
+          "visually-hidden",
+          "warning",
+          "wide",
+          "workspace-*"
+        ]
+      }
+    ],
+    "shadcn/require-static-classes": "error"
+  },
+  "overrides": [
+    {
+      "files": ["apps/web/src/components/RendererErrorBoundary.tsx"],
+      "rules": {
+        "shadcn/no-inline-styles": "off"
+      }
+    },
+    {
+      "files": ["apps/web/src/components/shadcn/**"],
+      "rules": {
+        "eslint/no-restricted-imports": "off",
+        "react/jsx-no-constructed-context-values": "off",
+        "react/no-array-index-key": "off",
+        "jsx-a11y/click-events-have-key-events": "off",
+        "jsx-a11y/no-noninteractive-element-interactions": "off",
+        "jsx-a11y/no-noninteractive-element-to-interactive-role": "off",
+        "jsx-a11y/no-static-element-interactions": "off",
+        "jsx-a11y/interactive-supports-focus": "off",
+        "jsx-a11y/anchor-has-content": "off",
+        "jsx-a11y/label-has-associated-control": "off",
+        "jsx-a11y/no-autofocus": "off",
+        "shadcn/no-restyle": "off",
+        "shadcn/no-raw-colors": "off",
+        "shadcn/no-arbitrary-values": "off",
+        "shadcn/no-inline-styles": "off",
+        "shadcn/no-unknown-classes": "off",
+        "shadcn/require-static-classes": "off"
+      }
+    }
+  ],
   "ignorePatterns": ["node_modules/**", "apps/web/dist/**", "coverage/**", "target/**"]
 }

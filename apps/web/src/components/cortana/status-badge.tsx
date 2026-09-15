@@ -6,36 +6,27 @@ import { cn } from '@/lib/utils'
 
 export type StatusTone = 'success' | 'warning' | 'error' | 'offline' | 'busy'
 
-const statusContract = {
-  success: {
-    icon: CircleCheck,
-    className: 'border-success/40 bg-success/10 text-success',
-  },
-  warning: {
-    icon: CircleAlert,
-    className: 'border-warning/40 bg-warning/10 text-warning',
-  },
-  error: {
-    icon: CircleX,
-    className: 'border-destructive/40 bg-destructive/10 text-destructive',
-  },
-  offline: {
-    icon: CloudOff,
-    className: 'border-muted-foreground/40 bg-muted text-muted-foreground',
-  },
-  busy: {
-    icon: LoaderCircle,
-    className: 'border-primary/40 bg-primary/10 text-primary',
-  },
-} satisfies Record<StatusTone, { icon: typeof CircleCheck; className: string }>
+const statusIcons = {
+  success: CircleCheck,
+  warning: CircleAlert,
+  error: CircleX,
+  offline: CloudOff,
+  busy: LoaderCircle,
+} satisfies Record<StatusTone, typeof CircleCheck>
 
 export function StatusBadge({ tone, children }: { tone: StatusTone; children: ReactNode }) {
-  const { icon: Icon, className } = statusContract[tone]
+  const Icon = statusIcons[tone]
 
   return (
     <Badge
       variant="outline"
-      className={className}
+      className={cn(
+        tone === 'success' && 'border-success/40 bg-success/10 text-success',
+        tone === 'warning' && 'border-warning/40 bg-warning/10 text-warning',
+        tone === 'error' && 'border-destructive/40 bg-destructive/10 text-destructive',
+        tone === 'offline' && 'border-muted-foreground/40 bg-muted text-muted-foreground',
+        tone === 'busy' && 'border-primary/40 bg-primary/10 text-primary'
+      )}
       role="status"
       aria-busy={tone === 'busy' ? true : undefined}
     >

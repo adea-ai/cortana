@@ -1,5 +1,7 @@
 import type { ComponentProps, ReactNode } from 'react'
 
+import { cn } from '@/lib/utils'
+
 import {
   Combobox,
   ComboboxContent,
@@ -23,9 +25,7 @@ export function SettingsModelCombobox({
     <Combobox value={value} onValueChange={(next) => next && onValueChange(String(next))}>
       <ComboboxInput
         {...props}
-        className={['border-border bg-background shadow-xs', props.className]
-          .filter(Boolean)
-          .join(' ')}
+        className={cn('border-border bg-background shadow-xs', props.className)}
         value={value}
       />
       <ComboboxContent>

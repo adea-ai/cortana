@@ -1,6 +1,7 @@
 import { CircleAlert, CircleCheck, Inbox, RotateCcw } from 'lucide-react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/shadcn/alert'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/shadcn/button'
 import {
   Empty,
@@ -51,13 +52,11 @@ export function FeedbackState({ kind, title, description, onRetry }: FeedbackSta
   const Icon = kind === 'success' ? CircleCheck : CircleAlert
   return (
     <Alert
-      className={
-        kind === 'success'
-          ? 'border-success/40 text-success'
-          : kind === 'warning'
-            ? 'border-warning/40 text-warning'
-            : 'border-destructive/40 text-destructive'
-      }
+      className={cn(
+        kind === 'success' && 'border-success/40 text-success',
+        kind === 'warning' && 'border-warning/40 text-warning',
+        kind === 'error' && 'border-destructive/40 text-destructive'
+      )}
     >
       <Icon aria-hidden="true" />
       <AlertTitle>{title}</AlertTitle>

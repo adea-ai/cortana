@@ -12,7 +12,9 @@ import {
   Trash2,
   Zap,
 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+
+import { cn } from '@/lib/utils'
 
 import {
   Dialog,
@@ -144,10 +146,13 @@ export function SourcesSection({
 }) {
   const confirm = useSettingsConfirm()
   const [job, setJob] = useState<DesktopSourceJob | null>(null)
-  const applyJob = (next: DesktopSourceJob) => {
-    setJob(next)
-    onJob?.(next)
-  }
+  const applyJob = useCallback(
+    (next: DesktopSourceJob) => {
+      setJob(next)
+      onJob?.(next)
+    },
+    [onJob]
+  )
   const [error, setError] = useState('')
   const [githubRepositories, setGithubRepositories] = useState<
     Record<string, { items: GithubRepositorySummary[]; truncated: boolean }>
@@ -185,29 +190,36 @@ export function SourcesSection({
   const cancelInFlight = useRef(new Set<string>())
   const foreground = useDesktopForeground()
 
-  const workspaceIds = settings.workspaces.map((workspace) => workspace.id)
+  const workspaceIds = new Set(settings.workspaces.map((workspace) => workspace.id))
   const unassignedSourceCount = settings.sources.filter(
-    (source) => !workspaceIds.includes(source.project)
+    (source) => !workspaceIds.has(source.project)
   ).length
-  const sourceWorkspaceIsAssigned = workspaceIds.includes(sourceWorkspace)
+  const sourceWorkspaceIsAssigned = workspaceIds.has(sourceWorkspace)
   const visibleSources = settings.sources
     .map((source, index) => ({ source, index }))
     .filter(({ source }) =>
       sourceWorkspace === UNASSIGNED_WORKSPACE
-        ? !workspaceIds.includes(source.project)
+        ? !workspaceIds.has(source.project)
         : source.project === sourceWorkspace
     )
   const selectedWorkspace = settings.workspaces.find(({ id }) => id === sourceWorkspace)
 
-  useEffect(() => {
+  const workspaceResetKey = [
+    sourceWorkspace,
+    sourceWorkspaceIsAssigned,
+    unassignedSourceCount,
+    settings.workspaces.map((workspace) => workspace.id).join(' '),
+  ].join(' ')
+  const [previousWorkspaceResetKey, setPreviousWorkspaceResetKey] = useState(workspaceResetKey)
+  if (workspaceResetKey !== previousWorkspaceResetKey) {
+    setPreviousWorkspaceResetKey(workspaceResetKey)
     if (
-      sourceWorkspaceIsAssigned ||
-      (sourceWorkspace === UNASSIGNED_WORKSPACE && unassignedSourceCount)
+      !sourceWorkspaceIsAssigned &&
+      !(sourceWorkspace === UNASSIGNED_WORKSPACE && unassignedSourceCount)
     ) {
-      return
+      setSourceWorkspace(initialSourceWorkspace(settings))
     }
-    setSourceWorkspace(initialSourceWorkspace(settings))
-  }, [sourceWorkspace, sourceWorkspaceIsAssigned, unassignedSourceCount, settings.workspaces])
+  }
 
   // In the full Desktop shell, App owns one poller for the source-job list so
   // SourcePanel, the tray/status bar, and Settings all observe the same
@@ -223,12 +235,15 @@ export function SourcesSection({
     // recovered snapshot so this section can show and cancel it immediately,
     // instead of only locking the editor in the background.
     if (!job) {
+      // oxlint-disable-next-line react/set-state-in-effect -- adopt the shared poller's recovered job snapshot
       if (sourceJobs[0]) setJob(sourceJobs[0])
       return
     }
     const next = sourceJobs.find((candidate) => candidate.id === job.id)
-    if (next && next !== job) setJob(next)
-    else if (!next && sharedJobIds.current.has(job.id)) {
+    if (next && next !== job) {
+      // oxlint-disable-next-line react/set-state-in-effect -- reconcile with the shared job registry snapshot
+      setJob(next)
+    } else if (!next && sharedJobIds.current.has(job.id)) {
       sharedJobIds.current.delete(job.id)
       setJob(null)
     }
@@ -240,9 +255,10 @@ export function SourcesSection({
     let active = true
     const timer = window.setTimeout(() => {
       void getDesktopSourceValidation(job.id)
-        .then((next) => {
-          if (!active) return
-          applyJob(next)
+        .then((result) => {
+          if (!active) return null
+          applyJob(result)
+          return null
         })
         .catch((caught: unknown) => {
           if (active) {
@@ -254,7 +270,7 @@ export function SourcesSection({
       active = false
       window.clearTimeout(timer)
     }
-  }, [foreground, job, initialSync, onJob])
+  }, [foreground, job, initialSync, applyJob, sourceJobs])
   const activeJob =
     (job && ['running', 'cancelling'].includes(job.status) ? job : undefined) ??
     sourceJobs?.find((candidate) => ['running', 'cancelling'].includes(candidate.status))
@@ -891,7 +907,7 @@ export function SourcesSection({
                 value={workspace.id}
                 key={workspace.id}
                 aria-selected={sourceWorkspace === workspace.id}
-                className={sourceWorkspace === workspace.id ? 'active' : ''}
+                className={cn(sourceWorkspace === workspace.id && 'active')}
               >
                 <WorkspaceLogo workspace={workspace} size="small" />
                 <span>{workspace.name}</span>
@@ -903,7 +919,7 @@ export function SourcesSection({
             <SettingsTabsTrigger
               value={UNASSIGNED_WORKSPACE}
               aria-selected={sourceWorkspace === UNASSIGNED_WORKSPACE}
-              className={sourceWorkspace === UNASSIGNED_WORKSPACE ? 'active warning' : 'warning'}
+              className={cn('warning', sourceWorkspace === UNASSIGNED_WORKSPACE && 'active')}
             >
               <AlertTriangle size={15} />
               <span>Needs assignment</span>
@@ -1660,7 +1676,10 @@ export function SourcesSection({
                                             return (
                                               <div
                                                 key={guild.id}
-                                                className={`discord-guild${assigned ? '' : ' discord-guild-unassigned'}`}
+                                                className={cn(
+                                                  'discord-guild',
+                                                  !assigned && 'discord-guild-unassigned'
+                                                )}
                                               >
                                                 <strong>{guild.name}</strong>
                                                 {!assigned && (
@@ -2226,7 +2245,8 @@ function sourceOf(settings: DesktopSettings, name: string): SourceSettings {
 }
 
 function identifierFromPath(path: string): string {
-  const leaf = path.split(/[\\/]/).filter(Boolean).at(-1) || 'source'
+  const segments = path.split(/[\\/]/).filter(Boolean)
+  const leaf = segments[segments.length - 1] || 'source'
   return (
     leaf
       .replace(/\.[^.]+$/, '')
@@ -2319,7 +2339,7 @@ function InitialSyncFlow({
         onValueChange={(value) => onBudget(value as InitialSyncBudget)}
       >
         {INITIAL_SYNC_BUDGETS.map((tier) => (
-          <label key={tier.budget} className={flow.budget === tier.budget ? 'selected' : ''}>
+          <label key={tier.budget} className={cn(flow.budget === tier.budget && 'selected')}>
             <SettingsRadio
               name="initial-sync-budget"
               value={tier.budget}
