@@ -12,12 +12,21 @@ under the automated manifest flow.
 ## Current release: v0.57.0 <!-- x-release-please-version -->
 
 Download the Desktop app or a matching core archive from the
-[latest GitHub release](https://github.com/adea-ai/cortana/releases/latest). The protected
-`v0.56.3` tag was the last fully-evidenced source and release boundary when this matrix was captured. It includes the M10 knowledge graph,
-large-corpus, Desktop, accessibility, and derived-vault implementation from
-[PR #2231](https://github.com/adea-ai/cortana/pull/2231), followed by the protected patch releases
-`v0.56.1` through `v0.56.3`.
+[latest GitHub release](https://github.com/adea-ai/cortana/releases/latest).
 The current release is `v0.57.0`. <!-- x-release-please-version -->
+
+This release completes the M11 cross-device and managed-mode architecture and the M13
+build-path and performance work: the device identity and key hierarchy (`cortana identity`),
+the revisioned sync journal with encrypted per-device bundles and pairing, fleet task grants
+and result envelopes, the tenant and team-workspace control planes with quota enforcement and
+the migration ledger, the admin sync API, enforced web bundle budgets with headroom reporting,
+the repaired desktop build path, and the dev-profile runtime optimization (the knowledge
+evaluation latency gate improved fourfold). Dependency maintenance includes rustls 0.23.45
+(RUSTSEC-2026-0285), getrandom 0.4, oxfmt 0.67, and explicit safe CI time limits.
+
+## Release history
+
+### v0.56.3 series
 
 The v0.56.3 release-assets workflow
 [`33732982983`](https://github.com/adea-ai/cortana/actions/runs/33732982983) built and uploaded
@@ -37,31 +46,26 @@ layout fix, but v0.56.3 remains a partial packaged-renderer result until a new r
 verified. The current acceptance runner also waits for settled browser layout after responsive
 viewport changes, preventing stale media-query geometry from producing a false overlap result in the
 prospective source workflow.
-
 The acceptance verifier now also runs the Unix release archive installer in a disposable prefix and
 requires those reports in the strict macOS/Linux matrix. The exact published v0.56.3 arm64 package,
 archive installer, packaged control plane, host launch, and supplemental native lifecycle records are
 captured under the local exact-release evidence matrix. The historical v0.56.3 workflow artifacts
 predate these lanes and must be regenerated from a rerun before the cross-platform matrix can be
 considered current.
-
 The shipped v0.56.3 core passed the provider-free M10 knowledge evaluator against 25 workspaces,
 100 sources, and 2,500 documents/chunks: all operation p95, response, index, RSS, working-set,
 relationship, ACL, and invalidation thresholds passed. This is synthetic evidence; the report
 still records `approved_corpus_gate: not-run` and visual usability as a separate packaged gate.
-
 The macOS package uses the explicitly enabled ad-hoc recovery path because Apple Developer ID and
 notarization credentials are not configured in Actions. It is a valid downloadable package but is
 not evidence of trusted Gatekeeper distribution. Native GUI behavior, OAuth, tray/background
 services, native dialogs, updater interaction, manual assistive-technology review, resource
 behavior, uninstall, and manual recovery remain OS-specific acceptance gates.
-
 The deterministic memory evaluation and disposable control-plane, native-memory, and backup/restore
 drills passed locally; the control-plane report now also proves that a rejected corrupt restore leaves
 the active index unchanged, and the shipped Unix recovery drill checks the same invariant in its
 disposable restore target. These checks use synthetic or disposable fixtures and do not authorize
 sources, recurring sync, automatic retention, or access to an approved production corpus.
-
 The governed-corpus gate remains intentionally open. The evaluation contract and template manifest
 are documented in [evaluation.md](evaluation.md), but the template is not an approved corpus and
 the final gate requires an authorized operator-owned, read-only manifest and index with provenance.
@@ -70,7 +74,6 @@ recorded with package checksum, exact case results, OS/architecture, reviewer/da
 using the matrix in [desktop-ux-audit.md](desktop-ux-audit.md). The sanitized record format and
 fail-closed verifier are documented in [evaluation.md](evaluation.md); the checked-in template is
 intentionally not an acceptance result.
-
 The approved relationship-quality gate is open for the same reason. The provider-free graph
 correctness report passed, but no governed relationship corpus or control-versus-graph user-task
 record has been promoted. Its transport-safe external-evidence template and verifier are documented
