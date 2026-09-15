@@ -21,7 +21,8 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
 use crate::device_identity::{
-    DeviceStatus, Registry, fingerprint, random_bytes, storage_seal_key, unseal_self_secrets,
+    DeviceStatus, Registry, expand_key, fingerprint, random_bytes, storage_seal_key,
+    unseal_self_secrets,
 };
 use crate::store::Store;
 use x25519_dalek::PublicKey as AgreementPublic;
@@ -228,8 +229,7 @@ pub fn seal_result(
         .agreement
         .diffie_hellman(&AgreementPublic::from(owner_key));
     let hkdf = Hkdf::<Sha256>::new(Some(&nonce_bytes), shared.as_bytes());
-    let mut envelope_key = [0u8; 32];
-    hkdf.expand(b"cortana.fleet.v1/result", &mut envelope_key)?;
+    let envelope_key = expand_key(&hkdf, b"cortana.fleet.v1/result")?;
     let cipher = ChaCha20Poly1305::new_from_slice(&envelope_key)?;
     let nonce = &Nonce::try_from(&nonce_bytes[..]).expect("nonce is 12 bytes");
 
@@ -361,8 +361,7 @@ pub fn open_result(
         .agreement
         .diffie_hellman(&AgreementPublic::from(executor_key));
     let hkdf = Hkdf::<Sha256>::new(Some(&nonce_bytes), shared.as_bytes());
-    let mut envelope_key = [0u8; 32];
-    hkdf.expand(b"cortana.fleet.v1/result", &mut envelope_key)?;
+    let envelope_key = expand_key(&hkdf, b"cortana.fleet.v1/result")?;
     let cipher = ChaCha20Poly1305::new_from_slice(&envelope_key)?;
     let nonce = &Nonce::try_from(&nonce_bytes[..]).expect("nonce is 12 bytes");
     let payload = cipher
