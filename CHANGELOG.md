@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.58.0](https://github.com/adea-ai/cortana/compare/v0.57.0...v0.58.0) (2026-09-15)
+
+
+### Features
+
+* **relay:** add local-only sync relay and ADR 0008 ([#2324](https://github.com/adea-ai/cortana/issues/2324)) ([f2cbb3c](https://github.com/adea-ai/cortana/commit/f2cbb3c47ce29bec5c1e9b5fbcb2a9b73ca55111))
+
+
+### Maintenance
+
+* **web:** enforce official @shadcn/lint rules in oxlint pipeline ([#2323](https://github.com/adea-ai/cortana/issues/2323)) ([0d1e25d](https://github.com/adea-ai/cortana/commit/0d1e25d33857e232feda938749a9b43653524e66))
+
 ## [0.57.0](https://github.com/adea-ai/cortana/compare/v0.56.25...v0.57.0) (2026-09-15)
 
 
