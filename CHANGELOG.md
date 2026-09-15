@@ -1,5 +1,47 @@
 # Changelog
 
+## [0.57.0](https://github.com/adea-ai/cortana/compare/v0.56.25...v0.57.0) (2026-09-15)
+
+
+### Features
+
+* **fleet:** add signed task grants and sealed result envelopes ([#2311](https://github.com/adea-ai/cortana/issues/2311)) ([10deef0](https://github.com/adea-ai/cortana/commit/10deef06cfc8d4e62a4b93ea3c033a19a8c87a1e))
+* **identity:** add encrypted device identity and key hierarchy ([#2304](https://github.com/adea-ai/cortana/issues/2304)) ([a68826c](https://github.com/adea-ai/cortana/commit/a68826cb02ccbe66dd5b122851f9b37eb9ccd4f2))
+* **sync:** add journal compaction and admin sync API surface ([#2310](https://github.com/adea-ai/cortana/issues/2310)) ([eeb00a5](https://github.com/adea-ai/cortana/commit/eeb00a596dca5ac6e1c03f7eeda0eb18db44aee4))
+* **sync:** add revisioned journal and encrypted device sync bundles ([#2309](https://github.com/adea-ai/cortana/issues/2309)) ([4dfc4fd](https://github.com/adea-ai/cortana/commit/4dfc4fdeb4b3034ac95b904f05698fd4e43d438d))
+* **team:** add team brain workspaces, membership, and access ([#2315](https://github.com/adea-ai/cortana/issues/2315)) ([e750ee2](https://github.com/adea-ai/cortana/commit/e750ee2f222505780e5d4eb6300a674a75b5c2a5))
+* **tenant:** add managed-mode tenant control plane ([#2314](https://github.com/adea-ai/cortana/issues/2314)) ([a99fb21](https://github.com/adea-ai/cortana/commit/a99fb218469393d45dba2926cd57a255d5bf1b7f))
+* **tenant:** enforce data-plane quotas and add the migration ledger ([#2316](https://github.com/adea-ai/cortana/issues/2316)) ([beb208c](https://github.com/adea-ai/cortana/commit/beb208c8953b570fe24fe5ef70ceabd6029a6239))
+
+
+### Bug Fixes
+
+* **desktop:** harden build path and add bundle budget gates and baselines ([#2318](https://github.com/adea-ai/cortana/issues/2318)) ([eaf279d](https://github.com/adea-ai/cortana/commit/eaf279d4ca9daa7d9c73ea504ea2e458f36abdaa))
+
+
+### Performance
+
+* **build:** optimize dev profiles and remove stale chunking code ([#2320](https://github.com/adea-ai/cortana/issues/2320)) ([ed890b5](https://github.com/adea-ai/cortana/commit/ed890b57a34197f0312185fb0a9688a122ad079b))
+
+
+### Documentation
+
+* **architecture:** define future multi-device and managed modes with threat model ([#2303](https://github.com/adea-ai/cortana/issues/2303)) ([8b0376b](https://github.com/adea-ai/cortana/commit/8b0376be4e8a3c72fd06e15299d59b570606ba2c))
+* **managed:** define tier envelopes, migration contracts, persistence selection ([#2317](https://github.com/adea-ai/cortana/issues/2317)) ([bd098ff](https://github.com/adea-ai/cortana/commit/bd098ff6510e406809d4137fc5ed36b36bb91ec2))
+* **reliability:** define SLOs, durability, chaos catalog, error budgets ([#2313](https://github.com/adea-ai/cortana/issues/2313)) ([bfe10d4](https://github.com/adea-ai/cortana/commit/bfe10d4ca3f6e6c62dc33224b79de879aa5339aa))
+
+
+### CI
+
+* define explicit safe time limits across remaining workflows ([#2321](https://github.com/adea-ai/cortana/issues/2321)) ([5864919](https://github.com/adea-ai/cortana/commit/586491978f1b9f4e067bf0fe26c50d3c674e5dba))
+
+
+### Maintenance
+
+* **deps-dev:** bump oxfmt from 0.66.0 to 0.67.0 in the npm-dependencies group across 1 directory ([#2308](https://github.com/adea-ai/cortana/issues/2308)) ([4106b8c](https://github.com/adea-ai/cortana/commit/4106b8cc90fe440f2fb40c3eaaf435b017c9708b))
+* **deps:** bump astral-sh/setup-uv in the github-actions group ([#2307](https://github.com/adea-ai/cortana/issues/2307)) ([e80a492](https://github.com/adea-ai/cortana/commit/e80a4926cf1533214194d46d46299346439baa9b))
+* **deps:** bump the cargo-dependencies group across 1 directory with 8 updates ([#2319](https://github.com/adea-ai/cortana/issues/2319)) ([9e44089](https://github.com/adea-ai/cortana/commit/9e4408917e3293e335f2febc6fa6535079384d28))
+
 ## [0.56.25](https://github.com/adea-ai/cortana/compare/v0.56.24...v0.56.25) (2026-09-12)
 
 
