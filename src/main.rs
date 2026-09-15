@@ -192,6 +192,17 @@ enum Command {
         #[command(subcommand)]
         action: MigrationsAction,
     },
+    /// Run the local-only sync relay for this deployment's devices.
+    Relay {
+        /// Bind address; loopback by default, remote binds require a token.
+        #[arg(long, default_value = "127.0.0.1:7442")]
+        bind: String,
+        /// Directory for the relay's own bounded bundle store.
+        #[arg(long)]
+        data_dir: PathBuf,
+        #[arg(long, value_name = "VAR", default_value = "CORTANA_RELAY_TOKEN")]
+        token_env: String,
+    },
     /// Export authorized canonical documents as a derived Obsidian Markdown vault.
     ExportVault {
         #[arg(value_name = "DIRECTORY")]
@@ -1051,6 +1062,28 @@ enum SyncBundleAction {
         )]
         keep_local: bool,
     },
+    /// Seal and upload pending changes to a relay for one recipient device.
+    Push {
+        #[arg(long)]
+        relay_url: String,
+        #[arg(long)]
+        device_id: String,
+        #[arg(long, value_name = "VAR", default_value = DEFAULT_RECOVERY_KEY_ENV)]
+        recovery_key_env: String,
+        #[arg(long, value_name = "VAR", default_value = "CORTANA_RELAY_TOKEN")]
+        token_env: String,
+        #[arg(long, default_value_t = 500)]
+        limit: usize,
+    },
+    /// Fetch, apply, and acknowledge bundles waiting for this device.
+    Pull {
+        #[arg(long)]
+        relay_url: String,
+        #[arg(long, value_name = "VAR", default_value = DEFAULT_RECOVERY_KEY_ENV)]
+        recovery_key_env: String,
+        #[arg(long, value_name = "VAR", default_value = "CORTANA_RELAY_TOKEN")]
+        token_env: String,
+    },
 }
 
 fn recovery_key_from_env(variable: &str) -> Result<String> {
@@ -1421,8 +1454,42 @@ async fn main() -> Result<()> {
     if let Some(Command::Identity { action }) = cli.command.as_ref() {
         return manage_identity(&config, &store, action);
     }
+    if let Some(Command::Relay {
+        bind,
+        data_dir,
+        token_env,
+    }) = cli.command.as_ref()
+    {
+        let token = std::env::var(token_env)
+            .ok()
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty());
+        let host = bind.rsplit_once(':').map(|(host, _)| host).unwrap_or("");
+        anyhow::ensure!(
+            host == "127.0.0.1"
+                || host == "localhost"
+                || host == "[::1]"
+                || host == "::1"
+                || token.is_some(),
+            "a relay bound beyond loopback requires a bearer token; set {token_env}"
+        );
+        let token_required = token.is_some();
+        let relay = cortana::relay::RelayServer::open(data_dir, token)?;
+        let listener = tokio::net::TcpListener::bind(bind)
+            .await
+            .with_context(|| format!("failed to bind relay on {bind}"))?;
+        println!(
+            "{}",
+            serde_json::json!({
+                "contract_version": "cortana.relay.v1",
+                "bind": bind,
+                "token_required": token_required,
+            })
+        );
+        return relay.serve(listener).await;
+    }
     if let Some(Command::SyncBundle { action }) = cli.command.as_ref() {
-        return manage_sync(&config, &store, action);
+        return manage_sync(&config, &store, action).await;
     }
     if let Some(Command::Fleet { action }) = cli.command.as_ref() {
         return manage_fleet(&config, &store, action);
@@ -1542,6 +1609,7 @@ async fn main() -> Result<()> {
             | Command::Tenant { .. }
             | Command::Team { .. }
             | Command::Migrations { .. }
+            | Command::Relay { .. }
             | Command::ProviderModels { .. },
         ) => {
             unreachable!()
@@ -3480,7 +3548,7 @@ fn manage_identity(config: &Config, store: &Store, action: &IdentityAction) -> R
     Ok(())
 }
 
-fn manage_sync(config: &Config, store: &Store, action: &SyncBundleAction) -> Result<()> {
+async fn manage_sync(config: &Config, store: &Store, action: &SyncBundleAction) -> Result<()> {
     use cortana::device_identity;
     use cortana::sync_engine::SyncEntry;
     let _ = config;
@@ -3591,6 +3659,110 @@ fn manage_sync(config: &Config, store: &Store, action: &SyncBundleAction) -> Res
         SyncBundleAction::Compact => {
             let removed = store.sync_compact()?;
             println!("compacted {removed} journal entries");
+        }
+        SyncBundleAction::Push {
+            relay_url,
+            device_id,
+            recovery_key_env,
+            token_env,
+            limit,
+        } => {
+            let registry = cortana::device_identity::load(store)?
+                .ok_or_else(|| anyhow::anyhow!("device identity is not initialized"))?;
+            let recovery = recovery_key_from_env(recovery_key_env)?;
+            let token = std::env::var(token_env)
+                .ok()
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.is_empty());
+            let (entries, up_to) = store.sync_export_entries(device_id, *limit)?;
+            let payload = serde_json::json!({
+                "entries": entries,
+                "up_to_journal_id": up_to,
+            });
+            let bundle = cortana::device_identity::seal_sync_bundle(
+                store,
+                &registry,
+                &recovery,
+                device_id,
+                payload.to_string().as_bytes(),
+            )?;
+            let id = cortana::relay::push_bundle(relay_url, device_id, token.as_deref(), &bundle)
+                .await?;
+            println!(
+                "pushed bundle {id} ({} entries up to journal {}) for {device_id}",
+                entries.len(),
+                up_to
+            );
+        }
+        SyncBundleAction::Pull {
+            relay_url,
+            recovery_key_env,
+            token_env,
+        } => {
+            let registry = cortana::device_identity::load(store)?
+                .ok_or_else(|| anyhow::anyhow!("device identity is not initialized"))?;
+            let recovery = recovery_key_from_env(recovery_key_env)?;
+            let token = std::env::var(token_env)
+                .ok()
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.is_empty());
+            let self_device = store
+                .sync_self_device()?
+                .ok_or_else(|| anyhow::anyhow!("device identity is not initialized"))?;
+            let bundles =
+                cortana::relay::list_remote_bundles(relay_url, &self_device, token.as_deref())
+                    .await?;
+            let bundles_len = bundles.len();
+            for bundle in bundles {
+                let ciphertext = cortana::relay::fetch_remote_bundle(
+                    relay_url,
+                    &self_device,
+                    bundle.id,
+                    token.as_deref(),
+                )
+                .await?;
+                let (header, payload_bytes) = cortana::device_identity::open_sync_bundle(
+                    store,
+                    &registry,
+                    &recovery,
+                    &ciphertext,
+                )?;
+                let sender_device = header
+                    .get("sender_device")
+                    .and_then(serde_json::Value::as_str)
+                    .ok_or_else(|| anyhow::anyhow!("bundle header is missing the sender"))?
+                    .to_string();
+                let payload: serde_json::Value = serde_json::from_slice(&payload_bytes)?;
+                let entries: Vec<cortana::sync_engine::SyncEntry> = serde_json::from_value(
+                    payload
+                        .get("entries")
+                        .cloned()
+                        .ok_or_else(|| anyhow::anyhow!("bundle payload is missing entries"))?,
+                )?;
+                let up_to = payload
+                    .get("up_to_journal_id")
+                    .and_then(serde_json::Value::as_i64)
+                    .ok_or_else(|| anyhow::anyhow!("bundle payload is missing the watermark"))?;
+                let report = store.sync_import_entries(&sender_device, entries, up_to)?;
+                if let Some(ack) = header
+                    .get("ack_for_peer")
+                    .and_then(serde_json::Value::as_i64)
+                {
+                    store.sync_acknowledge_peer(&sender_device, ack)?;
+                }
+                cortana::relay::delete_remote_bundle(
+                    relay_url,
+                    &self_device,
+                    bundle.id,
+                    token.as_deref(),
+                )
+                .await?;
+                println!(
+                    "applied bundle {}: applied {} acknowledged {} conflicts recorded {}",
+                    bundle.id, report.applied, report.acknowledged, report.conflicts_recorded_local
+                );
+            }
+            println!("pull complete: {bundles_len} bundles processed");
         }
         SyncBundleAction::Resolve {
             conflict_id,

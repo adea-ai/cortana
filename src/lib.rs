@@ -32,6 +32,7 @@ pub mod provider;
 pub mod provider_models;
 pub mod readiness;
 pub mod reflection;
+pub mod relay;
 pub mod retrieval;
 pub mod service;
 pub mod slack_oauth;
