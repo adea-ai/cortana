@@ -1,5 +1,7 @@
 import { Check, LoaderCircle, X } from 'lucide-react'
 
+import { cn } from '@/lib/utils'
+
 export function StatusGlyph({
   passed,
   optional = false,
@@ -11,7 +13,10 @@ export function StatusGlyph({
 }) {
   return (
     <i
-      className={`status-glyph ${pending ? 'pending' : passed ? 'passed' : optional ? 'optional' : 'failed'}`}
+      className={cn(
+        'status-glyph',
+        pending ? 'pending' : passed ? 'passed' : optional ? 'optional' : 'failed'
+      )}
       aria-label={pending ? 'In progress' : passed ? 'Passed' : optional ? 'Optional' : 'Failed'}
       role="img"
     >

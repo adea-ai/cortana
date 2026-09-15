@@ -188,7 +188,7 @@ function sanitizeAcceptanceProgress(value) {
           const surface = boundedProgressLabel(screenshot?.surface)
           const file =
             typeof screenshot?.file === 'string'
-              ? screenshot.file.split(/[\\/]/).filter(Boolean).at(-1)
+              ? screenshot.file.split(/[\\/]/).findLast(Boolean)
               : null
           if (
             surface === null ||

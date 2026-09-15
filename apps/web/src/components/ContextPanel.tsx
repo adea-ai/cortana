@@ -1,6 +1,8 @@
 import { Check, Copy, RefreshCw, X } from 'lucide-react'
 import type { ComponentProps } from 'react'
 
+import { cn } from '@/lib/utils'
+
 import type { AnswerResponse, BrainStatus, ContextBundle, Evidence } from '../types'
 import { codeRevisionLabel } from '../codeEvidence'
 import { useClipboardCopy } from '../useClipboardCopy'
@@ -69,7 +71,7 @@ export function ContextPanel({
 
   return (
     <aside
-      className={`context-panel ${open ? 'mobile-open' : ''} m7-context-panel`}
+      className={cn('context-panel m7-context-panel', open && 'mobile-open')}
       data-m7-context-panel=""
     >
       <div className="context-heading">
@@ -112,6 +114,7 @@ export function ContextPanel({
             </dl>
             <ol>
               {answer.plan.queries.map((planned, index) => (
+                // oxlint-disable-next-line react/no-array-index-key -- planned queries render in plan order
                 <li key={`${planned}:${index}`}>{planned}</li>
               ))}
             </ol>
@@ -127,7 +130,7 @@ export function ContextPanel({
               variant="ghost"
               type="button"
               key={item.chunk_id}
-              className={selected === index ? 'selected' : ''}
+              className={cn(selected === index && 'selected')}
               onClick={() => onSelect(index)}
             >
               <span>{index + 1}</span>

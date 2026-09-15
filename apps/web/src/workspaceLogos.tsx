@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 
+import { cn } from '@/lib/utils'
+
 import type { WorkspaceSettings } from './types'
 import { LOGO_EVENT, readWorkspaceLogo } from './workspaceLogoStore'
 
@@ -22,7 +24,10 @@ export function WorkspaceLogo({
   if (logo) {
     return (
       <img
-        className={`workspace-logo workspace-logo--${size}${size === 'small' ? ' workspace-picker-mark' : ''}`}
+        className={cn(
+          `workspace-logo workspace-logo--${size}`,
+          size === 'small' && 'workspace-picker-mark'
+        )}
         src={logo}
         alt=""
         aria-hidden="true"
@@ -32,7 +37,10 @@ export function WorkspaceLogo({
 
   return (
     <span
-      className={`workspace-logo workspace-logo--${size}${size === 'small' ? ' workspace-picker-mark' : ''}`}
+      className={cn(
+        `workspace-logo workspace-logo--${size}`,
+        size === 'small' && 'workspace-picker-mark'
+      )}
       aria-hidden="true"
     >
       {(workspace.name.trim()[0] || '?').toUpperCase()}

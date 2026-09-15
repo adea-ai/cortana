@@ -35,6 +35,8 @@ import { useClipboardCopy } from '../useClipboardCopy'
 import { Button as ShadcnButton } from './shadcn/button'
 import { Card } from './shadcn/card'
 
+const EMPTY_ACTIONS: Array<{ label: string; icon: React.ReactNode; onClick: () => void }> = []
+
 export type UtilityKind = 'inbox' | 'conversations' | 'agent-tools' | 'index' | 'help'
 
 const TITLES: Record<UtilityKind, { eyebrow: string; title: string; description: string }> = {
@@ -469,6 +471,7 @@ function ConversationsView({
           </div>
           <p className="utility-answer">{answer.answer}</p>
           {answer.warnings.map((warning, index) => (
+            // oxlint-disable-next-line react/no-array-index-key -- warnings render in response order
             <p className="answer-warning" key={`${warning}:${index}`}>
               {warning}
             </p>
@@ -885,7 +888,7 @@ function UtilityEmpty({
   icon,
   title,
   detail,
-  actions = [],
+  actions = EMPTY_ACTIONS,
 }: {
   icon: React.ReactNode
   title: string

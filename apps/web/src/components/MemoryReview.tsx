@@ -1,5 +1,13 @@
 import { Pause, Play, RefreshCw, Search, ShieldCheck } from 'lucide-react'
-import { type ComponentProps, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  type ComponentProps,
+  type CSSProperties,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 
 import {
   actOnMemoryCandidate,
@@ -24,6 +32,8 @@ import { Alert, AlertDescription } from './shadcn/alert'
 import { Badge } from './shadcn/badge'
 import { Button } from './shadcn/button'
 import { Card } from './shadcn/card'
+import { cn } from '@/lib/utils'
+
 import { Checkbox } from './shadcn/checkbox'
 import { Input } from './shadcn/input'
 import { Spinner } from './shadcn/spinner'
@@ -183,13 +193,19 @@ function CandidateQueue({
         aria-busy={loading}
         onScroll={(event) => onScroll(event.currentTarget.scrollTop)}
       >
-        <div style={{ height: range.totalHeight }}>
-          <div style={{ transform: `translateY(${range.offsetTop}px)` }}>
+        <div
+          className="memory-virtual-space"
+          style={{ '--virtual-total-height': `${range.totalHeight}px` } as CSSProperties}
+        >
+          <div
+            className="memory-virtual-window"
+            style={{ '--virtual-offset': `${range.offsetTop}px` } as CSSProperties}
+          >
             {filtered.slice(range.start, range.end).map((candidate) => (
               <MemoryCard
                 key={candidate.id}
                 role="listitem"
-                className={`memory-candidate-row ${selectedId === candidate.id ? 'selected' : ''}`}
+                className={cn('memory-candidate-row', selectedId === candidate.id && 'selected')}
               >
                 <Checkbox
                   aria-label={`Select ${candidate.title}`}
@@ -206,7 +222,7 @@ function CandidateQueue({
                   <strong>{candidate.title}</strong>
                   <span>{candidate.content}</span>
                 </MemoryButton>
-                <MemoryBadge className={`memory-status status-${queueStatus(candidate)}`}>
+                <MemoryBadge className="memory-status" data-status={queueStatus(candidate)}>
                   {queueStatus(candidate)}
                 </MemoryBadge>
               </MemoryCard>
@@ -307,7 +323,7 @@ export function MemoryReview({
   const [editContent, setEditContent] = useState('')
   const refreshVersion = useRef(0)
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     const version = ++refreshVersion.current
     setLoading(true)
     setError('')
@@ -339,39 +355,50 @@ export function MemoryReview({
     } finally {
       if (version === refreshVersion.current) setLoading(false)
     }
-  }
+  }, [client, project, query, view])
 
   useEffect(() => {
     const timer = window.setTimeout(() => void refresh(), 200)
     return () => window.clearTimeout(timer)
-  }, [project, query, view])
+  }, [refresh])
 
-  useEffect(() => {
+  const [previousMaxActive, setPreviousMaxActive] = useState(maxActive)
+  if (maxActive !== previousMaxActive) {
+    setPreviousMaxActive(maxActive)
     setPolicy((current) => ({ ...current, maxActive }))
-  }, [maxActive])
+  }
+
+  const selected = candidates.find((candidate) => candidate.id === selectedId)
+
+  const [previousSelected, setPreviousSelected] = useState(selected)
+  if (selected !== previousSelected) {
+    setPreviousSelected(selected)
+    setEditTitle(selected?.title ?? '')
+    setEditContent(selected?.content ?? '')
+    setClassification(null)
+  }
 
   useEffect(() => {
-    const selected = candidates.find((candidate) => candidate.id === selectedId)
-    if (!selected) {
-      setClassification(null)
-      return
+    if (selected?.status !== 'pending') return
+    let active = true
+    client
+      .classifyCandidate(selected.id)
+      .then((result) => {
+        if (active) setClassification(result)
+        return null
+      })
+      .catch(() => {
+        if (active) setClassification(null)
+      })
+    return () => {
+      active = false
     }
-    setEditTitle(selected.title)
-    setEditContent(selected.content)
-    setClassification(null)
-    if (selected.status === 'pending') {
-      client
-        .classifyCandidate(selected.id)
-        .then(setClassification)
-        .catch(() => setClassification(null))
-    }
-  }, [candidates, client, selectedId])
+  }, [client, selected])
 
   const filtered = useMemo(() => {
     return candidates
   }, [candidates])
   const range = virtualRange(filtered.length, scrollTop, 360, ROW_HEIGHT)
-  const selected = candidates.find((candidate) => candidate.id === selectedId)
 
   async function runAction(
     action: MemoryCandidateAction,

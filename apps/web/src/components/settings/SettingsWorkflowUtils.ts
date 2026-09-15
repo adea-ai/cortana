@@ -40,6 +40,7 @@ export function useDesktopForeground(): boolean {
                 focused.current = payload
                 syncForeground()
               }
+              return null
             })
             .catch(() => undefined)
           return currentWindow.onFocusChanged(({ payload }) => {
@@ -52,6 +53,7 @@ export function useDesktopForeground(): boolean {
         .then((unlisten) => {
           if (disposed) unlisten()
           else unlistenFocus = unlisten
+          return null
         })
         .catch(() => undefined)
     }
