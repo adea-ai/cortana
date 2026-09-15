@@ -18,6 +18,7 @@ jobs:
   # the protected default-branch cache.
   validation:
     name: Validation
+    timeout-minutes: 15
     if: vars.CI_BILLING_PAUSED != 'true'
     permissions:
       actions: read
