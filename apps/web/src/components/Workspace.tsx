@@ -52,6 +52,8 @@ export type WorkspaceTab = (typeof tabs)[number]['id'] | 'graph'
 // The Document tab is the default primary view and Graph remains an explicit
 // separate view, so neither is gated.
 const resultGatedTabs = new Set<WorkspaceTab>(['answer', 'sources', 'timeline'])
+const EMPTY_GRAPH_NODES: BrainGraphNode[] = []
+
 type WorkspaceButtonProps = Omit<ComponentProps<typeof Button>, 'variant' | 'size'> & {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'icon' | 'compact'
 }
@@ -305,9 +307,13 @@ function BrainDocumentView({
   const [favorite, setFavorite] = useState(() => isFavoriteDocument(document.id))
   const [sourceOpenError, setSourceOpenError] = useState(false)
   const [copyStatus, setCopyStatus] = useState('')
-  useEffect(() => setFavorite(isFavoriteDocument(document.id)), [document.id])
-  useEffect(() => setSourceOpenError(false), [document.id])
-  useEffect(() => setCopyStatus(''), [document.id])
+  const [previousDocumentId, setPreviousDocumentId] = useState(document.id)
+  if (document.id !== previousDocumentId) {
+    setPreviousDocumentId(document.id)
+    setFavorite(isFavoriteDocument(document.id))
+    setSourceOpenError(false)
+    setCopyStatus('')
+  }
   const metadata = Object.entries(document.metadata).slice(0, 24)
   const sourceHref = document.uri
     ? safeSourceLink(document.uri, { allowLocalFile: isDesktopApp })
@@ -351,6 +357,7 @@ function BrainDocumentView({
                 setSourceOpenError(false)
                 void openSourceLink(uri).then((opened) => {
                   if (!opened) setSourceOpenError(true)
+                  return null
                 })
               }}
             >
@@ -404,6 +411,7 @@ function BrainDocumentView({
           <div className="rule" />
           <div className="canonical-content">
             {document.content.split(/\n{2,}/).map((paragraph, index) => (
+              // oxlint-disable-next-line react/no-array-index-key -- positional paragraphs are ordered and never re-sorted
               <p key={`${document.id}:${index}`}>{paragraph}</p>
             ))}
           </div>
@@ -496,8 +504,12 @@ function DocumentView({
 }) {
   const [favorite, setFavorite] = useState(() => isFavoriteDocument(active.chunk_id))
   const [sourceOpenError, setSourceOpenError] = useState(false)
-  useEffect(() => setFavorite(isFavoriteDocument(active.chunk_id)), [active.chunk_id])
-  useEffect(() => setSourceOpenError(false), [active.chunk_id])
+  const [previousChunkId, setPreviousChunkId] = useState(active.chunk_id)
+  if (active.chunk_id !== previousChunkId) {
+    setPreviousChunkId(active.chunk_id)
+    setFavorite(isFavoriteDocument(active.chunk_id))
+    setSourceOpenError(false)
+  }
   const sourceHref = active.uri
     ? safeSourceLink(active.uri, { allowLocalFile: isDesktopApp })
     : null
@@ -531,6 +543,7 @@ function DocumentView({
                 setSourceOpenError(false)
                 void openSourceLink(sourceHref).then((opened) => {
                   if (!opened) setSourceOpenError(true)
+                  return null
                 })
               }}
             >
@@ -548,6 +561,7 @@ function DocumentView({
           <div className="rule" />
           <div id="passage">
             {active.content.split(/\n{2,}/).map((paragraph, index) => (
+              // oxlint-disable-next-line react/no-array-index-key -- positional paragraphs are ordered and never re-sorted
               <p key={`${active.chunk_id}:${index}`}>{paragraph}</p>
             ))}
           </div>
@@ -606,6 +620,7 @@ function ReflectionView({ response }: { response: ReflectResponse }) {
       </p>
       <div className="answer-copy">
         {statements.map((item, index) => (
+          // oxlint-disable-next-line react/no-array-index-key -- statements render in source order and are never re-sorted
           <section key={`${item.text}:${index}`} className="answer-memory-entry">
             <p>{item.text}</p>
             <small>
@@ -687,6 +702,7 @@ function AnswerView({
         {(response?.answer ?? 'Cortana found relevant evidence below.')
           .split(/\n{2,}/)
           .map((paragraph, index) => (
+            // oxlint-disable-next-line react/no-array-index-key -- answer paragraphs are positional
             <p key={`${paragraph.slice(0, 24)}:${index}`}>{paragraph}</p>
           ))}
       </div>
@@ -695,12 +711,14 @@ function AnswerView({
           <summary>Retrieval plan</summary>
           <ol>
             {response.plan.queries.map((plannedQuery, index) => (
+              // oxlint-disable-next-line react/no-array-index-key -- planned queries render in plan order
               <li key={`${plannedQuery}:${index}`}>{plannedQuery}</li>
             ))}
           </ol>
         </details>
       )}
       {response?.warnings.map((warning, index) => (
+        // oxlint-disable-next-line react/no-array-index-key -- warnings render in response order
         <p className="answer-warning" key={`${warning}:${index}`}>
           {warning}
         </p>
@@ -808,7 +826,7 @@ function GraphView({
   const [kindFilter, setKindFilter] = useState<BrainGraphNode['kind'] | 'all'>('all')
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [pinnedNodeIds, setPinnedNodeIds] = useState<Set<string>>(() => new Set())
-  const graphNodes = graph?.nodes ?? []
+  const graphNodes = useMemo(() => graph?.nodes ?? EMPTY_GRAPH_NODES, [graph])
   const usingEvidenceFallback = graph === null
   const normalizedFilter = filter.trim().toLocaleLowerCase()
   const filteredNodes = useMemo(
@@ -824,10 +842,13 @@ function GraphView({
         : graphNodes.filter((node) => kindFilter === 'all' || node.kind === kindFilter),
     [graphNodes, kindFilter, normalizedFilter]
   )
-  useEffect(() => {
+  const graphResetKey = `${graph?.nodes[0]?.id ?? ''} ${kindFilter} ${normalizedFilter}`
+  const [previousGraphResetKey, setPreviousGraphResetKey] = useState(graphResetKey)
+  if (graphResetKey !== previousGraphResetKey) {
+    setPreviousGraphResetKey(graphResetKey)
     setVisibleCount(12)
     setSelectedNodeId(null)
-  }, [graph?.nodes[0]?.id, kindFilter, normalizedFilter])
+  }
   const nodes = filteredNodes.length
     ? filteredNodes.slice(0, visibleCount)
     : usingEvidenceFallback

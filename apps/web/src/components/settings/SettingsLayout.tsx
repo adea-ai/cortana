@@ -1,12 +1,6 @@
-import {
-  Children,
-  cloneElement,
-  isValidElement,
-  type ReactNode,
-  useEffect,
-  useId,
-  useState,
-} from 'react'
+import { Children, cloneElement, isValidElement, type ReactNode, useId, useState } from 'react'
+
+import { cn } from '@/lib/utils'
 
 import type { DesktopSettings } from '../../types'
 import {
@@ -75,10 +69,7 @@ export function Field({
 
   if (group) {
     return (
-      <SettingsFieldSet
-        className={`form-field ${wide ? 'wide' : ''}`}
-        aria-describedby={describedBy}
-      >
+      <SettingsFieldSet className={cn('form-field', wide && 'wide')} aria-describedby={describedBy}>
         <SettingsFieldLegend className="form-field-label">{label}</SettingsFieldLegend>
         {children}
         {hint && <SettingsFieldDescription id={descriptionId}>{hint}</SettingsFieldDescription>}
@@ -87,9 +78,9 @@ export function Field({
     )
   }
 
-  let controlAssigned = Boolean(providedControlId)
-  const assignControl = (nodes: ReactNode): ReactNode =>
-    Children.map(nodes, (node) => {
+  const assignControl = (nodes: ReactNode): { node: ReactNode; assigned: boolean } => {
+    let assigned = false
+    const mapped = Children.map(nodes, (node) => {
       if (
         !isValidElement<{
           id?: string
@@ -100,12 +91,12 @@ export function Field({
       )
         return node
       if (
-        !controlAssigned &&
+        !assigned &&
         ([Input, Select, Textarea, SettingsCheckbox, SettingsRadio] as unknown[]).includes(
           node.type
         )
       ) {
-        controlAssigned = true
+        assigned = true
         return cloneElement(node, {
           id: controlId,
           'aria-describedby': describedBy,
@@ -113,16 +104,22 @@ export function Field({
         })
       }
       if (node.props.children) {
-        return cloneElement(node, { children: assignControl(node.props.children) })
+        const child = assignControl(node.props.children)
+        assigned = assigned || child.assigned
+        return cloneElement(node, { children: child.node })
       }
       return node
     })
+    return { node: mapped, assigned }
+  }
 
-  const assignedChildren = assignControl(children)
+  const { node: assignedChildren, assigned: controlAssigned } = providedControlId
+    ? { node: children, assigned: true }
+    : assignControl(children)
 
   return (
     <SettingsField
-      className={`form-field ${wide ? 'wide' : ''}`}
+      className={cn('form-field', wide && 'wide')}
       role={controlAssigned ? undefined : 'group'}
       aria-labelledby={controlAssigned ? undefined : groupLabelId}
       aria-describedby={controlAssigned ? undefined : describedBy}
@@ -160,11 +157,13 @@ export function NumberField({
 }) {
   const [draft, setDraft] = useState(String(value))
   const [error, setError] = useState('')
+  const [previousValue, setPreviousValue] = useState(value)
 
-  useEffect(() => {
+  if (value !== previousValue) {
+    setPreviousValue(value)
     setDraft(String(value))
     setError('')
-  }, [value])
+  }
 
   const validate = (raw: string) => {
     if (!raw) return `${label} is required.`

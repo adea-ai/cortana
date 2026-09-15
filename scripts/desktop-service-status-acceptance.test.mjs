@@ -60,7 +60,9 @@ test('service status validation requires the target platform and complete schema
   ).toThrow('all managed services')
   expect(() =>
     validateServiceReport(
-      report({ services: report().services.map((service) => ({ ...service, pid: -1 })) }),
+      report({
+        services: report().services.map((service) => Object.assign({}, service, { pid: -1 })),
+      }),
       'aarch64-apple-darwin'
     )
   ).toThrow('fields were invalid')

@@ -6,6 +6,8 @@ import {
   type ReactNode,
 } from 'react'
 
+import { cn } from '../../lib/utils'
+
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../shadcn/accordion'
 import { Alert } from '../shadcn/alert'
 import { TooltipButton as Button } from '../cortana/TooltipButton'
@@ -22,7 +24,14 @@ import {
 } from '../shadcn/field'
 import { Input } from '../shadcn/input'
 import { RadioGroup, RadioGroupItem } from '../shadcn/radio-group'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../shadcn/select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../shadcn/select'
 import { Switch } from '../shadcn/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../shadcn/tabs'
 import { Textarea } from '../shadcn/textarea'
@@ -294,9 +303,7 @@ export function SettingsSelect({ children, onChange, value, ...props }: Componen
     >
       <SelectTrigger
         id={props.id}
-        className={['w-full border-border bg-background shadow-xs', props.className]
-          .filter(Boolean)
-          .join(' ')}
+        className={cn('w-full border-border bg-background shadow-xs', props.className)}
         aria-label={props['aria-label']}
         aria-describedby={props['aria-describedby']}
         aria-invalid={props['aria-invalid']}
@@ -310,11 +317,13 @@ export function SettingsSelect({ children, onChange, value, ...props }: Componen
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        {options.map((option) => (
-          <SelectItem key={option.value} value={option.value} disabled={option.disabled}>
-            {option.label}
-          </SelectItem>
-        ))}
+        <SelectGroup>
+          {options.map((option) => (
+            <SelectItem key={option.value} value={option.value} disabled={option.disabled}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectGroup>
       </SelectContent>
     </Select>
   )

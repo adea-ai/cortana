@@ -383,7 +383,7 @@ export function M7PanelBoundary({
       <SheetContent
         finalFocus={finalFocus}
         side={side}
-        className="m7-panel-boundary w-[min(390px,92vw)] max-w-none gap-0 p-0"
+        className="m7-panel-boundary max-w-none gap-0 p-0"
       >
         <SheetHeader className="sr-only">
           <SheetTitle>{title}</SheetTitle>

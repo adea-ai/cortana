@@ -327,11 +327,11 @@ function writePassingSourceAuthorizationReports(directory) {
         version: '0.56.3',
         installation_type: 'published-package-source-authorization',
         cases: SOURCE_AUTHORIZATION_CASES,
-        steps: SOURCE_AUTHORIZATION_CASES.map((name) => ({
-          name,
-          status: 'passed',
-          ...(name === 'authorization-no-sync-side-effect' ? {} : { expected_failure: true }),
-        })),
+        steps: SOURCE_AUTHORIZATION_CASES.map((name) => {
+          const step = { name, status: 'passed' }
+          if (name !== 'authorization-no-sync-side-effect') step.expected_failure = true
+          return step
+        }),
         state_changed: false,
         scope: {
           provider_network: 'not_requested',

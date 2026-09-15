@@ -649,8 +649,7 @@ export function buildDesktopAcceptanceMatrix(directory, version) {
         `${descriptor.target}: expected one passing ${SERVICE_STATUS_INSTALLATION} report`
       )
     }
-    return {
-      ...descriptor,
+    return Object.assign({}, descriptor, {
       package: packageEvidence,
       host: hostEvidence,
       control_plane: controlPlaneEvidence,
@@ -659,7 +658,7 @@ export function buildDesktopAcceptanceMatrix(directory, version) {
       native_lifecycle: nativeLifecycleEvidence,
       source_authorization: sourceAuthorizationEvidence,
       service_status: serviceStatusEvidence,
-    }
+    })
   })
   const startupValues = targets
     .map((target) => target.host?.startup_ms)

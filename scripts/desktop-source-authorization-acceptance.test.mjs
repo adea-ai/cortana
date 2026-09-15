@@ -77,11 +77,11 @@ test('authorization evidence requires provider commands to be expected failures'
   const evidence = summarizeAuthorizationEvidence({
     target: 'aarch64-apple-darwin',
     version: '0.56.3',
-    steps: AUTHORIZATION_CASES.map((name) => ({
-      name,
-      status: 'passed',
-      ...(name === 'authorization-no-sync-side-effect' ? {} : { expected_failure: false }),
-    })),
+    steps: AUTHORIZATION_CASES.map((name) => {
+      const step = { name, status: 'passed' }
+      if (name !== 'authorization-no-sync-side-effect') step.expected_failure = false
+      return step
+    }),
     stateChanged: false,
   })
 

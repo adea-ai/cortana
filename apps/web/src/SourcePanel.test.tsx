@@ -699,11 +699,13 @@ test('active source jobs lock a source that uses a canonical label', () => {
     ingestion: {
       ...demoStatus.ingestion,
       configured_sources: demoStatus.ingestion.configured_sources.map((source) =>
-        source.source === 'work-code' ? { ...source, source: 'code-label', enabled: true } : source
+        source.source === 'work-code'
+          ? Object.assign({}, source, { source: 'code-label', enabled: true })
+          : source
       ),
     },
     sources: demoStatus.sources.map((source) =>
-      source.source === 'work-code' ? { ...source, source: 'code-label' } : source
+      source.source === 'work-code' ? Object.assign({}, source, { source: 'code-label' }) : source
     ),
   }
   const job: DesktopSourceJob = {

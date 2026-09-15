@@ -5,7 +5,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import AxeBuilder from '@axe-core/playwright'
+import { AxeBuilder } from '@axe-core/playwright'
 import { chromium } from 'playwright'
 
 import {
@@ -424,16 +424,20 @@ async function run() {
         resource: await readBrowserResourceSnapshot(page),
       })
     }
-    const browserResourceSamples = graphSamples.map((graphSample, index) => ({
-      navigation_ms: navigationMs,
-      document_open_ms: documentSamples[index % documentSamples.length].document_open_ms,
-      graph_open_ms: graphSample.graph_open_ms,
-      graph_selection_ms: graphSample.graph_selection_ms,
-      ...mergeResourceSnapshots(
-        documentSamples[index % documentSamples.length].resource,
-        graphSample.resource
-      ),
-    }))
+    const browserResourceSamples = graphSamples.map((graphSample, index) =>
+      Object.assign(
+        {
+          navigation_ms: navigationMs,
+          document_open_ms: documentSamples[index % documentSamples.length].document_open_ms,
+          graph_open_ms: graphSample.graph_open_ms,
+          graph_selection_ms: graphSample.graph_selection_ms,
+        },
+        mergeResourceSnapshots(
+          documentSamples[index % documentSamples.length].resource,
+          graphSample.resource
+        )
+      )
+    )
     let browserResources = summarizeBrowserResourceSamples(browserResourceSamples)
     progress.resource_metrics = browserResources
     ensure(

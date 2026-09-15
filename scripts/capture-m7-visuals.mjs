@@ -3,7 +3,7 @@
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
-import AxeBuilder from '@axe-core/playwright'
+import { AxeBuilder } from '@axe-core/playwright'
 import { chromium } from 'playwright'
 
 const args = new Map()
