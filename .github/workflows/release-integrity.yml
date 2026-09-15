@@ -13,6 +13,7 @@ permissions:
   attestations: read
 jobs:
   verify:
+    timeout-minutes: 30
     # Enable only after an administrator enables immutable releases. This is a
     # post-publication verifier, not a substitute for the GitHub repository setting.
     if: vars.CI_BILLING_PAUSED != 'true' && (vars.REQUIRE_IMMUTABLE_RELEASES == 'true' || github.event_name == 'workflow_dispatch')

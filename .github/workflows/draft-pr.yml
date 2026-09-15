@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   draft-pr:
+    timeout-minutes: 10
     name: Draft PR
     if: vars.CI_BILLING_PAUSED != 'true'
     uses: 0xPlayerOne/code-foundry/.github/workflows/draft-pr.yml@v1.28.14
