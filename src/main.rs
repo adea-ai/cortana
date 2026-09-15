@@ -3418,7 +3418,9 @@ fn manage_identity(config: &Config, store: &Store, action: &IdentityAction) -> R
                 serde_json::to_string_pretty(&outcome.local_device)
                     .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
             );
-            println!(
+            // Human-facing ceremony output stays on stderr so piped stdout
+            // (the machine-readable device record) never captures the key.
+            eprintln!(
                 "\nRecovery key (store it outside this machine; it is never shown again):\n{}\n",
                 outcome.recovery_key.expose()
             );
