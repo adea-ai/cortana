@@ -215,6 +215,10 @@ function SettingsViewContent(incoming: {
     incoming
   )
   const confirm = useSettingsConfirm()
+  // The draft stays a signal: it is seeded from and compared against the
+  // shell-owned desktopSettings object, and a store would write leaf edits
+  // into that shared object. A draft owned by the store would need a deep
+  // copy on every external adoption, which is a worse trade-off here.
   const [settings, setSettings] = createSignal<DesktopSettings | null>(
     props.desktopSettings ?? null
   )

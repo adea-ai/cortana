@@ -11,6 +11,12 @@ fine-grained reactivity instead of carrying React-era assumptions forward.
   returns the same data does not invalidate every memo and `For` row downstream.
 - Signal setters wrap store writes when the read side needs an accessor:
   `const status = () => snapshot.value`.
+- **Store ownership rule**: a `createStore` proxies the object you hand it, and `reconcile`
+  writes differences _into_ that object. Never seed or update a store with an object that is
+  owned or long-lived elsewhere (a prop snapshot, a shared fixture, another signal's value) —
+  leaf writes would silently mutate the shared copy. Store-fed inputs must be owned by the
+  store: fresh API responses and `unwrap`ped cache copies are safe; a settings draft seeded
+  from a shell-owned prop is not, which is why the draft stays a signal.
 - Never store the same fact twice. If a value is computable from other reactive state, use
   `createMemo` or a plain accessor — not a synchronized copy.
 

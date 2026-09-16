@@ -31,6 +31,7 @@ export function VirtualDocumentList(props: {
   let loadRequested = false
   let pendingScrollTop = 0
   let scrollFrame: number | null = null
+  let prefetchTimer: number | null = null
   const [scrollTop, setScrollTop] = createSignal(0)
   const [viewportHeight, setViewportHeight] = createSignal(240)
   const selectedIndex = () =>
@@ -53,8 +54,20 @@ export function VirtualDocumentList(props: {
     onCleanup(() => {
       observer.disconnect()
       if (scrollFrame !== null) window.cancelAnimationFrame(scrollFrame)
+      if (prefetchTimer !== null) window.clearTimeout(prefetchTimer)
     })
   })
+
+  // Hover is a weaker open-intent signal than a click or arrow key, so the
+  // detail prefetch waits out a fast mouse sweep instead of fetching every
+  // row the pointer crosses.
+  function scheduleHoverPrefetch(id: string) {
+    if (prefetchTimer !== null) window.clearTimeout(prefetchTimer)
+    prefetchTimer = window.setTimeout(() => {
+      prefetchTimer = null
+      props.onPrefetch?.(id)
+    }, 90)
+  }
 
   createEffect(() => {
     if (!props.loading) loadRequested = false
@@ -64,6 +77,9 @@ export function VirtualDocumentList(props: {
     if (!props.documents.length) return
     const next = Math.max(0, Math.min(props.documents.length - 1, index))
     setActiveIndex(next)
+    // Keyboard focus is a strong open intent — warm the detail cache so the
+    // Enter press paints immediately.
+    props.onPrefetch?.(props.documents[next].id)
     const viewport = viewportRef!
     if (!viewport) return
     const top = next * ROW_HEIGHT
@@ -145,7 +161,7 @@ export function VirtualDocumentList(props: {
                   style={{ '--virtual-row-height': `${ROW_HEIGHT}px` } as JSX.CSSProperties}
                   onMouseEnter={() => {
                     setActiveIndex(index())
-                    props.onPrefetch?.(document.id)
+                    scheduleHoverPrefetch(document.id)
                   }}
                   onFocus={() => setActiveIndex(index())}
                   onClick={() => props.onSelect(document.id)}

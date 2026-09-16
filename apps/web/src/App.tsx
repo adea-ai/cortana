@@ -178,7 +178,10 @@ function CortanaApplication() {
   const [query, setQuery] = createSignal('How do releases work?')
   const [activeQuery, setActiveQuery] = createSignal(query())
   const [status, setStatus] = createSignal<BrainStatus | null>(null)
-  const [evidence, setEvidence] = createSignal<Evidence[]>([])
+  // Evidence rows are keyed by chunk_id so repeated queries keep stable row
+  // identity instead of rebuilding the result list.
+  const [evidence, setEvidenceStore] = createStore<Evidence[]>([])
+  const setEvidence = (next: Evidence[]) => setEvidenceStore(reconcile(next, { key: 'chunk_id' }))
   const [answer, setAnswer] = createSignal<AnswerResponse | null>(null)
   const [reflection, setReflection] = createSignal<ReflectResponse | null>(null)
   const [selected, setSelected] = createSignal(0)
@@ -526,6 +529,14 @@ function CortanaApplication() {
         if (documentListRequestId !== requestId) return null
         if (documentScope() !== scope) return null
         documentListCache.set(scope, { documents: page.documents, cursor: page.next_cursor })
+        // A fresh list page is the cheapest invalidation signal the API
+        // offers: if a summary's updated_at moved, its cached detail is stale.
+        for (const item of page.documents) {
+          const cachedDetail = documentDetailCache.get(item.id)
+          if (cachedDetail && cachedDetail.updated_at !== item.updated_at) {
+            documentDetailCache.delete(item.id)
+          }
+        }
         setDocuments(page.documents)
         setDocumentCursor(page.next_cursor)
         return null
@@ -920,7 +931,7 @@ function CortanaApplication() {
       window.clearInterval(timer)
     })
   })
-  const agentContext = createMemo(() => buildAgentContext(activeQuery(), evidence()))
+  const agentContext = createMemo(() => buildAgentContext(activeQuery(), evidence))
   function boundDocumentQuery(boundedQuery: string) {
     if (textEncoder.encode(boundedQuery).length <= MAX_DOCUMENT_QUERY_BYTES) {
       return boundedQuery
@@ -1941,7 +1952,7 @@ function CortanaApplication() {
               query={activeQuery()}
               answer={answer()}
               reflection={reflection()}
-              evidence={evidence()}
+              evidence={evidence}
               selected={selected()}
               loading={loading()}
               error={error()}
@@ -1985,7 +1996,7 @@ function CortanaApplication() {
                 <ContextPanel
                   open={rightOpen()}
                   query={activeQuery()}
-                  evidence={evidence()}
+                  evidence={evidence}
                   answer={answer()}
                   selected={selected()}
                   status={status()}
@@ -2042,7 +2053,7 @@ function CortanaApplication() {
             sourceJobs={sourceJobs.jobs}
             query={activeQuery()}
             answer={answer()}
-            evidence={evidence()}
+            evidence={evidence}
             loading={loading()}
             error={error()}
             contextBundle={contextBundle()}
