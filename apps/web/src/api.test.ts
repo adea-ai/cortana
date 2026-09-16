@@ -1,14 +1,15 @@
 import { afterEach, describe, expect, mock, test } from 'bun:test'
-
-import { getGraph, getReflection, getStatus } from './api'
 import type { BrainGraphPage } from './types'
-
+// Component suites register mock.module('./api'), which leaks across files in
+// the shared runner. Load the real transport through a distinct specifier,
+// then rebind './api' to it so the fetch doubles below actually apply.
+const realApi = await import('./api?transport-test')
+mock.module('./api', () => realApi)
+const { getGraph, getReflection, getStatus } = realApi
 const originalFetch = globalThis.fetch
-
 afterEach(() => {
   globalThis.fetch = originalFetch
 })
-
 describe('status transport', () => {
   test('preserves the bounded warm-up message for a retryable status response', async () => {
     globalThis.fetch = mock(() =>
@@ -18,21 +19,21 @@ describe('status transport', () => {
         })
       )
     ) as unknown as typeof fetch
-
     await expect(getStatus()).rejects.toThrow(
       'Cortana is warming up; live status will be available shortly'
     )
   })
-
   test('keeps unknown status failures generic', async () => {
     globalThis.fetch = mock(() =>
-      Promise.resolve(new Response('private database details', { status: 503 }))
+      Promise.resolve(
+        new Response('private database details', {
+          status: 503,
+        })
+      )
     ) as unknown as typeof fetch
-
     await expect(getStatus()).rejects.toThrow('Status request failed (503)')
   })
 })
-
 describe('graph transport', () => {
   const validGraph: BrainGraphPage = {
     nodes: [
@@ -48,27 +49,28 @@ describe('graph transport', () => {
     edges: [],
     next_cursor: null,
   }
-
   test('accepts a bounded graph response', async () => {
     globalThis.fetch = mock(() =>
       Promise.resolve(Response.json(validGraph))
     ) as unknown as typeof fetch
-
     await expect(getGraph('work')).resolves.toEqual(validGraph)
   })
-
   test('rejects malformed, dangling, or unsafe graph records before rendering', async () => {
     globalThis.fetch = mock(() =>
       Promise.resolve(
         Response.json({
           ...validGraph,
-          edges: [{ source: 'document:one', target: 'document:missing', kind: 'references' }],
+          edges: [
+            {
+              source: 'document:one',
+              target: 'document:missing',
+              kind: 'references',
+            },
+          ],
         })
       )
     ) as unknown as typeof fetch
-
     await expect(getGraph('work')).rejects.toThrow('Graph response was malformed')
-
     globalThis.fetch = mock(() =>
       Promise.resolve(
         Response.json({
@@ -86,11 +88,9 @@ describe('graph transport', () => {
         })
       )
     ) as unknown as typeof fetch
-
     await expect(getGraph('work')).rejects.toThrow('Graph response was malformed')
   })
 })
-
 describe('reflection transport', () => {
   test('posts a bounded scoped request to the reflection endpoint', async () => {
     let requestInput: RequestInfo | URL | undefined
@@ -130,15 +130,15 @@ describe('reflection transport', () => {
         })
       )
     }) as unknown as typeof fetch
-
     await getReflection('Review launch risk', 'work', 'github')
-
     expect(String(requestInput)).toBe('/v1/memory/reflect')
     expect(requestInit?.method).toBe('POST')
     expect(JSON.parse(String(requestInit?.body))).toEqual({
       objective: 'Review launch risk',
       project: 'work',
-      memory: { limit: 32 },
+      memory: {
+        limit: 32,
+      },
       include_evidence: true,
       token_budget: 2048,
       provider_policy: 'deterministic-only',

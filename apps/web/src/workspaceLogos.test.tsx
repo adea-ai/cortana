@@ -1,6 +1,5 @@
 import { afterEach, expect, test } from 'bun:test'
-import { cleanup, render } from '@testing-library/react'
-
+import { cleanup, render } from 'solid-testing-library'
 import { WorkspaceLogo } from './workspaceLogos'
 import {
   isWorkspaceLogoDataUrl,
@@ -8,7 +7,6 @@ import {
   readWorkspaceLogoFile,
   writeWorkspaceLogo,
 } from './workspaceLogoStore'
-
 afterEach(() => {
   cleanup()
   try {
@@ -17,9 +15,7 @@ afterEach(() => {
     // Storage may be unavailable in exotic harness environments.
   }
 })
-
 const pngDataUrl = 'data:image/png;base64,iVBORw0KGgo='
-
 test('workspace logo data URLs accept the exact encoded size boundary', () => {
   expect(isWorkspaceLogoDataUrl(pngDataUrl)).toBe(true)
   // Base64 encodes every 3 bytes as 4 characters, so a full 200 KB file
@@ -33,18 +29,17 @@ test('workspace logo data URLs accept the exact encoded size boundary', () => {
   const oneCharOverPayload = 'A'.repeat(4 * Math.ceil(200_000 / 3) + 64 + 1)
   expect(isWorkspaceLogoDataUrl(`data:image/png;base64,${oneCharOverPayload}`)).toBe(false)
 })
-
 test('workspace logo data URLs reject non-raster or malformed payloads', () => {
   expect(isWorkspaceLogoDataUrl('data:image/svg+xml;base64,AAAA')).toBe(false)
   expect(isWorkspaceLogoDataUrl('data:image/png;base64,not base64!')).toBe(false)
   expect(isWorkspaceLogoDataUrl('not-a-data-url')).toBe(false)
 })
-
 test('workspace logo files reject unsupported types', async () => {
-  const svg = new File(['<svg/>'], 'logo.svg', { type: 'image/svg+xml' })
+  const svg = new File(['<svg/>'], 'logo.svg', {
+    type: 'image/svg+xml',
+  })
   await expect(readWorkspaceLogoFile(svg)).rejects.toThrow('Choose a raster image')
 })
-
 test('workspace logo files over 200 KB are resized and compressed to a valid JPEG', async () => {
   const previousImage = globalThis.Image
   const previousGetContext = HTMLCanvasElement.prototype.getContext
@@ -58,18 +53,15 @@ test('workspace logo files over 200 KB are resized and compressed to a valid JPE
       drawCalls += 1
     },
   } as unknown as CanvasRenderingContext2D
-
   class FakeImage {
     naturalWidth = 1600
     naturalHeight = 900
     onload: (() => void) | null = null
     onerror: (() => void) | null = null
-
     set src(_value: string) {
       queueMicrotask(() => this.onload?.())
     }
   }
-
   try {
     globalThis.Image = FakeImage as unknown as typeof Image
     URL.createObjectURL = (() => 'blob:workspace-logo') as typeof URL.createObjectURL
@@ -77,10 +69,15 @@ test('workspace logo files over 200 KB are resized and compressed to a valid JPE
     HTMLCanvasElement.prototype.getContext = (() =>
       context) as unknown as typeof HTMLCanvasElement.prototype.getContext
     HTMLCanvasElement.prototype.toBlob = ((callback) => {
-      callback(new Blob([new Uint8Array(1_024)], { type: 'image/jpeg' }))
+      callback(
+        new Blob([new Uint8Array(1_024)], {
+          type: 'image/jpeg',
+        })
+      )
     }) as typeof HTMLCanvasElement.prototype.toBlob
-
-    const source = new File([new Uint8Array(200_001)], 'big.png', { type: 'image/png' })
+    const source = new File([new Uint8Array(200_001)], 'big.png', {
+      type: 'image/png',
+    })
     const dataUrl = await readWorkspaceLogoFile(source)
     expect(dataUrl.startsWith('data:image/jpeg;base64,')).toBe(true)
     expect(isWorkspaceLogoDataUrl(dataUrl)).toBe(true)
@@ -93,7 +90,6 @@ test('workspace logo files over 200 KB are resized and compressed to a valid JPE
     URL.revokeObjectURL = previousRevokeObjectURL
   }
 })
-
 test('workspace logo compression retries with a data URL when the webview rejects a blob URL', async () => {
   const previousImage = globalThis.Image
   const previousGetContext = HTMLCanvasElement.prototype.getContext
@@ -101,19 +97,16 @@ test('workspace logo compression retries with a data URL when the webview reject
   const previousCreateObjectURL = URL.createObjectURL
   const previousRevokeObjectURL = URL.revokeObjectURL
   let sources: string[] = []
-
   class BlobRejectingImage {
     naturalWidth = 1200
     naturalHeight = 800
     onload: (() => void) | null = null
     onerror: (() => void) | null = null
-
     set src(value: string) {
       sources.push(value)
       queueMicrotask(() => (value.startsWith('blob:') ? this.onerror?.() : this.onload?.()))
     }
   }
-
   try {
     globalThis.Image = BlobRejectingImage as unknown as typeof Image
     URL.createObjectURL = (() => 'blob:unsupported-in-webview') as typeof URL.createObjectURL
@@ -123,10 +116,15 @@ test('workspace logo compression retries with a data URL when the webview reject
       drawImage() {},
     })) as unknown as typeof HTMLCanvasElement.prototype.getContext
     HTMLCanvasElement.prototype.toBlob = ((callback) => {
-      callback(new Blob([new Uint8Array(1_024)], { type: 'image/jpeg' }))
+      callback(
+        new Blob([new Uint8Array(1_024)], {
+          type: 'image/jpeg',
+        })
+      )
     }) as typeof HTMLCanvasElement.prototype.toBlob
-
-    const source = new File([new Uint8Array(200_001)], 'logo.avif', { type: 'image/avif' })
+    const source = new File([new Uint8Array(200_001)], 'logo.avif', {
+      type: 'image/avif',
+    })
     const dataUrl = await readWorkspaceLogoFile(source)
     expect(dataUrl.startsWith('data:image/jpeg;base64,')).toBe(true)
     expect(sources[0]).toBe('blob:unsupported-in-webview')
@@ -140,21 +138,20 @@ test('workspace logo compression retries with a data URL when the webview reject
     URL.revokeObjectURL = previousRevokeObjectURL
   }
 })
-
 test('workspace logo files within the size bound produce a valid data URL', async () => {
-  const file = new File(['logo-bytes'], 'logo.png', { type: 'image/png' })
+  const file = new File(['logo-bytes'], 'logo.png', {
+    type: 'image/png',
+  })
   const dataUrl = await readWorkspaceLogoFile(file)
   expect(dataUrl.startsWith('data:image/png;base64,')).toBe(true)
   expect(isWorkspaceLogoDataUrl(dataUrl)).toBe(true)
 })
-
 test('workspace logo files recover a missing MIME type from a supported extension', async () => {
   const file = new File(['logo-bytes'], 'camera-export.JPG')
   const dataUrl = await readWorkspaceLogoFile(file)
   expect(dataUrl.startsWith('data:image/jpeg;base64,')).toBe(true)
   expect(isWorkspaceLogoDataUrl(dataUrl)).toBe(true)
 })
-
 test('workspace logos round-trip through local storage and reject invalid ids', () => {
   expect(readWorkspaceLogo('work')).toBeNull()
   writeWorkspaceLogo('work', pngDataUrl)
@@ -170,11 +167,16 @@ test('workspace logos round-trip through local storage and reject invalid ids', 
   writeWorkspaceLogo('work', null)
   expect(readWorkspaceLogo('work')).toBeNull()
 })
-
 test('WorkspaceLogo renders the workspace initial tile without a stored logo', () => {
-  const { container } = render(
-    <WorkspaceLogo workspace={{ id: 'work', name: 'Work', color: null }} />
-  )
+  const { container } = render(() => (
+    <WorkspaceLogo
+      workspace={{
+        id: 'work',
+        name: 'Work',
+        color: null,
+      }}
+    />
+  ))
   const tile = container.querySelector('.workspace-logo') as HTMLElement
   expect(tile).toBeTruthy()
   expect(tile.className).toContain('workspace-logo--medium')
@@ -182,21 +184,32 @@ test('WorkspaceLogo renders the workspace initial tile without a stored logo', (
   expect(tile.getAttribute('style')).toBeNull()
   expect(tile.getAttribute('aria-hidden')).toBe('true')
 })
-
 test('WorkspaceLogo small variant composes with the workspace picker ring', () => {
-  const { container } = render(
-    <WorkspaceLogo workspace={{ id: 'work', name: 'Work', color: null }} size="small" />
-  )
+  const { container } = render(() => (
+    <WorkspaceLogo
+      workspace={{
+        id: 'work',
+        name: 'Work',
+        color: null,
+      }}
+      size="small"
+    />
+  ))
   const tile = container.querySelector('.workspace-logo') as HTMLElement
   expect(tile.className).toContain('workspace-logo--small')
   expect(tile.className).toContain('workspace-picker-mark')
 })
-
 test('WorkspaceLogo renders a stored logo image with decorative alt behavior', () => {
   writeWorkspaceLogo('work', pngDataUrl)
-  const { container } = render(
-    <WorkspaceLogo workspace={{ id: 'work', name: 'Work', color: null }} />
-  )
+  const { container } = render(() => (
+    <WorkspaceLogo
+      workspace={{
+        id: 'work',
+        name: 'Work',
+        color: null,
+      }}
+    />
+  ))
   const img = container.querySelector('img.workspace-logo') as HTMLImageElement
   expect(img).toBeTruthy()
   expect(img.getAttribute('src')).toBe(pngDataUrl)

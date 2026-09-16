@@ -1,17 +1,17 @@
-import { FileText, LoaderCircle } from 'lucide-react'
+import { FileText, LoaderCircle } from 'lucide-solid'
 import {
-  type CSSProperties,
-  type FormEvent,
-  type PointerEvent as ReactPointerEvent,
   lazy,
   Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
-
+  Show,
+  Switch,
+  Match,
+  createEffect,
+  createMemo,
+  createSignal,
+  onCleanup,
+  mergeProps,
+  type JSX,
+} from 'solid-js'
 import {
   getAnswer,
   getDesktopInfo,
@@ -48,7 +48,7 @@ import {
   M7StatusBar,
 } from './components/m7/M7ApplicationShell'
 import { SourcePanel } from './components/SourcePanel'
-import { UtilityView } from './components/UtilityView'
+import { UtilityView, type UtilityKind } from './components/UtilityView'
 import { Workspace, type WorkspaceTab } from './components/Workspace'
 import { TooltipButton as Button } from './components/cortana/TooltipButton'
 import { buildAgentContext, estimateTokens } from './context'
@@ -89,30 +89,63 @@ import type {
 } from './types'
 import { cn } from './lib/utils'
 import './shadcn.css'
-
 const SettingsView = lazy(() =>
-  import('./components/SettingsView').then((module) => ({ default: module.SettingsView }))
+  import('./components/SettingsView').then((module) => ({
+    default: module.SettingsView,
+  }))
 )
-
 const STATUS_REFRESH_MS = 15_000
 const INSTALLER_POLL_MS = 1_000
 const MAX_DOCUMENT_QUERY_BYTES = 256
 const textEncoder = new TextEncoder()
-
 function isAbort(caught: unknown) {
   return caught instanceof DOMException
     ? caught.name === 'AbortError'
-    : (caught as { name?: string } | null)?.name === 'AbortError'
+    : (
+        caught as {
+          name?: string
+        } | null
+      )?.name === 'AbortError'
 }
-
 function searchScope(nextSource: string, nextWorkspace: string, query: string) {
   return `${nextWorkspace}\u0000${nextSource}\u0000${query}`
 }
-
 function contextScope(nextQuery: string, nextWorkspace: string, nextSource: string) {
   return `${nextWorkspace}\u0000${nextSource}\u0000${nextQuery}`
 }
-
+// Kobalte restores trigger focus when an overlay closes a macrotask after
+// the select event, and while an overlay is still open its focus trap can
+// pull focus back; a modal menu also refocuses its trigger even when the
+// close-focus event is prevented. Keep re-focusing until the target holds
+// focus across several checks, so it wins no matter when the overlay
+// finishes dismissing.
+function focusWhenReady(
+  focus: () =>
+    | (HTMLElement & {
+        select?: () => void
+      })
+    | null
+    | undefined,
+  select = false
+) {
+  let attempts = 400
+  let settled = 0
+  const tryFocus = () => {
+    const el = focus()
+    if (!el || attempts <= 0) return
+    attempts -= 1
+    if (document.activeElement !== el) {
+      settled = 0
+      el.focus()
+      if (select) el.select?.()
+    } else {
+      settled += 1
+      if (settled >= 4) return
+    }
+    window.setTimeout(tryFocus, 5)
+  }
+  window.setTimeout(tryFocus, 5)
+}
 export function App() {
   return (
     <AppErrorBoundary>
@@ -120,156 +153,223 @@ export function App() {
     </AppErrorBoundary>
   )
 }
-
 function CortanaApplication() {
-  const [query, setQuery] = useState('How do releases work?')
-  const [activeQuery, setActiveQuery] = useState(query)
-  const [status, setStatus] = useState<BrainStatus | null>(null)
-  const [evidence, setEvidence] = useState<Evidence[]>([])
-  const [answer, setAnswer] = useState<AnswerResponse | null>(null)
-  const [reflection, setReflection] = useState<ReflectResponse | null>(null)
-  const [selected, setSelected] = useState(0)
-  const [source, setSource] = useState(() => (isDesktopApp ? readSourceSelectionPreference() : ''))
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [statusError, setStatusError] = useState('')
-  const [leftOpen, setLeftOpen] = useState(false)
-  const [rightOpen, setRightOpen] = useState(false)
-  const [view, setView] = useState<AppView>('knowledge')
-  const [workspace, setWorkspace] = useState(() => (isDesktopApp ? readWorkspacePreference() : ''))
-  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>('document')
-  const [desktopSettings, setDesktopSettings] = useState<DesktopSettings | null>(null)
-  const [desktopInfo, setDesktopInfo] = useState<DesktopInfo | null>(null)
-  const [desktopServices, setDesktopServices] = useState<DesktopServiceReport | null>(null)
-  const [desktopServicesError, setDesktopServicesError] = useState('')
-  const [settingsSection, setSettingsSection] = useState<
+  const [query, setQuery] = createSignal('How do releases work?')
+  const [activeQuery, setActiveQuery] = createSignal(query())
+  const [status, setStatus] = createSignal<BrainStatus | null>(null)
+  const [evidence, setEvidence] = createSignal<Evidence[]>([])
+  const [answer, setAnswer] = createSignal<AnswerResponse | null>(null)
+  const [reflection, setReflection] = createSignal<ReflectResponse | null>(null)
+  const [selected, setSelected] = createSignal(0)
+  const [source, setSource] = createSignal(
+    (() => (isDesktopApp ? readSourceSelectionPreference() : ''))()
+  )
+  const [loading, setLoading] = createSignal(true)
+  const [error, setError] = createSignal('')
+  const [statusError, setStatusError] = createSignal('')
+  const [leftOpen, setLeftOpen] = createSignal(false)
+  const [rightOpen, setRightOpen] = createSignal(false)
+  const [view, setView] = createSignal<AppView>('knowledge')
+  const [workspace, setWorkspace] = createSignal(
+    (() => (isDesktopApp ? readWorkspacePreference() : ''))()
+  )
+  const [workspaceTab, setWorkspaceTab] = createSignal<WorkspaceTab>('document')
+  const [desktopSettings, setDesktopSettings] = createSignal<DesktopSettings | null>(null)
+  const [desktopInfo, setDesktopInfo] = createSignal<DesktopInfo | null>(null)
+  const [desktopServices, setDesktopServices] = createSignal<DesktopServiceReport | null>(null)
+  const [desktopServicesError, setDesktopServicesError] = createSignal('')
+  const [settingsSection, setSettingsSection] = createSignal<
     'readiness' | 'services' | 'updates' | 'sources' | 'memory'
   >('readiness')
-  const [settingsDirty, setSettingsDirty] = useState(false)
-  const [installerJob, setInstallerJob] = useState<DesktopInstallJob | null>(null)
-  const [desktopUpdate, setDesktopUpdate] = useState<DesktopUpdate | null>(null)
-  const [desktopReadiness, setDesktopReadiness] = useState<DesktopReadiness | null>(null)
-  const [readinessActivity, setReadinessActivity] = useState<DesktopReadinessActivity | null>(null)
-  const [serviceActivity, setServiceActivity] = useState<DesktopServiceActivity | null>(null)
-  const [sourceJobError, setSourceJobError] = useState('')
-  const [sourceToggleBusy, setSourceToggleBusy] = useState<string | null>(null)
-  const [sourceToggleError, setSourceToggleError] = useState('')
-  const [sourceToggleNotice, setSourceToggleNotice] = useState('')
-  const [documents, setDocuments] = useState<BrainDocumentSummary[]>([])
-  const [documentCursor, setDocumentCursor] = useState<string | null>(null)
-  const [documentsLoading, setDocumentsLoading] = useState(view === 'knowledge')
-  const [documentsError, setDocumentsError] = useState('')
-  const [documentRetryNonce, setDocumentRetryNonce] = useState(0)
-  const [activeDocument, setActiveDocument] = useState<BrainDocument | null>(null)
-  const [documentLoading, setDocumentLoading] = useState(false)
-  const [documentQuery, setDocumentQuery] = useState('')
-  const [debouncedDocumentQuery, setDebouncedDocumentQuery] = useState('')
-  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
-  const [sourceWidth, setSourceWidth] = useState(270)
-  const [contextWidth, setContextWidth] = useState(350)
-  const [contextBundle, setContextBundle] = useState<ContextBundle | null>(null)
-  const [contextLoading, setContextLoading] = useState(false)
-  const [graph, setGraph] = useState<BrainGraphPage | null>(null)
-  const [graphLoading, setGraphLoading] = useState(false)
-  const [graphAppendLoading, setGraphAppendLoading] = useState(false)
-  const [graphError, setGraphError] = useState('')
-  const [graphRetryNonce, setGraphRetryNonce] = useState(0)
-  const [graphFocusDocumentId, setGraphFocusDocumentId] = useState<string | null>(null)
-  const [graphEdgeKind, setGraphEdgeKind] = useState<
+  const [settingsDirty, setSettingsDirty] = createSignal(false)
+  const [installerJob, setInstallerJob] = createSignal<DesktopInstallJob | null>(null)
+  const [desktopUpdate, setDesktopUpdate] = createSignal<DesktopUpdate | null>(null)
+  const [desktopReadiness, setDesktopReadiness] = createSignal<DesktopReadiness | null>(null)
+  const [readinessActivity, setReadinessActivity] = createSignal<DesktopReadinessActivity | null>(
+    null
+  )
+  const [serviceActivity, setServiceActivity] = createSignal<DesktopServiceActivity | null>(null)
+  const [sourceJobError, setSourceJobError] = createSignal('')
+  const [sourceToggleBusy, setSourceToggleBusy] = createSignal<string | null>(null)
+  const [sourceToggleError, setSourceToggleError] = createSignal('')
+  const [sourceToggleNotice, setSourceToggleNotice] = createSignal('')
+  const [documents, setDocuments] = createSignal<BrainDocumentSummary[]>([])
+  const [documentCursor, setDocumentCursor] = createSignal<string | null>(null)
+  const [documentsLoading, setDocumentsLoading] = createSignal(view() === 'knowledge')
+  const [documentsError, setDocumentsError] = createSignal('')
+  const [documentRetryNonce, setDocumentRetryNonce] = createSignal(0)
+  const [activeDocument, setActiveDocument] = createSignal<BrainDocument | null>(null)
+  const [documentLoading, setDocumentLoading] = createSignal(false)
+  const [documentQuery, setDocumentQuery] = createSignal('')
+  const [debouncedDocumentQuery, setDebouncedDocumentQuery] = createSignal('')
+  const [commandPaletteOpen, setCommandPaletteOpen] = createSignal(false)
+  const [sourceWidth, setSourceWidth] = createSignal(270)
+  const [contextWidth, setContextWidth] = createSignal(350)
+  const [contextBundle, setContextBundle] = createSignal<ContextBundle | null>(null)
+  const [contextLoading, setContextLoading] = createSignal(false)
+  const [graph, setGraph] = createSignal<BrainGraphPage | null>(null)
+  const [graphLoading, setGraphLoading] = createSignal(false)
+  const [graphAppendLoading, setGraphAppendLoading] = createSignal(false)
+  const [graphError, setGraphError] = createSignal('')
+  const [graphRetryNonce, setGraphRetryNonce] = createSignal(0)
+  const [graphFocusDocumentId, setGraphFocusDocumentId] = createSignal<string | null>(null)
+  const [graphEdgeKind, setGraphEdgeKind] = createSignal<
     BrainGraphPage['edges'][number]['kind'] | 'all'
   >('all')
-  const [graphOrigin, setGraphOrigin] = useState<
+  const [graphOrigin, setGraphOrigin] = createSignal<
     NonNullable<BrainGraphPage['edges'][number]['origin']> | 'all'
   >('all')
-  const [graphMinConfidence, setGraphMinConfidence] = useState<number | null>(null)
-  const [graphFocusHistory, setGraphFocusHistory] = useState<Array<string | null>>([null])
-  const [graphFocusHistoryIndex, setGraphFocusHistoryIndex] = useState(0)
-  const [pageVisible, setPageVisible] = useState(
-    () => typeof document === 'undefined' || document.visibilityState !== 'hidden'
+  const [graphMinConfidence, setGraphMinConfidence] = createSignal<number | null>(null)
+  const [graphFocusHistory, setGraphFocusHistory] = createSignal<Array<string | null>>([null])
+  const [graphFocusHistoryIndex, setGraphFocusHistoryIndex] = createSignal(0)
+  const [pageVisible, setPageVisible] = createSignal(
+    (() => typeof document === 'undefined' || document.visibilityState !== 'hidden')()
   )
-  const searchRequestRef = useRef(0)
-  const [contextError, setContextError] = useState('')
-  const [queryHistory, setQueryHistory] = useState<string[]>([])
-  const [queryHistoryIndex, setQueryHistoryIndex] = useState(-1)
-  const searchRef = useRef<HTMLInputElement>(null)
-  const commandPaletteOriginRef = useRef<HTMLElement>(null)
-  const sourcePanelOriginRef = useRef<HTMLElement>(null)
-  const contextPanelOriginRef = useRef<HTMLElement>(null)
+  const searchRequestRef = {
+    current: 0,
+  }
+  const [contextError, setContextError] = createSignal('')
+  const [queryHistory, setQueryHistory] = createSignal<string[]>([])
+  const [queryHistoryIndex, setQueryHistoryIndex] = createSignal(-1)
+  const searchRef = {
+    current: null as HTMLInputElement | null,
+  }
+  const commandPaletteOriginRef = {
+    current: null as HTMLElement | null,
+  }
+  const sourcePanelOriginRef = {
+    current: null as HTMLElement | null,
+  }
+  const contextPanelOriginRef = {
+    current: null as HTMLElement | null,
+  }
   const sourceJobs = useSourceJobs()
-  const sourceCancelInFlightRef = useRef(new Set<string>())
-  const sourceJobsError = sourceJobError || sourceJobs.error
-  const sourceJobsRetry = sourceJobError
-    ? undefined
-    : sourceJobs.error
-      ? sourceJobs.retry
-      : undefined
-
-  const workspaces = desktopSettings?.workspaces.length
-    ? desktopSettings.workspaces
-    : status?.workspaces.length
-      ? status.workspaces
-      : Array.from(new Set(status?.sources.map((item) => item.project) ?? [])).map((id) => ({
-          id,
-          name: id[0]?.toUpperCase() + id.slice(1),
-          account_label: null,
-          color: null,
-        }))
-  const effectiveWorkspace = workspace || workspaces[0]?.id || ''
-
-  const installerStatusRef = useRef<DesktopInstallJob['status'] | null>(null)
-  const installerJobId = installerJob?.id ?? null
-  const installerStatus = installerJob?.status ?? null
-  const installerActive = installerStatus === 'running' || installerStatus === 'cancelling'
-  const desktopUpdatePhase = desktopUpdate?.phase ?? null
-  const desktopSettingsRequestRef = useRef(0)
-  const desktopInfoRequestRef = useRef(0)
-  const desktopUpdateRequestRef = useRef(0)
-  const desktopServicesRequestRef = useRef(0)
-  const refreshedSourceJobsRef = useRef<Set<string>>(new Set())
-  const documentScope = `${effectiveWorkspace}\u0000${source}\u0000${debouncedDocumentQuery}`
-  const documentFetchReady = !isDesktopApp || desktopSettings?.needs_setup === false
-  const documentScopeRef = useRef(documentScope)
-  const searchAbortRef = useRef<AbortController | null>(null)
-  const searchScopeRef = useRef('')
-  const contextAbortRef = useRef<AbortController | null>(null)
-  const contextScopeRef = useRef('')
-  const documentListAbortRef = useRef<AbortController | null>(null)
-  const documentSelectAbortRef = useRef<AbortController | null>(null)
-  const graphAbortRef = useRef<AbortController | null>(null)
-  const contextRequestRef = useRef(0)
-  const documentListRequestRef = useRef(0)
-  const documentSelectRequestRef = useRef(0)
-  const graphRequestRef = useRef(0)
-  const graphAppendRequestRef = useRef(0)
-  const statusRequestRef = useRef(0)
-  const statusRefreshRef = useRef<(() => void) | null>(null)
-  const documentPageLoadingRef = useRef(false)
-  const sourceWidthRef = useRef(sourceWidth)
-  const contextWidthRef = useRef(contextWidth)
-  documentScopeRef.current = documentScope
-  sourceWidthRef.current = sourceWidth
-  contextWidthRef.current = contextWidth
-
-  const applyDesktopSettings = useCallback((next: DesktopSettings) => {
+  const sourceCancelInFlightRef = {
+    current: new Set<string>(),
+  }
+  const sourceJobsError = () => sourceJobError() || sourceJobs.error()
+  const sourceJobsRetry = () =>
+    sourceJobError() ? undefined : sourceJobs.error() ? sourceJobs.retry : undefined
+  const workspaces = createMemo(() =>
+    desktopSettings()?.workspaces.length
+      ? desktopSettings()!.workspaces
+      : status()?.workspaces.length
+        ? status()!.workspaces
+        : Array.from(new Set(status()?.sources.map((item) => item.project) ?? [])).map((id) => ({
+            id,
+            name: id[0]?.toUpperCase() + id.slice(1),
+            account_label: null,
+            color: null,
+          }))
+  )
+  const effectiveWorkspace = createMemo(() => workspace() || workspaces()[0]?.id || '')
+  const installerStatusRef = {
+    current: null as DesktopInstallJob['status'] | null | null,
+  }
+  const installerJobId = () => installerJob()?.id ?? null
+  const installerStatus = () => installerJob()?.status ?? null
+  const installerActive = () =>
+    installerStatus() === 'running' || installerStatus() === 'cancelling'
+  const desktopUpdatePhase = () => desktopUpdate()?.phase ?? null
+  const desktopSettingsRequestRef = {
+    current: 0,
+  }
+  const desktopInfoRequestRef = {
+    current: 0,
+  }
+  const desktopUpdateRequestRef = {
+    current: 0,
+  }
+  const desktopServicesRequestRef = {
+    current: 0,
+  }
+  const refreshedSourceJobsRef = {
+    current: new Set() as Set<string>,
+  }
+  const documentScope = () =>
+    `${effectiveWorkspace()}\u0000${source()}\u0000${debouncedDocumentQuery()}`
+  const documentFetchReady = () => !isDesktopApp || desktopSettings()?.needs_setup === false
+  const documentScopeRef = {
+    current: documentScope(),
+  }
+  const searchAbortRef = {
+    current: null as AbortController | null | null,
+  }
+  const searchScopeRef = {
+    current: '',
+  }
+  const contextAbortRef = {
+    current: null as AbortController | null | null,
+  }
+  const contextScopeRef = {
+    current: '',
+  }
+  const documentListAbortRef = {
+    current: null as AbortController | null | null,
+  }
+  const documentSelectAbortRef = {
+    current: null as AbortController | null | null,
+  }
+  const graphAbortRef = {
+    current: null as AbortController | null | null,
+  }
+  const contextRequestRef = {
+    current: 0,
+  }
+  const documentListRequestRef = {
+    current: 0,
+  }
+  const documentSelectRequestRef = {
+    current: 0,
+  }
+  const graphRequestRef = {
+    current: 0,
+  }
+  const graphAppendRequestRef = {
+    current: 0,
+  }
+  const statusRequestRef = {
+    current: 0,
+  }
+  const statusRefreshRef = {
+    current: null as (() => void) | null | null,
+  }
+  const documentPageLoadingRef = {
+    current: false,
+  }
+  const sourceWidthRef = {
+    current: sourceWidth(),
+  }
+  const contextWidthRef = {
+    current: contextWidth(),
+  }
+  createEffect(() => {
+    documentScopeRef.current = documentScope()
+  })
+  createEffect(() => {
+    sourceWidthRef.current = sourceWidth()
+  })
+  createEffect(() => {
+    contextWidthRef.current = contextWidth()
+  })
+  const applyDesktopSettings = (next: DesktopSettings) => {
     // Invalidate the one-shot bootstrap read when Settings completes a
     // reload/save. Otherwise a slower initial request can restore an older
     // snapshot after the operator has already reconciled a newer one.
     desktopSettingsRequestRef.current += 1
     setDesktopSettings(next)
-  }, [])
-
-  useEffect(() => {
+  }
+  createEffect(() => {
     const syncTheme = () => {
-      applyTheme(readWorkspaceThemePreference(effectiveWorkspace) ?? DEFAULT_THEME)
+      applyTheme(readWorkspaceThemePreference(effectiveWorkspace()) ?? DEFAULT_THEME)
     }
     syncTheme()
     window.addEventListener(WORKSPACE_THEME_EVENT, syncTheme)
-    return () => {
+    return onCleanup(() => {
       window.removeEventListener(WORKSPACE_THEME_EVENT, syncTheme)
-    }
-  }, [effectiveWorkspace])
-
-  useEffect(() => {
+    })
+  })
+  createEffect(() => {
     if (!isDemoMode) return
     let active = true
     void import('./demoDesktop').then(
@@ -302,14 +402,17 @@ function CortanaApplication() {
         return null
       }
     )
-    return () => {
+    return onCleanup(() => {
       active = false
+    })
+  })
+  createEffect(() => {
+    const visibility = {
+      current: document.visibilityState !== 'hidden',
     }
-  }, [])
-
-  useEffect(() => {
-    const visibility = { current: document.visibilityState !== 'hidden' }
-    const focused = { current: true }
+    const focused = {
+      current: true,
+    }
     const syncForeground = () => setPageVisible(visibility.current && focused.current)
     const handleVisibilityChange = () => {
       visibility.current = document.visibilityState !== 'hidden'
@@ -362,42 +465,47 @@ function CortanaApplication() {
           // listener is unavailable during early Desktop startup.
         })
     }
-    return () => {
+    return onCleanup(() => {
       disposed = true
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', handleFocus)
       window.removeEventListener('blur', handleBlur)
       unlistenFocus?.()
-    }
-  }, [])
-
-  const runReadinessScan = useCallback(async (): Promise<DesktopReadiness> => {
-    setReadinessActivity({ status: 'running', detail: null })
+    })
+  })
+  const runReadinessScan = async (): Promise<DesktopReadiness> => {
+    setReadinessActivity({
+      status: 'running',
+      detail: null,
+    })
     try {
       const next = await scanDesktopReadiness()
       setDesktopReadiness(next)
-      setReadinessActivity({ status: 'succeeded', detail: null })
+      setReadinessActivity({
+        status: 'succeeded',
+        detail: null,
+      })
       return next
     } catch (caught) {
       const detail = caught instanceof Error ? caught.message : 'Readiness scan failed'
-      setReadinessActivity({ status: 'failed', detail })
+      setReadinessActivity({
+        status: 'failed',
+        detail,
+      })
       throw caught
     }
-  }, [])
-
-  useEffect(() => {
+  }
+  createEffect(() => {
     const timeout = window.setTimeout(() => {
-      setDebouncedDocumentQuery(boundDocumentQuery(documentQuery).trim())
+      setDebouncedDocumentQuery(boundDocumentQuery(documentQuery()).trim())
     }, 250)
-    return () => window.clearTimeout(timeout)
-  }, [documentQuery])
-
-  useEffect(() => {
-    if (!pageVisible) return
+    return onCleanup(() => window.clearTimeout(timeout))
+  })
+  createEffect(() => {
+    if (!pageVisible()) return
     let disposed = false
     let initialRequest = true
     let controller: AbortController | null = null
-
     const refresh = () => {
       controller?.abort()
       const nextController = new AbortController()
@@ -433,37 +541,37 @@ function CortanaApplication() {
           }
         })
     }
-
     statusRefreshRef.current = refresh
     refresh()
     const timer = window.setInterval(refresh, STATUS_REFRESH_MS)
-    return () => {
+    return onCleanup(() => {
       disposed = true
       window.clearInterval(timer)
       controller?.abort()
       statusRequestRef.current += 1
       if (statusRefreshRef.current === refresh) statusRefreshRef.current = null
-    }
-  }, [pageVisible])
-
-  const documentScopeKey = [
-    view,
-    documentFetchReady,
-    source,
-    effectiveWorkspace,
-    debouncedDocumentQuery,
-    documentRetryNonce,
-    desktopSettings === null,
-  ].join('\u0000')
-  const [previousDocumentScopeKey, setPreviousDocumentScopeKey] = useState(documentScopeKey)
-  if (documentScopeKey !== previousDocumentScopeKey) {
-    setPreviousDocumentScopeKey(documentScopeKey)
-    if (view !== 'knowledge') {
+    })
+  })
+  const documentScopeKey = () =>
+    [
+      view(),
+      documentFetchReady(),
+      source(),
+      effectiveWorkspace(),
+      debouncedDocumentQuery(),
+      documentRetryNonce(),
+      desktopSettings() === null,
+    ].join('\u0000')
+  const [previousDocumentScopeKey, setPreviousDocumentScopeKey] = createSignal(documentScopeKey())
+  createEffect(() => {
+    if (documentScopeKey() === previousDocumentScopeKey()) return
+    setPreviousDocumentScopeKey(documentScopeKey())
+    if (view() !== 'knowledge') {
       // Settings and utility views do not consume the document list. Keep the
       // last Knowledge snapshot so returning to it feels continuous, while the
       // next Knowledge render still performs a fresh scoped read.
       setDocumentsLoading(false)
-    } else if (!documentFetchReady) {
+    } else if (!documentFetchReady()) {
       setDocuments([])
       setDocumentCursor(null)
       setDocumentsError('')
@@ -472,22 +580,21 @@ function CortanaApplication() {
       // Desktop settings have not arrived yet. Once setup is known to be
       // required, or while Settings is open, there is no document request to
       // wait for and the empty state should be calm instead of spinning.
-      setDocumentsLoading(isDesktopApp && desktopSettings === null)
+      setDocumentsLoading(isDesktopApp && desktopSettings() === null)
     } else {
       setDocumentsError('')
       setActiveDocument(null)
       setDocumentsLoading(true)
     }
-  }
-
-  useEffect(() => {
+  })
+  createEffect(() => {
     // Desktop settings are the control-plane gate for the document index. On
     // first launch the settings request can redirect the shell to setup; do
     // not query a half-configured backend (or surface a noisy error) before
     // the user has finished that flow. The Knowledge view is the only surface
     // that consumes this list, so avoid background reads while managing the
     // local runtime in Settings as well. State resets above run during render.
-    if (view !== 'knowledge' || !documentFetchReady) {
+    if (view() !== 'knowledge' || !documentFetchReady()) {
       documentListRequestRef.current += 1
       documentListAbortRef.current?.abort()
       documentPageLoadingRef.current = false
@@ -500,9 +607,9 @@ function CortanaApplication() {
     const requestedScope = documentScopeRef.current
     documentPageLoadingRef.current = true
     void getDocuments(
-      effectiveWorkspace || undefined,
-      source || undefined,
-      debouncedDocumentQuery || undefined,
+      effectiveWorkspace() || undefined,
+      source() || undefined,
+      debouncedDocumentQuery() || undefined,
       undefined,
       controller.signal
     )
@@ -531,7 +638,7 @@ function CortanaApplication() {
           setDocumentsLoading(false)
         }
       })
-    return () => {
+    return onCleanup(() => {
       controller.abort()
       if (
         documentListRequestRef.current === requestId &&
@@ -540,41 +647,33 @@ function CortanaApplication() {
         documentPageLoadingRef.current = false
         setDocumentsLoading(false)
       }
-    }
-  }, [
-    debouncedDocumentQuery,
-    desktopSettings,
-    documentFetchReady,
-    documentRetryNonce,
-    source,
-    view,
-    effectiveWorkspace,
-  ])
-
-  const graphScopeKey = [
-    view,
-    workspaceTab,
-    documentFetchReady,
-    source,
-    effectiveWorkspace,
-    debouncedDocumentQuery,
-    graphRetryNonce,
-    graphFocusDocumentId,
-    graphEdgeKind,
-    graphOrigin,
-    graphMinConfidence,
-  ].join('\u0000')
-  const [previousGraphScopeKey, setPreviousGraphScopeKey] = useState(graphScopeKey)
-  if (graphScopeKey !== previousGraphScopeKey) {
-    setPreviousGraphScopeKey(graphScopeKey)
+    })
+  })
+  const graphScopeKey = () =>
+    [
+      view(),
+      workspaceTab(),
+      documentFetchReady(),
+      source(),
+      effectiveWorkspace(),
+      debouncedDocumentQuery(),
+      graphRetryNonce(),
+      graphFocusDocumentId(),
+      graphEdgeKind(),
+      graphOrigin(),
+      graphMinConfidence(),
+    ].join('\u0000')
+  const [previousGraphScopeKey, setPreviousGraphScopeKey] = createSignal(graphScopeKey())
+  createEffect(() => {
+    if (graphScopeKey() === previousGraphScopeKey()) return
+    setPreviousGraphScopeKey(graphScopeKey())
     setGraph(null)
     setGraphError('')
-    setGraphLoading(view === 'knowledge' && workspaceTab === 'graph' && documentFetchReady)
+    setGraphLoading(view() === 'knowledge' && workspaceTab() === 'graph' && documentFetchReady())
     setGraphAppendLoading(false)
-  }
-
-  useEffect(() => {
-    if (view !== 'knowledge' || workspaceTab !== 'graph' || !documentFetchReady) {
+  })
+  createEffect(() => {
+    if (view() !== 'knowledge' || workspaceTab() !== 'graph' || !documentFetchReady()) {
       graphRequestRef.current += 1
       graphAbortRef.current?.abort()
       graphAppendRequestRef.current += 1
@@ -586,16 +685,22 @@ function CortanaApplication() {
     graphAbortRef.current = controller
     graphAppendRequestRef.current += 1
     void getGraph(
-      effectiveWorkspace || undefined,
-      source || undefined,
-      debouncedDocumentQuery || undefined,
+      effectiveWorkspace() || undefined,
+      source() || undefined,
+      debouncedDocumentQuery() || undefined,
       undefined,
       controller.signal,
       {
-        focusDocumentId: graphFocusDocumentId || undefined,
-        edgeKind: graphEdgeKind === 'all' ? undefined : graphEdgeKind,
-        origin: graphOrigin === 'all' ? undefined : graphOrigin,
-        minConfidence: graphMinConfidence ?? undefined,
+        focusDocumentId: graphFocusDocumentId() || undefined,
+        edgeKind:
+          graphEdgeKind() === 'all'
+            ? undefined
+            : (graphEdgeKind() as BrainGraphPage['edges'][number]['kind']),
+        origin:
+          graphOrigin() === 'all'
+            ? undefined
+            : (graphOrigin() as NonNullable<BrainGraphPage['edges'][number]['origin']>),
+        minConfidence: graphMinConfidence() ?? undefined,
       }
     )
       .then((result) => {
@@ -613,31 +718,18 @@ function CortanaApplication() {
           setGraphLoading(false)
         }
       })
-    return () => controller.abort()
-  }, [
-    debouncedDocumentQuery,
-    documentFetchReady,
-    graphRetryNonce,
-    graphFocusDocumentId,
-    graphEdgeKind,
-    graphOrigin,
-    graphMinConfidence,
-    source,
-    view,
-    effectiveWorkspace,
-    workspaceTab,
-  ])
-
+    return onCleanup(() => controller.abort())
+  })
   function loadMoreGraph() {
-    const current = graph
+    const current = graph()
     const cursor = current?.next_cursor
-    if (!cursor || graphLoading || graphAppendLoading) return
+    if (!cursor || graphLoading() || graphAppendLoading()) return
     const requestId = ++graphAppendRequestRef.current
     setGraphAppendLoading(true)
     void getGraph(
-      effectiveWorkspace || undefined,
-      source || undefined,
-      debouncedDocumentQuery || undefined,
+      effectiveWorkspace() || undefined,
+      source() || undefined,
+      debouncedDocumentQuery() || undefined,
       cursor
     )
       .then((result) => {
@@ -655,7 +747,11 @@ function CortanaApplication() {
             const edgeId = `${edge.source}:${edge.target}:${edge.kind}`
             if (!edgeIds.has(edgeId)) edges.push(edge)
           }
-          return { nodes, edges, next_cursor: result.next_cursor }
+          return {
+            nodes,
+            edges,
+            next_cursor: result.next_cursor,
+          }
         })
         return null
       })
@@ -668,8 +764,7 @@ function CortanaApplication() {
         if (graphAppendRequestRef.current === requestId) setGraphAppendLoading(false)
       })
   }
-
-  useEffect(() => {
+  createEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       const modifier = event.metaKey || event.ctrlKey
       const target = event.target as HTMLElement | null
@@ -711,10 +806,9 @@ function CortanaApplication() {
       }
     }
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
-
-  useEffect(() => {
+    return onCleanup(() => window.removeEventListener('keydown', handleKeyDown))
+  })
+  createEffect(() => {
     function clampPaneWidths() {
       if (window.innerWidth <= 1280) return
       const available = window.innerWidth - 72 - 520
@@ -725,10 +819,9 @@ function CortanaApplication() {
     }
     window.addEventListener('resize', clampPaneWidths)
     clampPaneWidths()
-    return () => window.removeEventListener('resize', clampPaneWidths)
-  }, [])
-
-  useEffect(() => {
+    return onCleanup(() => window.removeEventListener('resize', clampPaneWidths))
+  })
+  createEffect(() => {
     if (!isDesktopApp) return
     const requestId = ++desktopSettingsRequestRef.current
     const infoRequestId = ++desktopInfoRequestRef.current
@@ -766,18 +859,17 @@ function CortanaApplication() {
       .catch(() => {
         // The Updates section will surface a more specific updater error.
       })
-    return () => {
+    return onCleanup(() => {
       active = false
       desktopInfoRequestRef.current += 1
       desktopUpdateRequestRef.current += 1
       if (desktopSettingsRequestRef.current === requestId) {
         desktopSettingsRequestRef.current += 1
       }
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!isDesktopApp || !pageVisible) return
+    })
+  })
+  createEffect(() => {
+    if (!isDesktopApp || !pageVisible()) return
     let disposed = false
     let requestInFlight = false
     const refresh = () => {
@@ -804,19 +896,20 @@ function CortanaApplication() {
     }
     refresh()
     const timer = window.setInterval(refresh, STATUS_REFRESH_MS)
-    return () => {
+    return onCleanup(() => {
       disposed = true
       window.clearInterval(timer)
       desktopServicesRequestRef.current += 1
-    }
-  }, [pageVisible])
-
-  useEffect(() => {
+    })
+  })
+  createEffect(() => {
     if (!isDesktopApp) return
-    const completed = sourceJobs.jobs.filter(
-      (job) =>
-        job.completed_at_unix_seconds !== null && !['running', 'cancelling'].includes(job.status)
-    )
+    const completed = sourceJobs
+      .jobs()
+      .filter(
+        (job) =>
+          job.completed_at_unix_seconds !== null && !['running', 'cancelling'].includes(job.status)
+      )
     const completedIds = new Set(completed.map((job) => job.id))
     for (const id of refreshedSourceJobsRef.current) {
       if (!completedIds.has(id)) refreshedSourceJobsRef.current.delete(id)
@@ -824,7 +917,6 @@ function CortanaApplication() {
     const unseen = completed.filter((job) => !refreshedSourceJobsRef.current.has(job.id))
     if (unseen.length === 0) return
     unseen.forEach((job) => refreshedSourceJobsRef.current.add(job.id))
-
     let active = true
     const requestId = ++statusRequestRef.current
     void getStatus()
@@ -838,20 +930,19 @@ function CortanaApplication() {
         if (!active || statusRequestRef.current !== requestId) return
         setStatusError(caught instanceof Error ? caught.message : 'Status unavailable')
       })
-    return () => {
+    return onCleanup(() => {
       active = false
       if (statusRequestRef.current === requestId) statusRequestRef.current += 1
-    }
-  }, [sourceJobs.jobs])
-
-  useEffect(() => {
-    if (!isDesktopApp || !installerJobId || !installerActive || !pageVisible) return
+    })
+  })
+  createEffect(() => {
+    if (!isDesktopApp || !installerJobId() || !installerActive() || !pageVisible()) return
     let disposed = false
     let requestInFlight = false
     const poll = () => {
       if (disposed || requestInFlight) return
       requestInFlight = true
-      void getDesktopInstaller(installerJobId)
+      void getDesktopInstaller(installerJobId()!)
         .then((result) => {
           if (!disposed) setInstallerJob(result)
           return null
@@ -868,19 +959,18 @@ function CortanaApplication() {
     }
     poll()
     const timer = window.setInterval(poll, INSTALLER_POLL_MS)
-    return () => {
+    return onCleanup(() => {
       disposed = true
       window.clearInterval(timer)
-    }
-  }, [installerJobId, installerActive, pageVisible])
-
-  useEffect(() => {
+    })
+  })
+  createEffect(() => {
     const previous = installerStatusRef.current
-    installerStatusRef.current = installerStatus
+    installerStatusRef.current = installerStatus()
     if (
       !isDesktopApp ||
-      !installerStatus ||
-      installerStatus !== 'succeeded' ||
+      !installerStatus() ||
+      installerStatus() !== 'succeeded' ||
       previous === 'succeeded' ||
       !previous ||
       !['running', 'cancelling'].includes(previous)
@@ -890,14 +980,13 @@ function CortanaApplication() {
     // The shell owns installer polling, so it also owns the post-install
     // readiness scan. This keeps the result when Settings is unmounted.
     void runReadinessScan().catch(() => {})
-  }, [installerStatus, runReadinessScan])
-
-  useEffect(() => {
+  })
+  createEffect(() => {
     if (
       !isDesktopApp ||
-      !desktopUpdatePhase ||
-      !['downloading', 'installing', 'cancelling'].includes(desktopUpdatePhase) ||
-      !pageVisible
+      !desktopUpdatePhase() ||
+      !['downloading', 'installing', 'cancelling'].includes(desktopUpdatePhase()!) ||
+      !pageVisible()
     ) {
       return
     }
@@ -920,22 +1009,16 @@ function CortanaApplication() {
     }
     poll()
     const timer = window.setInterval(poll, 400)
-    return () => {
+    return onCleanup(() => {
       disposed = true
       window.clearInterval(timer)
-    }
-  }, [desktopUpdatePhase, pageVisible])
-
-  const agentContext = useMemo(
-    () => buildAgentContext(activeQuery, evidence),
-    [activeQuery, evidence]
-  )
-
+    })
+  })
+  const agentContext = createMemo(() => buildAgentContext(activeQuery(), evidence()))
   function boundDocumentQuery(boundedQuery: string) {
     if (textEncoder.encode(boundedQuery).length <= MAX_DOCUMENT_QUERY_BYTES) {
       return boundedQuery
     }
-
     const parts: string[] = []
     let bytes = 0
     for (const token of boundedQuery) {
@@ -946,25 +1029,22 @@ function CortanaApplication() {
     }
     return parts.join('')
   }
-
-  const abortSearchRequest = useCallback((): void => {
+  const abortSearchRequest = (): void => {
     // A connector or test double may resolve after AbortController fires. The
     // generation check keeps that stale result from returning to the shell.
     searchRequestRef.current += 1
     searchAbortRef.current?.abort()
     setLoading(false)
     setError('')
-  }, [])
-
-  const abortContextRequest = useCallback((): void => {
+  }
+  const abortContextRequest = (): void => {
     contextRequestRef.current += 1
     contextAbortRef.current?.abort()
     setContextBundle(null)
     setContextLoading(false)
     setContextError('')
-  }, [])
-
-  const clearScopedResults = useCallback((): void => {
+  }
+  const clearScopedResults = (): void => {
     documentListRequestRef.current += 1
     documentListAbortRef.current?.abort()
     documentSelectRequestRef.current += 1
@@ -989,30 +1069,24 @@ function CortanaApplication() {
     setGraphFocusDocumentId(null)
     setGraphFocusHistory([null])
     setGraphFocusHistoryIndex(0)
-  }, [])
-
-  const scopeSources = useCallback(
-    (nextWorkspace: string, nextSource = source) => {
-      const nextScope = searchScope(nextSource, nextWorkspace, query)
-      searchScopeRef.current = nextScope
-      contextScopeRef.current = contextScope(activeQuery, nextWorkspace, nextSource)
-    },
-    [activeQuery, query, source]
-  )
-
+  }
+  const scopeSources = (nextWorkspace: string, nextSource = source()) => {
+    const nextScope = searchScope(nextSource, nextWorkspace, query())
+    searchScopeRef.current = nextScope
+    contextScopeRef.current = contextScope(activeQuery(), nextWorkspace, nextSource)
+  }
   async function runSearch(
     value: string,
-    nextSource = source,
-    nextWorkspace = effectiveWorkspace,
+    nextSource = source(),
+    nextWorkspace = effectiveWorkspace(),
     recordHistory = true
   ) {
     if (recordHistory) {
-      const sliced = queryHistory.slice(0, queryHistoryIndex + 1)
+      const sliced = queryHistory().slice(0, queryHistoryIndex() + 1)
       const nextHistory = sliced.at(-1) === value ? sliced : [...sliced, value]
       setQueryHistory(nextHistory)
       setQueryHistoryIndex(nextHistory.length - 1)
     }
-
     const requestId = ++searchRequestRef.current
     const requestedScope = searchScope(nextSource, nextWorkspace, value)
     setLoading(true)
@@ -1060,12 +1134,11 @@ function CortanaApplication() {
       }
     }
   }
-
   async function runReflection() {
-    const value = query.trim()
-    if (!value || loading) return
+    const value = query().trim()
+    if (!value || loading()) return
     const requestId = ++searchRequestRef.current
-    const requestedScope = searchScope(source, effectiveWorkspace, value)
+    const requestedScope = searchScope(source(), effectiveWorkspace(), value)
     const controller = new AbortController()
     searchAbortRef.current?.abort()
     searchAbortRef.current = controller
@@ -1076,8 +1149,8 @@ function CortanaApplication() {
     try {
       const reflectionResult = await getReflection(
         value,
-        effectiveWorkspace || undefined,
-        source || undefined,
+        effectiveWorkspace() || undefined,
+        source() || undefined,
         controller.signal
       )
       if (searchRequestRef.current !== requestId || searchScopeRef.current !== requestedScope)
@@ -1094,10 +1167,9 @@ function CortanaApplication() {
       if (searchRequestRef.current === requestId && !controller.signal.aborted) setLoading(false)
     }
   }
-
-  function submit(event: FormEvent) {
+  function submit(event: SubmitEvent) {
     event.preventDefault()
-    const value = query.trim()
+    const value = query().trim()
     if (!value || !canLeaveSettings()) return
     // The title-bar search is global, so submitting it from a utility or
     // settings view must return to the answer surface; otherwise the request
@@ -1105,30 +1177,27 @@ function CortanaApplication() {
     setView('knowledge')
     void runSearch(value)
   }
-
   function configuredSourceFor(sourceName: string, project: string) {
-    return desktopSettings?.sources.find(
+    return desktopSettings()?.sources.find(
       (candidate) =>
         candidate.project === project &&
         (candidate.name === sourceName || candidate.source === sourceName)
     )
   }
-
-  function openSettingsAt(section: typeof settingsSection) {
+  function openSettingsAt(section: 'readiness' | 'services' | 'updates' | 'sources' | 'memory') {
     if (!canLeaveSettings()) return
     setSettingsSection(section)
     setView('settings')
   }
-
   async function toggleSource(nextSource: string, project: string, enabled: boolean) {
     const key = `${project}:${nextSource}`
-    if (sourceToggleBusy) return
-    if (!isDesktopApp || !desktopSettings) {
+    if (sourceToggleBusy()) return
+    if (!isDesktopApp || !desktopSettings()) {
       setSettingsSection('sources')
       setView('settings')
       return
     }
-    if (settingsDirty) {
+    if (settingsDirty()) {
       setSourceToggleError('Save or discard settings changes before toggling a source.')
       setSettingsSection('sources')
       setView('settings')
@@ -1143,8 +1212,7 @@ function CortanaApplication() {
     }
     if (
       !window.confirm(
-        `${enabled ? 'Enable' : 'Disable'} ${nextSource} in ${project}?\n\n` +
-          'This changes future ingestion only. Existing indexed data remains queryable and is not deleted.'
+        `${enabled ? 'Enable' : 'Disable'} ${nextSource} in ${project}?\n\nThis changes future ingestion only. Existing indexed data remains queryable and is not deleted.`
       )
     ) {
       return
@@ -1154,16 +1222,21 @@ function CortanaApplication() {
     setSourceToggleNotice('')
     try {
       const next = await saveDesktopSettings({
-        workspaces: desktopSettings.workspaces,
-        sources: desktopSettings.sources.map((candidate) =>
-          candidate === current ? { ...candidate, enabled } : candidate
+        workspaces: desktopSettings()!.workspaces,
+        sources: desktopSettings()!.sources.map((candidate) =>
+          candidate === current
+            ? {
+                ...candidate,
+                enabled,
+              }
+            : candidate
         ),
-        auth_principals: desktopSettings.auth_principals,
-        embedding: desktopSettings.embedding,
-        query: desktopSettings.query,
-        memory: desktopSettings.memory,
-        ingestion: desktopSettings.ingestion,
-        runtime: desktopSettings.runtime,
+        auth_principals: desktopSettings()!.auth_principals,
+        embedding: desktopSettings()!.embedding,
+        query: desktopSettings()!.query,
+        memory: desktopSettings()!.memory,
+        ingestion: desktopSettings()!.ingestion,
+        runtime: desktopSettings()!.runtime,
         secrets: [],
       })
       applyDesktopSettings(next)
@@ -1188,7 +1261,10 @@ function CortanaApplication() {
               status: 'succeeded',
               detail: null,
             })
-            applyDesktopSettings({ ...next, restart_required: false })
+            applyDesktopSettings({
+              ...next,
+              restart_required: false,
+            })
             setSourceToggleNotice(
               'Source setting saved. Affected services restarted in the background.'
             )
@@ -1203,8 +1279,7 @@ function CortanaApplication() {
               detail,
             })
             setSourceToggleError(
-              `Source setting saved, but the service restart failed (${detail}). ` +
-                'Open Settings → Services to restart the affected services manually.'
+              `Source setting saved, but the service restart failed (${detail}). Open Settings → Services to restart the affected services manually.`
             )
           })
       } else {
@@ -1227,10 +1302,9 @@ function CortanaApplication() {
       setSourceToggleBusy(null)
     }
   }
-
   async function openSourceSetup(sourceName: string, project: string) {
-    if (sourceToggleBusy) return
-    if (!isDesktopApp || !desktopSettings || desktopSettings.needs_setup || settingsDirty) {
+    if (sourceToggleBusy()) return
+    if (!isDesktopApp || !desktopSettings() || desktopSettings()!.needs_setup || settingsDirty()) {
       setSettingsSection('sources')
       setView('settings')
       return
@@ -1267,10 +1341,9 @@ function CortanaApplication() {
       setSourceToggleBusy(null)
     }
   }
-
   async function authorizeSource(sourceName: string, project: string) {
-    if (sourceToggleBusy) return
-    if (!isDesktopApp || !desktopSettings || desktopSettings.needs_setup || settingsDirty) {
+    if (sourceToggleBusy()) return
+    if (!isDesktopApp || !desktopSettings() || desktopSettings()!.needs_setup || settingsDirty()) {
       setSettingsSection('sources')
       setView('settings')
       return
@@ -1284,8 +1357,7 @@ function CortanaApplication() {
     }
     if (
       !window.confirm(
-        `Authorize ${sourceName} in ${project} with Google?\n\n` +
-          'Cortana will open the system browser and store the read-only token in the configured private file.'
+        `Authorize ${sourceName} in ${project} with Google?\n\nCortana will open the system browser and store the read-only token in the configured private file.`
       )
     ) {
       return
@@ -1305,17 +1377,16 @@ function CortanaApplication() {
       setSourceToggleBusy(null)
     }
   }
-
   function chooseSource(next: string, project?: string, toggle = true) {
-    const requestedWorkspace = project ?? workspace
-    const nextWorkspace = requestedWorkspace || (workspaces[0]?.id ?? '')
-    const sameScope = toggle && source === next && workspace === nextWorkspace
+    const requestedWorkspace = project ?? workspace()
+    const nextWorkspace = requestedWorkspace || (workspaces()[0]?.id ?? '')
+    const sameScope = toggle && source() === next && workspace() === nextWorkspace
     const nextSource = sameScope ? '' : next
     abortSearchRequest()
     abortContextRequest()
     clearScopedResults()
     scopeSources(nextWorkspace, nextSource)
-    if (project || workspace !== nextWorkspace) {
+    if (project || workspace() !== nextWorkspace) {
       setWorkspace(nextWorkspace)
       if (isDesktopApp) {
         writeWorkspacePreference(nextWorkspace)
@@ -1327,35 +1398,22 @@ function CortanaApplication() {
     setSource(nextSource)
     setLeftOpen(false)
   }
-
-  const chooseWorkspace = useCallback(
-    (next: string) => {
-      const nextWorkspace = next || (workspaces[0]?.id ?? '')
-      const nextSource = ''
-      if (nextWorkspace !== effectiveWorkspace || source !== nextSource) {
-        abortSearchRequest()
-        abortContextRequest()
-        clearScopedResults()
-      }
+  const chooseWorkspace = (next: string) => {
+    const nextWorkspace = next || (workspaces()[0]?.id ?? '')
+    const nextSource = ''
+    if (nextWorkspace !== effectiveWorkspace() || source() !== nextSource) {
+      abortSearchRequest()
+      abortContextRequest()
+      clearScopedResults()
       scopeSources(nextWorkspace, nextSource)
-      setWorkspace(nextWorkspace)
-      setSource(nextSource)
-      if (isDesktopApp) {
-        writeWorkspacePreference(nextWorkspace)
-        writeSourceSelectionPreference(nextSource)
-      }
-    },
-    [
-      abortContextRequest,
-      abortSearchRequest,
-      clearScopedResults,
-      effectiveWorkspace,
-      scopeSources,
-      source,
-      workspaces,
-    ]
-  )
-
+    }
+    setWorkspace(nextWorkspace)
+    setSource(nextSource)
+    if (isDesktopApp) {
+      writeWorkspacePreference(nextWorkspace)
+      writeSourceSelectionPreference(nextSource)
+    }
+  }
   function focusGraphNode(node: BrainGraphNode) {
     if (node.kind === 'document' && node.document_id) {
       navigateGraphFocus(node.document_id)
@@ -1369,24 +1427,21 @@ function CortanaApplication() {
       chooseSource(node.source, node.project, false)
     }
   }
-
   function navigateGraphFocus(documentId: string | null) {
-    if (documentId === graphFocusDocumentId) return
-    const nextHistory = [...graphFocusHistory.slice(0, graphFocusHistoryIndex + 1), documentId]
+    if (documentId === graphFocusDocumentId()) return
+    const nextHistory = [...graphFocusHistory().slice(0, graphFocusHistoryIndex() + 1), documentId]
     setGraphFocusHistory(nextHistory)
     setGraphFocusHistoryIndex(nextHistory.length - 1)
     setGraphFocusDocumentId(documentId)
   }
-
   function navigateGraphHistory(offset: -1 | 1) {
-    const nextIndex = graphFocusHistoryIndex + offset
-    if (nextIndex < 0 || nextIndex >= graphFocusHistory.length) return
+    const nextIndex = graphFocusHistoryIndex() + offset
+    if (nextIndex < 0 || nextIndex >= graphFocusHistory().length) return
     setGraphFocusHistoryIndex(nextIndex)
-    setGraphFocusDocumentId(graphFocusHistory[nextIndex] ?? null)
+    setGraphFocusDocumentId(graphFocusHistory()[nextIndex] ?? null)
   }
-
   async function loadMoreDocuments() {
-    if (!documentCursor || documentsLoading || documentPageLoadingRef.current) return
+    if (!documentCursor() || documentsLoading() || documentPageLoadingRef.current) return
     const requestedScope = documentScopeRef.current
     const requestId = ++documentListRequestRef.current
     const controller = new AbortController()
@@ -1397,10 +1452,10 @@ function CortanaApplication() {
     setDocumentsError('')
     try {
       const page = await getDocuments(
-        effectiveWorkspace || undefined,
-        source || undefined,
-        debouncedDocumentQuery || undefined,
-        documentCursor,
+        effectiveWorkspace() || undefined,
+        source() || undefined,
+        debouncedDocumentQuery() || undefined,
+        documentCursor() ?? undefined,
         controller.signal
       )
       if (documentListRequestRef.current !== requestId) return
@@ -1427,7 +1482,6 @@ function CortanaApplication() {
       }
     }
   }
-
   async function chooseDocument(id: string) {
     const requestId = ++documentSelectRequestRef.current
     const controller = new AbortController()
@@ -1454,10 +1508,9 @@ function CortanaApplication() {
       }
     }
   }
-
   async function retrieveAgentContext() {
     const requestId = ++contextRequestRef.current
-    const requestedScope = contextScope(activeQuery, effectiveWorkspace, source)
+    const requestedScope = contextScope(activeQuery(), effectiveWorkspace(), source())
     setContextLoading(true)
     setContextError('')
     contextScopeRef.current = requestedScope
@@ -1466,9 +1519,9 @@ function CortanaApplication() {
     contextAbortRef.current = controller
     try {
       const next = await getContext(
-        activeQuery,
-        effectiveWorkspace || undefined,
-        source || undefined,
+        activeQuery(),
+        effectiveWorkspace() || undefined,
+        source() || undefined,
         controller.signal
       )
       if (contextRequestRef.current !== requestId || contextScopeRef.current !== requestedScope) {
@@ -1495,37 +1548,33 @@ function CortanaApplication() {
       }
     }
   }
-
   function canLeaveSettings() {
-    if (view !== 'settings' || !settingsDirty) return true
+    if (view() !== 'settings' || !settingsDirty()) return true
     const leave = window.confirm('Discard unsaved Cortana settings changes?')
     if (leave) setSettingsDirty(false)
     return leave
   }
-
   function navigate(next: AppView) {
     if (next !== 'settings' && !canLeaveSettings()) return
     setView(next)
-    if (next === 'knowledge') setWorkspaceTab('document')
+    // Returning to Knowledge restores the default tab unless the last
+    // surface is the completed answer, which stays the active result.
+    if (next === 'knowledge' && workspaceTab() !== 'answer') setWorkspaceTab('document')
   }
-
   function focusSearch() {
     if (!canLeaveSettings()) return
     setView('knowledge')
-    searchRef.current?.focus()
-    searchRef.current?.select()
+    focusWhenReady(() => searchRef.current, true)
   }
-
   function focusDocumentFilter() {
     if (!canLeaveSettings()) return
     setView('knowledge')
     setLeftOpen(true)
     // The source panel is hidden while the graph is full-screen; leave the
     // graph so the filter and document list are reachable again.
-    if (workspaceTab === 'graph') setWorkspaceTab('document')
-    window.setTimeout(() => document.getElementById('document-filter')?.focus(), 0)
+    if (workspaceTab() === 'graph') setWorkspaceTab('document')
+    focusWhenReady(() => document.getElementById('document-filter') as HTMLElement | null)
   }
-
   function panelOrigin(origin?: HTMLElement | null) {
     return (
       origin ??
@@ -1534,18 +1583,15 @@ function CortanaApplication() {
         : searchRef.current)
     )
   }
-
   function openSourcePanel(origin?: HTMLElement | null) {
     sourcePanelOriginRef.current = panelOrigin(origin)
     setLeftOpen(true)
-    if (workspaceTab === 'graph') setWorkspaceTab('document')
+    if (workspaceTab() === 'graph') setWorkspaceTab('document')
   }
-
   function openContextPanel(origin?: HTMLElement | null) {
     contextPanelOriginRef.current = panelOrigin(origin)
     setRightOpen(true)
   }
-
   function openCommandPalette(origin?: HTMLElement | null) {
     commandPaletteOriginRef.current =
       origin ??
@@ -1554,10 +1600,9 @@ function CortanaApplication() {
         : searchRef.current)
     setCommandPaletteOpen(true)
   }
-
   function cancelSourceJob(id: string) {
     if (sourceCancelInFlightRef.current.has(id)) return
-    const current = sourceJobs.jobs.find((job) => job.id === id)
+    const current = sourceJobs.jobs().find((job) => job.id === id)
     if (!current || current.status !== 'running') return
     sourceCancelInFlightRef.current.add(id)
     sourceJobs.remember({
@@ -1581,38 +1626,35 @@ function CortanaApplication() {
         sourceCancelInFlightRef.current.delete(id)
       })
   }
-
-  const retryStatus = useCallback(() => {
+  const retryStatus = () => {
     statusRefreshRef.current?.()
-  }, [])
-
-  const retryDocuments = useCallback(() => {
+  }
+  const retryDocuments = () => {
     setDocumentsError('')
     setDocumentRetryNonce((current) => current + 1)
-  }, [])
-
+  }
   function openGraph() {
     if (!canLeaveSettings()) return
     setView('knowledge')
     setWorkspaceTab('graph')
   }
-
   function retryGraph() {
     setGraphRetryNonce((current) => current + 1)
   }
-
   function maximumPaneWidth(side: 'source' | 'context') {
     if (window.innerWidth <= 1280) return 520
     return Math.max(
       side === 'source' ? 220 : 280,
-      Math.min(520, window.innerWidth - 72 - 520 - (side === 'source' ? contextWidth : sourceWidth))
+      Math.min(
+        520,
+        window.innerWidth - 72 - 520 - (side === 'source' ? contextWidth() : sourceWidth())
+      )
     )
   }
-
-  function beginResize(side: 'source' | 'context', event: ReactPointerEvent<HTMLDivElement>) {
+  function beginResize(side: 'source' | 'context', event: PointerEvent) {
     event.preventDefault()
     const startX = event.clientX
-    const startWidth = side === 'source' ? sourceWidth : contextWidth
+    const startWidth = side === 'source' ? sourceWidth() : contextWidth()
     const move = (moveEvent: PointerEvent) => {
       const delta = moveEvent.clientX - startX
       const width = side === 'source' ? startWidth + delta : startWidth - delta
@@ -1628,106 +1670,106 @@ function CortanaApplication() {
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', stop)
   }
-
-  const configuredSourcesForWorkspace = useMemo(() => {
-    if (!effectiveWorkspace) return []
+  const configuredSourcesForWorkspace = createMemo(() => {
+    if (!effectiveWorkspace()) return []
     return Array.from(
       new Set([
-        ...(desktopSettings?.sources ?? [])
-          .filter((item) => item.project === effectiveWorkspace)
+        ...(desktopSettings()?.sources ?? [])
+          .filter((item) => item.project === effectiveWorkspace())
           .flatMap((item) =>
             [item.name, item.source].filter((value): value is string => Boolean(value))
           ),
-        ...(status?.ingestion.configured_sources ?? [])
-          .filter((item) => item.project === effectiveWorkspace)
+        ...(status()?.ingestion.configured_sources ?? [])
+          .filter((item) => item.project === effectiveWorkspace())
           .map((item) => item.source),
-        ...(status?.sources ?? [])
-          .filter((item) => item.project === effectiveWorkspace)
+        ...(status()?.sources ?? [])
+          .filter((item) => item.project === effectiveWorkspace())
           .map((item) => item.source),
       ])
     )
-  }, [desktopSettings?.sources, effectiveWorkspace, status])
+  })
   // Settings may arrive before the runtime status call. An empty settings
   // source list is not enough evidence to evict a persisted source because
   // the runtime may still report configured/indexed sources shortly after
   // launch. Treat the inventory as authoritative once status is available,
   // or once non-empty saved source settings are present.
-  const sourceInventoryReady = status !== null || (desktopSettings?.sources.length ?? 0) > 0
-  const desktopSourceActionsReady =
+  const sourceInventoryReady = () =>
+    status() !== null || (desktopSettings()?.sources.length ?? 0) > 0
+  const desktopSourceActionsReady = () =>
     isDesktopApp &&
-    desktopSettings !== null &&
-    !desktopSettings.needs_setup &&
-    desktopSettings.sources.length > 0
-
-  const workspaceScope = workspaces.map((item) => item.id).join('\u0000')
-
-  useEffect(() => {
-    if (!workspaceScope) return
-    if (workspace && workspaces.some((item) => item.id === workspace)) return
-    // oxlint-disable-next-line react/set-state-in-effect -- reconciles the workspace selection with the loaded inventory and persists it
-    chooseWorkspace(workspaces[0]?.id ?? '')
-  }, [workspace, workspaceScope, workspaces, chooseWorkspace])
-
-  useEffect(() => {
-    if (!isDesktopApp || !source) return
-    if (!sourceInventoryReady || configuredSourcesForWorkspace.includes(source)) return
+    desktopSettings() !== null &&
+    !desktopSettings()!.needs_setup &&
+    desktopSettings()!.sources.length > 0
+  const workspaceScope = () =>
+    workspaces()
+      .map((item) => item.id)
+      .join('\u0000')
+  createEffect(() => {
+    if (!workspaceScope()) return
+    // Wait for the canonical workspace inventory before auto-selecting; the
+    // status-derived fallback list has a different order and would leave the
+    // shell pinned to the wrong workspace.
+    if (isDesktopApp && desktopSettings() === null) return
+    if (workspace() && workspaces().some((item) => item.id === workspace())) return
+    // reconciles the workspace selection with the loaded inventory and persists it
+    chooseWorkspace(workspaces()[0]?.id ?? '')
+  })
+  createEffect(() => {
+    if (!isDesktopApp || !source()) return
+    if (isDesktopApp && desktopSettings() === null) return
+    if (!sourceInventoryReady() || configuredSourcesForWorkspace().includes(source())) return
     writeSourceSelectionPreference('')
-    // oxlint-disable-next-line react/set-state-in-effect -- evicts a source no longer in the configured inventory; also persists and rescopes
+    // evicts a source no longer in the configured inventory; also persists and rescopes
     setSource('')
-    scopeSources(effectiveWorkspace, '')
-  }, [
-    effectiveWorkspace,
-    source,
-    sourceInventoryReady,
-    configuredSourcesForWorkspace,
-    scopeSources,
-  ])
+    scopeSources(effectiveWorkspace(), '')
+  })
 
   // The Graph rail is a full-screen alternative to the document workspace:
   // while it is active the source and context panels collapse so the graph
   // spans the whole width between the rail and the status bar.
-  const graphFullScreen = view === 'knowledge' && workspaceTab === 'graph'
-
+  const graphFullScreen = () => view() === 'knowledge' && workspaceTab() === 'graph'
   return (
     <M7ShellProvider>
       <div
-        className={cn('shell m7-production-shell', graphFullScreen && 'graph-fullscreen')}
+        class={cn('shell m7-production-shell', graphFullScreen() && 'graph-fullscreen')}
         data-m7-production-shell-ready={''}
         style={
           {
-            '--source-width': graphFullScreen ? '0px' : `${sourceWidth}px`,
-            '--context-width': graphFullScreen ? '0px' : `${contextWidth}px`,
-          } as CSSProperties
+            '--source-width': graphFullScreen() ? '0px' : `${sourceWidth()}px`,
+            '--context-width': graphFullScreen() ? '0px' : `${contextWidth()}px`,
+          } as JSX.CSSProperties
         }
       >
-        <a className={'m7-skip-link'} href="#main-content">
+        <a class={'m7-skip-link'} href="#main-content">
           Skip to main content
         </a>
         {
           <M7ApplicationHeader
-            query={query}
-            loading={loading}
+            query={query()}
+            loading={loading()}
             searchRef={searchRef}
-            canGoBack={queryHistoryIndex > 0}
-            canGoForward={queryHistoryIndex >= 0 && queryHistoryIndex < queryHistory.length - 1}
+            canGoBack={queryHistoryIndex() > 0}
+            canGoForward={
+              queryHistoryIndex() >= 0 && queryHistoryIndex() < queryHistory().length - 1
+            }
             onQueryChange={setQuery}
             onSubmit={submit}
             onReflect={() => void runReflection()}
             onHistoryBack={() => {
-              const nextIndex = queryHistoryIndex - 1
+              const nextIndex = queryHistoryIndex() - 1
               if (nextIndex < 0) return
-              const next = queryHistory[nextIndex]
+              const next = queryHistory()[nextIndex]
               setQueryHistoryIndex(nextIndex)
               setQuery(next)
-              void runSearch(next, source, effectiveWorkspace, false)
+              void runSearch(next, source(), effectiveWorkspace(), false)
             }}
             onHistoryForward={() => {
-              const nextIndex = queryHistoryIndex + 1
-              if (nextIndex >= queryHistory.length) return
-              const next = queryHistory[nextIndex]
+              const nextIndex = queryHistoryIndex() + 1
+              if (nextIndex >= queryHistory().length) return
+              const next = queryHistory()[nextIndex]
               setQueryHistoryIndex(nextIndex)
               setQuery(next)
-              void runSearch(next, source, effectiveWorkspace, false)
+              void runSearch(next, source(), effectiveWorkspace(), false)
             }}
             onOpenSources={openSourcePanel}
             onOpenFilters={focusDocumentFilter}
@@ -1735,69 +1777,69 @@ function CortanaApplication() {
             onOpenContext={openContextPanel}
             onOpenCommands={openCommandPalette}
             workspaceName={
-              workspaces.find((item) => item.id === effectiveWorkspace)?.name ?? 'Workspace'
+              workspaces().find((item) => item.id === effectiveWorkspace())?.name ?? 'Workspace'
             }
             location={
-              view === 'knowledge'
-                ? workspaceTab === 'graph'
+              view() === 'knowledge'
+                ? workspaceTab() === 'graph'
                   ? 'Graph'
-                  : workspaceTab === 'timeline'
+                  : workspaceTab() === 'timeline'
                     ? 'Timeline'
                     : 'Knowledge'
-                : view === 'agent-tools'
+                : view() === 'agent-tools'
                   ? 'Agent tools'
-                  : view[0].toUpperCase() + view.slice(1)
+                  : view()[0].toUpperCase() + view().slice(1)
             }
           />
         }
         {
           <M7ApplicationNavigation
             navigation={{
-              view,
-              workspaceTab,
+              view: view(),
+              workspaceTab: workspaceTab(),
               onNavigate: navigate,
               onOpenGraph: openGraph,
             }}
-            workspaces={workspaces}
-            workspace={effectiveWorkspace}
+            workspaces={workspaces()}
+            workspace={effectiveWorkspace()}
             onWorkspaceChange={chooseWorkspace}
           />
         }
-        {view === 'settings' ? (
+        {view() === 'settings' ? (
           <Suspense
             fallback={
-              <main id="main-content" className="settings-view" aria-busy="true">
+              <main id="main-content" class="settings-view" aria-busy="true">
                 <p role="status">
-                  <LoaderCircle className="spin" size={16} /> Loading settings…
+                  <LoaderCircle class="spin" size={16} /> Loading settings…
                 </p>
               </main>
             }
           >
             <SettingsView
-              desktopSettings={desktopSettings ?? undefined}
+              desktopSettings={desktopSettings() ?? undefined}
               onLoaded={applyDesktopSettings}
-              initialSection={settingsSection}
+              initialSection={settingsSection()}
               onDirtyChange={setSettingsDirty}
               onJob={sourceJobs.remember}
-              sourceJobs={sourceJobs.jobs}
-              installerJob={installerJob}
+              sourceJobs={sourceJobs.jobs()}
+              installerJob={installerJob()}
               onInstallerJob={setInstallerJob}
-              readiness={desktopReadiness}
+              readiness={desktopReadiness()}
               onReadiness={setDesktopReadiness}
-              readinessActivity={readinessActivity}
+              readinessActivity={readinessActivity()}
               onReadinessScan={runReadinessScan}
-              desktopUpdate={desktopUpdate ?? undefined}
+              desktopUpdate={desktopUpdate() ?? undefined}
               onDesktopUpdate={setDesktopUpdate}
-              services={desktopServices}
+              services={desktopServices()}
               onServices={(nextServices) => {
                 setDesktopServices(nextServices)
                 if (nextServices.activity) setServiceActivity(nextServices.activity)
               }}
-              servicesError={desktopServicesError}
+              servicesError={desktopServicesError()}
               onServicesError={setDesktopServicesError}
-              desktopInfo={desktopInfo}
+              desktopInfo={desktopInfo()}
               onDesktopInfo={setDesktopInfo}
-              serviceActivity={serviceActivity}
+              serviceActivity={serviceActivity()}
               onServiceActivity={setServiceActivity}
               onSaved={(next) => {
                 applyDesktopSettings(next)
@@ -1845,56 +1887,56 @@ function CortanaApplication() {
                     setStatusError('Status unavailable after saving settings')
                   })
                 if (
-                  !next.workspaces.some((item) => item.id === effectiveWorkspace) &&
+                  !next.workspaces.some((item) => item.id === effectiveWorkspace()) &&
                   next.workspaces.length > 0
                 ) {
                   chooseWorkspace(next.workspaces[0].id)
                 } else if (
-                  source &&
+                  source() &&
                   !next.sources.some(
                     (item) =>
-                      (item.name === source || item.source === source) &&
-                      (!effectiveWorkspace || item.project === effectiveWorkspace)
+                      (item.name === source() || item.source === source()) &&
+                      (!effectiveWorkspace() || item.project === effectiveWorkspace())
                   )
                 ) {
                   abortSearchRequest()
                   abortContextRequest()
                   clearScopedResults()
-                  scopeSources(effectiveWorkspace, '')
+                  scopeSources(effectiveWorkspace(), '')
                   setSource('')
                   if (isDesktopApp) writeSourceSelectionPreference('')
                 }
               }}
             />
           </Suspense>
-        ) : view === 'knowledge' ? (
+        ) : view() === 'knowledge' ? (
           <>
-            {!graphFullScreen && (
+            {!graphFullScreen() && (
               <M7PanelBoundary
                 side="left"
                 breakpoint={800}
-                open={leftOpen}
+                open={leftOpen()}
                 title="Sources and documents"
                 description="Choose the source or document used by the current workspace."
                 finalFocus={sourcePanelOriginRef}
                 onOpenChange={setLeftOpen}
               >
                 <SourcePanel
-                  open={leftOpen}
-                  status={status}
-                  workspace={effectiveWorkspace}
-                  workspaces={workspaces}
-                  documentQuery={documentQuery}
-                  selected={source}
-                  documents={documents}
-                  selectedDocument={activeDocument?.id ?? ''}
-                  documentsLoading={documentsLoading}
-                  documentsError={documentsError}
-                  hasMoreDocuments={Boolean(documentCursor)}
-                  statusError={statusError}
+                  open={leftOpen()}
+                  status={status()}
+                  workspace={effectiveWorkspace()}
+                  workspaces={workspaces()}
+                  documentQuery={documentQuery()}
+                  selected={source()}
+                  documents={documents()}
+                  selectedDocument={activeDocument()?.id ?? ''}
+                  documentsLoading={documentsLoading()}
+                  documentsError={documentsError()}
+                  hasMoreDocuments={Boolean(documentCursor())}
+                  statusError={statusError()}
                   onRetryStatus={retryStatus}
-                  sourceJobError={sourceJobsError}
-                  onRetrySourceJobs={sourceJobsRetry}
+                  sourceJobError={sourceJobsError()}
+                  onRetrySourceJobs={sourceJobsRetry()}
                   onSelect={chooseSource}
                   onDocumentQueryChange={setDocumentQuery}
                   onSelectDocument={(id) => void chooseDocument(id)}
@@ -1905,43 +1947,43 @@ function CortanaApplication() {
                     setView('settings')
                   }}
                   onOpenSourceSetup={
-                    desktopSourceActionsReady
+                    desktopSourceActionsReady()
                       ? (name, project) => void openSourceSetup(name, project)
                       : undefined
                   }
                   onAuthorizeSource={
-                    desktopSourceActionsReady
+                    desktopSourceActionsReady()
                       ? (name, project) => void authorizeSource(name, project)
                       : undefined
                   }
                   onToggleSource={
-                    desktopSourceActionsReady
+                    desktopSourceActionsReady()
                       ? (name, project, enabled) => void toggleSource(name, project, enabled)
                       : undefined
                   }
-                  sourceToggleBusy={sourceToggleBusy}
+                  sourceToggleBusy={sourceToggleBusy()}
                   sourceToggleDisabled={
-                    settingsDirty ||
-                    desktopSettings === null ||
-                    Boolean(desktopSettings?.needs_setup)
+                    settingsDirty() ||
+                    desktopSettings() === null ||
+                    Boolean(desktopSettings()?.needs_setup)
                   }
-                  sourceToggleError={sourceToggleError}
-                  sourceToggleNotice={sourceToggleNotice}
+                  sourceToggleError={sourceToggleError()}
+                  sourceToggleNotice={sourceToggleNotice()}
                   onClose={() => setLeftOpen(false)}
                   onCancelSourceJob={cancelSourceJob}
-                  jobs={sourceJobs.jobs}
+                  jobs={sourceJobs.jobs()}
                 />
               </M7PanelBoundary>
             )}
-            {!graphFullScreen && (
+            {!graphFullScreen() && (
               <div
-                className="pane-resizer source-resizer"
+                class="pane-resizer source-resizer"
                 role="separator"
                 aria-label="Resize sources panel"
                 aria-orientation="vertical"
                 aria-valuemin={220}
                 aria-valuemax={maximumPaneWidth('source')}
-                aria-valuenow={sourceWidth}
+                aria-valuenow={sourceWidth()}
                 tabIndex={0}
                 onPointerDown={(event) => beginResize('source', event)}
                 onKeyDown={(event) => {
@@ -1955,77 +1997,77 @@ function CortanaApplication() {
               />
             )}
             <Workspace
-              query={activeQuery}
-              answer={answer}
-              reflection={reflection}
-              evidence={evidence}
-              selected={selected}
-              loading={loading}
-              error={error}
-              document={activeDocument}
-              documentLoading={documentLoading}
-              graph={graph}
-              graphLoading={graphLoading}
-              graphError={graphError}
-              graphAppendLoading={graphAppendLoading}
+              query={activeQuery()}
+              answer={answer()}
+              reflection={reflection()}
+              evidence={evidence()}
+              selected={selected()}
+              loading={loading()}
+              error={error()}
+              document={activeDocument()}
+              documentLoading={documentLoading()}
+              graph={graph()}
+              graphLoading={graphLoading()}
+              graphError={graphError()}
+              graphAppendLoading={graphAppendLoading()}
               onLoadMoreGraph={loadMoreGraph}
               onRetryGraph={retryGraph}
-              tab={workspaceTab}
+              tab={workspaceTab()}
               onTabChange={setWorkspaceTab}
               onSelect={setSelected}
               onSelectDocument={(id) => void chooseDocument(id)}
               onFocusGraphNode={focusGraphNode}
-              graphFocused={graphFocusDocumentId !== null}
+              graphFocused={graphFocusDocumentId() !== null}
               onResetGraphFocus={() => navigateGraphFocus(null)}
-              graphCanGoBack={graphFocusHistoryIndex > 0}
-              graphCanGoForward={graphFocusHistoryIndex + 1 < graphFocusHistory.length}
+              graphCanGoBack={graphFocusHistoryIndex() > 0}
+              graphCanGoForward={graphFocusHistoryIndex() + 1 < graphFocusHistory().length}
               onGraphBack={() => navigateGraphHistory(-1)}
               onGraphForward={() => navigateGraphHistory(1)}
-              graphEdgeKind={graphEdgeKind}
+              graphEdgeKind={graphEdgeKind()}
               onGraphEdgeKindChange={setGraphEdgeKind}
-              graphOrigin={graphOrigin}
+              graphOrigin={graphOrigin()}
               onGraphOriginChange={setGraphOrigin}
-              graphMinConfidence={graphMinConfidence}
+              graphMinConfidence={graphMinConfidence()}
               onGraphMinConfidenceChange={setGraphMinConfidence}
-              onRetry={() => void runSearch(query)}
+              onRetry={() => void runSearch(query())}
             />
-            {!graphFullScreen && (
+            {!graphFullScreen() && (
               <M7PanelBoundary
                 side="right"
                 breakpoint={1281}
-                open={rightOpen}
+                open={rightOpen()}
                 title="Agent context"
                 description="Inspect the bounded evidence and native memory shared with agent integrations."
                 finalFocus={contextPanelOriginRef}
                 onOpenChange={setRightOpen}
               >
                 <ContextPanel
-                  open={rightOpen}
-                  query={activeQuery}
-                  evidence={evidence}
-                  answer={answer}
-                  selected={selected}
-                  status={status}
-                  context={agentContext}
-                  contextTokens={estimateTokens(agentContext)}
-                  serverContext={contextBundle}
-                  contextLoading={contextLoading}
-                  contextError={contextError}
+                  open={rightOpen()}
+                  query={activeQuery()}
+                  evidence={evidence()}
+                  answer={answer()}
+                  selected={selected()}
+                  status={status()}
+                  context={agentContext()}
+                  contextTokens={estimateTokens(agentContext())}
+                  serverContext={contextBundle()}
+                  contextLoading={contextLoading()}
+                  contextError={contextError()}
                   onRetrieveContext={() => void retrieveAgentContext()}
                   onSelect={setSelected}
                   onClose={() => setRightOpen(false)}
                 />
               </M7PanelBoundary>
             )}
-            {!graphFullScreen && (
+            {!graphFullScreen() && (
               <div
-                className="pane-resizer context-resizer"
+                class="pane-resizer context-resizer"
                 role="separator"
                 aria-label="Resize context panel"
                 aria-orientation="vertical"
                 aria-valuemin={280}
                 aria-valuemax={maximumPaneWidth('context')}
-                aria-valuenow={contextWidth}
+                aria-valuenow={contextWidth()}
                 tabIndex={0}
                 onPointerDown={(event) => beginResize('context', event)}
                 onKeyDown={(event) => {
@@ -2039,49 +2081,49 @@ function CortanaApplication() {
               />
             )}
           </>
-        ) : view === 'inbox' ? (
+        ) : view() === 'inbox' ? (
           <M7ActivityInbox
-            status={status}
-            statusError={statusError}
-            sourceJobs={sourceJobs.jobs}
-            sourceJobError={sourceJobsError}
-            onRetrySourceJobs={sourceJobsRetry}
+            status={status()}
+            statusError={statusError()}
+            sourceJobs={sourceJobs.jobs()}
+            sourceJobError={sourceJobsError()}
+            onRetrySourceJobs={sourceJobsRetry()}
             onOpenSettings={() => openSettingsAt('sources')}
             onRetryStatus={retryStatus}
             onCancelSourceJob={cancelSourceJob}
           />
         ) : (
           <UtilityView
-            kind={view}
-            status={status}
-            statusError={statusError}
+            kind={view() as UtilityKind}
+            status={status()}
+            statusError={statusError()}
             onRetryStatus={retryStatus}
-            sourceJobs={sourceJobs.jobs}
-            query={activeQuery}
-            answer={answer}
-            evidence={evidence}
-            loading={loading}
-            error={error}
-            contextBundle={contextBundle}
-            contextLoading={contextLoading}
-            contextError={contextError}
-            contextTokens={estimateTokens(agentContext)}
+            sourceJobs={sourceJobs.jobs()}
+            query={activeQuery()}
+            answer={answer()}
+            evidence={evidence()}
+            loading={loading()}
+            error={error()}
+            contextBundle={contextBundle()}
+            contextLoading={contextLoading()}
+            contextError={contextError()}
+            contextTokens={estimateTokens(agentContext())}
             desktopAvailable={isDesktopApp}
-            sourceJobError={sourceJobsError}
-            onRetrySourceJobs={sourceJobsRetry}
+            sourceJobError={sourceJobsError()}
+            onRetrySourceJobs={sourceJobsRetry()}
             onSearchFocus={focusSearch}
             onRetrieveContext={() => void retrieveAgentContext()}
-            onOpenSettings={() => openSettingsAt(view === 'index' ? 'sources' : 'services')}
+            onOpenSettings={() => openSettingsAt(view() === 'index' ? 'sources' : 'services')}
             onOpenProject={() => openDesktopProject()}
             onCancelSourceJob={cancelSourceJob}
           />
         )}
         {
           <M7CommandPalette
-            open={commandPaletteOpen}
+            open={commandPaletteOpen()}
             finalFocus={commandPaletteOriginRef}
             onOpenChange={setCommandPaletteOpen}
-            workspaces={workspaces}
+            workspaces={workspaces()}
             onSearch={focusSearch}
             onFilterDocuments={focusDocumentFilter}
             onChooseWorkspace={(nextWorkspace) => {
@@ -2093,41 +2135,41 @@ function CortanaApplication() {
         }
         {
           <M7StatusBar demo={isDemoMode}>
-            <span className={cn(statusError ? 'text-destructive' : 'text-foreground')}>
-              Index {statusError ? 'offline' : status ? 'online' : 'checking'}
+            <span class={cn(statusError() ? 'text-destructive' : 'text-foreground')}>
+              Index {statusError() ? 'offline' : status() ? 'online' : 'checking'}
             </span>
-            <span title={status?.embedding_fingerprint ?? undefined}>
-              Embedding: {embeddingLabel(status?.embedding_fingerprint)}
+            <span title={status()?.embedding_fingerprint ?? undefined}>
+              Embedding: {embeddingLabel(status()?.embedding_fingerprint)}
             </span>
-            <span>Query: {status?.query.mode ?? '—'}</span>
+            <span>Query: {status()?.query.mode ?? '—'}</span>
             <span>
-              <FileText className="mr-1 inline size-3" aria-hidden="true" />
-              Docs: {status ? status.documents.toLocaleString() : '—'}
+              <FileText class="mr-1 inline size-3" aria-hidden="true" />
+              Docs: {status() ? status()!.documents.toLocaleString() : '—'}
             </span>
-            <IngestionIndicator status={status} />
+            <IngestionIndicator status={status()} />
             <ActiveSourceJobs
-              jobs={sourceJobs.jobs}
+              jobs={sourceJobs.jobs()}
               onOpen={() => {
                 if (!canLeaveSettings()) return
                 setView('inbox')
               }}
             />
             <SourceJobsErrorIndicator
-              error={sourceJobsError}
+              error={sourceJobsError()}
               onOpen={() => {
                 if (!canLeaveSettings()) return
                 setView('inbox')
               }}
             />
             <SourceJobAttentionIndicator
-              jobs={sourceJobs.jobs}
+              jobs={sourceJobs.jobs()}
               onOpen={() => {
                 if (!canLeaveSettings()) return
                 setView('inbox')
               }}
             />
             <InstallerIndicator
-              job={installerJob}
+              job={installerJob()}
               onOpen={() => {
                 if (!canLeaveSettings()) return
                 setSettingsSection('readiness')
@@ -2135,7 +2177,7 @@ function CortanaApplication() {
               }}
             />
             <ServiceActivityIndicator
-              activity={serviceActivity}
+              activity={serviceActivity()}
               onOpen={() => {
                 if (!canLeaveSettings()) return
                 setSettingsSection('services')
@@ -2143,7 +2185,7 @@ function CortanaApplication() {
               }}
             />
             <ReadinessActivityIndicator
-              activity={readinessActivity}
+              activity={readinessActivity()}
               onOpen={() => {
                 if (!canLeaveSettings()) return
                 setSettingsSection('readiness')
@@ -2151,9 +2193,9 @@ function CortanaApplication() {
               }}
             />
             <ServiceHealthIndicator
-              report={desktopServices}
-              error={desktopServicesError}
-              embeddingRequired={desktopSettings?.embedding.provider !== 'cloud'}
+              report={desktopServices()}
+              error={desktopServicesError()}
+              embeddingRequired={desktopSettings()?.embedding.provider !== 'cloud'}
               onOpen={() => {
                 if (!canLeaveSettings()) return
                 setSettingsSection('services')
@@ -2164,15 +2206,15 @@ function CortanaApplication() {
               <Button
                 variant="ghost"
                 type="button"
-                className="status-link"
+                class="status-link"
                 onClick={() => {
                   if (!canLeaveSettings()) return
                   setSettingsSection('updates')
                   setView('settings')
                 }}
               >
-                Cortana {desktopInfo?.desktop_version || '—'} · Updates
-                {desktopUpdateStatusSuffix(desktopUpdate)}
+                Cortana {desktopInfo()?.desktop_version || '—'} · Updates
+                {desktopUpdateStatusSuffix(desktopUpdate())}
               </Button>
             ) : null}
           </M7StatusBar>
@@ -2181,254 +2223,259 @@ function CortanaApplication() {
     </M7ShellProvider>
   )
 }
-
-function IngestionIndicator({ status }: { status: BrainStatus | null }) {
-  if (!status) {
-    return (
-      <span className="ingestion-health">
-        <i /> Ingestion: checking
+function IngestionIndicator(_props: { status: BrainStatus | null }) {
+  const props = _props
+  const runs = () => props.status?.sync_runs ?? []
+  const running = () => runs().filter((run) => run.status === 'running').length
+  const failed = () =>
+    runs().filter((run) => ['failed', 'cancelled', 'budget_exceeded'].includes(run.status)).length
+  const state = () =>
+    running()
+      ? 'running'
+      : failed()
+        ? 'warning'
+        : props.status?.ingestion.scheduled
+          ? 'healthy'
+          : 'manual'
+  const label = () =>
+    running()
+      ? `${running()} running`
+      : failed()
+        ? `${failed()} need attention`
+        : props.status?.ingestion.scheduled
+          ? 'scheduled'
+          : 'paused · manual'
+  return (
+    <Show
+      when={props.status}
+      fallback={
+        <span class="ingestion-health">
+          <i /> Ingestion: checking
+        </span>
+      }
+    >
+      <span class={`ingestion-health ${state()}`}>
+        <i /> Ingestion: {label()}
       </span>
-    )
-  }
-  const runs = status?.sync_runs ?? []
-  const running = runs.filter((run) => run.status === 'running').length
-  const failed = runs.filter((run) =>
-    ['failed', 'cancelled', 'budget_exceeded'].includes(run.status)
-  ).length
-  const state = running
-    ? 'running'
-    : failed
-      ? 'warning'
-      : status?.ingestion.scheduled
-        ? 'healthy'
-        : 'manual'
-  const label = running
-    ? `${running} running`
-    : failed
-      ? `${failed} need attention`
-      : status?.ingestion.scheduled
-        ? 'scheduled'
-        : 'paused · manual'
-  return (
-    <span className={`ingestion-health ${state}`}>
-      <i /> Ingestion: {label}
-    </span>
+    </Show>
   )
 }
-
-function ActiveSourceJobs({ jobs, onOpen }: { jobs: DesktopSourceJob[]; onOpen: () => void }) {
-  const active = activeJobs(jobs)
-  if (active.length === 0) return null
-  const detail = active
-    .map(
-      (job) =>
-        `${job.project} · ${job.source} · ${job.operation} · ${describeSourceJobProgress(job)}`
-    )
-    .join(', ')
+function ActiveSourceJobs(_props2: { jobs: DesktopSourceJob[]; onOpen: () => void }) {
+  const props = _props2
+  const active = () => activeJobs(props.jobs)
+  const detail = () =>
+    active()
+      .map(
+        (job) =>
+          `${job.project} · ${job.source} · ${job.operation} · ${describeSourceJobProgress(job)}`
+      )
+      .join(', ')
   return (
-    <Button
-      variant="ghost"
-      type="button"
-      className="source-jobs status-link"
-      aria-label="Open active source jobs"
-      tooltip={`${detail}. Open the activity inbox.`}
-      onClick={onOpen}
-    >
-      <LoaderCircle className="spin" size={13} /> {active.length} active source job
-      {active.length === 1 ? '' : 's'}
-    </Button>
+    <Show when={active().length > 0}>
+      <Button
+        variant="ghost"
+        type="button"
+        class="source-jobs status-link"
+        aria-label="Open active source jobs"
+        tooltip={`${detail()}. Open the activity inbox.`}
+        onClick={props.onOpen}
+      >
+        <LoaderCircle class="spin" size={13} /> {active().length} active source job
+        {active().length === 1 ? '' : 's'}
+      </Button>
+    </Show>
   )
 }
-
-function SourceJobsErrorIndicator({ error, onOpen }: { error: string; onOpen: () => void }) {
-  const detail = error.replace(/\s+/g, ' ').trim()
-  if (!detail) return null
-  const label = detail.length > 160 ? `${detail.slice(0, 157)}…` : detail
+function SourceJobsErrorIndicator(_props3: { error: string; onOpen: () => void }) {
+  const props = _props3
+  const detail = () => props.error.replace(/\s+/g, ' ').trim()
+  const label = () => (detail().length > 160 ? `${detail().slice(0, 157)}…` : detail())
   return (
-    <Button
-      variant="ghost"
-      type="button"
-      className="source-jobs status-link attention"
-      aria-label="Open source job status"
-      tooltip={`${detail}. Open the activity inbox.`}
-      onClick={onOpen}
-    >
-      <i /> Source jobs: {label}
-    </Button>
+    <Show when={detail()}>
+      <Button
+        variant="ghost"
+        type="button"
+        class="source-jobs status-link attention"
+        aria-label="Open source job status"
+        tooltip={`${detail()}. Open the activity inbox.`}
+        onClick={props.onOpen}
+      >
+        <i /> Source jobs: {label()}
+      </Button>
+    </Show>
   )
 }
-
-function SourceJobAttentionIndicator({
-  jobs,
-  onOpen,
-}: {
-  jobs: DesktopSourceJob[]
-  onOpen: () => void
-}) {
-  const attention = sourceJobAttention(jobs)
-  if (attention.length === 0) return null
-  const detail = attention.map((job) => `${job.project} · ${job.source} · ${job.status}`).join(', ')
+function SourceJobAttentionIndicator(_props4: { jobs: DesktopSourceJob[]; onOpen: () => void }) {
+  const props = _props4
+  const attention = () => sourceJobAttention(props.jobs)
+  const detail = () =>
+    attention()
+      .map((job) => `${job.project} · ${job.source} · ${job.status}`)
+      .join(', ')
   return (
-    <Button
-      variant="ghost"
-      type="button"
-      className="source-jobs status-link attention"
-      aria-label="Open source job attention"
-      tooltip={`${detail}. Open the activity inbox.`}
-      onClick={onOpen}
-    >
-      <i /> {attention.length} source job{attention.length === 1 ? '' : 's'} need attention
-    </Button>
+    <Show when={attention().length > 0}>
+      <Button
+        variant="ghost"
+        type="button"
+        class="source-jobs status-link attention"
+        aria-label="Open source job attention"
+        tooltip={`${detail()}. Open the activity inbox.`}
+        onClick={props.onOpen}
+      >
+        <i /> {attention().length} source job{attention().length === 1 ? '' : 's'} need attention
+      </Button>
+    </Show>
   )
 }
-
 function isActiveInstaller(job: DesktopInstallJob): boolean {
   return job.status === 'running' || job.status === 'cancelling'
 }
-
 function isMissingInstallerJobError(error: unknown): boolean {
   return error instanceof Error && error.message.includes('installation job was not found')
 }
-
-function InstallerIndicator({
-  job,
-  onOpen,
-}: {
-  job: DesktopInstallJob | null
-  onOpen: () => void
-}) {
-  if (!job) return null
-  const active = isActiveInstaller(job)
-  const state = active ? 'running' : job.status === 'succeeded' ? 'healthy' : 'warning'
-  const label = active ? `Install: ${job.tool} · ${job.status}` : `Install: ${job.status}`
+function InstallerIndicator(_props5: { job: DesktopInstallJob | null; onOpen: () => void }) {
+  const props = _props5
+  const job = () => props.job
+  const active = () => job() !== null && isActiveInstaller(job()!)
+  const state = () => (active() ? 'running' : job()?.status === 'succeeded' ? 'healthy' : 'warning')
+  const label = () =>
+    active() ? `Install: ${job()!.tool} · ${job()!.status}` : `Install: ${job()?.status}`
   return (
-    <Button
-      variant="ghost"
-      type="button"
-      className={`installer-health ${state}  `}
-      aria-label={`Open installer status for ${job.tool}`}
-      tooltip={`${job.summary}. Open readiness for details.`}
-      onClick={onOpen}
-    >
-      <i /> {label}
-    </Button>
+    <Show when={job()}>
+      <Button
+        variant="ghost"
+        type="button"
+        class={`installer-health ${state()}  `}
+        aria-label={`Open installer status for ${job()!.tool}`}
+        tooltip={`${job()!.summary}. Open readiness for details.`}
+        onClick={props.onOpen}
+      >
+        <i /> {label()}
+      </Button>
+    </Show>
   )
 }
-
-function ServiceActivityIndicator({
-  activity,
-  onOpen,
-}: {
+function ServiceActivityIndicator(_props6: {
   activity: DesktopServiceActivity | null
   onOpen: () => void
 }) {
-  if (!activity) return null
-  const active = activity.status === 'running'
-  const state = active ? 'running' : activity.status === 'succeeded' ? 'healthy' : 'warning'
-  const action = activity.action === 'install' ? 'Install' : activity.action
+  const props = _props6
+  const activity = () => props.activity
+  const active = () => activity()?.status === 'running'
+  const state = () =>
+    active() ? 'running' : activity()?.status === 'succeeded' ? 'healthy' : 'warning'
+  const action = () => (activity()?.action === 'install' ? 'Install' : activity()?.action)
   return (
-    <Button
-      variant="ghost"
-      type="button"
-      className={`service-activity-health ${state}  `}
-      aria-label="Open service activity"
-      tooltip={`${action} ${activity.target}${activity.detail ? `: ${activity.detail}` : ''}. Open services for details.`}
-      onClick={onOpen}
-    >
-      {active && <LoaderCircle className="spin" size={13} />}
-      {!active && <i />}
-      Service: {action} {activity.target}
-      {active ? '…' : activity.status === 'succeeded' ? ' · done' : ' · failed'}
-    </Button>
+    <Show when={activity()}>
+      <Button
+        variant="ghost"
+        type="button"
+        class={`service-activity-health ${state()}  `}
+        aria-label="Open service activity"
+        tooltip={`${action()} ${activity()!.target}${activity()!.detail ? `: ${activity()!.detail}` : ''}. Open services for details.`}
+        onClick={props.onOpen}
+      >
+        {active() && <LoaderCircle class="spin" size={13} />}
+        {!active() && <i />}
+        Service: {action()} {activity()!.target}
+        {active() ? '…' : activity()!.status === 'succeeded' ? ' · done' : ' · failed'}
+      </Button>
+    </Show>
   )
 }
-
-function ReadinessActivityIndicator({
-  activity,
-  onOpen,
-}: {
+function ReadinessActivityIndicator(_props7: {
   activity: DesktopReadinessActivity | null
   onOpen: () => void
 }) {
-  if (!activity) return null
-  const active = activity.status === 'running'
-  const state = active ? 'running' : activity.status === 'succeeded' ? 'healthy' : 'warning'
+  const props = _props7
+  const activity = () => props.activity
+  const active = () => activity()?.status === 'running'
+  const state = () =>
+    active() ? 'running' : activity()?.status === 'succeeded' ? 'healthy' : 'warning'
   return (
-    <Button
-      variant="ghost"
-      type="button"
-      className={`readiness-activity-health ${state}  `}
-      aria-label="Open readiness activity"
-      tooltip={`${activity.detail || (active ? 'System readiness scan is running.' : 'System readiness scan completed.')}`}
-      onClick={onOpen}
-    >
-      {active && <LoaderCircle className="spin" size={13} />}
-      {!active && <i />}
-      Readiness: {active ? 'scanning…' : activity.status === 'succeeded' ? 'ready' : 'failed'}
-    </Button>
+    <Show when={activity()}>
+      <Button
+        variant="ghost"
+        type="button"
+        class={`readiness-activity-health ${state()}  `}
+        aria-label="Open readiness activity"
+        tooltip={`${activity()!.detail || (active() ? 'System readiness scan is running.' : 'System readiness scan completed.')}`}
+        onClick={props.onOpen}
+      >
+        {active() && <LoaderCircle class="spin" size={13} />}
+        {!active() && <i />}
+        Readiness:{' '}
+        {active() ? 'scanning…' : activity()!.status === 'succeeded' ? 'ready' : 'failed'}
+      </Button>
+    </Show>
   )
 }
-
-export function ServiceHealthIndicator({
-  report,
-  error,
-  embeddingRequired = true,
-  onOpen,
-}: {
+export function ServiceHealthIndicator(_props8: {
   report: DesktopServiceReport | null
   error: string
   embeddingRequired?: boolean
   onOpen: () => void
 }) {
-  if (error) {
-    return (
-      <Button
-        variant="ghost"
-        type="button"
-        className="service-activity-health warning"
-        aria-label="Open service health"
-        tooltip={`${error}. Open Services for details.`}
-        onClick={onOpen}
-      >
-        <i /> Services: unavailable
-      </Button>
-    )
-  }
-  if (!report) return null
-  const core = report.services.filter(
-    (service) => service.name === 'server' || (service.name === 'embedding' && embeddingRequired)
+  const props = mergeProps(
+    {
+      embeddingRequired: true,
+    },
+    _props8
   )
-  const coreLoaded = core.filter((service) => service.loaded).length
-  const coreExitFailure = core.some(
-    (service) => service.last_exit_status !== null && service.last_exit_status !== 0
-  )
-  const coreAttention = core.length === 0 || coreLoaded < core.length || coreExitFailure
-  const state = !report.supported || coreAttention ? 'warning' : 'healthy'
-  const detail = report.services
-    .map(
+  const report = () => props.report
+  const core = () =>
+    report()!.services.filter(
       (service) =>
-        `${service.name}: ${service.state || (service.installed ? 'installed' : 'not installed')}`
+        service.name === 'server' || (service.name === 'embedding' && props.embeddingRequired)
     )
-    .join(' · ')
-  const label = !report.supported
-    ? `Services: unsupported on ${report.platform}`
-    : coreAttention
-      ? 'Services: core attention'
-      : `Services: core ${coreLoaded}/${core.length} online`
+  const coreLoaded = () => core().filter((service) => service.loaded).length
+  const coreExitFailure = () =>
+    core().some((service) => service.last_exit_status !== null && service.last_exit_status !== 0)
+  const coreAttention = () =>
+    core().length === 0 || coreLoaded() < core().length || coreExitFailure()
+  const state = () => (!report()!.supported || coreAttention() ? 'warning' : 'healthy')
+  const detail = () =>
+    report()!
+      .services.map(
+        (service) =>
+          `${service.name}: ${service.state || (service.installed ? 'installed' : 'not installed')}`
+      )
+      .join(' · ')
+  const label = () =>
+    !report()!.supported
+      ? `Services: unsupported on ${report()!.platform}`
+      : coreAttention()
+        ? 'Services: core attention'
+        : `Services: core ${coreLoaded()}/${core().length} online`
   return (
-    <Button
-      variant="ghost"
-      type="button"
-      className={`service-activity-health ${state}  `}
-      aria-label="Open service health"
-      tooltip={`${detail}. Open Services for controls.`}
-      onClick={onOpen}
-    >
-      <i /> {label}
-    </Button>
+    <Switch>
+      <Match when={props.error}>
+        <Button
+          variant="ghost"
+          type="button"
+          class="service-activity-health warning"
+          aria-label="Open service health"
+          tooltip={`${props.error}. Open Services for details.`}
+          onClick={props.onOpen}
+        >
+          <i /> Services: unavailable
+        </Button>
+      </Match>
+      <Match when={report()}>
+        <Button
+          variant="ghost"
+          type="button"
+          class={`service-activity-health ${state()}  `}
+          aria-label="Open service health"
+          tooltip={`${detail()}. Open Services for controls.`}
+          onClick={props.onOpen}
+        >
+          <i /> {label()}
+        </Button>
+      </Match>
+    </Switch>
   )
 }
-
 function desktopUpdateStatusSuffix(update: DesktopUpdate | null): string {
   if (!update) return ''
   if (

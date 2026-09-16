@@ -1,8 +1,6 @@
 import { expect, test } from 'bun:test'
-
 import { codeRevisionLabel } from './codeEvidence'
 import type { Evidence } from './types'
-
 const evidence: Evidence = {
   chunk_id: 'code:1',
   source: 'code',
@@ -23,8 +21,12 @@ const evidence: Evidence = {
     },
   },
 }
-
 test('code evidence exposes a bounded repository and revision label', () => {
   expect(codeRevisionLabel(evidence)).toBe('cortana · main · 12345678 · dirty')
-  expect(codeRevisionLabel({ ...evidence, metadata: undefined })).toBeNull()
+  expect(
+    codeRevisionLabel({
+      ...evidence,
+      metadata: undefined,
+    })
+  ).toBeNull()
 })

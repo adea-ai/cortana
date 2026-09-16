@@ -1,15 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": [
-    "typescript",
-    "unicorn",
-    "oxc",
-    "import",
-    "promise",
-    "react",
-    "react-perf",
-    "jsx-a11y"
-  ],
+  "plugins": ["typescript", "unicorn", "oxc", "import", "promise", "jsx-a11y"],
   "categories": {
     "correctness": "error",
     "suspicious": "error",
@@ -22,20 +13,51 @@
     }
   },
   "rules": {
-    "react/react-in-jsx-scope": "off",
     "eslint/no-restricted-imports": [
       "error",
       {
         "paths": [
           {
+            "name": "react",
+            "message": "Use SolidJS primitives (createSignal/createEffect/For/Show) instead of React."
+          },
+          {
+            "name": "react-dom",
+            "message": "Use SolidJS primitives (createSignal/createEffect/For/Show) instead of React."
+          },
+          {
+            "name": "lucide-react",
+            "message": "Use lucide-solid for icons."
+          },
+          {
+            "name": "cmdk",
+            "message": "Use cmdk-solid instead of the React cmdk package."
+          },
+          {
+            "name": "sonner",
+            "message": "Use solid-sonner instead of the React sonner package."
+          },
+          {
+            "name": "next-themes",
+            "message": "Use the local theme helpers instead of next-themes."
+          },
+          {
+            "name": "react-resizable-panels",
+            "message": "Use the local Solid resizable implementation."
+          },
+          {
             "name": "@base-ui/react",
-            "message": "Import Base UI primitives only through components/shadcn/*."
+            "message": "Import primitives only through components/shadcn/* (Kobalte-backed)."
           }
         ],
         "patterns": [
           {
-            "group": ["@base-ui/react/*", "@radix-ui/*", "radix-*"],
-            "message": "Strict primitives are Base UI via components/shadcn/*; no direct primitive imports."
+            "group": ["@base-ui/*", "@base-ui-components/*", "@radix-ui/*", "radix-*"],
+            "message": "Primitives are Kobalte via components/shadcn/*; no direct primitive imports."
+          },
+          {
+            "group": ["@kobalte/*"],
+            "message": "Prefer components/shadcn/* wrappers over direct Kobalte imports."
           }
         ]
       }
@@ -43,12 +65,6 @@
     "jsx-a11y/prefer-tag-over-role": "off",
     "eslint/no-await-in-loop": "off",
     "import/no-unassigned-import": "off",
-    "react/set-state-in-effect": "warn",
-    "react/exhaustive-effect-dependencies": "off",
-    "react/static-components": "warn",
-    "react/refs": "warn",
-    "react/immutability": "warn",
-    "react-hooks/exhaustive-deps": "error",
     "jsx-a11y/label-has-associated-control": [
       "error",
       {
@@ -70,10 +86,6 @@
     "jsx-a11y/anchor-has-content": "warn",
     "promise/always-return": "warn",
     "promise/no-callback-in-promise": "warn",
-    "react-perf/jsx-no-new-function-as-prop": "off",
-    "react-perf/jsx-no-new-array-as-prop": "off",
-    "react-perf/jsx-no-new-object-as-prop": "off",
-    "react-perf/jsx-no-jsx-as-prop": "off",
     "shadcn/no-restyle": [
       "error",
       {
@@ -272,8 +284,6 @@
       "files": ["apps/web/src/components/shadcn/**"],
       "rules": {
         "eslint/no-restricted-imports": "off",
-        "react/jsx-no-constructed-context-values": "off",
-        "react/no-array-index-key": "off",
         "jsx-a11y/click-events-have-key-events": "off",
         "jsx-a11y/no-noninteractive-element-interactions": "off",
         "jsx-a11y/no-noninteractive-element-to-interactive-role": "off",
@@ -287,6 +297,16 @@
         "shadcn/no-arbitrary-values": "off",
         "shadcn/no-inline-styles": "off",
         "shadcn/no-unknown-classes": "off",
+        "shadcn/require-static-classes": "off"
+      }
+    },
+    {
+      "files": [
+        "apps/web/src/components/settings/SettingsSurface.tsx",
+        "apps/web/src/components/settings/SettingsModelCombobox.tsx"
+      ],
+      "rules": {
+        "shadcn/no-inline-styles": "off",
         "shadcn/require-static-classes": "off"
       }
     }

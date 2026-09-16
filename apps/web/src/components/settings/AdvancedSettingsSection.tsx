@@ -7,8 +7,8 @@ import {
   KeyRound,
   LoaderCircle,
   Upload,
-} from 'lucide-react'
-import { useEffect, useState } from 'react'
+} from 'lucide-solid'
+import { createEffect, createSignal, For, onCleanup, Show } from 'solid-js'
 
 import {
   cancelDesktopVaultExport,
@@ -32,31 +32,31 @@ import {
   SettingsInput as Input,
 } from './SettingsSurface'
 
-export function AdvancedSettingsSection({
-  settings,
-  update,
-  dirty,
-}: SettingsSectionProps & { dirty: boolean }) {
+export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: boolean }) {
   const confirm = useSettingsConfirm()
-  const [portableBusy, setPortableBusy] = useState<
+  const [portableBusy, setPortableBusy] = createSignal<
     'export' | 'import' | 'open-secret' | 'migrate-secrets' | ''
   >('')
-  const [portableNotice, setPortableNotice] = useState('')
-  const [portableError, setPortableError] = useState('')
-  const [vaultSelected, setVaultSelected] = useState(
-    () => new Set(settings.workspaces.map((workspace) => workspace.id))
+  const [portableNotice, setPortableNotice] = createSignal('')
+  const [portableError, setPortableError] = createSignal('')
+  const [vaultSelected, setVaultSelected] = createSignal(
+    new Set(props.settings.workspaces.map((workspace) => workspace.id))
   )
-  const [vaultJob, setVaultJob] = useState<DesktopVaultExport | null>(null)
-  const [vaultError, setVaultError] = useState('')
+  const [vaultJob, setVaultJob] = createSignal<DesktopVaultExport | null>(null)
+  const [vaultError, setVaultError] = createSignal('')
   const setRuntime = (patch: Partial<DesktopSettings['runtime']>) =>
-    update((current) => ({ ...current, runtime: { ...current.runtime, ...patch } }))
+    props.update((current) => ({ ...current, runtime: { ...current.runtime, ...patch } }))
 
-  useEffect(() => {
-    if (!vaultJob || !['running', 'cancelling'].includes(vaultJob.status)) return
+  const vaultJobRunning = () =>
+    Boolean(vaultJob() && ['running', 'cancelling'].includes(vaultJob()!.status))
+
+  createEffect(() => {
+    const job = vaultJob()
+    if (!job || !['running', 'cancelling'].includes(job.status)) return
     let active = true
     const timer = window.setTimeout(async () => {
       try {
-        const next = await getDesktopVaultExport(vaultJob.id)
+        const next = await getDesktopVaultExport(job.id)
         if (active) setVaultJob(next)
       } catch (caught) {
         if (active) {
@@ -64,14 +64,14 @@ export function AdvancedSettingsSection({
         }
       }
     }, 250)
-    return () => {
+    onCleanup(() => {
       active = false
       window.clearTimeout(timer)
-    }
-  }, [vaultJob])
+    })
+  })
 
   const startVaultExport = async (dryRun: boolean) => {
-    const workspaces = [...vaultSelected]
+    const workspaces = [...vaultSelected()]
     if (!workspaces.length) {
       setVaultError('Select at least one workspace.')
       return
@@ -94,9 +94,10 @@ export function AdvancedSettingsSection({
   }
 
   const cancelVaultExport = async () => {
-    if (!vaultJob) return
+    const job = vaultJob()
+    if (!job) return
     try {
-      setVaultJob(await cancelDesktopVaultExport(vaultJob.id))
+      setVaultJob(await cancelDesktopVaultExport(job.id))
     } catch (caught) {
       setVaultError(caught instanceof Error ? caught.message : 'Vault cancellation failed')
     }
@@ -134,7 +135,7 @@ export function AdvancedSettingsSection({
       ) {
         return
       }
-      update((current) => ({ ...current, ...result.settings }))
+      props.update((current) => ({ ...current, ...result.settings }))
       const preserved = result.preserved_external_sources.length
         ? ` Preserved executable connectors: ${result.preserved_external_sources.join(', ')}.`
         : ''
@@ -161,7 +162,7 @@ export function AdvancedSettingsSection({
   }
 
   const migrateSecrets = async () => {
-    if (dirty) return
+    if (props.dirty) return
     if (
       !(await confirm(
         'Move configured secret-file values into platform secure storage? This is explicit and recoverable, removes migrated plaintext values from secrets.env, and never includes secret values in the audit log.'
@@ -191,46 +192,46 @@ export function AdvancedSettingsSection({
       title="Local runtime"
       description="Storage and audit configuration for this machine. Moving the data directory requires a restart and does not copy existing data."
     >
-      <SettingsFieldGroup className="form-grid">
+      <SettingsFieldGroup class="form-grid">
         <Field
           label="Effective secret file"
           hint={
-            settings.secret_file_managed
+            props.settings.secret_file_managed
               ? 'Owner-only Desktop-managed path for provider, connector, and agent tokens'
               : 'Externally managed runtime.env_file; Desktop will not write this path'
           }
           wide
         >
           <Input
-            value={settings.secret_file_path}
-            title={settings.secret_file_path}
+            value={props.settings.secret_file_path}
+            title={props.settings.secret_file_path}
             readOnly
             aria-readonly="true"
           />
         </Field>
         <Field label="Data directory" wide>
           <Input
-            value={settings.runtime.data_dir}
+            value={props.settings.runtime.data_dir}
             onChange={(event) => setRuntime({ data_dir: event.target.value })}
             required
           />
         </Field>
         <NumberField
           label="Connector timeout"
-          value={settings.runtime.connector_timeout_seconds}
+          value={props.settings.runtime.connector_timeout_seconds}
           min={1}
           max={86400}
           onChange={(connector_timeout_seconds) => setRuntime({ connector_timeout_seconds })}
         />
         <NumberField
           label="Audit event limit"
-          value={settings.runtime.audit_max_events}
+          value={props.settings.runtime.audit_max_events}
           min={100}
           max={1000000}
           onChange={(audit_max_events) => setRuntime({ audit_max_events })}
         />
       </SettingsFieldGroup>
-      <div className="portable-settings">
+      <div class="portable-settings">
         <div>
           <strong>Redacted settings backup</strong>
           <p>
@@ -238,16 +239,18 @@ export function AdvancedSettingsSection({
             validates a bounded preview and never writes until you save.
           </p>
         </div>
-        <div className="service-actions">
+        <div class="service-actions">
           <Button
             variant="secondary"
             type="button"
-            disabled={Boolean(portableBusy) || dirty}
-            title={dirty ? 'Save or discard draft changes before exporting' : 'Export settings'}
+            disabled={Boolean(portableBusy()) || props.dirty}
+            title={
+              props.dirty ? 'Save or discard draft changes before exporting' : 'Export settings'
+            }
             onClick={() => void exportSettings()}
           >
-            {portableBusy === 'export' ? (
-              <LoaderCircle className="spin" size={14} />
+            {portableBusy() === 'export' ? (
+              <LoaderCircle class="spin" size={14} />
             ) : (
               <Download size={14} />
             )}
@@ -256,11 +259,11 @@ export function AdvancedSettingsSection({
           <Button
             variant="secondary"
             type="button"
-            disabled={Boolean(portableBusy)}
+            disabled={Boolean(portableBusy())}
             onClick={() => void importSettings()}
           >
-            {portableBusy === 'import' ? (
-              <LoaderCircle className="spin" size={14} />
+            {portableBusy() === 'import' ? (
+              <LoaderCircle class="spin" size={14} />
             ) : (
               <Upload size={14} />
             )}
@@ -269,11 +272,11 @@ export function AdvancedSettingsSection({
           <Button
             variant="secondary"
             type="button"
-            disabled={Boolean(portableBusy)}
+            disabled={Boolean(portableBusy())}
             onClick={() => void openSecretFile()}
           >
-            {portableBusy === 'open-secret' ? (
-              <LoaderCircle className="spin" size={14} />
+            {portableBusy() === 'open-secret' ? (
+              <LoaderCircle class="spin" size={14} />
             ) : (
               <FolderOpen size={14} />
             )}
@@ -282,14 +285,16 @@ export function AdvancedSettingsSection({
           <Button
             variant="secondary"
             type="button"
-            disabled={Boolean(portableBusy) || dirty}
+            disabled={Boolean(portableBusy()) || props.dirty}
             title={
-              dirty ? 'Save or discard draft changes before migrating secrets' : 'Migrate secrets'
+              props.dirty
+                ? 'Save or discard draft changes before migrating secrets'
+                : 'Migrate secrets'
             }
             onClick={() => void migrateSecrets()}
           >
-            {portableBusy === 'migrate-secrets' ? (
-              <LoaderCircle className="spin" size={14} />
+            {portableBusy() === 'migrate-secrets' ? (
+              <LoaderCircle class="spin" size={14} />
             ) : (
               <KeyRound size={14} />
             )}
@@ -297,17 +302,17 @@ export function AdvancedSettingsSection({
           </Button>
         </div>
       </div>
-      {(portableNotice || portableError) && (
+      <Show when={portableNotice() || portableError()}>
         <SettingsAlert
-          className={cn('safety-note', portableError && 'error')}
-          variant={portableError ? 'destructive' : 'default'}
-          role={portableError ? 'alert' : 'status'}
+          class={cn('safety-note', portableError() && 'error')}
+          variant={portableError() ? 'destructive' : 'default'}
+          role={portableError() ? 'alert' : 'status'}
         >
-          {portableError ? <AlertTriangle size={16} /> : <Check size={16} />}
-          <span>{portableError || portableNotice}</span>
+          {portableError() ? <AlertTriangle size={16} /> : <Check size={16} />}
+          <span>{portableError() || portableNotice()}</span>
         </SettingsAlert>
-      )}
-      <div className="portable-settings">
+      </Show>
+      <div class="portable-settings">
         <div>
           <strong>Derived Obsidian vault</strong>
           <p>
@@ -315,37 +320,34 @@ export function AdvancedSettingsSection({
             read-only projection from Cortana’s perspective and can be removed or rebuilt at any
             time.
           </p>
-          <fieldset
-            className="vault-workspace-picker"
-            disabled={Boolean(vaultJob && ['running', 'cancelling'].includes(vaultJob.status))}
-          >
+          <fieldset class="vault-workspace-picker" disabled={vaultJobRunning()}>
             <legend>Workspaces to export</legend>
-            {settings.workspaces.map((workspace) => (
-              <label key={workspace.id}>
-                <Checkbox
-                  checked={vaultSelected.has(workspace.id)}
-                  onChange={(event) =>
-                    setVaultSelected((current) => {
-                      const next = new Set(current)
-                      if (event.target.checked) next.add(workspace.id)
-                      else next.delete(workspace.id)
-                      return next
-                    })
-                  }
-                />
-                {workspace.name}
-              </label>
-            ))}
+            <For each={props.settings.workspaces}>
+              {(workspace) => (
+                <label>
+                  <Checkbox
+                    checked={vaultSelected().has(workspace.id)}
+                    onChange={(event) =>
+                      setVaultSelected((current) => {
+                        const next = new Set(current)
+                        if (event.target.checked) next.add(workspace.id)
+                        else next.delete(workspace.id)
+                        return next
+                      })
+                    }
+                  />
+                  {workspace.name}
+                </label>
+              )}
+            </For>
           </fieldset>
         </div>
-        <div className="service-actions">
+        <div class="service-actions">
           <Button
             variant="secondary"
             type="button"
-            disabled={
-              dirty || Boolean(vaultJob && ['running', 'cancelling'].includes(vaultJob.status))
-            }
-            title={dirty ? 'Save or discard workspace changes first' : 'Preview vault export'}
+            disabled={props.dirty || vaultJobRunning()}
+            title={props.dirty ? 'Save or discard workspace changes first' : 'Preview vault export'}
             onClick={() => void startVaultExport(true)}
           >
             <Download size={14} /> Preview vault export
@@ -353,52 +355,54 @@ export function AdvancedSettingsSection({
           <Button
             variant="secondary"
             type="button"
-            disabled={
-              dirty || Boolean(vaultJob && ['running', 'cancelling'].includes(vaultJob.status))
+            disabled={props.dirty || vaultJobRunning()}
+            title={
+              props.dirty ? 'Save or discard workspace changes first' : 'Export Obsidian vault'
             }
-            title={dirty ? 'Save or discard workspace changes first' : 'Export Obsidian vault'}
             onClick={() => void startVaultExport(false)}
           >
-            {vaultJob?.status === 'running' ? (
-              <LoaderCircle className="spin" size={14} />
+            {vaultJob()?.status === 'running' ? (
+              <LoaderCircle class="spin" size={14} />
             ) : (
               <FolderOpen size={14} />
             )}
             Export vault
           </Button>
-          {vaultJob && ['running', 'cancelling'].includes(vaultJob.status) && (
+          <Show when={vaultJobRunning()}>
             <Button
               variant="danger"
               type="button"
-              disabled={vaultJob.status === 'cancelling'}
+              disabled={vaultJob()!.status === 'cancelling'}
               onClick={() => void cancelVaultExport()}
             >
               <CircleStop size={14} /> Cancel vault export
             </Button>
-          )}
+          </Show>
         </div>
       </div>
-      {vaultJob && (
-        <SettingsAlert
-          className={cn('safety-note', vaultJob.status === 'failed' && 'error')}
-          variant={vaultJob.status === 'failed' ? 'destructive' : 'default'}
-          role={vaultJob.status === 'failed' ? 'alert' : 'status'}
-          aria-live="polite"
-        >
-          {vaultJob.status === 'failed' ? <AlertTriangle size={16} /> : <Check size={16} />}
-          <span>
-            {vaultJob.status === 'succeeded' && vaultJob.report
-              ? `${vaultJob.dry_run ? 'Previewed' : 'Exported'} ${vaultJob.report.documents} documents; ${vaultJob.report.content_rewrites} content rewrites and ${vaultJob.report.unchanged_documents} unchanged.`
-              : `Vault export ${vaultJob.phase}: ${vaultJob.documents_completed} documents scanned, ${vaultJob.files_written} files staged.`}
-          </span>
-        </SettingsAlert>
-      )}
-      {vaultError && (
-        <SettingsAlert className="safety-note error" variant="destructive" role="alert">
+      <Show when={vaultJob()}>
+        {(job) => (
+          <SettingsAlert
+            class={cn('safety-note', job().status === 'failed' && 'error')}
+            variant={job().status === 'failed' ? 'destructive' : 'default'}
+            role={job().status === 'failed' ? 'alert' : 'status'}
+            aria-live="polite"
+          >
+            {job().status === 'failed' ? <AlertTriangle size={16} /> : <Check size={16} />}
+            <span>
+              {job().status === 'succeeded' && job().report
+                ? `${job().dry_run ? 'Previewed' : 'Exported'} ${job().report!.documents} documents; ${job().report!.content_rewrites} content rewrites and ${job().report!.unchanged_documents} unchanged.`
+                : `Vault export ${job().phase}: ${job().documents_completed} documents scanned, ${job().files_written} files staged.`}
+            </span>
+          </SettingsAlert>
+        )}
+      </Show>
+      <Show when={vaultError()}>
+        <SettingsAlert class="safety-note error" variant="destructive" role="alert">
           <AlertTriangle size={16} />
-          <span>{vaultError}</span>
+          <span>{vaultError()}</span>
         </SettingsAlert>
-      )}
+      </Show>
     </SettingsSection>
   )
 }

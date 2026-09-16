@@ -1,28 +1,28 @@
-import { Check, LoaderCircle, X } from 'lucide-react'
+import { Check, LoaderCircle, X } from 'lucide-solid'
 
 import { cn } from '@/lib/utils'
 
-export function StatusGlyph({
-  passed,
-  optional = false,
-  pending = false,
-}: {
-  passed: boolean
-  optional?: boolean
-  pending?: boolean
-}) {
+export function StatusGlyph(props: { passed: boolean; optional?: boolean; pending?: boolean }) {
   return (
     <i
-      className={cn(
+      class={cn(
         'status-glyph',
-        pending ? 'pending' : passed ? 'passed' : optional ? 'optional' : 'failed'
+        props.pending ? 'pending' : props.passed ? 'passed' : props.optional ? 'optional' : 'failed'
       )}
-      aria-label={pending ? 'In progress' : passed ? 'Passed' : optional ? 'Optional' : 'Failed'}
+      aria-label={
+        props.pending
+          ? 'In progress'
+          : props.passed
+            ? 'Passed'
+            : props.optional
+              ? 'Optional'
+              : 'Failed'
+      }
       role="img"
     >
-      {pending ? (
-        <LoaderCircle className="spin" size={13} />
-      ) : passed ? (
+      {props.pending ? (
+        <LoaderCircle class="spin" size={13} />
+      ) : props.passed ? (
         <Check size={13} />
       ) : (
         <X size={13} />

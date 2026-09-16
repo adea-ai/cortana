@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'bun:test'
-
 import {
   CONTEXT_CONTRACT_VERSION,
   isContextBundleV1,
   RETRIEVAL_CONTRACT_VERSION,
 } from './contracts'
-
 describe('public contract fixtures', () => {
   it('accepts the required v1 ContextBundle envelope', () => {
     expect(
@@ -37,14 +35,19 @@ describe('public contract fixtures', () => {
       })
     ).toBe(true)
   })
-
   it('rejects a bundle that omits its pinning metadata', () => {
     expect(
       isContextBundleV1({
         query: 'release process',
         context: '',
         evidence: [],
-        metrics: { retrieved: 0, included: 0, omitted: 0, estimated_tokens: 1, max_tokens: 256 },
+        metrics: {
+          retrieved: 0,
+          included: 0,
+          omitted: 0,
+          estimated_tokens: 1,
+          max_tokens: 256,
+        },
       })
     ).toBe(false)
   })

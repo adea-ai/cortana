@@ -1,20 +1,19 @@
-import { Toggle as TogglePrimitive } from '@base-ui/react/toggle'
+import { ToggleButton as TogglePrimitive } from '@kobalte/core/toggle-button'
+import { splitProps, type ComponentProps } from 'solid-js'
 import type { VariantProps } from 'class-variance-authority'
 
 import { cn } from '@/lib/utils'
 import { toggleVariants } from './toggle-variants'
 
-function Toggle({
-  className,
-  variant = 'default',
-  size = 'default',
-  ...props
-}: TogglePrimitive.Props & VariantProps<typeof toggleVariants>) {
+function Toggle(
+  props: ComponentProps<typeof TogglePrimitive> & VariantProps<typeof toggleVariants>
+) {
+  const [local, rest] = splitProps(props, ['class', 'variant', 'size'])
   return (
     <TogglePrimitive
       data-slot="toggle"
-      className={cn(toggleVariants({ variant, size, className }))}
-      {...props}
+      class={cn(toggleVariants({ variant: local.variant, size: local.size }), local.class)}
+      {...rest}
     />
   )
 }

@@ -1,7 +1,7 @@
+import { act } from './test/act'
 import { afterEach, expect, mock, test } from 'bun:test'
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from 'solid-testing-library'
 import userEvent from '@testing-library/user-event'
-
 import { demoStatus } from './demo'
 import {
   desktopAuditEvents,
@@ -32,7 +32,6 @@ const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\\]\\\\]/g, 
 const updatesButtonName = new RegExp(
   `Cortana ${escapeRegExp(desktopInfo.desktop_version)} · Updates`
 )
-
 afterEach(async () => {
   await act(async () => {
     // Unmount before flushing pending work so the shell's polling effects are
@@ -100,7 +99,10 @@ afterEach(() => {
   state.deferredDesktopUpdateInstall = []
   state.serviceStatusError = null
   state.serviceSyncInstallCalls = 0
-  state.schedule = { sync_interval_seconds: 900, backup_interval_seconds: 86400 }
+  state.schedule = {
+    sync_interval_seconds: 900,
+    backup_interval_seconds: 86400,
+  }
   state.scheduleGetCalls = 0
   state.scheduleSaveCalls = 0
   state.openSecretFileCalls = 0
@@ -119,7 +121,6 @@ afterEach(() => {
 // Desktop-mode App: the tauri bridge is mocked with resolved local settings,
 // info, and audit sources so the settings/audit navigation is exercised.
 const realApi = await import('./api')
-
 const workSource: SourceSettings = {
   name: 'work-code',
   kind: 'filesystem',
@@ -147,7 +148,6 @@ const workSource: SourceSettings = {
   acl: [],
   editable: true,
 }
-
 const googleSource: SourceSettings = {
   ...workSource,
   name: 'personal-drive',
@@ -158,12 +158,10 @@ const googleSource: SourceSettings = {
   token_path: '/Users/you/.config/cortana/google-token.json',
   oauth_client_path: '/Users/you/Downloads/google-oauth-client.json',
 }
-
 const googleEnvOnlySource: SourceSettings = {
   ...googleSource,
   token_path: null,
 }
-
 const buildImportedSettings = (dataDir: string): DesktopPortableSettings => ({
   ...desktopSettings,
   runtime: {
@@ -171,7 +169,6 @@ const buildImportedSettings = (dataDir: string): DesktopPortableSettings => ({
     data_dir: dataDir,
   },
 })
-
 const state = {
   settings: desktopSettings as DesktopSettings,
   sourceJob: null as DesktopSourceJob | null,
@@ -194,7 +191,10 @@ const state = {
   getDesktopServicesCalls: 0,
   getDesktopUpdateCalls: 0,
   installDesktopUpdateCalls: 0,
-  lastInstallDesktopUpdate: null as { expectedVersion: string; restart: boolean } | null,
+  lastInstallDesktopUpdate: null as {
+    expectedVersion: string
+    restart: boolean
+  } | null,
   installDesktopUpdateError: null as Error | null,
   cancelDesktopUpdateCalls: 0,
   deferDesktopUpdateInstall: false,
@@ -218,7 +218,10 @@ const state = {
     preserved_external_sources: [],
     settings: buildImportedSettings('/tmp/imported-runtime-dir'),
   } as DesktopSettingsImport,
-  vaultExportStartCalls: [] as Array<{ workspaces: string[]; dryRun: boolean }>,
+  vaultExportStartCalls: [] as Array<{
+    workspaces: string[]
+    dryRun: boolean
+  }>,
   vaultExportStatusCalls: 0,
   vaultExportCancelCalls: 0,
   vaultExportResult: {
@@ -262,7 +265,10 @@ const state = {
   } as DesktopDatabaseActionResult,
   serviceInstallCalls: 0,
   serviceSyncInstallCalls: 0,
-  schedule: { sync_interval_seconds: 900, backup_interval_seconds: 86400 },
+  schedule: {
+    sync_interval_seconds: 900,
+    backup_interval_seconds: 86400,
+  },
   scheduleGetCalls: 0,
   scheduleSaveCalls: 0,
   serviceRestartCalls: 0,
@@ -278,7 +284,6 @@ const state = {
     | null,
   installerJob: null as DesktopInstallJob | null,
 }
-
 const serviceReport: DesktopServiceReport = {
   platform: 'macos',
   supported: true,
@@ -321,16 +326,19 @@ const serviceReport: DesktopServiceReport = {
     },
   ],
 }
-
 const installedServiceReport: DesktopServiceReport = {
   ...serviceReport,
   services: serviceReport.services.map((service) =>
     service.name === 'sync'
       ? service
-      : { ...service, installed: true, loaded: true, state: 'running' }
+      : {
+          ...service,
+          installed: true,
+          loaded: true,
+          state: 'running',
+        }
   ),
 }
-
 const syncInstalledServiceReport: DesktopServiceReport = {
   ...serviceReport,
   services: serviceReport.services.map((service) => ({
@@ -340,7 +348,6 @@ const syncInstalledServiceReport: DesktopServiceReport = {
     state: 'running',
   })),
 }
-
 mock.module('./api', () => ({
   isDesktopApp: true,
   isDemoMode: false,
@@ -355,11 +362,18 @@ mock.module('./api', () => ({
       query,
       cursor,
     })
-    return Promise.resolve({ documents: [], next_cursor: null })
+    return Promise.resolve({
+      documents: [],
+      next_cursor: null,
+    })
   },
   getGraph: () => {
     state.getGraphCalls += 1
-    return Promise.resolve({ nodes: [], edges: [], next_cursor: null })
+    return Promise.resolve({
+      nodes: [],
+      edges: [],
+      next_cursor: null,
+    })
   },
   getAnswer: () => Promise.reject(new Error('Answer request failed (503)')),
   getDocument: () => Promise.reject(new Error('Document unavailable')),
@@ -377,13 +391,20 @@ mock.module('./api', () => ({
     state.saveSettingsCalls += 1
     state.lastSettingsUpdate = update
     if (state.applySettingsUpdate) {
-      state.settings = { ...state.settings, ...update, secrets: state.settings.secrets }
+      state.settings = {
+        ...state.settings,
+        ...update,
+        secrets: state.settings.secrets,
+      }
     }
     return Promise.resolve(state.settings)
   },
   getDesktopInfo: () => Promise.resolve(desktopInfo),
   setDesktopAutostart: (enabled: boolean) =>
-    Promise.resolve({ ...desktopInfo, autostart_enabled: enabled }),
+    Promise.resolve({
+      ...desktopInfo,
+      autostart_enabled: enabled,
+    }),
   getDesktopSchedule: () => {
     state.scheduleGetCalls += 1
     return Promise.resolve(state.schedule)
@@ -425,18 +446,28 @@ mock.module('./api', () => ({
   runDesktopServiceAction: () => Promise.resolve(installedServiceReport),
   installDesktopUpdate: (expectedVersion: string, restart: boolean) => {
     state.installDesktopUpdateCalls += 1
-    state.lastInstallDesktopUpdate = { expectedVersion, restart }
+    state.lastInstallDesktopUpdate = {
+      expectedVersion,
+      restart,
+    }
     if (state.installDesktopUpdateError) return Promise.reject(state.installDesktopUpdateError)
     if (state.deferDesktopUpdateInstall) {
       return new Promise<DesktopUpdate>((resolve) => {
         state.deferredDesktopUpdateInstall.push(resolve)
       })
     }
-    return Promise.resolve({ ...desktopUpdate, phase: 'installed', restart_required: true })
+    return Promise.resolve({
+      ...desktopUpdate,
+      phase: 'installed',
+      restart_required: true,
+    })
   },
   cancelDesktopUpdate: () => {
     state.cancelDesktopUpdateCalls += 1
-    return Promise.resolve({ ...desktopUpdate, phase: 'cancelled' })
+    return Promise.resolve({
+      ...desktopUpdate,
+      phase: 'cancelled',
+    })
   },
   checkDesktopUpdate: () => Promise.resolve(desktopUpdate),
   getRuntimeAudit: (limit: number) => Promise.resolve(runtimeAuditEvents.slice(0, limit)),
@@ -454,12 +485,18 @@ mock.module('./api', () => ({
     return Promise.resolve(state.importDesktopSettingsResult)
   },
   startDesktopVaultExport: (workspaces: string[], dryRun: boolean) => {
-    state.vaultExportStartCalls.push({ workspaces, dryRun })
+    state.vaultExportStartCalls.push({
+      workspaces,
+      dryRun,
+    })
     return Promise.resolve({
       ...state.vaultExportResult,
       dry_run: dryRun,
       report: state.vaultExportResult.report
-        ? { ...state.vaultExportResult.report, dry_run: dryRun }
+        ? {
+            ...state.vaultExportResult.report,
+            dry_run: dryRun,
+          }
         : null,
     })
   },
@@ -534,7 +571,11 @@ mock.module('./api', () => ({
       ? Promise.resolve(state.installerJob)
       : Promise.reject(new Error('installation job was not found')),
   cancelDesktopInstaller: () => {
-    if (state.installerJob) state.installerJob = { ...state.installerJob, status: 'cancelling' }
+    if (state.installerJob)
+      state.installerJob = {
+        ...state.installerJob,
+        status: 'cancelling',
+      }
     return Promise.resolve(state.installerJob!)
   },
   startDesktopSourceValidation: (source: string) => {
@@ -604,13 +645,22 @@ mock.module('./api', () => ({
   },
   startDesktopSourceTrialSync: () => Promise.reject(new Error('trial sync unavailable')),
   openDesktopSourceSetup: () => Promise.reject(new Error('source setup unavailable')),
-  listDesktopGithubRepositories: () => Promise.resolve({ truncated: false, repositories: [] }),
+  listDesktopGithubRepositories: () =>
+    Promise.resolve({
+      truncated: false,
+      repositories: [],
+    }),
   listDesktopDiscordChannels: () => Promise.reject(new Error('Discord channels unavailable')),
   listDesktopDiscordServers: () => Promise.reject(new Error('Discord servers unavailable')),
   listDesktopSlackWorkspaces: () => Promise.reject(new Error('Slack workspaces unavailable')),
   listDesktopBuzzCommunities: () => Promise.reject(new Error('Buzz communities unavailable')),
   listDesktopProviderModels: (kind: 'embedding' | 'query') =>
-    Promise.resolve({ kind, provider: 'local', models: [], truncated: false }),
+    Promise.resolve({
+      kind,
+      provider: 'local',
+      models: [],
+      truncated: false,
+    }),
   pickDesktopPath: (kind: string) => {
     state.pathPickerCalls.push(kind)
     return Promise.resolve(state.pickedPaths.shift() ?? state.pickedPath)
@@ -635,10 +685,8 @@ mock.module('./api', () => ({
     return Promise.resolve(state.sourceJob)
   },
 }))
-
 const { App, ServiceHealthIndicator } = await import('./App')
 const { SettingsView } = await import('./components/SettingsView')
-
 async function flushDesktopBootstrap() {
   // The shell starts several independent control-plane reads on mount. Keep
   // those promise continuations inside React's act scope before asserting or
@@ -650,43 +698,60 @@ async function flushDesktopBootstrap() {
     await Promise.resolve()
   })
 }
-
 test('shadcn settings compose generated source controls', async () => {
-  const sourceSettings = { ...desktopSettings, sources: [workSource] }
-  render(
+  const sourceSettings = {
+    ...desktopSettings,
+    sources: [workSource],
+  }
+  render(() => (
     <SettingsView
       desktopSettings={sourceSettings}
       initialSection="sources"
       onSaved={() => undefined}
     />
+  ))
+  fireEvent.click(
+    await screen.findByRole('button', {
+      name: /Advanced source settings/,
+    })
   )
-
-  fireEvent.click(await screen.findByRole('button', { name: /Advanced source settings/ }))
   expect(document.querySelector('[data-slot="input"]')).toBeTruthy()
   expect(document.querySelector('[data-slot="select-trigger"]')).toBeTruthy()
   expect(document.querySelector('[data-slot="switch"]')).toBeTruthy()
   expect(document.querySelector('[data-slot="button"]')).toBeTruthy()
-
-  expect(screen.getByRole('button', { name: `Remove ${workSource.name}` })).toBeTruthy()
+  expect(
+    screen.getByRole('button', {
+      name: `Remove ${workSource.name}`,
+    })
+  ).toBeTruthy()
 })
-
 test('shadcn settings keep configured secrets write-only', () => {
   const tokenEnv = 'CORTANA_AGENT_TOKEN'
   const accessSettings: DesktopSettings = {
     ...desktopSettings,
     auth_principals: [
-      { principal: 'desktop-agent', token_env: tokenEnv, scopes: ['query'], acl: ['work'] },
+      {
+        principal: 'desktop-agent',
+        token_env: tokenEnv,
+        scopes: ['query'],
+        acl: ['work'],
+      },
     ],
-    secrets: [{ name: tokenEnv, configured: true, source: 'secret-file' }],
+    secrets: [
+      {
+        name: tokenEnv,
+        configured: true,
+        source: 'secret-file',
+      },
+    ],
   }
-  render(
+  render(() => (
     <SettingsView
       desktopSettings={accessSettings}
       initialSection="access"
       onSaved={() => undefined}
     />
-  )
-
+  ))
   const secretInputs = Array.from(
     document.querySelectorAll<HTMLInputElement>('input[type="password"]')
   )
@@ -694,7 +759,6 @@ test('shadcn settings keep configured secrets write-only', () => {
   expect(secretInputs.every((input) => input.value === '')).toBe(true)
   expect(secretInputs.every((input) => input.getAttribute('data-slot') === 'input')).toBe(true)
 })
-
 test('lazy provider controls keep generated field labels and help associated', async () => {
   const providerSettings: DesktopSettings = {
     ...desktopSettings,
@@ -705,25 +769,28 @@ test('lazy provider controls keep generated field labels and help associated', a
       api_key_env: 'CORTANA_PROVIDER_API_KEY',
     },
   }
-  render(
+  render(() => (
     <SettingsView
       desktopSettings={providerSettings}
       initialSection="embedding"
       onSaved={() => undefined}
     />
-  )
-
-  const model = await screen.findByRole('combobox', { name: 'Model catalog' })
-  const modelLabel = screen.getByText('Model', { selector: 'label' }) as HTMLLabelElement
+  ))
+  const model = await screen.findByRole('combobox', {
+    name: 'Model catalog',
+  })
+  const modelLabel = screen.getByText('Model', {
+    selector: 'label',
+  }) as HTMLLabelElement
   expect(modelLabel.htmlFor).toBe(model.id)
-
   const secret = await screen.findByLabelText('New API key')
-  const secretLabel = screen.getByText('New API key', { selector: 'label' }) as HTMLLabelElement
+  const secretLabel = screen.getByText('New API key', {
+    selector: 'label',
+  }) as HTMLLabelElement
   const secretHint = screen.getByText('write-only; leave blank to keep existing')
   expect(secretLabel.htmlFor).toBe(secret.id)
   expect(secret.getAttribute('aria-describedby')?.split(' ')).toContain(secretHint.id)
 }, 20_000)
-
 test('shadcn disabled source switch keeps its assignment explanation', async () => {
   const unassignedSource = {
     ...workSource,
@@ -731,58 +798,86 @@ test('shadcn disabled source switch keeps its assignment explanation', async () 
     project: 'legacy',
     enabled: false,
   }
-  render(
+  render(() => (
     <SettingsView
-      desktopSettings={{ ...desktopSettings, sources: [unassignedSource] }}
+      desktopSettings={{
+        ...desktopSettings,
+        sources: [unassignedSource],
+      }}
       initialSection="sources"
       onSaved={() => undefined}
     />
-  )
-
+  ))
   expect(
-    (await screen.findByRole('switch', { name: /^Enable legacy-source/ })).getAttribute('title')
+    (
+      await screen.findByRole('switch', {
+        name: /^Enable legacy-source/,
+      })
+    ).getAttribute('title')
   ).toBe('Assign this source to a workspace before enabling it')
 })
-
 test('secret replacement after a confirmed clear submits the replacement instead of a clear', async () => {
   const originalConfirm = window.confirm
   const tokenEnv = 'CORTANA_AGENT_TOKEN'
   window.confirm = () => true
   state.lastSettingsUpdate = null
   try {
-    render(
+    render(() => (
       <SettingsView
         desktopSettings={{
           ...desktopSettings,
           auth_principals: [
-            { principal: 'desktop-agent', token_env: tokenEnv, scopes: ['query'], acl: ['work'] },
+            {
+              principal: 'desktop-agent',
+              token_env: tokenEnv,
+              scopes: ['query'],
+              acl: ['work'],
+            },
           ],
-          secrets: [{ name: tokenEnv, configured: true, source: 'secret-file' }],
+          secrets: [
+            {
+              name: tokenEnv,
+              configured: true,
+              source: 'secret-file',
+            },
+          ],
         }}
         initialSection="access"
         onSaved={() => undefined}
       />
+    ))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Clear stored token',
+      })
     )
-
-    fireEvent.click(screen.getByRole('button', { name: 'Clear stored token' }))
     fireEvent.change(screen.getByLabelText('New bearer token'), {
-      target: { value: 'replacement-token' },
+      target: {
+        value: 'replacement-token',
+      },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
-
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Save changes',
+      })
+    )
     await waitFor(() => expect(state.lastSettingsUpdate).not.toBeNull())
     const savedUpdate = state.lastSettingsUpdate as DesktopSettingsUpdate | null
-    expect(savedUpdate?.secrets).toEqual([{ name: tokenEnv, value: 'replacement-token' }])
+    expect(savedUpdate?.secrets).toEqual([
+      {
+        name: tokenEnv,
+        value: 'replacement-token',
+      },
+    ])
   } finally {
     window.confirm = originalConfirm
   }
 })
-
 test('cancelling principal removal leaves the access draft unchanged', () => {
   const originalConfirm = window.confirm
   window.confirm = () => false
   try {
-    render(
+    render(() => (
       <SettingsView
         desktopSettings={{
           ...desktopSettings,
@@ -798,120 +893,154 @@ test('cancelling principal removal leaves the access draft unchanged', () => {
         initialSection="access"
         onSaved={() => undefined}
       />
+    ))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Remove desktop-agent',
+      })
     )
-
-    fireEvent.click(screen.getByRole('button', { name: 'Remove desktop-agent' }))
     expect(screen.getByDisplayValue('desktop-agent')).toBeTruthy()
     expect(
-      (screen.getByRole('button', { name: 'Save changes' }) as HTMLButtonElement).disabled
+      (
+        screen.getByRole('button', {
+          name: 'Save changes',
+        }) as HTMLButtonElement
+      ).disabled
     ).toBe(true)
   } finally {
     window.confirm = originalConfirm
   }
 })
-
 test('global command shortcuts do not hijack editable fields', async () => {
-  render(<App />)
-  const search = await screen.findByRole('textbox', { name: 'Search your knowledge' })
+  render(() => <App />)
+  const search = await screen.findByRole('textbox', {
+    name: 'Search your knowledge',
+  })
   await flushDesktopBootstrap()
-
-  fireEvent.keyDown(search, { key: 'p', ctrlKey: true })
-  expect(screen.queryByRole('dialog', { name: 'Cortana command palette' })).toBeNull()
+  fireEvent.keyDown(search, {
+    key: 'p',
+    ctrlKey: true,
+  })
+  expect(
+    screen.queryByRole('dialog', {
+      name: 'Cortana command palette',
+    })
+  ).toBeNull()
 })
-
 test('desktop shell restores workspace and source scope and clears stale selections', async () => {
   window.localStorage.setItem('cortana.workspace-selection.v1', 'work')
   window.localStorage.setItem('cortana.source-selection.v1', 'work-code')
-  render(<App />)
+  render(() => <App />)
   await waitFor(() => {
-    expect(screen.getByRole('button', { name: 'Switch workspace' }).textContent).toContain('Work')
+    expect(
+      screen.getByRole('button', {
+        name: 'Switch workspace',
+      }).textContent
+    ).toContain('Work')
     expect(state.getDocumentsCalls.at(-1)?.source).toBe('work-code')
   })
-
   await act(async () => {
     cleanup()
     await Promise.resolve()
   })
   window.localStorage.setItem('cortana.workspace-selection.v1', 'work')
   window.localStorage.setItem('cortana.source-selection.v1', 'missing')
-  render(<App />)
+  render(() => <App />)
   await waitFor(() => {
     expect(state.getDocumentsCalls.at(-1)?.source).toBeUndefined()
     expect(window.localStorage.getItem('cortana.source-selection.v1')).toBeNull()
   })
-
   await act(async () => {
     cleanup()
     await Promise.resolve()
   })
   window.localStorage.setItem('cortana.workspace-selection.v1', 'missing')
-  render(<App />)
+  render(() => <App />)
   await waitFor(() => {
     const migrated = window.localStorage.getItem('cortana.workspace-selection.v1') ?? ''
     expect(migrated).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Switch workspace' }).textContent).toContain('Work')
+    expect(
+      screen.getByRole('button', {
+        name: 'Switch workspace',
+      }).textContent
+    ).toContain('Work')
   })
-
   await act(async () => {
     cleanup()
     await Promise.resolve()
   })
   window.localStorage.setItem('cortana.workspace-selection.v1', 'personal')
   window.localStorage.setItem('cortana.source-selection.v1', 'work-code')
-  render(<App />)
+  render(() => <App />)
   await waitFor(() => {
     expect(state.getDocumentsCalls.at(-1)?.workspace).toBe('personal')
     expect(state.getDocumentsCalls.at(-1)?.source).toBeUndefined()
     expect(window.localStorage.getItem('cortana.source-selection.v1')).toBeNull()
   })
-
   await act(async () => {
     cleanup()
     await Promise.resolve()
   })
   window.localStorage.setItem('cortana.workspace-selection.v1', 'personal')
   window.localStorage.setItem('cortana.source-selection.v1', 'missing')
-  render(<App />)
+  render(() => <App />)
   await waitFor(() => {
     expect(state.getDocumentsCalls.at(-1)?.workspace).toBe('personal')
     expect(state.getDocumentsCalls.at(-1)?.source).toBeUndefined()
     expect(window.localStorage.getItem('cortana.source-selection.v1')).toBeNull()
   })
 })
-
 test('desktop shell ignores malformed persisted source scope', async () => {
   window.localStorage.setItem('cortana.workspace-selection.v1', 'work')
   window.localStorage.setItem('cortana.source-selection.v1', '   ')
-  render(<App />)
+  render(() => <App />)
   await waitFor(() => {
     expect(state.getDocumentsCalls.at(-1)?.source).toBeUndefined()
   })
 })
-
 test('desktop setup does not query documents before the control plane is ready', async () => {
   const originalSettings = state.settings
   try {
-    state.settings = { ...desktopSettings, needs_setup: true }
-    render(<App />)
+    state.settings = {
+      ...desktopSettings,
+      needs_setup: true,
+    }
+    render(() => <App />)
     await flushDesktopBootstrap()
-
     await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
     )
     await waitFor(() => expect(screen.getByText('Index online')).toBeTruthy())
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Open service health' })).toBeTruthy()
+      expect(
+        screen.getByRole('button', {
+          name: 'Open service health',
+        })
+      ).toBeTruthy()
     )
     await flushDesktopBootstrap()
     expect(state.getDocumentsCalls).toHaveLength(0)
-
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Graph' }))
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Graph',
+        })
+      )
       await Promise.resolve()
       await Promise.resolve()
     })
     await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'No graph data' })).toBeTruthy()
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'No graph data',
+        })
+      ).toBeTruthy()
     )
     expect(state.getGraphCalls).toBe(0)
     await flushDesktopBootstrap()
@@ -919,7 +1048,6 @@ test('desktop setup does not query documents before the control plane is ready',
     state.settings = originalSettings
   }
 })
-
 test('desktop shell pauses passive health polling while hidden and refreshes on restore', async () => {
   const descriptor = Object.getOwnPropertyDescriptor(document, 'visibilityState')
   // oxlint-disable-next-line unicorn/consistent-function-scoping -- test-local visibility state
@@ -935,12 +1063,11 @@ test('desktop shell pauses passive health polling while hidden and refreshes on 
       setVisibility('visible')
       await Promise.resolve()
     })
-    render(<App />)
+    render(() => <App />)
     await flushDesktopBootstrap()
     await waitFor(() => expect(state.getDesktopServicesCalls).toBeGreaterThan(0))
     const servicesBeforeHidden = state.getDesktopServicesCalls
     const statusBeforeHidden = state.statusCalls
-
     await act(async () => {
       setVisibility('hidden')
       await Promise.resolve()
@@ -963,7 +1090,6 @@ test('desktop shell pauses passive health polling while hidden and refreshes on 
     })
     expect(state.getDesktopServicesCalls).toBe(servicesBeforeHidden)
     expect(state.statusCalls).toBe(statusBeforeHidden)
-
     await act(async () => {
       window.dispatchEvent(new Event('focus'))
       await Promise.resolve()
@@ -979,27 +1105,47 @@ test('desktop shell pauses passive health polling while hidden and refreshes on 
     else setVisibility('visible')
   }
 })
-
 test('desktop settings navigation opens the audit trail and renders both event sources', async () => {
-  render(<App />)
+  render(() => <App />)
 
   // Desktop chrome: version and updates shortcut live in the footer.
-  await waitFor(() => expect(screen.getByRole('button', { name: updatesButtonName })).toBeTruthy())
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', {
+        name: updatesButtonName,
+      })
+    ).toBeTruthy()
+  )
 
   // Rail navigation into the settings view.
-  fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Settings',
+    })
+  )
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Settings',
+      })
+    ).toBeTruthy()
   )
   expect(screen.getByText('Control plane')).toBeTruthy()
-  const save = screen.getByRole('button', { name: 'Save changes' })
+  const save = screen.getByRole('button', {
+    name: 'Save changes',
+  })
   expect(save).toBeTruthy()
   expect(save.hasAttribute('disabled')).toBe(true)
   fireEvent.submit(document.getElementById('settings-form')!)
   expect(state.saveSettingsCalls).toBe(0)
 
   // Section navigation into the audit trail.
-  fireEvent.click(screen.getByRole('button', { name: 'Audit' }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Audit',
+    })
+  )
   await waitFor(() => expect(screen.getByText('2 runtime · 1 Desktop events')).toBeTruthy())
   expect(state.saveSettingsCalls).toBe(0)
   expect(screen.getByText('Runtime retrieval')).toBeTruthy()
@@ -1009,22 +1155,31 @@ test('desktop settings navigation opens the audit trail and renders both event s
   expect(screen.getByText('settings_saved')).toBeTruthy()
 
   // Refreshing keeps the audit list stable.
-  fireEvent.click(screen.getByRole('button', { name: /Refresh/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Refresh/,
+    })
+  )
   await waitFor(() => expect(screen.getByText('2 runtime · 1 Desktop events')).toBeTruthy())
 })
-
 test('audit trail export downloads exactly the loaded redacted events as JSON', async () => {
   // Capture the browser download plumbing instead of letting happy-dom resolve
   // blob URLs, so the payload, filename, and cleanup are all observable.
   const originalCreateObjectURL = URL.createObjectURL
   const originalRevokeObjectURL = URL.revokeObjectURL
   const originalCreateElement = document.createElement.bind(document)
-  const downloads: Array<{ blob: Blob; url: string }> = []
+  const downloads: Array<{
+    blob: Blob
+    url: string
+  }> = []
   const revoked: string[] = []
   const anchors: HTMLAnchorElement[] = []
   URL.createObjectURL = (blob: Blob) => {
     const url = `blob:test:${downloads.length}`
-    downloads.push({ blob, url })
+    downloads.push({
+      blob,
+      url,
+    })
     return url
   }
   URL.revokeObjectURL = (url: string) => {
@@ -1036,18 +1191,38 @@ test('audit trail export downloads exactly the loaded redacted events as JSON', 
     return element
   }
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: updatesButtonName })).toBeTruthy()
+      expect(
+        screen.getByRole('button', {
+          name: updatesButtonName,
+        })
+      ).toBeTruthy()
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
     await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Audit' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Audit',
+      })
+    )
     await waitFor(() => expect(screen.getByText('2 runtime · 1 Desktop events')).toBeTruthy())
-
-    fireEvent.click(screen.getByRole('button', { name: 'Export' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Export',
+      })
+    )
 
     // One JSON blob is offered with the exact events already on screen — no
     // additional fields, no secret material beyond the redacted snapshots.
@@ -1083,30 +1258,52 @@ test('audit trail export downloads exactly the loaded redacted events as JSON', 
     document.createElement = originalCreateElement
   }
 })
-
 test('advanced settings export is blocked while draft is dirty', async () => {
-  render(<App />)
-  await waitFor(() => expect(screen.getByRole('button', { name: updatesButtonName })).toBeTruthy())
-  fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+  render(() => <App />)
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+    expect(
+      screen.getByRole('button', {
+        name: updatesButtonName,
+      })
+    ).toBeTruthy()
   )
-  fireEvent.click(screen.getByRole('button', { name: 'Advanced' }))
-
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Settings',
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Advanced',
+    })
+  )
   const dataDir = (await screen.findByLabelText('Data directory')) as HTMLInputElement
-  fireEvent.change(dataDir, { target: { value: '/tmp/dirty-runtime-directory' } })
+  fireEvent.change(dataDir, {
+    target: {
+      value: '/tmp/dirty-runtime-directory',
+    },
+  })
   expect(dataDir.value).toBe('/tmp/dirty-runtime-directory')
-
-  const exportButton = await screen.findByRole('button', { name: 'Export' })
+  const exportButton = await screen.findByRole('button', {
+    name: 'Export',
+  })
   expect(exportButton.hasAttribute('disabled')).toBe(true)
   fireEvent.click(exportButton)
   expect(state.exportDesktopSettingsCalls).toBe(0)
-
-  const saveChanges = screen.getByRole('button', { name: 'Save changes' })
+  const saveChanges = screen.getByRole('button', {
+    name: 'Save changes',
+  })
   expect(saveChanges.hasAttribute('disabled')).toBe(false)
   expect(state.saveSettingsCalls).toBe(0)
 })
-
 test('advanced settings export shows redacted notice and calls the export bridge when clean', async () => {
   state.exportDesktopSettingsResult = {
     path: '/tmp/cortana-settings.toml',
@@ -1114,17 +1311,36 @@ test('advanced settings export shows redacted notice and calls the export bridge
     secrets_included: false,
     omitted_external_sources: ['s3-uploader'],
   }
-  render(<App />)
-  await waitFor(() => expect(screen.getByRole('button', { name: updatesButtonName })).toBeTruthy())
-  fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+  render(() => <App />)
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+    expect(
+      screen.getByRole('button', {
+        name: updatesButtonName,
+      })
+    ).toBeTruthy()
   )
-  fireEvent.click(screen.getByRole('button', { name: 'Advanced' }))
-
-  const exportButton = await screen.findByRole('button', { name: 'Export' })
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Settings',
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Advanced',
+    })
+  )
+  const exportButton = await screen.findByRole('button', {
+    name: 'Export',
+  })
   expect(exportButton.hasAttribute('disabled')).toBe(false)
-
   fireEvent.click(exportButton)
   await waitFor(() => {
     const status = screen.getByRole('status') as HTMLElement
@@ -1135,41 +1351,67 @@ test('advanced settings export shows redacted notice and calls the export bridge
   })
   expect(state.exportDesktopSettingsCalls).toBe(1)
 })
-
 test('advanced settings exports an explicit workspace set as a derived vault', async () => {
   const originalConfirm = window.confirm
   const user = userEvent.setup()
   window.confirm = () => true
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: updatesButtonName })).toBeTruthy()
+      expect(
+        screen.getByRole('button', {
+          name: updatesButtonName,
+        })
+      ).toBeTruthy()
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
     await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Advanced' }))
-
-    const work = await screen.findByRole('checkbox', { name: 'Work' })
-    const personal = screen.getByRole('checkbox', { name: 'Personal' })
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Advanced',
+      })
+    )
+    const work = await screen.findByRole('checkbox', {
+      name: 'Work',
+    })
+    const personal = screen.getByRole('checkbox', {
+      name: 'Personal',
+    })
     expect(work.getAttribute('aria-checked')).toBe('true')
     expect(personal.getAttribute('aria-checked')).toBe('true')
     await user.click(personal)
     expect(personal.getAttribute('aria-checked')).toBe('false')
-
-    fireEvent.click(screen.getByRole('button', { name: 'Export vault' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Export vault',
+      })
+    )
     await waitFor(() =>
       expect(screen.getByRole('status').textContent).toContain(
         'Exported 2 documents; 2 content rewrites and 0 unchanged.'
       )
     )
-    expect(state.vaultExportStartCalls).toEqual([{ workspaces: ['work'], dryRun: false }])
+    expect(state.vaultExportStartCalls).toEqual([
+      {
+        workspaces: ['work'],
+        dryRun: false,
+      },
+    ])
   } finally {
     window.confirm = originalConfirm
   }
 })
-
 test('advanced import preview cancellation keeps draft values unchanged', async () => {
   const originalConfirm = window.confirm
   window.confirm = () => false
@@ -1181,36 +1423,61 @@ test('advanced import preview cancellation keeps draft values unchanged', async 
     settings: buildImportedSettings('/tmp/imported-runtime-dir'),
   }
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: updatesButtonName })).toBeTruthy()
+      expect(
+        screen.getByRole('button', {
+          name: updatesButtonName,
+        })
+      ).toBeTruthy()
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
     await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Advanced' }))
-
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Advanced',
+      })
+    )
     const dataDir = (await screen.findByLabelText('Data directory')) as HTMLInputElement
-    fireEvent.change(dataDir, { target: { value: '/tmp/dirty-draft' } })
+    fireEvent.change(dataDir, {
+      target: {
+        value: '/tmp/dirty-draft',
+      },
+    })
     expect(dataDir.value).toBe('/tmp/dirty-draft')
-
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Import preview' }))
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Import preview',
+        })
+      )
       await Promise.resolve()
     })
     await waitFor(() => expect(state.importDesktopSettingsCalls).toBe(1))
-
     expect(dataDir.value).toBe('/tmp/dirty-draft')
-    expect(screen.getByRole('button', { name: 'Save changes' }).hasAttribute('disabled')).toBe(
-      false
-    )
+    expect(
+      screen
+        .getByRole('button', {
+          name: 'Save changes',
+        })
+        .hasAttribute('disabled')
+    ).toBe(false)
     await flushDesktopBootstrap()
   } finally {
     window.confirm = originalConfirm
   }
 })
-
 test('advanced settings import preview applies as unsaved draft and requires explicit save', async () => {
   const originalConfirm = window.confirm
   window.confirm = () => true
@@ -1222,17 +1489,37 @@ test('advanced settings import preview applies as unsaved draft and requires exp
     settings: buildImportedSettings('/tmp/imported-runtime-dir'),
   }
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: updatesButtonName })).toBeTruthy()
+      expect(
+        screen.getByRole('button', {
+          name: updatesButtonName,
+        })
+      ).toBeTruthy()
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
     await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Advanced' }))
-
-    fireEvent.click(await screen.findByRole('button', { name: 'Import preview' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Advanced',
+      })
+    )
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Import preview',
+      })
+    )
     await waitFor(() =>
       expect(
         screen.getByText(
@@ -1240,14 +1527,13 @@ test('advanced settings import preview applies as unsaved draft and requires exp
         )
       ).toBeTruthy()
     )
-
     expect(state.importDesktopSettingsCalls).toBe(1)
     expect(state.saveSettingsCalls).toBe(0)
-
     const dataDir = screen.getByLabelText('Data directory') as HTMLInputElement
     expect(dataDir.value).toBe('/tmp/imported-runtime-dir')
-
-    const saveChanges = screen.getByRole('button', { name: 'Save changes' })
+    const saveChanges = screen.getByRole('button', {
+      name: 'Save changes',
+    })
     expect(saveChanges.hasAttribute('disabled')).toBe(false)
     fireEvent.click(saveChanges)
     await waitFor(() => expect(state.saveSettingsCalls).toBe(1))
@@ -1256,54 +1542,95 @@ test('advanced settings import preview applies as unsaved draft and requires exp
     window.confirm = originalConfirm
   }
 })
-
 test('updates project link surfaces native browser failures', async () => {
   const originalError = state.openProjectError
   state.openProjectError = new Error('browser unavailable')
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Updates' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Updates' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'View Cortana source on GitHub' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Updates',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Updates',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'View Cortana source on GitHub',
+      })
+    )
     await waitFor(() => expect(screen.getByText('browser unavailable')).toBeTruthy())
     expect(state.openProjectCalls).toBe(1)
   } finally {
     state.openProjectError = originalError
   }
 })
-
 test('updates require confirmation before invoking native installation', async () => {
   const originalConfirm = window.confirm
   state.installDesktopUpdateCalls = 0
   state.lastInstallDesktopUpdate = null
   window.confirm = () => false
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: updatesButtonName }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Updates' })).toBeTruthy())
-
-    fireEvent.click(screen.getByRole('button', { name: 'Install and restart' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: updatesButtonName,
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Updates',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Install and restart',
+      })
+    )
     expect(state.installDesktopUpdateCalls).toBe(0)
-
     window.confirm = () => true
-    fireEvent.click(screen.getByRole('button', { name: 'Install and restart' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Install and restart',
+      })
+    )
     await waitFor(() => expect(state.installDesktopUpdateCalls).toBe(1))
     expect(state.lastInstallDesktopUpdate as unknown).toEqual({
       expectedVersion: '9.9.9',
       restart: true,
     })
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Restart required' })).toBeTruthy()
+      expect(
+        screen.getByRole('button', {
+          name: 'Restart required',
+        })
+      ).toBeTruthy()
     )
   } finally {
     window.confirm = originalConfirm
   }
 })
-
 test('updates surface native install failures while retaining retryable update state', async () => {
   const originalConfirm = window.confirm
   const originalError = state.installDesktopUpdateError
@@ -1311,41 +1638,86 @@ test('updates surface native install failures while retaining retryable update s
   state.installDesktopUpdateCalls = 0
   state.installDesktopUpdateError = new Error('signed update verification failed')
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: updatesButtonName }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Updates' })).toBeTruthy())
-
-    fireEvent.click(screen.getByRole('button', { name: 'Install and restart' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: updatesButtonName,
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Updates',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Install and restart',
+      })
+    )
     await waitFor(() => expect(state.installDesktopUpdateCalls).toBe(1))
     await waitFor(() => expect(screen.getByText('signed update verification failed')).toBeTruthy())
-    expect(screen.getByRole('button', { name: 'Install and restart' })).toBeTruthy()
+    expect(
+      screen.getByRole('button', {
+        name: 'Install and restart',
+      })
+    ).toBeTruthy()
   } finally {
     state.installDesktopUpdateError = originalError
     window.confirm = originalConfirm
   }
 })
-
 test('updates can cancel native installation and retain a retryable state', async () => {
   const originalConfirm = window.confirm
   window.confirm = () => true
   state.deferDesktopUpdateInstall = true
   state.cancelDesktopUpdateCalls = 0
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: updatesButtonName }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Updates' })).toBeTruthy())
-
-    fireEvent.click(screen.getByRole('button', { name: 'Install and restart' }))
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel update' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel update' }))
-    await waitFor(() => expect(state.cancelDesktopUpdateCalls).toBe(1))
-
-    const resolveInstall = state.deferredDesktopUpdateInstall.shift()
-    resolveInstall?.({ ...desktopUpdate, phase: 'cancelled' })
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: updatesButtonName,
+      })
+    )
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Install and restart' })).toBeTruthy()
+      expect(
+        screen.getByRole('heading', {
+          name: 'Updates',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Install and restart',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', {
+          name: 'Cancel update',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Cancel update',
+      })
+    )
+    await waitFor(() => expect(state.cancelDesktopUpdateCalls).toBe(1))
+    const resolveInstall = state.deferredDesktopUpdateInstall.shift()
+    resolveInstall?.({
+      ...desktopUpdate,
+      phase: 'cancelled',
+    })
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', {
+          name: 'Install and restart',
+        })
+      ).toBeTruthy()
     )
     expect(screen.getByText('Update cancelled; you can retry when ready')).toBeTruthy()
   } finally {
@@ -1354,68 +1726,112 @@ test('updates can cancel native installation and retain a retryable state', asyn
     window.confirm = originalConfirm
   }
 })
-
 test('desktop shell surfaces service health without native memory details', async () => {
-  render(<App />)
+  render(() => <App />)
   await waitFor(() =>
-    expect(screen.getByRole('button', { name: 'Open service health' })).toBeTruthy()
+    expect(
+      screen.getByRole('button', {
+        name: 'Open service health',
+      })
+    ).toBeTruthy()
   )
   expect(screen.getByText('Services: core attention')).toBeTruthy()
 })
-
 test('desktop Help links use the native external URL bridge', async () => {
-  render(<App />)
-  await waitFor(() => expect(screen.getByRole('button', { name: 'Help' })).toBeTruthy())
-  fireEvent.click(screen.getByRole('button', { name: 'Help' }))
-  const documentation = screen.getByRole('link', { name: /Documentation/ })
+  render(() => <App />)
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', {
+        name: 'Help',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Help',
+    })
+  )
+  const documentation = screen.getByRole('link', {
+    name: /Documentation/,
+  })
   fireEvent.click(documentation)
   await waitFor(() =>
     expect(state.openUrlCalls).toEqual(['https://github.com/adea-ai/cortana/tree/main/docs'])
   )
 })
-
 test('desktop Help links surface native browser failures', async () => {
   state.openUrlError = new Error('browser unavailable')
-  render(<App />)
-  await waitFor(() => expect(screen.getByRole('button', { name: 'Help' })).toBeTruthy())
-  fireEvent.click(screen.getByRole('button', { name: 'Help' }))
-  fireEvent.click(screen.getByRole('link', { name: /Documentation/ }))
+  render(() => <App />)
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', {
+        name: 'Help',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Help',
+    })
+  )
+  fireEvent.click(
+    screen.getByRole('link', {
+      name: /Documentation/,
+    })
+  )
   await waitFor(() => expect(screen.getByText('browser unavailable')).toBeTruthy())
   expect(state.openUrlCalls).toEqual(['https://github.com/adea-ai/cortana/tree/main/docs'])
 })
-
 test('desktop Help project action surfaces native browser failures', async () => {
   state.openProjectError = new Error('browser unavailable')
-  render(<App />)
-  await waitFor(() => expect(screen.getByRole('button', { name: 'Help' })).toBeTruthy())
-  fireEvent.click(screen.getByRole('button', { name: 'Help' }))
-  fireEvent.click(screen.getByRole('button', { name: 'Open project page' }))
+  render(() => <App />)
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', {
+        name: 'Help',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Help',
+    })
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Open project page',
+    })
+  )
   await waitFor(() => expect(screen.getByText('browser unavailable')).toBeTruthy())
   expect(state.openProjectCalls).toBe(1)
 })
-
 test('desktop shell does not present a stale service report after refresh failure', () => {
-  render(
+  render(() => (
     <ServiceHealthIndicator
       report={installedServiceReport}
       error="service status transport failed"
       onOpen={() => {}}
     />
-  )
-
+  ))
   expect(screen.getByText('Services: unavailable')).toBeTruthy()
-  const health = screen.getByRole('button', { name: 'Open service health' })
-  expect(health.hasAttribute('data-base-ui-tooltip-trigger')).toBe(true)
+  const health = screen.getByRole('button', {
+    name: 'Open service health',
+  })
+  expect(health.getAttribute('data-slot')).toBe('tooltip-trigger')
 })
-
 test('desktop shell does not require the local embedding service for cloud embeddings', () => {
-  render(
+  render(() => (
     <ServiceHealthIndicator
       report={{
         ...installedServiceReport,
         services: installedServiceReport.services.map((service) =>
           service.name === 'embedding'
-            ? { ...service, installed: false, loaded: false, state: null }
+            ? {
+                ...service,
+                installed: false,
+                loaded: false,
+                state: null,
+              }
             : service
         ),
       }}
@@ -1423,28 +1839,46 @@ test('desktop shell does not require the local embedding service for cloud embed
       embeddingRequired={false}
       onOpen={() => {}}
     />
-  )
-
+  ))
   expect(screen.getByText('Services: core 1/1 online')).toBeTruthy()
 })
-
 test('query number fields expose deterministic errors and recover to the saved bounds', async () => {
-  render(<App />)
+  render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-  fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-  await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Settings',
+    })
   )
-  fireEvent.click(screen.getByRole('button', { name: 'Query' }))
-
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Query',
+    })
+  )
   const retrieval = screen.getByLabelText('Retrieval candidates') as HTMLInputElement
-  fireEvent.change(retrieval, { target: { value: '999' } })
+  fireEvent.change(retrieval, {
+    target: {
+      value: '999',
+    },
+  })
   expect(retrieval.value).toBe('999')
   expect(retrieval.getAttribute('aria-invalid')).toBe('true')
   expect(screen.getByRole('alert').textContent).toContain(
     'Retrieval candidates must be between 1 and 100.'
   )
-  fireEvent.change(retrieval, { target: { value: '1.5' } })
+  fireEvent.change(retrieval, {
+    target: {
+      value: '1.5',
+    },
+  })
   expect(retrieval.value).toBe('1.5')
   expect(screen.getByRole('alert').textContent).toContain(
     'Retrieval candidates must be a whole number.'
@@ -1452,24 +1886,47 @@ test('query number fields expose deterministic errors and recover to the saved b
   fireEvent.blur(retrieval)
   expect(retrieval.value).toBe('10')
   expect(screen.queryByRole('alert')).toBeNull()
-
   const cacheEntries = screen.getByLabelText(/Cache entries/) as HTMLInputElement
-  fireEvent.change(cacheEntries, { target: { value: '0' } })
+  fireEvent.change(cacheEntries, {
+    target: {
+      value: '0',
+    },
+  })
   expect(cacheEntries.value).toBe('0')
   const cacheLifetime = screen.getByLabelText(/^Cache lifetime \(seconds\)/) as HTMLInputElement
-  fireEvent.change(cacheLifetime, { target: { value: '0' } })
+  fireEvent.change(cacheLifetime, {
+    target: {
+      value: '0',
+    },
+  })
   expect(cacheLifetime.value).toBe('0')
 })
-
 test('embedding settings explain local service command ownership', async () => {
   const originalSettings = state.settings
-  state.settings = { ...desktopSettings, embedding_service_program: '/opt/text-embeddings-router' }
+  state.settings = {
+    ...desktopSettings,
+    embedding_service_program: '/opt/text-embeddings-router',
+  }
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Embedding' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Embedding',
+      })
+    )
     expect(
       screen.getByText(/\/opt\/text-embeddings-router \(managed in config\.toml\)/)
     ).toBeTruthy()
@@ -1478,7 +1935,6 @@ test('embedding settings explain local service command ownership', async () => {
     state.settings = originalSettings
   }
 })
-
 test('embedding model field supports preset catalog with custom fallback', async () => {
   const originalSettings = state.settings
   state.settings = {
@@ -1490,22 +1946,35 @@ test('embedding model field supports preset catalog with custom fallback', async
       base_url: 'http://127.0.0.1:6999/v1',
     },
   }
-
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Embedding' }))
-
-    const catalog = await screen.findByRole('combobox', { name: 'Model catalog' })
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Embedding',
+      })
+    )
+    const catalog = await screen.findByRole('combobox', {
+      name: 'Model catalog',
+    })
     expect(catalog.textContent).toContain('Qwen/Qwen3-Embedding-0.6B')
     expect(catalog.getAttribute('data-slot')).toBe('select-trigger')
   } finally {
     state.settings = originalSettings
   }
 })
-
 test('query model field remains a dropdown and preserves the current model until discovery', async () => {
   const originalSettings = state.settings
   state.settings = {
@@ -1517,22 +1986,39 @@ test('query model field remains a dropdown and preserves the current model until
       base_url: 'https://api.openai.com/v1',
     },
   }
-
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Query' }))
-
-    const model = await screen.findByRole('combobox', { name: 'Model catalog' })
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Query',
+      })
+    )
+    const model = await screen.findByRole('combobox', {
+      name: 'Model catalog',
+    })
     expect(model.textContent).toContain('provider-custom-embedding')
-    expect(screen.queryByRole('textbox', { name: 'Model' })).toBeNull()
+    expect(
+      screen.queryByRole('textbox', {
+        name: 'Model',
+      })
+    ).toBeNull()
   } finally {
     state.settings = originalSettings
   }
 })
-
 test('settings add controls avoid reusing removed identifiers', async () => {
   const originalSettings = state.settings
   const originalConfirm = window.confirm
@@ -1540,12 +2026,30 @@ test('settings add controls avoid reusing removed identifiers', async () => {
   state.settings = {
     ...desktopSettings,
     workspaces: [
-      { id: 'workspace-1', name: 'One', account_label: null, color: '#5A9BD5' },
-      { id: 'workspace-2', name: 'Two', account_label: null, color: '#E8A83B' },
+      {
+        id: 'workspace-1',
+        name: 'One',
+        account_label: null,
+        color: '#5A9BD5',
+      },
+      {
+        id: 'workspace-2',
+        name: 'Two',
+        account_label: null,
+        color: '#E8A83B',
+      },
     ],
     sources: [
-      { ...workSource, name: 'source-1', project: 'workspace-2' },
-      { ...workSource, name: 'source-2', project: 'workspace-2' },
+      {
+        ...workSource,
+        name: 'source-1',
+        project: 'workspace-2',
+      },
+      {
+        ...workSource,
+        name: 'source-2',
+        project: 'workspace-2',
+      },
     ],
     auth_principals: [
       {
@@ -1563,38 +2067,112 @@ test('settings add controls avoid reusing removed identifiers', async () => {
     ],
   }
   try {
-    render(<App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+    render(() => <App />)
+    await screen.findByLabelText('Search your knowledge')
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Settings',
+      })
     )
-
-    fireEvent.click(screen.getByRole('button', { name: 'Workspaces' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Remove One' }))
-    fireEvent.click(screen.getByRole('button', { name: /Add workspace/ }))
-    fireEvent.click(screen.getAllByRole('button', { name: 'Advanced workspace details' }).at(-1)!)
+    await screen.findByRole('heading', {
+      level: 1,
+      name: 'Settings',
+    })
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Workspaces',
+      })
+    )
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Remove One',
+      })
+    )
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: /Add workspace/,
+      })
+    )
+    fireEvent.click(
+      screen
+        .getAllByRole('button', {
+          name: 'Advanced workspace details',
+        })
+        .at(-1)!
+    )
     expect(
       (screen.getAllByLabelText(/Scope ID/) as HTMLInputElement[]).map((input) => input.value)
     ).toContain('new-workspace')
-
-    fireEvent.click(screen.getByRole('button', { name: 'Sources' }))
-    fireEvent.click(await screen.findByRole('tab', { name: /Two/ }))
-    fireEvent.click(screen.getByRole('button', { name: 'Remove source-1' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Add source' }))
-    expect(screen.getByRole('dialog', { name: 'Choose a source type' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('radio', { name: 'Buzz' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Add Buzz' }))
-    fireEvent.click(screen.getByRole('tab', { name: /Two/ }))
-    fireEvent.click(screen.getAllByRole('button', { name: /Advanced source settings/ }).at(-1)!)
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Sources',
+      })
+    )
+    fireEvent.click(
+      await screen.findByRole('tab', {
+        name: /Two/,
+      })
+    )
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Remove source-1',
+      })
+    )
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Add source',
+      })
+    )
+    expect(
+      await screen.findByRole('dialog', {
+        name: 'Choose a source type',
+      })
+    ).toBeTruthy()
+    fireEvent.click(
+      await screen.findByRole('radio', {
+        name: 'Buzz',
+      })
+    )
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Add Buzz',
+      })
+    )
+    fireEvent.click(
+      await screen.findByRole('tab', {
+        name: /Two/,
+      })
+    )
+    fireEvent.click(
+      screen
+        .getAllByRole('button', {
+          name: /Advanced source settings/,
+        })
+        .at(-1)!
+    )
     expect(
       (screen.getAllByLabelText(/Source name/) as HTMLInputElement[]).map((input) => input.value)
     ).toContain('source-1')
-    expect(screen.getByRole('img', { name: 'Buzz connector' })).toBeTruthy()
-    expect(screen.queryByRole('combobox', { name: 'Workspace for source-1' })).toBeNull()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Access' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Add principal' }))
+    expect(
+      await screen.findByRole('img', {
+        name: 'Buzz connector',
+      })
+    ).toBeTruthy()
+    expect(
+      screen.queryByRole('combobox', {
+        name: 'Workspace for source-1',
+      })
+    ).toBeNull()
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Access',
+      })
+    )
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Add principal',
+      })
+    )
     expect(
       (screen.getAllByLabelText('Principal name') as HTMLInputElement[]).map((input) => input.value)
     ).toContain('agent-3')
@@ -1603,51 +2181,113 @@ test('settings add controls avoid reusing removed identifiers', async () => {
     state.settings = originalSettings
   }
 })
-
 test('adding files and code opens the native picker before creating a populated source', async () => {
   const originalSettings = state.settings
-  state.settings = { ...desktopSettings, sources: [] }
+  state.settings = {
+    ...desktopSettings,
+    sources: [],
+  }
   state.pickedPath = '/Users/you/Developer/example-repo'
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Sources' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Add source' }))
-    fireEvent.click(screen.getByRole('radio', { name: 'Files and code' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Choose folder' }))
-
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Sources',
+      })
+    )
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Add source',
+      })
+    )
+    fireEvent.click(
+      screen.getByRole('radio', {
+        name: 'Files and code',
+      })
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Choose folder',
+      })
+    )
     await waitFor(() => expect(state.pathPickerCalls).toEqual(['directory']))
     expect(await screen.findByText('/Users/you/Developer/example-repo')).toBeTruthy()
     expect(
-      screen.getByRole('switch', { name: /Enable example-repo/ }).getAttribute('aria-checked')
+      screen
+        .getByRole('switch', {
+          name: /Enable example-repo/,
+        })
+        .getAttribute('aria-checked')
     ).toBe('true')
-    fireEvent.click(screen.getByRole('button', { name: /Advanced source settings/ }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Advanced source settings/,
+      })
+    )
     expect((screen.getByLabelText('Source name') as HTMLInputElement).value).toBe('example-repo')
   } finally {
     state.settings = originalSettings
   }
 })
-
 test('connecting a provider collects its files before persisting and authorizing the source', async () => {
   const originalSettings = state.settings
-  state.settings = { ...desktopSettings, sources: [] }
+  state.settings = {
+    ...desktopSettings,
+    sources: [],
+  }
   state.applySettingsUpdate = true
   state.pickedPaths = [
     '/Users/you/Downloads/google-oauth-client.json',
     '/Users/you/.config/cortana/google-calendar-token.json',
   ]
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Sources' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Add source' }))
-    fireEvent.click(screen.getByRole('radio', { name: 'Google Calendar' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Connect Google Calendar' }))
-
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Sources',
+      })
+    )
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Add source',
+      })
+    )
+    fireEvent.click(
+      screen.getByRole('radio', {
+        name: 'Google Calendar',
+      })
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Connect Google Calendar',
+      })
+    )
     await waitFor(() => expect(state.pathPickerCalls).toEqual(['oauth-client', 'google-token']))
     await waitFor(() => expect(state.authorizationCalls).toEqual(['google-calendar']))
     expect(state.lastSettingsUpdate?.sources).toContainEqual(
@@ -1658,7 +2298,11 @@ test('connecting a provider collects its files before persisting and authorizing
         token_path: '/Users/you/.config/cortana/google-calendar-token.json',
       })
     )
-    expect(screen.queryByRole('dialog', { name: 'Choose a source type' })).toBeNull()
+    expect(
+      screen.queryByRole('dialog', {
+        name: 'Choose a source type',
+      })
+    ).toBeNull()
     expect(screen.getByText('Authorization · running')).toBeTruthy()
   } finally {
     state.settings = originalSettings
@@ -1666,21 +2310,48 @@ test('connecting a provider collects its files before persisting and authorizing
     state.applySettingsUpdate = false
   }
 })
-
 test('cancelling provider connection creates no source', async () => {
   const originalSettings = state.settings
-  state.settings = { ...desktopSettings, sources: [] }
+  state.settings = {
+    ...desktopSettings,
+    sources: [],
+  }
   state.pickedPaths = ['/Users/you/Downloads/google-oauth-client.json']
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Sources' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Add source' }))
-    fireEvent.click(screen.getByRole('radio', { name: 'Google Drive' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Connect Google Drive' }))
-
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Sources',
+      })
+    )
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Add source',
+      })
+    )
+    fireEvent.click(
+      screen.getByRole('radio', {
+        name: 'Google Drive',
+      })
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Connect Google Drive',
+      })
+    )
     await waitFor(() => expect(state.pathPickerCalls).toEqual(['oauth-client', 'google-token']))
     expect(state.saveSettingsCalls).toBe(0)
     expect(state.authorizationCalls).toEqual([])
@@ -1689,25 +2360,49 @@ test('cancelling provider connection creates no source', async () => {
     state.settings = originalSettings
   }
 })
-
 test('workspace controls protect scopes assigned to sources', async () => {
   const originalSettings = state.settings
   state.settings = {
     ...desktopSettings,
-    sources: [{ ...workSource, project: 'work' }],
+    sources: [
+      {
+        ...workSource,
+        project: 'work',
+      },
+    ],
   }
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Workspaces' }))
-    fireEvent.click(screen.getAllByRole('button', { name: 'Advanced workspace details' })[0])
-
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Workspaces',
+      })
+    )
+    fireEvent.click(
+      screen.getAllByRole('button', {
+        name: 'Advanced workspace details',
+      })[0]
+    )
     expect(
-      (screen.getByRole('button', { name: 'Remove Work' }) as HTMLButtonElement).disabled
+      (
+        screen.getByRole('button', {
+          name: 'Remove Work',
+        }) as HTMLButtonElement
+      ).disabled
     ).toBe(true)
     const workScope = (screen.getAllByLabelText(/Scope ID/) as HTMLInputElement[]).find(
       (input) => input.value === 'work'
@@ -1717,22 +2412,40 @@ test('workspace controls protect scopes assigned to sources', async () => {
     state.settings = originalSettings
   }
 })
-
 test('workspace cards show display name and advanced details', async () => {
   const originalSettings = state.settings
   state.settings = {
     ...desktopSettings,
-    workspaces: [{ id: 'work', name: 'Work', account_label: 'team@example.com', color: '#5A9BD5' }],
+    workspaces: [
+      {
+        id: 'work',
+        name: 'Work',
+        account_label: 'team@example.com',
+        color: '#5A9BD5',
+      },
+    ],
   }
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Workspaces' }))
-
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Workspaces',
+      })
+    )
     fireEvent.click(screen.getByText('Advanced workspace details'))
     expect(screen.getByText('ID is internal; account labels are optional metadata.')).toBeTruthy()
     expect(screen.getByLabelText(/Scope ID/i)).toBeTruthy()
@@ -1747,57 +2460,109 @@ test('workspace cards show display name and advanced details', async () => {
     state.settings = originalSettings
   }
 })
-
 test('new workspace display names keep focus while typing', async () => {
-  render(<App />)
+  render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-  fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-  await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-  fireEvent.click(screen.getByRole('button', { name: 'Workspaces' }))
-  fireEvent.click(screen.getByRole('button', { name: 'Add workspace (2/128)' }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Settings',
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Workspaces',
+    })
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Add workspace (2/128)',
+    })
+  )
   const displayName = screen.getAllByLabelText('Display name').at(-1) as HTMLInputElement
-
   displayName.focus()
-  fireEvent.change(displayName, { target: { value: 'N' } })
+  fireEvent.change(displayName, {
+    target: {
+      value: 'N',
+    },
+  })
   expect(document.activeElement).toBe(displayName)
-  fireEvent.change(displayName, { target: { value: 'New workspace' } })
+  fireEvent.change(displayName, {
+    target: {
+      value: 'New workspace',
+    },
+  })
   expect(document.activeElement).toBe(displayName)
 })
-
 test('workspace settings keep 25 workspaces searchable and keyboard-operable', async () => {
   const originalSettings = state.settings
   state.settings = {
     ...desktopSettings,
     sources: [],
-    workspaces: Array.from({ length: 25 }, (_, index) => ({
-      id: `workspace-${String(index + 1).padStart(2, '0')}`,
-      name: `Workspace ${index + 1}`,
-      account_label: index === 24 ? 'needle@example.test' : null,
-      color: null,
-    })),
+    workspaces: Array.from(
+      {
+        length: 25,
+      },
+      (_, index) => ({
+        id: `workspace-${String(index + 1).padStart(2, '0')}`,
+        name: `Workspace ${index + 1}`,
+        account_label: index === 24 ? 'needle@example.test' : null,
+        color: null,
+      })
+    ),
   }
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Workspaces' }))
-
-    const add = screen.getByRole('button', { name: 'Add workspace (25/128)' })
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Workspaces',
+      })
+    )
+    const add = screen.getByRole('button', {
+      name: 'Add workspace (25/128)',
+    })
     expect(add.hasAttribute('disabled')).toBe(false)
     const search = screen.getByLabelText('Find workspace') as HTMLInputElement
-    fireEvent.change(search, { target: { value: 'needle@example.test' } })
+    fireEvent.change(search, {
+      target: {
+        value: 'needle@example.test',
+      },
+    })
     expect(screen.getAllByLabelText('Display name')).toHaveLength(1)
     expect((screen.getByLabelText('Display name') as HTMLInputElement).value).toBe('Workspace 25')
-
-    const moveUp = screen.getByRole('button', { name: 'Move Workspace 25 up' })
+    const moveUp = screen.getByRole('button', {
+      name: 'Move Workspace 25 up',
+    })
     await act(async () => {
       moveUp.focus()
       await Promise.resolve()
     })
     expect(document.activeElement).toBe(moveUp)
     fireEvent.click(moveUp)
-    fireEvent.change(search, { target: { value: '' } })
+    fireEvent.change(search, {
+      target: {
+        value: '',
+      },
+    })
     const names = screen.getAllByLabelText('Display name') as HTMLInputElement[]
     expect(names).toHaveLength(25)
     expect(names[23]?.value).toBe('Workspace 25')
@@ -1806,71 +2571,158 @@ test('workspace settings keep 25 workspaces searchable and keyboard-operable', a
     state.settings = originalSettings
   }
 })
-
 test('settings warns before discarding dirty changes', async () => {
   const originalConfirm = window.confirm
   const responses = [false, true]
   window.confirm = () => responses.shift() ?? true
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
     await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Workspaces' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Workspaces',
+      })
+    )
     fireEvent.change(screen.getAllByLabelText('Display name')[0], {
-      target: { value: 'Draft work' },
+      target: {
+        value: 'Draft work',
+      },
     })
-    expect(screen.getByRole('button', { name: 'Save changes' }).hasAttribute('disabled')).toBe(
-      false
+    expect(
+      screen
+        .getByRole('button', {
+          name: 'Save changes',
+        })
+        .hasAttribute('disabled')
+    ).toBe(false)
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Knowledge',
+      })
     )
-
-    fireEvent.click(screen.getByRole('button', { name: 'Knowledge' }))
-    expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Knowledge' }))
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Knowledge',
+      })
+    )
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
   } finally {
     window.confirm = originalConfirm
   }
 })
-
 test('settings can discard a draft without leaving the control plane', async () => {
   const originalConfirm = window.confirm
   const originalSettings = state.settings
   window.confirm = () => true
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Workspaces' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Workspaces',
+      })
+    )
     const displayName = screen.getAllByLabelText('Display name')[0] as HTMLInputElement
-    fireEvent.change(displayName, { target: { value: 'Draft work' } })
-    expect(screen.getByRole('button', { name: 'Discard' })).toBeTruthy()
+    fireEvent.change(displayName, {
+      target: {
+        value: 'Draft work',
+      },
+    })
+    expect(
+      screen.getByRole('button', {
+        name: 'Discard',
+      })
+    ).toBeTruthy()
 
     // Make the native reload differ from the shell snapshot. Discard must
     // reconcile both so remounting Settings cannot resurrect the old draft.
     state.settings = {
       ...originalSettings,
       workspaces: originalSettings.workspaces.map((workspace, index) =>
-        index === 0 ? { ...workspace, name: 'Reloaded work' } : workspace
+        index === 0
+          ? {
+              ...workspace,
+              name: 'Reloaded work',
+            }
+          : workspace
       ),
     }
-    fireEvent.click(screen.getByRole('button', { name: 'Discard' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Discard',
+      })
+    )
     await waitFor(() =>
       expect((screen.getAllByLabelText('Display name')[0] as HTMLInputElement).value).toBe(
         'Reloaded work'
       )
     )
-    expect(screen.queryByRole('button', { name: 'Discard' })).toBeNull()
-    expect(screen.getByRole('button', { name: 'Save changes' }).hasAttribute('disabled')).toBe(true)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Knowledge' }))
+    expect(
+      screen.queryByRole('button', {
+        name: 'Discard',
+      })
+    ).toBeNull()
+    expect(
+      screen
+        .getByRole('button', {
+          name: 'Save changes',
+        })
+        .hasAttribute('disabled')
+    ).toBe(true)
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Knowledge',
+      })
+    )
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Workspaces' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Workspaces',
+      })
+    )
     await waitFor(() =>
       expect((screen.getAllByLabelText('Display name')[0] as HTMLInputElement).value).toBe(
         'Reloaded work'
@@ -1881,30 +2733,46 @@ test('settings can discard a draft without leaving the control plane', async () 
     state.settings = originalSettings
   }
 })
-
 test('late desktop bootstrap settings cannot overwrite a shell-reconciled snapshot', async () => {
   const originalSettings = state.settings
   const reloadedSettings = {
     ...originalSettings,
     workspaces: originalSettings.workspaces.map((workspace, index) =>
-      index === 0 ? { ...workspace, name: 'Reloaded work' } : workspace
+      index === 0
+        ? {
+            ...workspace,
+            name: 'Reloaded work',
+          }
+        : workspace
     ),
   }
   state.deferDesktopSettings = true
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(state.deferredDesktopSettings.length).toBe(1))
-
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
     await waitFor(() => expect(state.deferredDesktopSettings.length).toBe(2))
 
     // Settings completes its own read first; the App bootstrap request then
     // resolves with the stale snapshot it started with.
     state.deferredDesktopSettings[1]!(reloadedSettings)
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
     state.deferredDesktopSettings[0]!(originalSettings)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Workspaces' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Workspaces',
+      })
+    )
     await waitFor(() =>
       expect((screen.getAllByLabelText('Display name')[0] as HTMLInputElement).value).toBe(
         'Reloaded work'
@@ -1916,41 +2784,85 @@ test('late desktop bootstrap settings cannot overwrite a shell-reconciled snapsh
     state.settings = originalSettings
   }
 })
-
 test('the footer updates shortcut opens the updates section directly', async () => {
-  render(<App />)
-  await waitFor(() => expect(screen.getByRole('button', { name: updatesButtonName })).toBeTruthy())
-
-  fireEvent.click(screen.getByRole('button', { name: updatesButtonName }))
+  render(() => <App />)
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+    expect(
+      screen.getByRole('button', {
+        name: updatesButtonName,
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: updatesButtonName,
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Settings',
+      })
+    ).toBeTruthy()
   )
   await waitFor(() => expect(screen.getByText('Version 9.9.9 is available')).toBeTruthy())
   expect(screen.getByText('Installed version')).toBeTruthy()
-  expect(screen.getByRole('button', { name: /Install and restart/ })).toBeTruthy()
+  expect(
+    screen.getByRole('button', {
+      name: /Install and restart/,
+    })
+  ).toBeTruthy()
 
   // Back to the knowledge workspace via the rail.
-  fireEvent.click(screen.getByRole('button', { name: 'Knowledge' }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Knowledge',
+    })
+  )
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
 })
-
 test('updates section renders release markdown safely', async () => {
   const originalNotes = desktopUpdate.release_notes
   const originalChangelog = desktopUpdate.changelog
   desktopUpdate.release_notes =
     '# Release Notes\n\n- Indexed local Q&A\n- Added [dashboard](https://example.com/help)\n\n`inline` code'
   desktopUpdate.changelog = '### Changelog\n\n1. Added feature\n2. Fixed bugs'
-
   try {
-    render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: /· Updates/ }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Updates' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Updates' }))
-
-    expect(screen.getByRole('heading', { name: 'Release Notes' })).toBeTruthy()
+    render(() => <App />)
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /· Updates/,
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', {
+          name: 'Updates',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Updates',
+      })
+    )
+    expect(
+      screen.getByRole('heading', {
+        name: 'Release Notes',
+      })
+    ).toBeTruthy()
     expect(screen.getByText('Indexed local Q&A')).toBeTruthy()
-    const link = screen.getByRole('link', { name: 'dashboard' }) as HTMLAnchorElement
+    const link = screen.getByRole('link', {
+      name: 'dashboard',
+    }) as HTMLAnchorElement
     expect(link.href).toBe('https://example.com/help')
     expect(screen.getByText('inline')).toBeTruthy()
   } finally {
@@ -1958,103 +2870,208 @@ test('updates section renders release markdown safely', async () => {
     desktopUpdate.changelog = originalChangelog
   }
 })
-
 test('the footer updates shortcut respects unsaved settings changes', async () => {
   const originalConfirm = window.confirm
   window.confirm = () => false
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Workspaces' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Workspaces',
+      })
+    )
     fireEvent.change(screen.getAllByLabelText('Display name')[0], {
-      target: { value: 'Unsaved workspace' },
+      target: {
+        value: 'Unsaved workspace',
+      },
     })
-    fireEvent.click(screen.getByRole('button', { name: updatesButtonName }))
-    expect(screen.getByRole('heading', { name: 'Workspaces' })).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: updatesButtonName,
+      })
+    )
+    expect(
+      screen.getByRole('heading', {
+        name: 'Workspaces',
+      })
+    ).toBeTruthy()
     expect(screen.queryByText('Installed version')).toBeNull()
   } finally {
     window.confirm = originalConfirm
   }
 })
-
 test('source settings opens the Sources section directly', async () => {
-  render(<App />)
+  render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-
   fireEvent.click(screen.getByLabelText('Source settings'))
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Settings',
+      })
+    ).toBeTruthy()
   )
-
-  const sources = screen.getByRole('button', { name: 'Sources' })
+  const sources = screen.getByRole('button', {
+    name: 'Sources',
+  })
   expect(sources.className).toContain('active')
 })
-
 test('Inbox and Index settings actions open their relevant settings sections', async () => {
-  render(<App />)
+  render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-
-  fireEvent.click(screen.getByRole('button', { name: 'Inbox' }))
-  await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'Inbox' })).toBeTruthy())
-  fireEvent.click(screen.getByRole('button', { name: 'Manage ingestion in settings' }))
-  await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-  expect(screen.getByRole('button', { name: 'Sources' }).className).toContain('active')
-
-  fireEvent.click(screen.getByRole('button', { name: 'Index' }))
-  await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'Index' })).toBeTruthy())
-  fireEvent.click(screen.getByRole('button', { name: 'Open settings' }))
-  await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-  expect(screen.getByRole('button', { name: 'Readiness' }).className).toContain('active')
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Inbox',
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Inbox',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Manage ingestion in settings',
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  expect(
+    screen.getByRole('button', {
+      name: 'Sources',
+    }).className
+  ).toContain('active')
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Index',
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Index',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Open settings',
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  expect(
+    screen.getByRole('button', {
+      name: 'Readiness',
+    }).className
+  ).toContain('active')
 })
-
 test('source settings use workspace tabs without repeating assigned workspace controls', async () => {
   const originalSettings = state.settings
   state.settings = {
     ...desktopSettings,
     sources: [
       workSource,
-      { ...workSource, name: 'personal-notes', project: 'personal', enabled: false },
+      {
+        ...workSource,
+        name: 'personal-notes',
+        project: 'personal',
+        enabled: false,
+      },
     ],
   }
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Sources' }))
-
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Sources',
+      })
+    )
     expect(await screen.findByText('Files & code')).toBeTruthy()
     expect(screen.getByText('Enabled')).toBeTruthy()
     expect(screen.queryByLabelText('Workspace for work-code')).toBeNull()
     expect(screen.queryByText('Disabled')).toBeNull()
-    const sourceIcon = screen.getByRole('img', { name: 'Files and code connector' })
+    const sourceIcon = screen.getByRole('img', {
+      name: 'Files and code connector',
+    })
     expect(sourceIcon).toBeTruthy()
     expect(sourceIcon.getAttribute('title')).toBeNull()
-    fireEvent.click(screen.getByRole('tab', { name: /Personal/ }))
+    fireEvent.click(
+      screen.getByRole('tab', {
+        name: /Personal/,
+      })
+    )
     expect(screen.getByText('Disabled')).toBeTruthy()
     expect(screen.queryByLabelText('Workspace for personal-notes')).toBeNull()
     expect(screen.queryByText('Enabled')).toBeNull()
-    fireEvent.click(screen.getByRole('tab', { name: /Work/ }))
-    const summary = screen.getByRole('button', { name: /Advanced source settings/ })
+    fireEvent.click(
+      screen.getByRole('tab', {
+        name: /Work/,
+      })
+    )
+    const summary = screen.getByRole('button', {
+      name: /Advanced source settings/,
+    })
     expect(summary.getAttribute('aria-expanded')).toBe('false')
     fireEvent.click(summary)
     expect(summary.getAttribute('aria-expanded')).toBe('true')
     expect(screen.getByLabelText('Source label')).toBeTruthy()
-
     for (const label of ['Test connection', 'Initial sync']) {
-      const action = screen.getByRole('button', { name: label })
+      const action = screen.getByRole('button', {
+        name: label,
+      })
       expect(action.getAttribute('data-slot')).toBe('tooltip-trigger')
     }
-    const remove = screen.getByRole('button', { name: 'Remove work-code' })
+    const remove = screen.getByRole('button', {
+      name: 'Remove work-code',
+    })
     expect(remove.getAttribute('data-slot')).toBe('tooltip-trigger')
     expect(remove.className).toContain('text-destructive')
   } finally {
     state.settings = originalSettings
   }
 })
-
 test('Apple Notes sources expose exact include and exclude folder filters', async () => {
   const originalSettings = state.settings
   state.settings = {
@@ -2070,27 +3087,45 @@ test('Apple Notes sources expose exact include and exclude folder filters', asyn
     ],
   }
   try {
-    render(<App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Sources' }))
-    expect(screen.getByRole('button', { name: 'Grant Apple Notes access' })).toBeTruthy()
-    fireEvent.click(screen.getByText('Advanced source settings'))
-
+    render(() => <App />)
+    await screen.findByLabelText('Search your knowledge')
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await screen.findByRole('heading', {
+      name: 'Settings',
+    })
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Sources',
+      })
+    )
     expect(
-      (screen.getByRole('textbox', { name: 'Include Apple Notes folders' }) as HTMLTextAreaElement)
-        .value
+      await screen.findByRole('button', {
+        name: 'Grant Apple Notes access',
+      })
+    ).toBeTruthy()
+    fireEvent.click(await screen.findByText('Advanced source settings'))
+    expect(
+      (
+        (await screen.findByRole('textbox', {
+          name: 'Include Apple Notes folders',
+        })) as HTMLTextAreaElement
+      ).value
     ).toBe('Nifty League')
     expect(
-      (screen.getByRole('textbox', { name: 'Exclude Apple Notes folders' }) as HTMLTextAreaElement)
-        .value
+      (
+        (await screen.findByRole('textbox', {
+          name: 'Exclude Apple Notes folders',
+        })) as HTMLTextAreaElement
+      ).value
     ).toBe('The Pink Binder')
   } finally {
     state.settings = originalSettings
   }
 })
-
 test('source settings quarantine legacy scopes and offer workspace assignment', async () => {
   const originalSettings = state.settings
   state.settings = {
@@ -2106,22 +3141,46 @@ test('source settings quarantine legacy scopes and offer workspace assignment', 
     ],
   }
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Sources' }))
-
-    fireEvent.click(await screen.findByRole('tab', { name: /Needs assignment/ }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Sources',
+      })
+    )
+    fireEvent.click(
+      await screen.findByRole('tab', {
+        name: /Needs assignment/,
+      })
+    )
     const assignmentAlert = screen
       .getAllByRole('alert')
       .find((alert) => alert.className.includes('source-unassigned-note'))!
     expect(assignmentAlert.textContent).toContain('uses the legacy community scope')
     expect(assignmentAlert.className).toContain('source-unassigned-note')
     expect(screen.getByRole('switch').getAttribute('aria-disabled')).toBe('true')
-    expect(screen.queryByRole('button', { name: 'Test connection' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Initial sync' })).toBeNull()
-
+    expect(
+      screen.queryByRole('button', {
+        name: 'Test connection',
+      })
+    ).toBeNull()
+    expect(
+      screen.queryByRole('button', {
+        name: 'Initial sync',
+      })
+    ).toBeNull()
     const workspace = screen.getByRole('combobox', {
       name: 'Workspace for community-discord',
     })
@@ -2130,7 +3189,6 @@ test('source settings quarantine legacy scopes and offer workspace assignment', 
     state.settings = originalSettings
   }
 })
-
 test('GitHub code sources expose an explicit workspace-scoped repository allowlist', async () => {
   const originalSettings = state.settings
   state.settings = {
@@ -2146,38 +3204,65 @@ test('GitHub code sources expose an explicit workspace-scoped repository allowli
     ],
   }
   try {
-    render(<App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Sources' }))
-    fireEvent.click(screen.getByText('Advanced source settings'))
-
-    const repositories = screen.getByRole('textbox', { name: 'GitHub repositories' })
+    render(() => <App />)
+    await screen.findByLabelText('Search your knowledge')
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await screen.findByRole('heading', {
+      name: 'Settings',
+    })
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Sources',
+      })
+    )
+    fireEvent.click(await screen.findByText('Advanced source settings'))
+    const repositories = await screen.findByRole('textbox', {
+      name: 'GitHub repositories',
+    })
     expect((repositories as HTMLTextAreaElement).value).toBe('adea-ai/cortana')
-    expect(screen.getByRole('button', { name: 'Setup' })).toBeTruthy()
-    expect(screen.getByText(/only these repositories are indexed/)).toBeTruthy()
+    expect(
+      await screen.findByRole('button', {
+        name: 'Setup',
+      })
+    ).toBeTruthy()
+    expect(await screen.findByText(/only these repositories are indexed/)).toBeTruthy()
   } finally {
     state.settings = originalSettings
   }
 })
-
 test('source tree toggles a saved connector without touching indexed data', async () => {
   const originalConfirm = window.confirm
   const originalSettings = state.settings
   window.confirm = () => true
   state.applySettingsUpdate = true
-  state.settings = { ...desktopSettings, sources: [{ ...workSource, enabled: false }] }
+  state.settings = {
+    ...desktopSettings,
+    sources: [
+      {
+        ...workSource,
+        enabled: false,
+      },
+    ],
+  }
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    const toggle = await screen.findByRole('switch', { name: 'Enable work-code' })
+    const toggle = await screen.findByRole('switch', {
+      name: 'Enable work-code',
+    })
     fireEvent.click(toggle)
-
     await waitFor(() => expect(state.saveSettingsCalls).toBe(1))
     expect(screen.getByText('Source setting saved for future ingestion.')).toBeTruthy()
     expect(state.lastSettingsUpdate?.sources).toEqual([
-      expect.objectContaining({ name: 'work-code', project: 'work', enabled: true }),
+      expect.objectContaining({
+        name: 'work-code',
+        project: 'work',
+        enabled: true,
+      }),
     ])
     expect(state.lastSettingsUpdate?.secrets).toEqual([])
   } finally {
@@ -2187,27 +3272,53 @@ test('source tree toggles a saved connector without touching indexed data', asyn
     state.lastSettingsUpdate = null
   }
 })
-
 test('settings refuses duplicate canonical source labels in one workspace', async () => {
   const originalSettings = state.settings
   state.settings = {
     ...desktopSettings,
     sources: [
-      { ...workSource, source: null },
-      { ...workSource, name: 'work-drive', root: '/Users/you/drive', source: 'work-code' },
+      {
+        ...workSource,
+        source: null,
+      },
+      {
+        ...workSource,
+        name: 'work-drive',
+        root: '/Users/you/drive',
+        source: 'work-code',
+      },
     ],
   }
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Workspaces' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Workspaces',
+      })
+    )
     fireEvent.change(screen.getAllByLabelText('Display name')[0], {
-      target: { value: 'Draft workspace' },
+      target: {
+        value: 'Draft workspace',
+      },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
-
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Save changes',
+      })
+    )
     await waitFor(() =>
       expect(screen.getByText(/Source identifier `work-code` is duplicated/)).toBeTruthy()
     )
@@ -2216,93 +3327,229 @@ test('settings refuses duplicate canonical source labels in one workspace', asyn
     state.settings = originalSettings
   }
 })
-
 test('settings navigation opens workspace and services first and exposes native memory', async () => {
-  render(<App />)
-  await waitFor(() => expect(screen.getByRole('button', { name: 'Settings' })).toBeTruthy())
-
-  fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-  await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-
-  const navigation = screen.getByRole('navigation', { name: 'Settings sections' })
+  render(() => <App />)
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Settings',
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  const navigation = screen.getByRole('navigation', {
+    name: 'Settings sections',
+  })
   const buttons = within(navigation).getAllByRole('button')
   const labels = buttons.map((button) => button.textContent)
   expect(labels[0]).toBe('Services')
   expect(labels[1]).toBe('Workspaces')
   expect(labels[2]).toBe('Sources')
   expect(labels[3]).toBe('Readiness')
-
-  fireEvent.click(screen.getByRole('button', { name: 'Memory' }))
-  expect(screen.getByRole('button', { name: 'Memory' }).className).toContain('active')
-  await waitFor(() =>
-    expect(screen.getByRole('heading', { name: 'Native agentic memory' })).toBeTruthy()
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Memory',
+    })
   )
-  expect(screen.getByRole('heading', { name: 'Memory control center' })).toBeTruthy()
-  expect(screen.getByRole('list', { name: 'Memory candidate queue' })).toBeTruthy()
+  expect(
+    screen.getByRole('button', {
+      name: 'Memory',
+    }).className
+  ).toContain('active')
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        name: 'Native agentic memory',
+      })
+    ).toBeTruthy()
+  )
+  expect(
+    screen.getByRole('heading', {
+      name: 'Memory control center',
+    })
+  ).toBeTruthy()
+  expect(
+    screen.getByRole('list', {
+      name: 'Memory candidate queue',
+    })
+  ).toBeTruthy()
 })
-
 test('settings uses graphite as the fixed default and exposes theme controls per workspace', async () => {
   const user = userEvent.setup()
   window.localStorage.setItem('cortana.theme.v1', 'accessible')
-  render(<App />)
-  await waitFor(() => expect(screen.getByRole('button', { name: 'Settings' })).toBeTruthy())
-
-  fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-  await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-
-  expect(screen.queryByRole('combobox', { name: 'Default theme' })).toBeNull()
+  render(() => <App />)
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Settings',
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  expect(
+    screen.queryByRole('combobox', {
+      name: 'Default theme',
+    })
+  ).toBeNull()
   expect(document.documentElement.getAttribute('data-theme')).toBe('graphite')
-
-  fireEvent.click(screen.getByRole('button', { name: 'Workspaces' }))
-  const workspaceTheme = screen.getByRole('combobox', { name: 'Theme for Work' })
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Workspaces',
+    })
+  )
+  const workspaceTheme = screen.getByRole('combobox', {
+    name: 'Theme for Work',
+  })
   await user.click(workspaceTheme)
-  expect(await screen.findByRole('option', { name: 'Slate' })).toBeTruthy()
-  expect(screen.getByRole('option', { name: 'Indigo' })).toBeTruthy()
-  expect(screen.getByRole('option', { name: 'Emerald' })).toBeTruthy()
-  expect(screen.getByRole('option', { name: 'Amber' })).toBeTruthy()
+  expect(
+    await screen.findByRole('option', {
+      name: 'Slate',
+    })
+  ).toBeTruthy()
+  expect(
+    screen.getByRole('option', {
+      name: 'Indigo',
+    })
+  ).toBeTruthy()
+  expect(
+    screen.getByRole('option', {
+      name: 'Emerald',
+    })
+  ).toBeTruthy()
+  expect(
+    screen.getByRole('option', {
+      name: 'Amber',
+    })
+  ).toBeTruthy()
 })
-
 test('workspace theme controls persist and apply per workspace', async () => {
   const user = userEvent.setup()
-  render(<App />)
-  await waitFor(() => expect(screen.getByRole('button', { name: 'Settings' })).toBeTruthy())
-
-  fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-  await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-  fireEvent.click(screen.getByRole('button', { name: 'Workspaces' }))
-
-  await user.click(screen.getByRole('combobox', { name: 'Theme for Work' }))
-  await user.click(await screen.findByRole('option', { name: 'Teal' }))
-  await user.click(screen.getByRole('combobox', { name: 'Theme for Personal' }))
-  await user.click(await screen.findByRole('option', { name: 'Rose' }))
+  render(() => <App />)
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Settings',
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Workspaces',
+    })
+  )
+  await user.click(
+    screen.getByRole('combobox', {
+      name: 'Theme for Work',
+    })
+  )
+  await user.click(
+    await screen.findByRole('option', {
+      name: 'Teal',
+    })
+  )
+  await user.click(
+    screen.getByRole('combobox', {
+      name: 'Theme for Personal',
+    })
+  )
+  await user.click(
+    await screen.findByRole('option', {
+      name: 'Rose',
+    })
+  )
   expect(JSON.parse(window.localStorage.getItem('cortana.workspace-themes.v1') || '{}')).toEqual({
     work: 'teal',
     personal: 'rose',
   })
   expect(document.documentElement.getAttribute('data-theme')).toBe('teal')
-
-  fireEvent.click(screen.getByRole('button', { name: 'Switch workspace' }))
-  fireEvent.click(screen.getByRole('menuitemradio', { name: 'Personal' }))
+  // Kobalte menus open on pointerdown and select on pointerup.
+  fireEvent.pointerDown(
+    screen.getByRole('button', {
+      name: 'Switch workspace',
+    })
+  )
+  const personalWorkspace = await screen.findByRole('menuitemradio', {
+    name: 'Personal',
+  })
+  fireEvent.pointerUp(personalWorkspace)
+  fireEvent.click(personalWorkspace)
   await waitFor(() => expect(document.documentElement.getAttribute('data-theme')).toBe('rose'))
 })
-
 test('settings refuses padded or control-character source labels before save', async () => {
   const originalSettings = state.settings
   state.settings = {
     ...desktopSettings,
-    sources: [{ ...workSource, source: ' work-code ' }],
+    sources: [
+      {
+        ...workSource,
+        source: ' work-code ',
+      },
+    ],
   }
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Workspaces' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Workspaces',
+      })
+    )
     fireEvent.change(screen.getAllByLabelText('Display name')[0], {
-      target: { value: 'Draft workspace' },
+      target: {
+        value: 'Draft workspace',
+      },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
-
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Save changes',
+      })
+    )
     await waitFor(() =>
       expect(screen.getByText(/Source label for `work-code` must not be empty/)).toBeTruthy()
     )
@@ -2318,27 +3565,50 @@ test('source tree actions resolve a configured source by its canonical label', a
   const originalIndexedSources = demoStatus.sources
   window.confirm = () => true
   state.applySettingsUpdate = true
-  const labeledSource = { ...workSource, source: 'code-label', enabled: false }
-  state.settings = { ...desktopSettings, sources: [labeledSource] }
+  const labeledSource = {
+    ...workSource,
+    source: 'code-label',
+    enabled: false,
+  }
+  state.settings = {
+    ...desktopSettings,
+    sources: [labeledSource],
+  }
   demoStatus.ingestion = {
     ...demoStatus.ingestion,
     configured_sources: demoStatus.ingestion.configured_sources.map((item) =>
-      item.name === 'work-code' ? { ...item, source: 'code-label', enabled: false } : item
+      item.name === 'work-code'
+        ? {
+            ...item,
+            source: 'code-label',
+            enabled: false,
+          }
+        : item
     ),
   }
   demoStatus.sources = demoStatus.sources.map((item) =>
-    item.source === 'work-code' ? { ...item, source: 'code-label' } : item
+    item.source === 'work-code'
+      ? {
+          ...item,
+          source: 'code-label',
+        }
+      : item
   )
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    const toggle = await screen.findByRole('switch', { name: 'Enable work-code' })
+    const toggle = await screen.findByRole('switch', {
+      name: 'Enable work-code',
+    })
     fireEvent.click(toggle)
-
     await waitFor(() => expect(state.saveSettingsCalls).toBe(1))
     expect(screen.getByText('Source setting saved for future ingestion.')).toBeTruthy()
     expect(state.lastSettingsUpdate?.sources).toEqual([
-      expect.objectContaining({ name: 'work-code', source: 'code-label', enabled: true }),
+      expect.objectContaining({
+        name: 'work-code',
+        source: 'code-label',
+        enabled: true,
+      }),
     ])
   } finally {
     window.confirm = originalConfirm
@@ -2352,121 +3622,246 @@ test('source tree actions resolve a configured source by its canonical label', a
     demoStatus.sources = originalIndexedSources
   }
 })
-
 test('Services settings stay a process-health surface with no source enablement controls', async () => {
-  render(<App />)
+  render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-  fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-  await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Settings',
+    })
   )
-  fireEvent.click(screen.getByRole('button', { name: 'Services' }))
-  await waitFor(() => expect(screen.getByRole('heading', { name: 'Services' })).toBeTruthy())
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Services',
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        name: 'Services',
+      })
+    ).toBeTruthy()
+  )
 
   // Process health actions are the Services surface.
   for (const label of [/Start all/, /Stop all/, /Restart all/]) {
-    expect(screen.getByRole('button', { name: label }).getAttribute('data-slot')).toBe('button')
+    expect(
+      screen
+        .getByRole('button', {
+          name: label,
+        })
+        .getAttribute('data-slot')
+    ).toBe('button')
   }
 
   // The only switch is the desktop autostart launch preference. It controls
   // process/launch behavior rather than source enablement.
   expect(screen.getAllByRole('switch')).toHaveLength(1)
-  expect(screen.getByRole('switch', { name: /Open Cortana Desktop at login/ })).toBeTruthy()
+  expect(
+    screen.getByRole('switch', {
+      name: /Open Cortana Desktop at login/,
+    })
+  ).toBeTruthy()
   expect(screen.queryByRole('checkbox')).toBeNull()
   await flushDesktopBootstrap()
 })
-
 test('services settings offers an explicit safe core-service install', async () => {
   const originalConfirm = window.confirm
   window.confirm = () => true
   state.serviceInstallCalls = 0
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Services' }))
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: /Install core services/ })).toBeTruthy()
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Services',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', {
+          name: /Install core services/,
+        })
+      ).toBeTruthy()
     )
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /Install core services/ }))
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: /Install core services/,
+        })
+      )
       await Promise.resolve()
     })
     await waitFor(() => expect(state.serviceInstallCalls).toBe(1))
     expect(screen.getByText('3 loaded')).toBeTruthy()
     expect(screen.getByText(/Recurring sync is opt-in/)).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Enable recurring sync/ })).toBeTruthy()
+    expect(
+      screen.getByRole('button', {
+        name: /Enable recurring sync/,
+      })
+    ).toBeTruthy()
   } finally {
     window.confirm = originalConfirm
   }
 })
-
 test('services settings enables recurring sync only through its explicit action', async () => {
   const originalConfirm = window.confirm
   window.confirm = () => true
   state.serviceSyncInstallCalls = 0
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Services' }))
-    const enable = await screen.findByRole('button', { name: /Enable recurring sync/ })
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Services',
+      })
+    )
+    const enable = await screen.findByRole('button', {
+      name: /Enable recurring sync/,
+    })
     fireEvent.click(enable)
     await waitFor(() => expect(state.serviceSyncInstallCalls).toBe(1))
     expect(screen.getByText('4 loaded')).toBeTruthy()
-    expect(screen.queryByRole('button', { name: /Enable recurring sync/ })).toBeNull()
+    expect(
+      screen.queryByRole('button', {
+        name: /Enable recurring sync/,
+      })
+    ).toBeNull()
   } finally {
     window.confirm = originalConfirm
   }
 })
-
 test('services settings saves bounded recurring sync and backup intervals', async () => {
-  render(<App />)
+  render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-  fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-  await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Settings',
+    })
   )
-  fireEvent.click(screen.getByRole('button', { name: 'Services' }))
-  await waitFor(() => expect(screen.getByRole('heading', { name: 'Services' })).toBeTruthy())
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Services',
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        name: 'Services',
+      })
+    ).toBeTruthy()
+  )
   await waitFor(() => expect(state.scheduleGetCalls).toBe(1))
   await waitFor(() => expect(screen.getByText('Background schedule')).toBeTruthy())
   const syncInterval = await screen.findByLabelText('Sync interval (seconds)')
-  fireEvent.change(syncInterval, { target: { value: '1800' } })
-  fireEvent.click(screen.getByRole('button', { name: /Save schedule/ }))
+  fireEvent.change(syncInterval, {
+    target: {
+      value: '1800',
+    },
+  })
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Save schedule/,
+    })
+  )
   await waitFor(() => expect(state.scheduleSaveCalls).toBe(1))
   expect(state.schedule.sync_interval_seconds).toBe(1800)
   expect(state.schedule.backup_interval_seconds).toBe(86400)
 })
-
 test('services settings requires explicit apply after changing an installed schedule', async () => {
   const originalConfirm = window.confirm
-  const originalServices = serviceReport.services.map((service) => ({ ...service }))
+  const originalServices = serviceReport.services.map((service) => ({
+    ...service,
+  }))
   window.confirm = () => true
   serviceReport.services = serviceReport.services.map((service) =>
     service.name === 'sync'
-      ? { ...service, installed: true, loaded: true, state: 'running' }
+      ? {
+          ...service,
+          installed: true,
+          loaded: true,
+          state: 'running',
+        }
       : service
   )
   state.serviceSyncInstallCalls = 0
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Services' }))
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Services',
+      })
+    )
     const syncInterval = await screen.findByLabelText('Sync interval (seconds)')
-    fireEvent.change(syncInterval, { target: { value: '1800' } })
-    fireEvent.click(screen.getByRole('button', { name: /Save schedule/ }))
-    const apply = await screen.findByRole('button', { name: /Apply recurring sync schedule/ })
+    fireEvent.change(syncInterval, {
+      target: {
+        value: '1800',
+      },
+    })
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Save schedule/,
+      })
+    )
+    const apply = await screen.findByRole('button', {
+      name: /Apply recurring sync schedule/,
+    })
     fireEvent.click(apply)
     await waitFor(() => expect(state.serviceSyncInstallCalls).toBe(1))
   } finally {
@@ -2474,26 +3869,45 @@ test('services settings requires explicit apply after changing an installed sche
     serviceReport.services.splice(0, serviceReport.services.length, ...originalServices)
   }
 })
-
 test('services settings refuses recurring sync while settings changes are unsaved', async () => {
   const originalConfirm = window.confirm
   window.confirm = () => true
   state.serviceSyncInstallCalls = 0
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Workspaces' }))
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Workspaces',
+      })
+    )
     fireEvent.change(screen.getAllByLabelText('Display name')[0], {
-      target: { value: 'Unsaved workspace' },
+      target: {
+        value: 'Unsaved workspace',
+      },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Services' }))
-    const enable = await screen.findByRole('button', { name: /Enable recurring sync/ })
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Services',
+      })
+    )
+    const enable = await screen.findByRole('button', {
+      name: /Enable recurring sync/,
+    })
     fireEvent.click(enable)
-
     await waitFor(() =>
       expect(screen.getByText(/Save changes before enabling recurring sync/)).toBeTruthy()
     )
@@ -2502,33 +3916,70 @@ test('services settings refuses recurring sync while settings changes are unsave
     window.confirm = originalConfirm
   }
 })
-
 test('services settings reuses the shell service snapshot without a duplicate poll', async () => {
-  render(<App />)
+  render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
   await waitFor(() => expect(state.getDesktopServicesCalls).toBe(1))
-
-  fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-  await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-  fireEvent.click(screen.getByRole('button', { name: 'Services' }))
-  await waitFor(() => expect(screen.getByRole('heading', { name: 'Services' })).toBeTruthy())
-
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Settings',
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Services',
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        name: 'Services',
+      })
+    ).toBeTruthy()
+  )
   expect(state.getDesktopServicesCalls).toBe(1)
 })
-
 test('services settings exports a verified database backup with explicit confirmation', async () => {
   const originalConfirm = window.confirm
   window.confirm = () => true
   state.databaseBackupCalls = 0
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Services' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Services' })).toBeTruthy())
-
-    const backup = screen.getByRole('button', { name: 'Backup database' })
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Services',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Services',
+        })
+      ).toBeTruthy()
+    )
+    const backup = screen.getByRole('button', {
+      name: 'Backup database',
+    })
     expect(backup.getAttribute('data-slot')).toBe('button')
     fireEvent.click(backup)
     await waitFor(() => expect(state.databaseBackupCalls).toBe(1))
@@ -2540,10 +3991,11 @@ test('services settings exports a verified database backup with explicit confirm
     window.confirm = originalConfirm
   }
 })
-
 test('services settings permits restore with an installed but idle backup job and blocks running core services', async () => {
   const originalConfirm = window.confirm
-  const originalServices = serviceReport.services.map((service) => ({ ...service }))
+  const originalServices = serviceReport.services.map((service) => ({
+    ...service,
+  }))
   window.confirm = () => true
   state.databaseRestoreCalls = 0
   serviceReport.services[3] = {
@@ -2553,30 +4005,62 @@ test('services settings permits restore with an installed but idle backup job an
     state: 'not running',
   }
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Services' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Services' })).toBeTruthy())
-
-    const restore = screen.getByRole('button', { name: 'Restore database' })
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Services',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Services',
+        })
+      ).toBeTruthy()
+    )
+    const restore = screen.getByRole('button', {
+      name: 'Restore database',
+    })
     expect(restore.hasAttribute('disabled')).toBe(false)
     fireEvent.click(restore)
     await waitFor(() => expect(state.databaseRestoreCalls).toBe(1))
     expect(screen.getByText(/Database restored to \/tmp\/cortana-backup\.sqlite3/)).toBeTruthy()
-
     serviceReport.services[1] = {
       ...serviceReport.services[1],
       installed: true,
       loaded: true,
       state: 'running',
     }
-    fireEvent.click(screen.getByRole('button', { name: 'Readiness' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Services' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Readiness',
+      })
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Services',
+      })
+    )
     await waitFor(() =>
       expect(
-        screen.getByRole('button', { name: 'Restore database' }).hasAttribute('disabled')
+        screen
+          .getByRole('button', {
+            name: 'Restore database',
+          })
+          .hasAttribute('disabled')
       ).toBe(true)
     )
     expect(state.databaseRestoreCalls).toBe(1)
@@ -2585,75 +4069,145 @@ test('services settings permits restore with an installed but idle backup job an
     window.confirm = originalConfirm
   }
 })
-
 test('settings view reuses the shell settings snapshot without a duplicate read', async () => {
-  render(<App />)
+  render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
   await waitFor(() => expect(state.getDesktopSettingsCalls).toBe(1))
-
-  fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-  await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Settings',
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
   expect(state.getDesktopSettingsCalls).toBe(1)
 })
-
 test('updates settings reuses the shell updater snapshot without a duplicate read', async () => {
-  render(<App />)
+  render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
   await waitFor(() => expect(state.getDesktopUpdateCalls).toBe(1))
-
-  fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-  await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-  fireEvent.click(screen.getByRole('button', { name: 'Updates' }))
-  await waitFor(() => expect(screen.getByRole('heading', { name: 'Updates' })).toBeTruthy())
-
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Settings',
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Updates',
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        name: 'Updates',
+      })
+    ).toBeTruthy()
+  )
   expect(state.getDesktopUpdateCalls).toBe(1)
 })
-
 test('settings save refreshes shell service metadata immediately', async () => {
-  render(<App />)
+  render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
   await waitFor(() => expect(state.getDesktopServicesCalls).toBe(1))
-
-  fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-  await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-  fireEvent.click(screen.getByRole('button', { name: 'Workspaces' }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Settings',
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Workspaces',
+    })
+  )
   fireEvent.change(screen.getAllByLabelText('Display name')[0], {
-    target: { value: 'Work settings' },
+    target: {
+      value: 'Work settings',
+    },
   })
-  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
-
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Save changes',
+    })
+  )
   await waitFor(() => expect(state.saveSettingsCalls).toBe(1))
   await waitFor(() => expect(state.getDesktopServicesCalls).toBe(2))
 })
-
 test('successful service actions clear a stale shell service error immediately', async () => {
   const originalConfirm = window.confirm
   window.confirm = () => true
   state.serviceStatusError = null
   state.serviceRestartCalls = 0
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Services' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Services' })).toBeTruthy())
-
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Services',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Services',
+        })
+      ).toBeTruthy()
+    )
     state.serviceStatusError = new Error('service status transport failed')
-    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Refresh',
+      })
+    )
     await waitFor(() => expect(screen.getByText('service status transport failed')).toBeTruthy())
-
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Restart all' }))
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Restart all',
+        })
+      )
       await Promise.resolve()
     })
     await waitFor(() => expect(state.serviceRestartCalls).toBe(1))
-
-    fireEvent.click(screen.getByRole('button', { name: 'Knowledge' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Knowledge',
+      })
+    )
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    const serviceHealth = await screen.findByRole('button', { name: 'Open service health' })
+    const serviceHealth = await screen.findByRole('button', {
+      name: 'Open service health',
+    })
     expect(serviceHealth.textContent).toContain('Services:')
     expect(serviceHealth.textContent).not.toContain('unavailable')
   } finally {
@@ -2661,41 +4215,85 @@ test('successful service actions clear a stale shell service error immediately',
     state.serviceStatusError = null
   }
 })
-
 test('saving settings clears stale local service errors', async () => {
   const originalConfirm = window.confirm
   window.confirm = () => true
   state.serviceStatusError = new Error('service status transport failed')
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Services' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Services' })).toBeTruthy())
-
-    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Services',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Services',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Refresh',
+      })
+    )
     await waitFor(() => expect(screen.getByText('service status transport failed')).toBeTruthy())
-
-    fireEvent.click(screen.getByRole('button', { name: 'Workspaces' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Workspaces' })).toBeTruthy())
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Workspaces',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Workspaces',
+        })
+      ).toBeTruthy()
+    )
     state.serviceStatusError = null
     fireEvent.change(screen.getAllByLabelText('Display name')[0], {
-      target: { value: 'Work settings' },
+      target: {
+        value: 'Work settings',
+      },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Save changes',
+      })
+    )
     await waitFor(() => expect(state.saveSettingsCalls).toBe(1))
-
-    fireEvent.click(screen.getByRole('button', { name: 'Services' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Services' })).toBeTruthy())
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Services',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Services',
+        })
+      ).toBeTruthy()
+    )
     await waitFor(() => expect(screen.queryByText('service status transport failed')).toBeNull())
   } finally {
     window.confirm = originalConfirm
     state.serviceStatusError = null
   }
 })
-
 test('service activity survives leaving Settings while a native action is running', async () => {
   const originalConfirm = window.confirm
   const originalAction = state.serviceAction
@@ -2706,31 +4304,66 @@ test('service activity survives leaving Settings while a native action is runnin
       resolveAction = resolve
     })
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Services' }))
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Restart all' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Restart all' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Services',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', {
+          name: 'Restart all',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Restart all',
+      })
+    )
     await waitFor(() => expect(screen.getByText('Service: restart core services…')).toBeTruthy())
-
-    fireEvent.click(screen.getByRole('button', { name: 'Knowledge' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Knowledge',
+      })
+    )
     await waitFor(() => expect(screen.getByText('Service: restart core services…')).toBeTruthy())
-
     resolveAction?.(installedServiceReport)
     await waitFor(() =>
       expect(screen.getByText('Service: restart core services · done')).toBeTruthy()
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Open service activity' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Services' })).toBeTruthy())
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Open service activity',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Services',
+        })
+      ).toBeTruthy()
+    )
     expect(screen.getByText('Restart core services completed.')).toBeTruthy()
   } finally {
     state.serviceAction = originalAction
     window.confirm = originalConfirm
   }
 })
-
 test('shell restores the latest durable service activity from native status', async () => {
   const previousActivity = serviceReport.activity
   serviceReport.activity = {
@@ -2743,12 +4376,22 @@ test('shell restores the latest durable service activity from native status', as
     last_output: 'token=<redacted>',
   }
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() =>
       expect(screen.getByText('Service: restart embedding · failed')).toBeTruthy()
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Open service activity' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Services' })).toBeTruthy())
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Open service activity',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Services',
+        })
+      ).toBeTruthy()
+    )
     expect(
       screen.getByText(/Restart embedding failed: embedding service failed to restart/)
     ).toBeTruthy()
@@ -2756,7 +4399,6 @@ test('shell restores the latest durable service activity from native status', as
     serviceReport.activity = previousActivity
   }
 })
-
 test('readiness activity survives leaving Settings while a scan is running', async () => {
   const originalScan = state.readinessScan
   let resolveScan:
@@ -2767,16 +4409,32 @@ test('readiness activity survives leaving Settings while a scan is running', asy
       resolveScan = resolve
     })
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Run readiness scan' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Run readiness scan',
+      })
+    )
     await waitFor(() => expect(screen.getByText('Readiness: scanning…')).toBeTruthy())
-
-    fireEvent.click(screen.getByRole('button', { name: 'Knowledge' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Knowledge',
+      })
+    )
     await waitFor(() => expect(screen.getByText('Readiness: scanning…')).toBeTruthy())
-
     await act(async () => {
       resolveScan?.({
         scanned_at_unix_seconds: 1785000000,
@@ -2789,9 +4447,17 @@ test('readiness activity survives leaving Settings while a scan is running', asy
       await Promise.resolve()
     })
     await waitFor(() => expect(screen.getByText('Readiness: ready')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Open readiness activity' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Open readiness activity',
+      })
+    )
     await waitFor(() =>
-      expect(screen.getByRole('heading', { name: 'System readiness' })).toBeTruthy()
+      expect(
+        screen.getByRole('heading', {
+          name: 'System readiness',
+        })
+      ).toBeTruthy()
     )
     expect(screen.getByText(/Last checked/)).toBeTruthy()
     await flushDesktopBootstrap()
@@ -2799,18 +4465,20 @@ test('readiness activity survives leaving Settings while a scan is running', asy
     state.readinessScan = originalScan
   }
 })
-
 test('failed first-launch readiness scan waits for an explicit retry', async () => {
   const originalSettings = state.settings
   const originalScan = state.readinessScan
   let calls = 0
-  state.settings = { ...desktopSettings, needs_setup: true }
+  state.settings = {
+    ...desktopSettings,
+    needs_setup: true,
+  }
   state.readinessScan = () => {
     calls += 1
     return Promise.reject(new Error('readiness unavailable'))
   }
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByText('readiness unavailable')).toBeTruthy())
     await new Promise((resolve) => setTimeout(resolve, 50))
     expect(calls).toBe(1)
@@ -2819,11 +4487,13 @@ test('failed first-launch readiness scan waits for an explicit retry', async () 
     state.readinessScan = originalScan
   }
 })
-
 test('successful first-launch readiness scan releases the scan control', async () => {
   const originalSettings = state.settings
   const originalScan = state.readinessScan
-  state.settings = { ...desktopSettings, needs_setup: true }
+  state.settings = {
+    ...desktopSettings,
+    needs_setup: true,
+  }
   state.readinessScan = () =>
     Promise.resolve({
       scanned_at_unix_seconds: 1785000000,
@@ -2834,16 +4504,17 @@ test('successful first-launch readiness scan releases the scan control', async (
       tools: [],
     })
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByText('Local tools ready')).toBeTruthy())
-    const scan = screen.getByRole('button', { name: 'Run again' })
+    const scan = await screen.findByRole('button', {
+      name: 'Run again',
+    })
     expect(scan.hasAttribute('disabled')).toBe(false)
   } finally {
     state.settings = originalSettings
     state.readinessScan = originalScan
   }
 })
-
 test('embedding generation mismatch offers a confirmed desktop adoption action', async () => {
   const originalScan = state.readinessScan
   const originalConfirm = window.confirm
@@ -2876,15 +4547,37 @@ test('embedding generation mismatch offers a confirmed desktop adoption action',
   }
   window.confirm = () => true
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Run readiness scan' }))
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Adopt stored generation' })).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Adopt stored generation' }))
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Run readiness scan',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', {
+          name: 'Adopt stored generation',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Adopt stored generation',
+      })
+    )
     await waitFor(() =>
       expect(
         screen.getByText('Embedding generation adopted and readiness was rescanned.')
@@ -2896,7 +4589,6 @@ test('embedding generation mismatch offers a confirmed desktop adoption action',
     window.confirm = originalConfirm
   }
 })
-
 test('embedding adoption reports a follow-up mismatch instead of claiming readiness', async () => {
   const originalScan = state.readinessScan
   const originalConfirm = window.confirm
@@ -2925,15 +4617,37 @@ test('embedding adoption reports a follow-up mismatch instead of claiming readin
     })
   window.confirm = () => true
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Run readiness scan' }))
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Adopt stored generation' })).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Adopt stored generation' }))
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Run readiness scan',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', {
+          name: 'Adopt stored generation',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Adopt stored generation',
+      })
+    )
     await waitFor(() =>
       expect(
         screen.getByText(
@@ -2946,21 +4660,37 @@ test('embedding adoption reports a follow-up mismatch instead of claiming readin
     window.confirm = originalConfirm
   }
 })
-
 test('completed installers trigger one shell-owned post-install readiness scan', async () => {
   const originalConfirm = window.confirm
   state.installerJob = null
   window.confirm = () => true
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Run readiness scan' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Run readiness scan',
+      })
+    )
     await waitFor(() => expect(screen.getByText('uv is not installed')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Install' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Install',
+      })
+    )
     await waitFor(() => expect(screen.getByText('Installing uv')).toBeTruthy())
-
     state.installerJob = {
       ...state.installerJob!,
       status: 'succeeded',
@@ -2976,7 +4706,6 @@ test('completed installers trigger one shell-owned post-install readiness scan',
     window.confirm = originalConfirm
   }
 })
-
 test('local embedding readiness explains the approval-gated runtime installer', async () => {
   const originalConfirm = window.confirm
   const originalScan = state.readinessScan
@@ -3006,13 +4735,31 @@ test('local embedding readiness explains the approval-gated runtime installer', 
     return false
   }
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Run readiness scan' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Run readiness scan',
+      })
+    )
     await waitFor(() => expect(screen.getByText(/text-embeddings-inference runtime/)).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Install' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Install',
+      })
+    )
     expect(confirmation).toContain('text-embeddings-inference runtime with Homebrew')
     expect(state.installerJob).toBeNull()
   } finally {
@@ -3020,7 +4767,6 @@ test('local embedding readiness explains the approval-gated runtime installer', 
     window.confirm = originalConfirm
   }
 })
-
 test('connector environment install requires explicit approval from readiness', async () => {
   const originalConfirm = window.confirm
   const originalScan = state.readinessScan
@@ -3051,18 +4797,38 @@ test('connector environment install requires explicit approval from readiness', 
     return true
   }
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Run readiness scan' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Run readiness scan',
+      })
+    )
     await waitFor(() => expect(screen.getByText('Connector environment')).toBeTruthy())
     // First-run connector installs are approval-gated: the Install action
     // must be offered instead of starting automatically.
-    fireEvent.click(screen.getByRole('button', { name: 'Install' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Install',
+      })
+    )
     expect(confirmation).toContain('per-user connector environment')
     await waitFor(() => expect(screen.getByText('Installing connectors')).toBeTruthy())
-    const installerJob = state.installerJob as { tool: string } | null
+    const installerJob = state.installerJob as {
+      tool: string
+    } | null
     expect(installerJob?.tool).toBe('connectors')
   } finally {
     state.readinessScan = originalScan
@@ -3070,7 +4836,6 @@ test('connector environment install requires explicit approval from readiness', 
     state.installerJob = null
   }
 })
-
 test('missing connector readiness exposes an approval-gated installer', async () => {
   const originalConfirm = window.confirm
   const originalScan = state.readinessScan
@@ -3101,15 +4866,33 @@ test('missing connector readiness exposes an approval-gated installer', async ()
     return false
   }
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Run readiness scan' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Run readiness scan',
+      })
+    )
     await waitFor(() =>
       expect(screen.getByText(/bundled connector environment after explicit approval/)).toBeTruthy()
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Install' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Install',
+      })
+    )
     expect(confirmation).toContain('per-user connector environment')
     expect(state.installerJob).toBeNull()
   } finally {
@@ -3118,44 +4901,85 @@ test('missing connector readiness exposes an approval-gated installer', async ()
     state.installerJob = null
   }
 })
-
 test('installer progress survives settings section changes', async () => {
   const originalConfirm = window.confirm
   window.confirm = () => true
   state.installerJob = null
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Run readiness scan' }))
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Run readiness scan',
+      })
+    )
     await waitFor(() => expect(screen.getByText('uv is not installed')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Install' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Install',
+      })
+    )
     await waitFor(() => expect(screen.getByText('Installing uv')).toBeTruthy())
-
-    fireEvent.click(screen.getByRole('button', { name: 'Services' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Services' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Readiness' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Services',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Services',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Readiness',
+      })
+    )
     await waitFor(() => expect(screen.getByText('Installing uv')).toBeTruthy())
     expect(screen.getByText('Status: running')).toBeTruthy()
 
     // The shell owns the installer snapshot, so leaving Settings does not
     // discard progress or stop native status polling.
-    fireEvent.click(screen.getByRole('button', { name: 'Knowledge' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Knowledge',
+      })
+    )
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
     expect(screen.getByText('Install: uv · running')).toBeTruthy()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Open installer status for uv' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Open installer status for uv',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
     await waitFor(() => expect(screen.getByText('Installing uv')).toBeTruthy())
   } finally {
     window.confirm = originalConfirm
     state.installerJob = null
   }
 })
-
 test('saving settings with restart_required triggers a background restart and clears the notice on success', async () => {
   const originalSettings = state.settings
   const originalConfirm = window.confirm
@@ -3172,16 +4996,36 @@ test('saving settings with restart_required triggers a background restart and cl
   }
   state.serviceRestartCalls = 0
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Workspaces' }))
-    fireEvent.change(screen.getAllByLabelText('Display name')[0], { target: { value: 'Alpha' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
-
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Workspaces',
+      })
+    )
+    fireEvent.change(screen.getAllByLabelText('Display name')[0], {
+      target: {
+        value: 'Alpha',
+      },
+    })
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Save changes',
+      })
+    )
     await waitFor(() => expect(state.saveSettingsCalls).toBe(1))
     await waitFor(() => expect(state.serviceRestartCalls).toBe(1))
     await waitFor(() =>
@@ -3194,25 +5038,50 @@ test('saving settings with restart_required triggers a background restart and cl
     state.serviceRestartCalls = 0
   }
 })
-
 test('successful aggregate restart clears the saved-settings notice', async () => {
   const originalConfirm = window.confirm
   const originalSettings = state.settings
   window.confirm = () => true
-  state.settings = { ...originalSettings, restart_required: true }
+  state.settings = {
+    ...originalSettings,
+    restart_required: true,
+  }
   state.serviceRestartCalls = 0
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
     await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
     )
     expect(screen.getByText('A service restart is still required.')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Open services' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Services' })).toBeTruthy())
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Open services',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Services',
+        })
+      ).toBeTruthy()
+    )
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Restart all' }))
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Restart all',
+        })
+      )
       await Promise.resolve()
     })
     await waitFor(() => expect(state.serviceRestartCalls).toBe(1))
@@ -3222,7 +5091,6 @@ test('successful aggregate restart clears the saved-settings notice', async () =
     window.confirm = originalConfirm
   }
 })
-
 test('a failed background restart after saving names the failure and offers recovery', async () => {
   const originalConfirm = window.confirm
   const originalSettings = state.settings
@@ -3241,15 +5109,36 @@ test('a failed background restart after saving names the failure and offers reco
   }
   state.serviceAction = () => Promise.reject(new Error('embedding service failed to restart'))
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Workspaces' }))
-    fireEvent.change(screen.getAllByLabelText('Display name')[0], { target: { value: 'Alpha' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Workspaces',
+      })
+    )
+    fireEvent.change(screen.getAllByLabelText('Display name')[0], {
+      target: {
+        value: 'Alpha',
+      },
+    })
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Save changes',
+      })
+    )
 
     // The failure is named instead of claiming the services are restarting.
     await waitFor(() => expect(state.serviceRestartCalls).toBe(1))
@@ -3262,14 +5151,26 @@ test('a failed background restart after saving names the failure and offers reco
       screen.queryByText('Settings saved. Affected services are restarting in the background.')
     ).toBeNull()
     expect(screen.getByRole('alert')).toBeTruthy()
-    const openServices = screen.getByRole('button', { name: 'Open services' })
+    const openServices = screen.getByRole('button', {
+      name: 'Open services',
+    })
     expect(openServices).toBeTruthy()
     fireEvent.click(openServices)
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Services' })).toBeTruthy())
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Services',
+        })
+      ).toBeTruthy()
+    )
 
     // Retry restart recovers once the native action succeeds again.
     state.serviceAction = () => Promise.resolve(installedServiceReport)
-    fireEvent.click(screen.getByRole('button', { name: 'Retry restart' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Retry restart',
+      })
+    )
     await waitFor(() => expect(state.serviceRestartCalls).toBe(2))
     await waitFor(() => expect(screen.queryByText(/service restart failed/)).toBeNull())
   } finally {
@@ -3279,7 +5180,6 @@ test('a failed background restart after saving names the failure and offers reco
     state.serviceRestartCalls = 0
   }
 })
-
 test('a failed source toggle restart is reported with a manual recovery path', async () => {
   const originalConfirm = window.confirm
   const originalSettings = state.settings
@@ -3291,13 +5191,20 @@ test('a failed source toggle restart is reported with a manual recovery path', a
   state.settings = {
     ...desktopSettings,
     restart_required: true,
-    sources: [{ ...workSource, enabled: false }],
+    sources: [
+      {
+        ...workSource,
+        enabled: false,
+      },
+    ],
   }
   state.serviceAction = () => Promise.reject(new Error('sync service failed to restart'))
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    const toggle = await screen.findByRole('switch', { name: 'Enable work-code' })
+    const toggle = await screen.findByRole('switch', {
+      name: 'Enable work-code',
+    })
     fireEvent.click(toggle)
 
     // The toggle save reports restart_required, so the shell restarts the
@@ -3312,7 +5219,11 @@ test('a failed source toggle restart is reported with a manual recovery path', a
       ).toBeTruthy()
     )
     // The status bar keeps the failed activity visible and links to Services.
-    expect(screen.getByRole('button', { name: 'Open service activity' })).toBeTruthy()
+    expect(
+      screen.getByRole('button', {
+        name: 'Open service activity',
+      })
+    ).toBeTruthy()
   } finally {
     window.confirm = originalConfirm
     state.settings = originalSettings
@@ -3321,9 +5232,10 @@ test('a failed source toggle restart is reported with a manual recovery path', a
     state.serviceRestartCalls = 0
   }
 })
-
 test('services settings keeps repair available for a partial core install', async () => {
-  const original = serviceReport.services.map((service) => ({ ...service }))
+  const original = serviceReport.services.map((service) => ({
+    ...service,
+  }))
   serviceReport.services[0] = {
     ...serviceReport.services[0],
     installed: true,
@@ -3337,21 +5249,37 @@ test('services settings keeps repair available for a partial core install', asyn
     state: 'running',
   }
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Services' }))
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: /Install core services/ })).toBeTruthy()
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Services',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', {
+          name: /Install core services/,
+        })
+      ).toBeTruthy()
     )
   } finally {
     serviceReport.services.splice(0, serviceReport.services.length, ...original)
   }
 })
-
 test('services settings surfaces a non-zero last exit as a failed service', async () => {
   const original = serviceReport.services[1]
   serviceReport.services[1] = {
@@ -3362,51 +5290,101 @@ test('services settings surfaces a non-zero last exit as a failed service', asyn
     last_exit_status: 1,
   }
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Services' }))
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Services',
+      })
+    )
     await waitFor(() => expect(screen.getByText(/last exit 1/)).toBeTruthy())
     expect(screen.getByText(/exited/)).toBeTruthy()
   } finally {
     serviceReport.services[1] = original
   }
 })
-
 test('services settings disables aggregate actions when the platform backend is unavailable', async () => {
   const originalSupported = serviceReport.supported
   serviceReport.supported = false
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Services' }))
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Services',
+      })
+    )
     await waitFor(() => expect(screen.getByText(/not supported on macos/)).toBeTruthy())
     for (const label of ['Start all', 'Stop all', 'Restart all']) {
-      expect(screen.getByRole('button', { name: label }).hasAttribute('disabled')).toBe(true)
+      expect(
+        screen
+          .getByRole('button', {
+            name: label,
+          })
+          .hasAttribute('disabled')
+      ).toBe(true)
     }
   } finally {
     serviceReport.supported = originalSupported
   }
 })
-
 test('Google source settings expose env-backed token credentials', async () => {
-  state.settings = { ...desktopSettings, sources: [googleSource] }
+  state.settings = {
+    ...desktopSettings,
+    sources: [googleSource],
+  }
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Sources' }))
-    fireEvent.click(await screen.findByRole('button', { name: /Advanced source settings/ }))
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Sources',
+      })
+    )
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: /Advanced source settings/,
+      })
+    )
     await waitFor(() =>
       expect(screen.getByText('Google token path environment variable')).toBeTruthy()
     )
@@ -3416,21 +5394,47 @@ test('Google source settings expose env-backed token credentials', async () => {
     state.settings = desktopSettings
   }
 })
-
 test('Google source authorization action starts a tracked browser job', async () => {
   const originalSettings = state.settings
   const originalConfirm = window.confirm
-  state.settings = { ...desktopSettings, sources: [googleSource] }
+  state.settings = {
+    ...desktopSettings,
+    sources: [googleSource],
+  }
   state.authorizationCalls = []
   window.confirm = () => true
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Sources' }))
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Authorize' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Authorize' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Sources',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', {
+          name: 'Authorize',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Authorize',
+      })
+    )
     await waitFor(() => expect(state.authorizationCalls).toEqual(['personal-drive']))
     expect(screen.getByText('Authorization · running')).toBeTruthy()
     expect(screen.getByText(/Waiting for Google authorization/)).toBeTruthy()
@@ -3441,53 +5445,89 @@ test('Google source authorization action starts a tracked browser job', async ()
     window.confirm = originalConfirm
   }
 })
-
 test('Google authorization accepts a token path supplied through the configured environment variable', async () => {
   const originalSettings = state.settings
-  state.settings = { ...desktopSettings, sources: [googleEnvOnlySource] }
+  state.settings = {
+    ...desktopSettings,
+    sources: [googleEnvOnlySource],
+  }
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Sources' }))
-    const authorize = await screen.findByRole('button', { name: 'Authorize' })
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Sources',
+      })
+    )
+    const authorize = await screen.findByRole('button', {
+      name: 'Authorize',
+    })
     expect(authorize.hasAttribute('disabled')).toBe(false)
   } finally {
     state.settings = originalSettings
   }
 })
-
 test('running source jobs stay visible in the shell after leaving the settings view', async () => {
   const originalConfirm = window.confirm
   window.confirm = () => true
   try {
-    state.settings = { ...desktopSettings, sources: [workSource] }
-    render(<App />)
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: updatesButtonName })).toBeTruthy()
-    )
+    state.settings = {
+      ...desktopSettings,
+      sources: [workSource],
+    }
+    render(() => <App />)
+    await screen.findByRole('button', {
+      name: updatesButtonName,
+    })
 
     // No jobs have started yet, so no shell indicator is shown.
     expect(screen.queryByText(/active source job/)).toBeNull()
 
     // Start a bounded validation from the settings sources section.
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Settings',
+      })
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Sources' }))
-    await waitFor(() => expect(screen.getByText(/1 enabled · 1 configured/)).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: /Advanced source settings/ }))
-    expect(screen.getByText('Content limit (characters)')).toBeTruthy()
-    expect(screen.getByText('Duration limit (seconds)')).toBeTruthy()
-    expect(screen.getByText('Document labels')).toBeTruthy()
-    expect(screen.getByText('Document ACL labels')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Test connection' }))
-    await waitFor(() => expect(screen.getByText('Connection check · running')).toBeTruthy())
-    const validationJob = screen
-      .getByText('Connection check · running')
-      .closest('.source-validation-job')
+    await screen.findByRole('heading', {
+      level: 1,
+      name: 'Settings',
+    })
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Sources',
+      })
+    )
+    await screen.findByText(/1 enabled · 1 configured/)
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: /Advanced source settings/,
+      })
+    )
+    expect(await screen.findByText('Content limit (characters)')).toBeTruthy()
+    expect(await screen.findByText('Duration limit (seconds)')).toBeTruthy()
+    expect(await screen.findByText('Document labels')).toBeTruthy()
+    expect(await screen.findByText('Document ACL labels')).toBeTruthy()
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Test connection',
+      })
+    )
+    const validationJob = (await screen.findByText('Connection check · running')).closest(
+      '.source-validation-job'
+    )
     expect(validationJob?.querySelector('.status-glyph')?.className).toContain('pending')
     expect(validationJob?.querySelector('.status-glyph')?.getAttribute('aria-label')).toBe(
       'In progress'
@@ -3495,17 +5535,30 @@ test('running source jobs stay visible in the shell after leaving the settings v
 
     // Leaving the settings view must not hide the running job: the status
     // bar indicator and the read-only source-panel strip keep it visible.
-    fireEvent.click(screen.getByRole('button', { name: 'Knowledge' }))
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    expect(screen.getByText('1 active source job')).toBeTruthy()
-    const activeJobs = screen.getByRole('button', { name: 'Open active source jobs' })
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Knowledge',
+      })
+    )
+    await screen.findByLabelText('Search your knowledge')
+    expect(await screen.findByText('1 active source job')).toBeTruthy()
+    const activeJobs = await screen.findByRole('button', {
+      name: 'Open active source jobs',
+    })
     expect(activeJobs).toBeTruthy()
-    expect(activeJobs.hasAttribute('data-base-ui-tooltip-trigger')).toBe(true)
-
+    expect(activeJobs.getAttribute('data-slot')).toBe('tooltip-trigger')
     fireEvent.click(activeJobs)
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Inbox' })).toBeTruthy())
-    expect(screen.getByRole('heading', { name: 'Active source jobs' })).toBeTruthy()
-    const cancel = screen.getByRole('button', { name: 'Cancel work work-code connection-check' })
+    await screen.findByRole('heading', {
+      name: 'Inbox',
+    })
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Active source jobs',
+      })
+    ).toBeTruthy()
+    const cancel = await screen.findByRole('button', {
+      name: 'Cancel work work-code connection-check',
+    })
     fireEvent.click(cancel)
     await waitFor(() => expect((cancel as HTMLButtonElement).disabled).toBe(true))
   } finally {
@@ -3515,27 +5568,49 @@ test('running source jobs stay visible in the shell after leaving the settings v
     state.installerJob = null
   }
 })
-
 test('completed source jobs refresh source health without waiting for the status interval', async () => {
   const originalConfirm = window.confirm
   window.confirm = () => true
-  state.settings = { ...desktopSettings, sources: [workSource] }
+  state.settings = {
+    ...desktopSettings,
+    sources: [workSource],
+  }
   state.sourceJob = null
   state.statusCalls = 0
   try {
-    render(<App />)
+    render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
     const initialStatusCalls = state.statusCalls
-
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
-    fireEvent.click(screen.getByRole('button', { name: 'Sources' }))
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Test connection' })).toBeTruthy()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Test connection' }))
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Sources',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', {
+          name: 'Test connection',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Test connection',
+      })
+    )
     await waitFor(() => expect(state.sourceJob?.status).toBe('running'))
-
     state.sourceJob = {
       ...state.sourceJob!,
       status: 'succeeded',
@@ -3552,20 +5627,33 @@ test('completed source jobs refresh source health without waiting for the status
     state.sourceJob = null
   }
 })
-
 test('local runtime section opens active secret file path in desktop', async () => {
-  render(<App />)
-  await waitFor(() => expect(screen.getByRole('button', { name: updatesButtonName })).toBeTruthy())
-
-  fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-  await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+  render(() => <App />)
+  await screen.findByRole('button', {
+    name: updatesButtonName,
+  })
+  fireEvent.click(
+    await screen.findByRole('button', {
+      name: 'Settings',
+    })
   )
-  fireEvent.click(screen.getByRole('button', { name: 'Advanced' }))
-  await waitFor(() => expect(screen.getByText('Local runtime')).toBeTruthy())
-  fireEvent.click(screen.getByRole('button', { name: 'Open secret file' }))
+  await screen.findByRole('heading', {
+    level: 1,
+    name: 'Settings',
+  })
+  fireEvent.click(
+    await screen.findByRole('button', {
+      name: 'Advanced',
+    })
+  )
+  await screen.findByText('Local runtime')
+  fireEvent.click(
+    await screen.findByRole('button', {
+      name: 'Open secret file',
+    })
+  )
   await waitFor(() => expect(state.openSecretFileCalls).toBe(1))
   expect(
-    screen.getByText('Opened the active secret file in your default application.')
+    await screen.findByText('Opened the active secret file in your default application.')
   ).toBeTruthy()
 })

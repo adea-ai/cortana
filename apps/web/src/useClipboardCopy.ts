@@ -1,39 +1,37 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { createSignal, onCleanup } from 'solid-js'
 
 import { writeClipboardText } from './clipboard'
 
-export function useClipboardCopy(value: string | null) {
-  const [copied, setCopied] = useState(false)
-  const [copyError, setCopyError] = useState('')
-  const resetTimer = useRef<number | null>(null)
-  const mounted = useRef(true)
+export function useClipboardCopy(value: string | null | (() => string | null)) {
+  const [copied, setCopied] = createSignal(false)
+  const [copyError, setCopyError] = createSignal('')
+  let resetTimer: number | null = null
+  let mounted = true
 
-  useEffect(() => {
-    mounted.current = true
-    return () => {
-      mounted.current = false
-      if (resetTimer.current !== null) window.clearTimeout(resetTimer.current)
-    }
-  }, [])
+  onCleanup(() => {
+    mounted = false
+    if (resetTimer !== null) window.clearTimeout(resetTimer)
+  })
 
-  const copy = useCallback(async () => {
-    if (value === null) return
+  const copy = async () => {
+    const current = typeof value === 'function' ? value() : value
+    if (current === null) return
     setCopyError('')
     try {
-      await writeClipboardText(value)
-      if (!mounted.current) return
+      await writeClipboardText(current)
+      if (!mounted) return
       setCopied(true)
-      if (resetTimer.current !== null) window.clearTimeout(resetTimer.current)
-      resetTimer.current = window.setTimeout(() => {
-        resetTimer.current = null
+      if (resetTimer !== null) window.clearTimeout(resetTimer)
+      resetTimer = window.setTimeout(() => {
+        resetTimer = null
         setCopied(false)
       }, 1800)
     } catch (caught) {
-      if (!mounted.current) return
+      if (!mounted) return
       setCopied(false)
       setCopyError(caught instanceof Error ? caught.message : 'Unable to copy context')
     }
-  }, [value])
+  }
 
   return { copied, copyError, copy }
 }

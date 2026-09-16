@@ -1,11 +1,9 @@
+import { act } from './test/act'
 import { afterEach, expect, test } from 'bun:test'
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-
+import { cleanup, fireEvent, render, screen, waitFor } from 'solid-testing-library'
 import type { AnswerResponse, ContextBundle, Evidence } from './types'
 import { ContextPanel } from './components/ContextPanel'
-
 afterEach(cleanup)
-
 const baseEvidence: Evidence[] = [
   {
     chunk_id: 'chunk-1',
@@ -20,7 +18,6 @@ const baseEvidence: Evidence[] = [
     updated_at: '2026-01-01T00:00:00Z',
   },
 ]
-
 const baseAnswer: AnswerResponse = {
   query: 'How do releases work?',
   answer: 'Context copy scenario.',
@@ -34,7 +31,6 @@ const baseAnswer: AnswerResponse = {
     model_generated: false,
   },
 }
-
 function renderPanel(overrides: Partial<ContextBundle | null> = {}) {
   const contextBundle: ContextBundle | null =
     overrides === null
@@ -52,8 +48,7 @@ function renderPanel(overrides: Partial<ContextBundle | null> = {}) {
           },
           ...overrides,
         }
-
-  return render(
+  return render(() => (
     <ContextPanel
       open
       query="How do releases work?"
@@ -70,21 +65,18 @@ function renderPanel(overrides: Partial<ContextBundle | null> = {}) {
       onSelect={() => {}}
       onClose={() => {}}
     />
-  )
+  ))
 }
-
 test('shadcn renderer composes the context inspector from shared primitives', async () => {
   await act(async () => {
     renderPanel()
   })
-
   expect(document.querySelector('[data-m7-context-panel]')).toBeTruthy()
   expect(document.querySelector('[data-slot="scroll-area"]')).toBeTruthy()
   expect(document.querySelector('[data-slot="card"]')).toBeTruthy()
   expect(document.querySelector('[data-slot="badge"]')).toBeTruthy()
   expect(document.querySelector('[data-slot="button"]')).toBeTruthy()
 })
-
 test('Context panel copy action surfaces failures instead of failing silently', async () => {
   const originalClipboard = navigator.clipboard
   Object.defineProperty(navigator, 'clipboard', {
@@ -93,13 +85,21 @@ test('Context panel copy action surfaces failures instead of failing silently', 
     },
     configurable: true,
   })
-  renderPanel({ context: 'server context' })
-  fireEvent.click(screen.getByRole('button', { name: 'Copy agent context' }))
+  renderPanel({
+    context: 'server context',
+  })
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Copy agent context',
+    })
+  )
   await waitFor(() => expect(screen.getByText('clipboard blocked')).toBeTruthy())
   expect(screen.getByRole('alert').textContent).toBe('clipboard blocked')
-  Object.defineProperty(navigator, 'clipboard', { value: originalClipboard, configurable: true })
+  Object.defineProperty(navigator, 'clipboard', {
+    value: originalClipboard,
+    configurable: true,
+  })
 })
-
 test('Context panel copy action confirms successful copy', async () => {
   let copiedText = ''
   const originalClipboard = navigator.clipboard
@@ -112,23 +112,28 @@ test('Context panel copy action confirms successful copy', async () => {
     },
     configurable: true,
   })
-
   renderPanel()
-  const button = screen.getByRole('button', { name: 'Copy agent context' })
+  const button = screen.getByRole('button', {
+    name: 'Copy agent context',
+  })
   expect(button.getAttribute('title')).toBeNull()
-  expect(button.hasAttribute('data-base-ui-tooltip-trigger')).toBe(true)
+  expect(button.getAttribute('data-slot') === 'tooltip-trigger').toBe(true)
   fireEvent.click(button)
   await waitFor(() => expect(screen.getByText('Context copied')).toBeTruthy())
   expect(copiedText).toBe('server-context')
-
-  Object.defineProperty(navigator, 'clipboard', { value: originalClipboard, configurable: true })
+  Object.defineProperty(navigator, 'clipboard', {
+    value: originalClipboard,
+    configurable: true,
+  })
 })
-
 test('Context panel copy falls back when the async clipboard API is unavailable', async () => {
   const originalClipboard = navigator.clipboard
   const originalExecCommand = document.execCommand
   let copiedCommand = ''
-  Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true })
+  Object.defineProperty(navigator, 'clipboard', {
+    value: undefined,
+    configurable: true,
+  })
   Object.defineProperty(document, 'execCommand', {
     value: (command: string) => {
       copiedCommand = command
@@ -136,29 +141,43 @@ test('Context panel copy falls back when the async clipboard API is unavailable'
     },
     configurable: true,
   })
-
   try {
     renderPanel()
-    fireEvent.click(screen.getByRole('button', { name: 'Copy agent context' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Copy agent context',
+      })
+    )
     await waitFor(() => expect(screen.getByText('Context copied')).toBeTruthy())
     expect(copiedCommand).toBe('copy')
   } finally {
-    Object.defineProperty(navigator, 'clipboard', { value: originalClipboard, configurable: true })
+    Object.defineProperty(navigator, 'clipboard', {
+      value: originalClipboard,
+      configurable: true,
+    })
     Object.defineProperty(document, 'execCommand', {
       value: originalExecCommand,
       configurable: true,
     })
   }
 })
-
 test('Context panel uses the shared action button contract', () => {
-  renderPanel({ context: 'server context' })
-
-  expect(screen.getByRole('button', { name: 'Close agent context' }).className).toContain('size-8')
+  renderPanel({
+    context: 'server context',
+  })
   expect(
-    screen.getByRole('button', { name: 'Refresh MCP-equivalent context' }).className
+    screen.getByRole('button', {
+      name: 'Close agent context',
+    }).className
+  ).toContain('size-8')
+  expect(
+    screen.getByRole('button', {
+      name: 'Refresh MCP-equivalent context',
+    }).className
   ).toContain('bg-secondary')
-  expect(screen.getByRole('button', { name: 'Copy agent context' }).className).toContain(
-    'bg-primary'
-  )
+  expect(
+    screen.getByRole('button', {
+      name: 'Copy agent context',
+    }).className
+  ).toContain('bg-primary')
 })

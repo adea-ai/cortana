@@ -43,6 +43,9 @@ if (tests.length === 0) {
 const bun = process.env.BUN_BIN || (process.versions.bun ? process.execPath : 'bun')
 const bunArgs = [
   'test',
+  // Solid apps must resolve the browser build of solid-js/web (and Kobalte),
+  // not the server build Bun picks by default in a non-browser environment.
+  '--conditions=browser',
   '--isolate',
   '--parallel=1',
   '--max-concurrency=1',

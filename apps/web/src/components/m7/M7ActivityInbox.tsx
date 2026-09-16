@@ -7,7 +7,8 @@ import {
   LoaderCircle,
   RefreshCw,
   Settings,
-} from 'lucide-react'
+} from 'lucide-solid'
+import { Index, Show } from 'solid-js'
 
 import { describeSyncRunProgress } from '@/operations'
 import { describeSourceJobProgress, recentCompletedJobs } from '@/sourceJobs'
@@ -55,11 +56,11 @@ function statusBadge(status: SourceSyncSummary['status'] | DesktopSourceJob['sta
 
 function statusIcon(status: SourceSyncSummary['status'] | DesktopSourceJob['status']) {
   if (status === 'running' || status === 'cancelling') {
-    return <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+    return <LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
   }
-  if (status === 'succeeded') return <CheckCircle2 className="size-4" aria-hidden="true" />
-  if (status === 'cancelled') return <CircleX className="size-4" aria-hidden="true" />
-  return <AlertTriangle className="size-4" aria-hidden="true" />
+  if (status === 'succeeded') return <CheckCircle2 class="size-4" aria-hidden="true" />
+  if (status === 'cancelled') return <CircleX class="size-4" aria-hidden="true" />
+  return <AlertTriangle class="size-4" aria-hidden="true" />
 }
 
 function sourceOperationLabel(operation: DesktopSourceJob['operation']): string {
@@ -72,51 +73,46 @@ function sourceOperationLabel(operation: DesktopSourceJob['operation']): string 
   }[operation]
 }
 
-function ActivityEmpty({
-  loading,
-  error,
-  onRetryStatus,
-  onOpenSettings,
-}: {
+function ActivityEmpty(props: {
   loading: boolean
   error: string
   onRetryStatus?: () => void
   onOpenSettings: () => void
 }) {
   return (
-    <Empty className="min-h-72 border">
+    <Empty class="min-h-72 border">
       <EmptyHeader>
         <EmptyMedia variant="icon">
-          {loading ? (
-            <LoaderCircle className="animate-spin" aria-hidden="true" />
-          ) : error ? (
+          {props.loading ? (
+            <LoaderCircle class="animate-spin" aria-hidden="true" />
+          ) : props.error ? (
             <AlertTriangle aria-hidden="true" />
           ) : (
             <Inbox aria-hidden="true" />
           )}
         </EmptyMedia>
         <EmptyTitle>
-          {loading
+          {props.loading
             ? 'Loading sync health'
-            : error
+            : props.error
               ? 'Sync health unavailable'
               : 'No sync attention'}
         </EmptyTitle>
         <EmptyDescription>
-          {error ||
-            (loading
+          {props.error ||
+            (props.loading
               ? 'Waiting for the runtime status snapshot before reporting source health or sync history.'
               : 'Every configured source is idle and the latest syncs finished cleanly. New activity appears here as it happens.')}
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <div className="flex flex-wrap justify-center gap-2">
-          {error && onRetryStatus ? (
-            <Button variant="outline" onClick={onRetryStatus}>
+        <div class="flex flex-wrap justify-center gap-2">
+          <Show when={props.error && props.onRetryStatus}>
+            <Button variant="outline" onClick={props.onRetryStatus}>
               <RefreshCw aria-hidden="true" /> Retry status
             </Button>
-          ) : null}
-          <Button variant="outline" onClick={onOpenSettings}>
+          </Show>
+          <Button variant="outline" onClick={props.onOpenSettings}>
             <Settings aria-hidden="true" /> Open settings
           </Button>
         </div>
@@ -125,35 +121,39 @@ function ActivityEmpty({
   )
 }
 
-function SyncActivityCard({ run }: { run: SourceSyncSummary }) {
-  const documents = run.progress_documents ?? run.documents ?? 0
-  const progress = run.budget_documents
-    ? Math.min(100, Math.round((documents / run.budget_documents) * 100))
-    : null
+function SyncActivityCard(props: { run: SourceSyncSummary }) {
+  const documents = () => props.run.progress_documents ?? props.run.documents ?? 0
+  const progress = () =>
+    props.run.budget_documents
+      ? Math.min(100, Math.round((documents() / props.run.budget_documents) * 100))
+      : null
   return (
     <Card size="sm">
-      <CardHeader className="activity-card-header">
-        <CardTitle className="activity-card-title-line">
-          {statusIcon(run.status)}
-          <span className="truncate">{run.source}</span>
-          <span className="activity-card-meta">
-            {run.project} · started {new Date(run.started_at).toLocaleString()}
+      <CardHeader class="activity-card-header">
+        <CardTitle class="activity-card-title-line">
+          {statusIcon(props.run.status)}
+          <span class="truncate">{props.run.source}</span>
+          <span class="activity-card-meta">
+            {props.run.project} · started {new Date(props.run.started_at).toLocaleString()}
           </span>
         </CardTitle>
-        <CardAction>{statusBadge(run.status)}</CardAction>
+        <CardAction>{statusBadge(props.run.status)}</CardAction>
       </CardHeader>
-      <CardContent className="activity-card-content">
-        <div className="activity-card-detail-row">
-          <p className="activity-card-summary text-sm text-muted-foreground">
-            {describeSyncRunProgress(run)}
+      <CardContent class="activity-card-content">
+        <div class="activity-card-detail-row">
+          <p class="activity-card-summary text-sm text-muted-foreground">
+            {describeSyncRunProgress(props.run)}
           </p>
-          <div className="activity-card-status-row">
-            {run.status === 'running' ? (
-              <Progress value={progress} aria-label={`${run.source} sync progress`} />
-            ) : null}
-            <p className="text-xs text-muted-foreground">
-              {documents.toLocaleString()} documents ·{' '}
-              {(run.progress_bytes ?? run.bytes ?? 0).toLocaleString()} bytes
+          <div class="activity-card-status-row">
+            <Show when={props.run.status === 'running'}>
+              <Progress
+                value={progress() ?? undefined}
+                aria-label={`${props.run.source} sync progress`}
+              />
+            </Show>
+            <p class="text-xs text-muted-foreground">
+              {documents().toLocaleString()} documents ·{' '}
+              {(props.run.progress_bytes ?? props.run.bytes ?? 0).toLocaleString()} bytes
             </p>
           </div>
         </div>
@@ -162,184 +162,171 @@ function SyncActivityCard({ run }: { run: SourceSyncSummary }) {
   )
 }
 
-function SourceJobCard({
-  job,
-  onCancel,
-}: {
-  job: DesktopSourceJob
-  onCancel?: (id: string) => void
-}) {
-  const completed = job.completed_at_unix_seconds
-    ? new Date(job.completed_at_unix_seconds * 1000)
-    : null
-  const started = new Date(job.started_at_unix_seconds * 1000)
+function SourceJobCard(props: { job: DesktopSourceJob; onCancel?: (id: string) => void }) {
+  const completed = () =>
+    props.job.completed_at_unix_seconds
+      ? new Date(props.job.completed_at_unix_seconds * 1000)
+      : null
+  const started = () => new Date(props.job.started_at_unix_seconds * 1000)
+  const running = () => props.job.status === 'running' || props.job.status === 'cancelling'
   return (
     <Card size="sm">
-      <CardHeader className="activity-card-header">
-        <CardTitle className="activity-card-title-line">
-          {statusIcon(job.status)}
-          <span className="truncate">
-            {job.source} · {sourceOperationLabel(job.operation)}
+      <CardHeader class="activity-card-header">
+        <CardTitle class="activity-card-title-line">
+          {statusIcon(props.job.status)}
+          <span class="truncate">
+            {props.job.source} · {sourceOperationLabel(props.job.operation)}
           </span>
-          <span className="activity-card-meta">
-            {job.project} · started {started.toLocaleString()}
+          <span class="activity-card-meta">
+            {props.job.project} · started {started().toLocaleString()}
           </span>
         </CardTitle>
-        <CardAction>{statusBadge(job.status)}</CardAction>
+        <CardAction>{statusBadge(props.job.status)}</CardAction>
       </CardHeader>
-      <CardContent className="activity-card-content">
-        <div className="activity-card-detail-row">
-          <p className="activity-card-summary text-sm text-muted-foreground">
-            {describeSourceJobProgress(job)}
+      <CardContent class="activity-card-content">
+        <div class="activity-card-detail-row">
+          <p class="activity-card-summary text-sm text-muted-foreground">
+            {describeSourceJobProgress(props.job)}
           </p>
-          <div className="activity-card-status-row">
-            {job.status === 'running' || job.status === 'cancelling' ? (
+          <div class="activity-card-status-row">
+            <Show when={running()}>
               <Progress
-                value={null}
-                aria-label={`${job.source} ${sourceOperationLabel(job.operation)} in progress`}
+                value={undefined}
+                aria-label={`${props.job.source} ${sourceOperationLabel(props.job.operation)} in progress`}
               />
-            ) : null}
-            {completed ? (
-              <p className="text-xs text-muted-foreground">
+            </Show>
+            <Show when={completed()}>
+              <p class="text-xs text-muted-foreground">
                 Completed in{' '}
-                {Math.max(0, Math.round((completed.getTime() - started.getTime()) / 1000))} seconds
+                {Math.max(0, Math.round((completed()!.getTime() - started().getTime()) / 1000))}{' '}
+                seconds
               </p>
-            ) : null}
-            {onCancel && (job.status === 'running' || job.status === 'cancelling') ? (
+            </Show>
+            <Show when={props.onCancel && running()}>
               <Button
                 variant="outline"
                 size="sm"
-                disabled={job.status === 'cancelling'}
-                aria-label={`Cancel ${job.project} ${job.source} ${job.operation}`}
-                onClick={() => onCancel(job.id)}
+                disabled={props.job.status === 'cancelling'}
+                aria-label={`Cancel ${props.job.project} ${props.job.source} ${props.job.operation}`}
+                onClick={() => props.onCancel?.(props.job.id)}
               >
                 <CircleStop aria-hidden="true" /> Cancel
               </Button>
-            ) : null}
+            </Show>
           </div>
         </div>
-        {job.log ? (
-          <details className="activity-card-log rounded-md border p-2 text-xs">
-            <summary className="cursor-pointer font-medium">View job log</summary>
-            <pre className="mt-2 overflow-auto whitespace-pre-wrap text-muted-foreground">
-              {job.log}
+        <Show when={props.job.log}>
+          <details class="activity-card-log rounded-md border p-2 text-xs">
+            <summary class="cursor-pointer font-medium">View job log</summary>
+            <pre class="mt-2 overflow-auto whitespace-pre-wrap text-muted-foreground">
+              {props.job.log}
             </pre>
           </details>
-        ) : null}
+        </Show>
       </CardContent>
     </Card>
   )
 }
 
-export function M7ActivityInbox({
-  status,
-  statusError = '',
-  sourceJobs,
-  sourceJobError = '',
-  onRetrySourceJobs,
-  onOpenSettings,
-  onRetryStatus,
-  onCancelSourceJob,
-}: M7ActivityInboxProps) {
-  const attention = (status?.sync_runs ?? []).filter((run) =>
-    ['running', 'failed', 'cancelled', 'budget_exceeded'].includes(run.status)
-  )
-  const activeJobs = sourceJobs.filter(
-    (job) => job.status === 'running' || job.status === 'cancelling'
-  )
-  const completedJobs = recentCompletedJobs(sourceJobs)
-  const empty = attention.length === 0 && activeJobs.length === 0 && completedJobs.length === 0
+export function M7ActivityInbox(props: M7ActivityInboxProps) {
+  const statusError = () => props.statusError ?? ''
+  const sourceJobError = () => props.sourceJobError ?? ''
+  const attention = () =>
+    (props.status?.sync_runs ?? []).filter((run) =>
+      ['running', 'failed', 'cancelled', 'budget_exceeded'].includes(run.status)
+    )
+  const activeJobs = () =>
+    props.sourceJobs.filter((job) => job.status === 'running' || job.status === 'cancelling')
+  const completedJobs = () => recentCompletedJobs(props.sourceJobs)
+  const empty = () =>
+    attention().length === 0 && activeJobs().length === 0 && completedJobs().length === 0
 
   return (
-    <main id="main-content" className="utility-view m7-utility-view" data-m7-activity-inbox>
-      <header className="utility-header">
+    <main id="main-content" class="utility-view m7-utility-view" data-m7-activity-inbox>
+      <header class="utility-header">
         <div>
-          <span className="eyebrow">Attention</span>
+          <span class="eyebrow">Attention</span>
           <h1>Inbox</h1>
           <p>Current sync health and source-job activity. Nothing here is fabricated history.</p>
         </div>
       </header>
-      <div className="utility-body" data-m7-activity-body>
-        {sourceJobError ? (
+      <div class="utility-body" data-m7-activity-body>
+        <Show when={sourceJobError()}>
           <Alert variant="destructive">
             <AlertTriangle aria-hidden="true" />
             <AlertTitle>Source jobs unavailable</AlertTitle>
-            <AlertDescription>{sourceJobError}</AlertDescription>
-            {onRetrySourceJobs ? (
+            <AlertDescription>{sourceJobError()}</AlertDescription>
+            <Show when={props.onRetrySourceJobs}>
               <AlertAction>
-                <Button variant="outline" size="sm" onClick={onRetrySourceJobs}>
+                <Button variant="outline" size="sm" onClick={props.onRetrySourceJobs}>
                   Retry
                 </Button>
               </AlertAction>
-            ) : null}
+            </Show>
           </Alert>
-        ) : null}
-        {statusError && status ? (
+        </Show>
+        <Show when={statusError() && props.status}>
           <Alert>
             <AlertTriangle aria-hidden="true" />
             <AlertTitle>Showing the last known sync snapshot</AlertTitle>
-            <AlertDescription>{statusError}</AlertDescription>
-            {onRetryStatus ? (
+            <AlertDescription>{statusError()}</AlertDescription>
+            <Show when={props.onRetryStatus}>
               <AlertAction>
-                <Button variant="outline" size="sm" onClick={onRetryStatus}>
+                <Button variant="outline" size="sm" onClick={props.onRetryStatus}>
                   Retry
                 </Button>
               </AlertAction>
-            ) : null}
+            </Show>
           </Alert>
-        ) : null}
-        {empty ? (
-          <ActivityEmpty
-            loading={!status && !statusError}
-            error={statusError}
-            onRetryStatus={onRetryStatus}
-            onOpenSettings={onOpenSettings}
-          />
-        ) : (
-          <div className="flex flex-col gap-6">
-            {attention.length ? (
-              <section className="flex flex-col gap-3" aria-labelledby="m7-sync-attention">
-                <h2 id="m7-sync-attention" className="font-heading text-base font-medium">
+        </Show>
+        <Show
+          when={!empty()}
+          fallback={
+            <ActivityEmpty
+              loading={!props.status && !statusError()}
+              error={statusError()}
+              onRetryStatus={props.onRetryStatus}
+              onOpenSettings={props.onOpenSettings}
+            />
+          }
+        >
+          <div class="flex flex-col gap-6">
+            <Show when={attention().length}>
+              <section class="flex flex-col gap-3" aria-labelledby="m7-sync-attention">
+                <h2 id="m7-sync-attention" class="font-heading text-base font-medium">
                   Sync attention
                 </h2>
-                <div className="activity-card-grid">
-                  {attention.map((run) => (
-                    <SyncActivityCard
-                      key={`${run.project}:${run.source}:${run.started_at}`}
-                      run={run}
-                    />
-                  ))}
+                <div class="activity-card-grid">
+                  <Index each={attention()}>{(run) => <SyncActivityCard run={run()} />}</Index>
                 </div>
               </section>
-            ) : null}
-            {activeJobs.length ? (
-              <section className="flex flex-col gap-3" aria-labelledby="m7-active-source-jobs">
-                <h2 id="m7-active-source-jobs" className="font-heading text-base font-medium">
+            </Show>
+            <Show when={activeJobs().length}>
+              <section class="flex flex-col gap-3" aria-labelledby="m7-active-source-jobs">
+                <h2 id="m7-active-source-jobs" class="font-heading text-base font-medium">
                   Active source jobs
                 </h2>
-                <div className="activity-card-grid">
-                  {activeJobs.map((job) => (
-                    <SourceJobCard key={job.id} job={job} onCancel={onCancelSourceJob} />
-                  ))}
+                <div class="activity-card-grid">
+                  <Index each={activeJobs()}>
+                    {(job) => <SourceJobCard job={job()} onCancel={props.onCancelSourceJob} />}
+                  </Index>
                 </div>
               </section>
-            ) : null}
-            {completedJobs.length ? (
-              <section className="flex flex-col gap-3" aria-labelledby="m7-recent-source-jobs">
-                <h2 id="m7-recent-source-jobs" className="font-heading text-base font-medium">
+            </Show>
+            <Show when={completedJobs().length}>
+              <section class="flex flex-col gap-3" aria-labelledby="m7-recent-source-jobs">
+                <h2 id="m7-recent-source-jobs" class="font-heading text-base font-medium">
                   Recent source jobs
                 </h2>
-                <div className="activity-card-grid">
-                  {completedJobs.map((job) => (
-                    <SourceJobCard key={job.id} job={job} />
-                  ))}
+                <div class="activity-card-grid">
+                  <Index each={completedJobs()}>{(job) => <SourceJobCard job={job()} />}</Index>
                 </div>
               </section>
-            ) : null}
+            </Show>
           </div>
-        )}
-        <div className="utility-actions">
-          <Button variant="outline" onClick={onOpenSettings}>
+        </Show>
+        <div class="utility-actions">
+          <Button variant="outline" onClick={props.onOpenSettings}>
             <Settings aria-hidden="true" /> Manage ingestion in settings
           </Button>
         </div>

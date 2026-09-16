@@ -1,112 +1,132 @@
-import * as React from 'react'
-import { Dialog as SheetPrimitive } from '@base-ui/react/dialog'
+import * as SheetPrimitive from '@kobalte/core/dialog'
+import { Show, splitProps, type ComponentProps } from 'solid-js'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/shadcn/button'
-import { XIcon } from 'lucide-react'
+import { XIcon } from 'lucide-solid'
 
-function Sheet({ ...props }: SheetPrimitive.Root.Props) {
+function Sheet(props: ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
 }
 
-function SheetTrigger({ ...props }: SheetPrimitive.Trigger.Props) {
+function SheetTrigger(props: ComponentProps<typeof SheetPrimitive.Trigger>) {
   return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />
 }
 
-function SheetClose({ ...props }: SheetPrimitive.Close.Props) {
-  return <SheetPrimitive.Close data-slot="sheet-close" {...props} />
+function SheetClose(props: ComponentProps<typeof SheetPrimitive.CloseButton>) {
+  return <SheetPrimitive.CloseButton data-slot="sheet-close" {...props} />
 }
 
-function SheetPortal({ ...props }: SheetPrimitive.Portal.Props) {
+function SheetPortal(props: ComponentProps<typeof SheetPrimitive.Portal>) {
   return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />
 }
 
-function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
+function SheetOverlay(props: ComponentProps<typeof SheetPrimitive.Overlay>) {
+  const [local, rest] = splitProps(props, ['class'])
   return (
-    <SheetPrimitive.Backdrop
+    <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
-      className={cn(
-        'fixed inset-0 z-50 bg-overlay transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0 supports-backdrop-filter:backdrop-blur-xs',
-        className
+      class={cn(
+        'fixed inset-0 z-50 bg-overlay transition-opacity duration-150 data-closed:opacity-0 data-expanded:opacity-100 supports-backdrop-filter:backdrop-blur-xs',
+        local.class
       )}
-      {...props}
+      {...rest}
     />
   )
 }
 
-function SheetContent({
-  className,
-  children,
-  side = 'right',
-  showCloseButton = true,
-  ...props
-}: SheetPrimitive.Popup.Props & {
-  side?: 'top' | 'right' | 'bottom' | 'left'
-  showCloseButton?: boolean
-}) {
+function SheetContent(
+  props: ComponentProps<typeof SheetPrimitive.Content> & {
+    side?: 'top' | 'right' | 'bottom' | 'left'
+    showCloseButton?: boolean
+    finalFocus?: { current: HTMLElement | null } | null
+  }
+) {
+  const [local, rest] = splitProps(props, [
+    'class',
+    'children',
+    'side',
+    'showCloseButton',
+    'finalFocus',
+    'onCloseAutoFocus',
+  ])
+  const side = () => local.side ?? 'right'
+  const handleCloseAutoFocus = (event: Event) => {
+    local.onCloseAutoFocus?.(event)
+    const target = local.finalFocus?.current
+    if (!event.defaultPrevented && target) {
+      event.preventDefault()
+      target.focus()
+    }
+  }
   return (
     <SheetPortal>
       <SheetOverlay />
-      <SheetPrimitive.Popup
+      <SheetPrimitive.Content
         data-slot="sheet-content"
-        data-side={side}
-        className={cn(
-          'fixed z-50 flex flex-col gap-4 bg-popover bg-clip-padding text-sm text-popover-foreground shadow-lg transition duration-200 ease-in-out data-ending-style:opacity-0 data-starting-style:opacity-0 data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t data-[side=bottom]:data-ending-style:translate-y-[2.5rem] data-[side=bottom]:data-starting-style:translate-y-[2.5rem] data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-3/4 data-[side=left]:border-r data-[side=left]:data-ending-style:translate-x-[-2.5rem] data-[side=left]:data-starting-style:translate-x-[-2.5rem] data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l data-[side=right]:data-ending-style:translate-x-[2.5rem] data-[side=right]:data-starting-style:translate-x-[2.5rem] data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b data-[side=top]:data-ending-style:translate-y-[-2.5rem] data-[side=top]:data-starting-style:translate-y-[-2.5rem] data-[side=left]:sm:max-w-sm data-[side=right]:sm:max-w-sm',
-          className
+        onCloseAutoFocus={handleCloseAutoFocus}
+        data-side={side()}
+        class={cn(
+          'fixed z-50 flex flex-col gap-4 bg-popover bg-clip-padding text-sm text-popover-foreground shadow-lg transition duration-200 ease-in-out data-closed:opacity-0 data-expanded:opacity-100 data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t data-[side=bottom]:data-closed:translate-y-[2.5rem] data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-3/4 data-[side=left]:border-r data-[side=left]:data-closed:translate-x-[-2.5rem] data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l data-[side=right]:data-closed:translate-x-[2.5rem] data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b data-[side=top]:data-closed:translate-y-[-2.5rem] data-[side=left]:sm:max-w-sm data-[side=right]:sm:max-w-sm',
+          local.class
         )}
-        {...props}
+        {...rest}
       >
-        {children}
-        {showCloseButton && (
-          <SheetPrimitive.Close
+        {local.children}
+        <Show when={local.showCloseButton ?? true}>
+          <SheetPrimitive.CloseButton
             data-slot="sheet-close"
-            render={<Button variant="ghost" className="absolute top-3 right-3" size="icon-sm" />}
+            as={Button}
+            variant="ghost"
+            class="absolute top-3 right-3"
+            size="icon-sm"
+            aria-label="Close"
           >
             <XIcon />
-            <span className="sr-only">Close</span>
-          </SheetPrimitive.Close>
-        )}
-      </SheetPrimitive.Popup>
+            <span class="sr-only">Close</span>
+          </SheetPrimitive.CloseButton>
+        </Show>
+      </SheetPrimitive.Content>
     </SheetPortal>
   )
 }
 
-function SheetHeader({ className, ...props }: React.ComponentProps<'div'>) {
+function SheetHeader(props: ComponentProps<'div'>) {
+  const [local, rest] = splitProps(props, ['class'])
   return (
-    <div
-      data-slot="sheet-header"
-      className={cn('flex flex-col gap-0.5 p-4', className)}
-      {...props}
-    />
+    <div data-slot="sheet-header" class={cn('flex flex-col gap-0.5 p-4', local.class)} {...rest} />
   )
 }
 
-function SheetFooter({ className, ...props }: React.ComponentProps<'div'>) {
+function SheetFooter(props: ComponentProps<'div'>) {
+  const [local, rest] = splitProps(props, ['class'])
   return (
     <div
       data-slot="sheet-footer"
-      className={cn('mt-auto flex flex-col gap-2 p-4', className)}
-      {...props}
+      class={cn('mt-auto flex flex-col gap-2 p-4', local.class)}
+      {...rest}
     />
   )
 }
 
-function SheetTitle({ className, ...props }: SheetPrimitive.Title.Props) {
+function SheetTitle(props: ComponentProps<typeof SheetPrimitive.Title>) {
+  const [local, rest] = splitProps(props, ['class'])
   return (
     <SheetPrimitive.Title
       data-slot="sheet-title"
-      className={cn('font-heading text-base font-medium text-foreground', className)}
-      {...props}
+      class={cn('font-heading text-base font-medium text-foreground', local.class)}
+      {...rest}
     />
   )
 }
 
-function SheetDescription({ className, ...props }: SheetPrimitive.Description.Props) {
+function SheetDescription(props: ComponentProps<typeof SheetPrimitive.Description>) {
+  const [local, rest] = splitProps(props, ['class'])
   return (
     <SheetPrimitive.Description
       data-slot="sheet-description"
-      className={cn('text-sm text-muted-foreground', className)}
-      {...props}
+      class={cn('text-sm text-muted-foreground', local.class)}
+      {...rest}
     />
   )
 }

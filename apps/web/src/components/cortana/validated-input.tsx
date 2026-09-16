@@ -1,4 +1,4 @@
-import type { ComponentProps } from 'react'
+import { Show, splitProps, type ComponentProps } from 'solid-js'
 
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/shadcn/field'
 import { Input } from '@/components/shadcn/input'
@@ -13,22 +13,27 @@ type ValidatedInputProps = Omit<
   error?: string
 }
 
-export function ValidatedInput({ id, label, description, error, ...props }: ValidatedInputProps) {
-  const descriptionId = description ? `${id}-description` : undefined
-  const errorId = error ? `${id}-error` : undefined
-  const describedBy = [descriptionId, errorId].filter(Boolean).join(' ') || undefined
+export function ValidatedInput(props: ValidatedInputProps) {
+  const [local, rest] = splitProps(props, ['id', 'label', 'description', 'error'])
+  const descriptionId = () => (local.description ? `${local.id}-description` : undefined)
+  const errorId = () => (local.error ? `${local.id}-error` : undefined)
+  const describedBy = () => [descriptionId(), errorId()].filter(Boolean).join(' ') || undefined
 
   return (
-    <Field data-invalid={error ? true : undefined}>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+    <Field data-invalid={local.error ? true : undefined}>
+      <FieldLabel for={local.id}>{local.label}</FieldLabel>
       <Input
-        {...props}
-        id={id}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy}
+        {...rest}
+        id={local.id}
+        aria-invalid={local.error ? true : undefined}
+        aria-describedby={describedBy()}
       />
-      {description ? <FieldDescription id={descriptionId}>{description}</FieldDescription> : null}
-      {error ? <FieldError id={errorId}>{error}</FieldError> : null}
+      <Show when={local.description}>
+        <FieldDescription id={descriptionId()}>{local.description}</FieldDescription>
+      </Show>
+      <Show when={local.error}>
+        <FieldError id={errorId()}>{local.error}</FieldError>
+      </Show>
     </Field>
   )
 }

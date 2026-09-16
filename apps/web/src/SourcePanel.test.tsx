@@ -1,7 +1,6 @@
 import { afterEach, expect, test } from 'bun:test'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { Bot, Code2, Cloud, Database, GitBranch, MessageCircle } from 'lucide-react'
-
+import { cleanup, fireEvent, render, screen } from 'solid-testing-library'
+import { Bot, Code2, Cloud, Database, GitBranch, MessageCircle } from 'lucide-solid'
 import type {
   BrainDocumentSummary,
   BrainStatus,
@@ -12,23 +11,19 @@ import { demoStatus } from './demo'
 import { SourcePanel } from './components/SourcePanel'
 import { SourceIcon } from './components/sourceIcons'
 import { sourceBrandForKind, sourceIconForKind } from './components/sourceIconData'
-
 afterEach(cleanup)
-
 const workspace: WorkspaceSettings = {
   id: 'work',
   name: 'Work',
   account_label: null,
   color: '#5A9BD5',
 }
-
 const personalWorkspace: WorkspaceSettings = {
   id: 'personal',
   name: 'Personal',
   account_label: null,
   color: '#E8A83B',
 }
-
 function renderPanel(
   statusValue: BrainStatus | null,
   statusError: string,
@@ -65,12 +60,10 @@ function renderPanel(
       jobs={noJobs}
     />
   )
-  render(panel)
+  render(() => panel)
 }
-
 test('shadcn renderer uses shared source controls without a redundant workspace selector', () => {
   renderPanel(demoStatus, '', '', undefined, 'work', true)
-
   expect(document.querySelector('[data-m7-source-panel]')).toBeTruthy()
   expect(screen.queryByLabelText('Workspace')).toBeNull()
   expect(document.querySelector('[data-slot="select-trigger"]')).toBeNull()
@@ -78,37 +71,39 @@ test('shadcn renderer uses shared source controls without a redundant workspace 
   expect(document.querySelector('[data-slot="button"]')).toBeTruthy()
   expect(document.querySelector('[data-slot="switch"]')).toBeTruthy()
 })
-
 test('source disclosure keeps keyboard focus when local state rerenders the panel', () => {
   renderPanel(demoStatus, '', '', undefined, 'work', true)
-
-  const disclosure = screen.getAllByRole('button', { name: /^Collapse / })[0]
+  const disclosure = screen.getAllByRole('button', {
+    name: /^Collapse /,
+  })[0]
   disclosure.focus()
   fireEvent.click(disclosure)
-
   expect(document.activeElement).toBe(disclosure)
   expect(disclosure.getAttribute('aria-expanded')).toBe('false')
 })
-
 test('SourcePanel uses the shared secondary action style for pagination', () => {
   renderPanel(demoStatus, '', '', undefined, 'work', true)
-
-  expect(screen.getByRole('button', { name: 'Load next page' }).className).toContain('bg-secondary')
+  expect(
+    screen.getByRole('button', {
+      name: 'Load next page',
+    }).className
+  ).toContain('bg-secondary')
 })
-
 test('SourcePanel reports loading while status is still resolving', () => {
   renderPanel(null, '')
   expect(screen.getByText('Loading source index and health…')).toBeTruthy()
 })
-
 test('source panel uses the shell workspace scope without a duplicate picker', () => {
   renderPanel(demoStatus, '')
-  expect(screen.queryByRole('combobox', { name: 'Workspace' })).toBeNull()
+  expect(
+    screen.queryByRole('combobox', {
+      name: 'Workspace',
+    })
+  ).toBeNull()
   expect(screen.getByLabelText('Documents in Work / All sources')).toBeTruthy()
 })
-
 test('SourcePanel never falls back to an all-workspaces source tree', () => {
-  render(
+  render(() => (
     <SourcePanel
       open={false}
       status={demoStatus}
@@ -130,37 +125,48 @@ test('SourcePanel never falls back to an all-workspaces source tree', () => {
       onClose={() => {}}
       jobs={[]}
     />
-  )
-
-  expect(screen.getByRole('button', { name: /^work-code/ })).toBeTruthy()
-  expect(screen.queryByRole('button', { name: /^personal-gmail/ })).toBeNull()
+  ))
+  expect(
+    screen.getByRole('button', {
+      name: /^work-code/,
+    })
+  ).toBeTruthy()
+  expect(
+    screen.queryByRole('button', {
+      name: /^personal-gmail/,
+    })
+  ).toBeNull()
 })
-
 test('SourcePanel surfaces status errors instead of empty-source phantom state', () => {
   renderPanel(null, 'Status unavailable')
   expect(screen.getByText('Status unavailable')).toBeTruthy()
   expect(screen.getByText('Ingestion status unavailable')).toBeTruthy()
   expect(screen.queryByText('No indexed sources yet.')).toBeNull()
 })
-
 test('SourcePanel exposes a bounded retry action for status errors', () => {
   let retries = 0
   renderPanel(null, 'Status unavailable', '', () => {
     retries += 1
   })
-  fireEvent.click(screen.getByRole('button', { name: 'Retry status' }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Retry status',
+    })
+  )
   expect(retries).toBe(1)
 })
-
 test('SourcePanel keeps the last known source index visible during a refresh failure', () => {
   renderPanel(demoStatus, 'Status refresh failed')
   expect(screen.getByText(/Status refresh failed Showing the last known source index/)).toBeTruthy()
-  expect(screen.getByRole('button', { name: /^work-code/ })).toBeTruthy()
+  expect(
+    screen.getByRole('button', {
+      name: /^work-code/,
+    })
+  ).toBeTruthy()
 })
-
 test('SourcePanel exposes a retry action for document list failures', () => {
   let retries = 0
-  render(
+  render(() => (
     <SourcePanel
       open={false}
       status={demoStatus}
@@ -185,21 +191,22 @@ test('SourcePanel exposes a retry action for document list failures', () => {
       onClose={() => {}}
       jobs={[]}
     />
+  ))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Retry documents',
+    })
   )
-
-  fireEvent.click(screen.getByRole('button', { name: 'Retry documents' }))
   expect(retries).toBe(1)
 })
-
 test('SourcePanel keeps cancellation failures separate from runtime health', () => {
   renderPanel(demoStatus, '', 'Source job cancellation failed')
   expect(screen.getByRole('alert').textContent).toBe('Source job cancellation failed')
   expect(screen.queryByText('Status unavailable')).toBeNull()
 })
-
 test('document filter exposes a clear action only when text is present', () => {
   let nextQuery = 'unchanged'
-  render(
+  render(() => (
     <SourcePanel
       open={false}
       status={demoStatus}
@@ -223,23 +230,32 @@ test('document filter exposes a clear action only when text is present', () => {
       onClose={() => {}}
       jobs={[]}
     />
+  ))
+  expect(
+    screen.getByRole('button', {
+      name: 'Clear document filter',
+    })
+  ).toBeTruthy()
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Clear document filter',
+    })
   )
-
-  expect(screen.getByRole('button', { name: 'Clear document filter' })).toBeTruthy()
-  fireEvent.click(screen.getByRole('button', { name: 'Clear document filter' }))
   expect(nextQuery).toBe('')
-
   cleanup()
   renderPanel(demoStatus, '')
-  expect(screen.queryByRole('button', { name: 'Clear document filter' })).toBeNull()
+  expect(
+    screen.queryByRole('button', {
+      name: 'Clear document filter',
+    })
+  ).toBeNull()
 })
-
 test('SourcePanel source and settings shortcuts open the Sources settings section', () => {
   let sourcesOpenCalls = 0
   const openSourcesSettings = () => {
     sourcesOpenCalls += 1
   }
-  render(
+  render(() => (
     <SourcePanel
       open={false}
       status={null}
@@ -261,18 +277,17 @@ test('SourcePanel source and settings shortcuts open the Sources settings sectio
       onClose={() => {}}
       jobs={[]}
     />
-  )
+  ))
   const add = screen.getByLabelText('Add source')
   const settings = screen.getByLabelText('Source settings')
   expect(add.getAttribute('title')).toBeNull()
-  expect(add.hasAttribute('data-base-ui-tooltip-trigger')).toBe(true)
+  expect(add.getAttribute('data-slot') === 'tooltip-trigger').toBe(true)
   expect(settings.getAttribute('title')).toBeNull()
-  expect(settings.hasAttribute('data-base-ui-tooltip-trigger')).toBe(true)
+  expect(settings.getAttribute('data-slot') === 'tooltip-trigger').toBe(true)
   fireEvent.click(add)
   fireEvent.click(settings)
   expect(sourcesOpenCalls).toBe(2)
 })
-
 test('source icons use the exact configured connector kind', () => {
   expect(sourceIconForKind('filesystem')).toBe(Code2)
   expect(sourceIconForKind('google-drive')).toBe(Cloud)
@@ -281,7 +296,6 @@ test('source icons use the exact configured connector kind', () => {
   expect(sourceIconForKind('buzz')).toBe(Bot)
   expect(sourceIconForKind('slack-archive')).toBe(Database)
 })
-
 test('source icons keep brand fidelity for Notes and Drive and fall back to lucide glyphs', () => {
   // Apple Notes must not render as the generic code/folder glyph, and Drive
   // must render its brand mark rather than the plain cloud fallback.
@@ -289,26 +303,23 @@ test('source icons keep brand fidelity for Notes and Drive and fall back to luci
   expect(sourceBrandForKind('google-drive')).toBeDefined()
   expect(sourceBrandForKind('gmail')).toBeDefined()
   expect(sourceBrandForKind('google-calendar')).toBeDefined()
-
-  const { container: notesContainer } = render(<SourceIcon kind="apple-notes" />)
+  const { container: notesContainer } = render(() => <SourceIcon kind="apple-notes" />)
   const notesPath = notesContainer.querySelector('svg path')
   expect(notesPath).toBeTruthy()
   expect(notesPath?.getAttribute('d')).toBe(sourceBrandForKind('apple-notes')?.path)
-
-  const { container: driveContainer } = render(<SourceIcon kind="google-drive" />)
+  const { container: driveContainer } = render(() => <SourceIcon kind="google-drive" />)
   const drivePath = driveContainer.querySelector('svg path')
   expect(drivePath).toBeTruthy()
   expect(drivePath?.getAttribute('d')).toBe(sourceBrandForKind('google-drive')?.path)
 
   // Connectors without a brand glyph render their lucide fallback icon.
-  const { container: filesContainer } = render(<SourceIcon kind="filesystem" />)
+  const { container: filesContainer } = render(() => <SourceIcon kind="filesystem" />)
   const filesSvg = filesContainer.querySelector('svg')
   expect(filesSvg).toBeTruthy()
   // Lucide glyphs are stroke-based (fill="none"); brand marks are filled.
   expect(filesSvg?.getAttribute('fill')).toBe('none')
   expect(filesSvg?.querySelector('path')).toBeTruthy()
 })
-
 test('source selection is scoped to the active workspace when names repeat', () => {
   const duplicateStatus: BrainStatus = {
     ...demoStatus,
@@ -324,7 +335,7 @@ test('source selection is scoped to the active workspace when names repeat', () 
       ],
     },
   }
-  render(
+  render(() => (
     <SourcePanel
       open={false}
       status={duplicateStatus}
@@ -346,14 +357,15 @@ test('source selection is scoped to the active workspace when names repeat', () 
       onClose={() => {}}
       jobs={[]}
     />
-  )
-  const rows = screen.getAllByRole('button', { name: /work-code/ })
+  ))
+  const rows = screen.getAllByRole('button', {
+    name: /work-code/,
+  })
   expect(rows).toHaveLength(2)
   expect(rows.filter((row) => row.getAttribute('aria-pressed') === 'true')).toHaveLength(1)
 })
-
 test('source-select button is rendered as a button control', () => {
-  render(
+  render(() => (
     <SourcePanel
       open={false}
       status={demoStatus}
@@ -375,14 +387,15 @@ test('source-select button is rendered as a button control', () => {
       onClose={() => {}}
       jobs={[]}
     />
-  )
-  const selectButton = screen.getByRole('button', { name: /work-code \d+/ })
+  ))
+  const selectButton = screen.getByRole('button', {
+    name: /work-code \d+/,
+  })
   expect(selectButton).toBeTruthy()
   expect(selectButton.className).toContain('source-select')
   expect(selectButton.getAttribute('type')).toBe('button')
   expect(selectButton.getAttribute('aria-pressed')).toBe('true')
 })
-
 test('source panel exposes setup and browser authorization actions only when required', () => {
   let setupSource = ''
   let setupProject = ''
@@ -396,7 +409,11 @@ test('source panel exposes setup and browser authorization actions only when req
         source.source === 'team-slack'
           ? {
               ...source,
-              authorization: { method: 'token' as const, setup_required: true, authorized: false },
+              authorization: {
+                method: 'token' as const,
+                setup_required: true,
+                authorized: false,
+              },
             }
           : source.source === 'personal-drive'
             ? {
@@ -421,9 +438,13 @@ test('source panel exposes setup and browser authorization actions only when req
     max_documents: 100,
     max_bytes: 1_048_576,
     max_duration_seconds: 300,
-    authorization: { method: 'github_oauth', setup_required: false, authorized: false },
+    authorization: {
+      method: 'github_oauth',
+      setup_required: false,
+      authorized: false,
+    },
   })
-  render(
+  render(() => (
     <SourcePanel
       open={false}
       status={actionStatus}
@@ -453,17 +474,23 @@ test('source panel exposes setup and browser authorization actions only when req
       onClose={() => {}}
       jobs={[]}
     />
+  ))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Open team-slack setup',
+    })
   )
-  fireEvent.click(screen.getByRole('button', { name: 'Open team-slack setup' }))
   expect(setupSource).toBe('team-slack')
   expect(setupProject).toBe('work')
-  fireEvent.click(screen.getByRole('button', { name: 'Authorize work-github' }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Authorize work-github',
+    })
+  )
   expect(authorizedSource).toBe('work-github')
   expect(authorizedProject).toBe('work')
-
   cleanup()
-
-  render(
+  render(() => (
     <SourcePanel
       open={false}
       status={actionStatus}
@@ -489,13 +516,20 @@ test('source panel exposes setup and browser authorization actions only when req
       onClose={() => {}}
       jobs={[]}
     />
+  ))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Authorize personal-drive',
+    })
   )
-  fireEvent.click(screen.getByRole('button', { name: 'Authorize personal-drive' }))
   expect(authorizedSource).toBe('personal-drive')
   expect(authorizedProject).toBe('personal')
-  expect(screen.queryByRole('button', { name: 'Authorize team-slack' })).toBeNull()
+  expect(
+    screen.queryByRole('button', {
+      name: 'Authorize team-slack',
+    })
+  ).toBeNull()
 })
-
 test('Google setup action identifies the source editor instead of a provider URL', () => {
   let setupSource = ''
   const actionStatus: BrainStatus = {
@@ -516,7 +550,7 @@ test('Google setup action identifies the source editor instead of a provider URL
       ),
     },
   }
-  render(
+  render(() => (
     <SourcePanel
       open={false}
       status={actionStatus}
@@ -541,15 +575,15 @@ test('Google setup action identifies the source editor instead of a provider URL
       onClose={() => {}}
       jobs={[]}
     />
-  )
-
-  const setup = screen.getByRole('button', { name: 'Open personal-drive setup' })
+  ))
+  const setup = screen.getByRole('button', {
+    name: 'Open personal-drive setup',
+  })
   expect(setup.getAttribute('title')).toBeNull()
-  expect(setup.hasAttribute('data-base-ui-tooltip-trigger')).toBe(true)
+  expect(setup.getAttribute('data-slot') === 'tooltip-trigger').toBe(true)
   fireEvent.click(setup)
   expect(setupSource).toBe('personal-drive')
 })
-
 test('active source jobs expose a cancellation control in the source panel', () => {
   let cancelled = ''
   const job: DesktopSourceJob = {
@@ -569,7 +603,7 @@ test('active source jobs expose a cancellation control in the source panel', () 
     writes_indexed_data: false,
     budget: null,
   }
-  render(
+  render(() => (
     <SourcePanel
       open={false}
       status={demoStatus}
@@ -594,11 +628,14 @@ test('active source jobs expose a cancellation control in the source panel', () 
       }}
       jobs={[job]}
     />
+  ))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Cancel work work-code validation',
+    })
   )
-  fireEvent.click(screen.getByRole('button', { name: 'Cancel work work-code validation' }))
   expect(cancelled).toBe('source-1-1')
 })
-
 const explorerDocs: BrainDocumentSummary[] = [
   {
     id: 'doc-1',
@@ -623,9 +660,8 @@ const explorerDocs: BrainDocumentSummary[] = [
     content_chars: 800,
   },
 ]
-
 function renderExplorer(selected: string) {
-  return render(
+  return render(() => (
     <SourcePanel
       open={false}
       status={demoStatus}
@@ -648,9 +684,8 @@ function renderExplorer(selected: string) {
       onClose={() => {}}
       jobs={[]}
     />
-  )
+  ))
 }
-
 test('document explorer heading follows the workspace -> source hierarchy', () => {
   renderExplorer('work-code')
   // Selected source: the breadcrumb names the workspace and then the
@@ -659,7 +694,6 @@ test('document explorer heading follows the workspace -> source hierarchy', () =
   expect(heading.textContent).toContain('Work')
   expect(heading.textContent).toContain('Files & code')
 })
-
 test('document explorer heading stays workspace-scoped when no source is selected', () => {
   renderExplorer('')
   // Unselected: the explorer is scoped to the active workspace's sources,
@@ -667,21 +701,27 @@ test('document explorer heading stays workspace-scoped when no source is selecte
   expect(screen.getByLabelText('Documents in Work / All sources')).toBeTruthy()
   expect(screen.queryByLabelText(/Documents in Personal/)).toBeNull()
 })
-
 test('document rows are indented nodes with no legacy workflow/folder labels', () => {
   const { container } = renderExplorer('')
   const rows = container.querySelectorAll('.virtual-document-space button.document-node')
   expect(rows).toHaveLength(explorerDocs.length)
   // Each row keeps its source disambiguation and the indented hierarchy
   // class that the stylesheet nests under the workspace/source breadcrumb.
-  expect(screen.getByRole('option', { name: /Main entrypoint/ })).toBeTruthy()
-  expect(screen.getByRole('option', { name: /Release checklist/ })).toBeTruthy()
+  expect(
+    screen.getByRole('option', {
+      name: /Main entrypoint/,
+    })
+  ).toBeTruthy()
+  expect(
+    screen.getByRole('option', {
+      name: /Release checklist/,
+    })
+  ).toBeTruthy()
   // Legacy workflow/folder terminology must not appear anywhere in the
   // Knowledge sources panel or its document explorer.
   expect(screen.queryByText(/workflow/i)).toBeNull()
   expect(screen.queryByText(/folder/i)).toBeNull()
 })
-
 test('source panel is the only Knowledge surface with enable switches', () => {
   const { container } = renderExplorer('')
   const switches = container.querySelectorAll('[role="switch"]')
@@ -692,7 +732,6 @@ test('source panel is the only Knowledge surface with enable switches', () => {
   // The document explorer itself never offers an enable/disable control.
   expect(container.querySelector('.document-explorer [role="switch"]')).toBeNull()
 })
-
 test('active source jobs lock a source that uses a canonical label', () => {
   const labeledStatus: BrainStatus = {
     ...demoStatus,
@@ -700,12 +739,19 @@ test('active source jobs lock a source that uses a canonical label', () => {
       ...demoStatus.ingestion,
       configured_sources: demoStatus.ingestion.configured_sources.map((source) =>
         source.source === 'work-code'
-          ? Object.assign({}, source, { source: 'code-label', enabled: true })
+          ? Object.assign({}, source, {
+              source: 'code-label',
+              enabled: true,
+            })
           : source
       ),
     },
     sources: demoStatus.sources.map((source) =>
-      source.source === 'work-code' ? Object.assign({}, source, { source: 'code-label' }) : source
+      source.source === 'work-code'
+        ? Object.assign({}, source, {
+            source: 'code-label',
+          })
+        : source
     ),
   }
   const job: DesktopSourceJob = {
@@ -725,7 +771,7 @@ test('active source jobs lock a source that uses a canonical label', () => {
     writes_indexed_data: false,
     budget: null,
   }
-  render(
+  render(() => (
     <SourcePanel
       open={false}
       status={labeledStatus}
@@ -748,7 +794,9 @@ test('active source jobs lock a source that uses a canonical label', () => {
       onClose={() => {}}
       jobs={[job]}
     />
-  )
-  const toggle = screen.getByRole('switch', { name: 'Disable work-code' })
+  ))
+  const toggle = screen.getByRole('switch', {
+    name: 'Disable work-code',
+  })
   expect(toggle.hasAttribute('data-disabled')).toBe(true)
 })

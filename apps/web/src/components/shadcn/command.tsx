@@ -1,7 +1,5 @@
-'use client'
-
-import * as React from 'react'
-import { Command as CommandPrimitive } from 'cmdk'
+import { Command as CommandPrimitive } from 'cmdk-solid'
+import { splitProps, type ComponentProps, type JSX } from 'solid-js'
 
 import { cn } from '@/lib/utils'
 import {
@@ -12,161 +10,157 @@ import {
   DialogTitle,
 } from '@/components/shadcn/dialog'
 import { InputGroup, InputGroupAddon } from '@/components/shadcn/input-group'
-import { SearchIcon, CheckIcon } from 'lucide-react'
+import { SearchIcon, CheckIcon } from 'lucide-solid'
 
-function Command({ className, ...props }: React.ComponentProps<typeof CommandPrimitive>) {
+function Command(props: ComponentProps<typeof CommandPrimitive>) {
+  const [local, rest] = splitProps(props, ['class'])
   return (
     <CommandPrimitive
       data-slot="command"
-      className={cn(
+      class={cn(
         'flex size-full flex-col overflow-hidden rounded-xl! bg-popover p-1 text-popover-foreground',
-        className
+        local.class
       )}
-      {...props}
+      {...rest}
     />
   )
 }
 
-function CommandDialog({
-  title = 'Command Palette',
-  description = 'Search for a command to run...',
-  children,
-  className,
-  showCloseButton = false,
-  finalFocus,
-  ...props
-}: Omit<React.ComponentProps<typeof Dialog>, 'children'> & {
-  title?: string
-  description?: string
-  className?: string
-  showCloseButton?: boolean
-  finalFocus?: React.ComponentProps<typeof DialogContent>['finalFocus']
-  children: React.ReactNode
-}) {
+function CommandDialog(
+  props: ComponentProps<typeof Dialog> & {
+    title?: string
+    description?: string
+    class?: string
+    showCloseButton?: boolean
+    finalFocus?: { current: HTMLElement | null } | null
+    children: JSX.Element
+  }
+) {
+  const [local, rest] = splitProps(props, [
+    'title',
+    'description',
+    'class',
+    'showCloseButton',
+    'finalFocus',
+    'children',
+  ])
   return (
-    <Dialog {...props}>
-      <DialogHeader className="sr-only">
-        <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{description}</DialogDescription>
+    <Dialog {...rest}>
+      <DialogHeader class="sr-only">
+        <DialogTitle>{local.title ?? 'Command Palette'}</DialogTitle>
+        <DialogDescription>
+          {local.description ?? 'Search for a command to run...'}
+        </DialogDescription>
       </DialogHeader>
       <DialogContent
-        finalFocus={finalFocus}
-        className={cn('top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0', className)}
-        showCloseButton={showCloseButton}
+        class={cn('top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0', local.class)}
+        showCloseButton={local.showCloseButton ?? false}
+        finalFocus={local.finalFocus}
       >
-        {children}
+        {local.children}
       </DialogContent>
     </Dialog>
   )
 }
 
-function CommandInput({
-  className,
-  ...props
-}: React.ComponentProps<typeof CommandPrimitive.Input>) {
+function CommandInput(props: ComponentProps<typeof CommandPrimitive.Input>) {
+  const [local, rest] = splitProps(props, ['class'])
   return (
-    <div data-slot="command-input-wrapper" className="p-1 pb-0">
-      <InputGroup className="h-8! rounded-lg! border-input/30 bg-input/30 shadow-none! *:data-[slot=input-group-addon]:pl-2!">
+    <div data-slot="command-input-wrapper" class="p-1 pb-0">
+      <InputGroup class="h-8! rounded-lg! border-input/30 bg-input/30 shadow-none! *:data-[slot=input-group-addon]:pl-2!">
         <CommandPrimitive.Input
           data-slot="command-input"
-          className={cn(
+          class={cn(
             'w-full text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
-            className
+            local.class
           )}
-          {...props}
+          {...rest}
         />
         <InputGroupAddon>
-          <SearchIcon className="size-4 shrink-0 opacity-50" />
+          <SearchIcon class="size-4 shrink-0 opacity-50" />
         </InputGroupAddon>
       </InputGroup>
     </div>
   )
 }
 
-function CommandList({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.List>) {
+function CommandList(props: ComponentProps<typeof CommandPrimitive.List>) {
+  const [local, rest] = splitProps(props, ['class'])
   return (
     <CommandPrimitive.List
       data-slot="command-list"
-      className={cn(
+      class={cn(
         'no-scrollbar max-h-72 scroll-py-1 overflow-x-hidden overflow-y-auto outline-none',
-        className
+        local.class
       )}
-      {...props}
+      {...rest}
     />
   )
 }
 
-function CommandEmpty({
-  className,
-  ...props
-}: React.ComponentProps<typeof CommandPrimitive.Empty>) {
+function CommandEmpty(props: ComponentProps<typeof CommandPrimitive.Empty>) {
+  const [local, rest] = splitProps(props, ['class'])
   return (
     <CommandPrimitive.Empty
       data-slot="command-empty"
-      className={cn('py-6 text-center text-sm', className)}
-      {...props}
+      class={cn('py-6 text-center text-sm', local.class)}
+      {...rest}
     />
   )
 }
 
-function CommandGroup({
-  className,
-  ...props
-}: React.ComponentProps<typeof CommandPrimitive.Group>) {
+function CommandGroup(props: ComponentProps<typeof CommandPrimitive.Group>) {
+  const [local, rest] = splitProps(props, ['class'])
   return (
     <CommandPrimitive.Group
       data-slot="command-group"
-      className={cn(
+      class={cn(
         'overflow-hidden p-1 text-foreground **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:py-1.5 **:[[cmdk-group-heading]]:text-xs **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group-heading]]:text-muted-foreground',
-        className
+        local.class
       )}
-      {...props}
+      {...rest}
     />
   )
 }
 
-function CommandSeparator({
-  className,
-  ...props
-}: React.ComponentProps<typeof CommandPrimitive.Separator>) {
+function CommandSeparator(props: ComponentProps<typeof CommandPrimitive.Separator>) {
+  const [local, rest] = splitProps(props, ['class'])
   return (
     <CommandPrimitive.Separator
       data-slot="command-separator"
-      className={cn('-mx-1 h-px bg-border', className)}
-      {...props}
+      class={cn('-mx-1 h-px bg-border', local.class)}
+      {...rest}
     />
   )
 }
 
-function CommandItem({
-  className,
-  children,
-  ...props
-}: React.ComponentProps<typeof CommandPrimitive.Item>) {
+function CommandItem(props: ComponentProps<typeof CommandPrimitive.Item>) {
+  const [local, rest] = splitProps(props, ['class', 'children'])
   return (
     <CommandPrimitive.Item
       data-slot="command-item"
-      className={cn(
+      class={cn(
         "group/command-item relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none in-data-[slot=dialog-content]:rounded-lg! data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-selected:bg-muted data-selected:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 data-selected:*:[svg]:text-foreground",
-        className
+        local.class
       )}
-      {...props}
+      {...rest}
     >
-      {children}
-      <CheckIcon className="ml-auto opacity-0 group-has-data-[slot=command-shortcut]/command-item:hidden group-data-[checked=true]/command-item:opacity-100" />
+      {local.children}
+      <CheckIcon class="ml-auto opacity-0 group-has-data-[slot=command-shortcut]/command-item:hidden group-data-[checked=true]/command-item:opacity-100" />
     </CommandPrimitive.Item>
   )
 }
 
-function CommandShortcut({ className, ...props }: React.ComponentProps<'span'>) {
+function CommandShortcut(props: ComponentProps<'span'>) {
+  const [local, rest] = splitProps(props, ['class'])
   return (
     <span
       data-slot="command-shortcut"
-      className={cn(
-        'ml-auto text-xs tracking-widest text-muted-foreground group-data-selected/command-item:text-foreground',
-        className
+      class={cn(
+        'ml-auto text-xs tracking-widest text-muted-foreground group-data-[selected]/command-item:text-foreground',
+        local.class
       )}
-      {...props}
+      {...rest}
     />
   )
 }

@@ -1,11 +1,11 @@
-import { Children, cloneElement, isValidElement, type ReactNode, useId, useState } from 'react'
+import { createSignal, createUniqueId, splitProps, type JSX } from 'solid-js'
 
 import { cn } from '@/lib/utils'
 
 import type { DesktopSettings } from '../../types'
 import {
+  FieldControlContext,
   SettingsCard,
-  SettingsCheckbox,
   SettingsFieldDescription,
   SettingsFieldError,
   SettingsFieldLegend,
@@ -13,9 +13,6 @@ import {
   SettingsField,
   SettingsFieldSet,
   SettingsInput as Input,
-  SettingsRadio,
-  SettingsSelect as Select,
-  SettingsTextarea as Textarea,
 } from './SettingsSurface'
 
 export type SettingsSectionProps = {
@@ -23,131 +20,109 @@ export type SettingsSectionProps = {
   update: (change: (draft: DesktopSettings) => DesktopSettings) => void
 }
 
-export function SettingsSection({
-  title,
-  description,
-  children,
-}: {
+export function SettingsSection(props: {
   title: string
   description: string
-  children: ReactNode
+  children: JSX.Element
 }) {
   return (
-    <section className="settings-section">
-      <SettingsCard className="settings-section-card">
-        <h2>{title}</h2>
-        <p>{description}</p>
-        {children}
+    <section class="settings-section">
+      <SettingsCard class="settings-section-card">
+        <h2>{props.title}</h2>
+        <p>{props.description}</p>
+        {props.children}
       </SettingsCard>
     </section>
   )
 }
 
-export function Field({
-  label,
-  hint,
-  error,
-  wide = false,
-  group = false,
-  controlId: providedControlId,
-  children,
-}: {
+export function Field(props: {
   label: string
   hint?: string
   error?: string
   wide?: boolean
   group?: boolean
   controlId?: string
-  children: ReactNode
+  children: JSX.Element
 }) {
-  const generatedControlId = useId()
-  const controlId = providedControlId ?? generatedControlId
-  const descriptionId = hint ? `${controlId}-description` : undefined
-  const errorId = error ? `${controlId}-error` : undefined
-  const describedBy = [descriptionId, errorId].filter(Boolean).join(' ') || undefined
-  const groupLabelId = `${controlId}-label`
+  const [local] = splitProps(props, [
+    'label',
+    'hint',
+    'error',
+    'wide',
+    'group',
+    'controlId',
+    'children',
+  ])
+  const generatedControlId = createUniqueId()
+  const controlId = () => local.controlId ?? generatedControlId
+  const descriptionId = () => (local.hint ? `${controlId()}-description` : undefined)
+  const errorId = () => (local.error ? `${controlId()}-error` : undefined)
+  const describedBy = () => [descriptionId(), errorId()].filter(Boolean).join(' ') || undefined
+  const groupLabelId = `${controlId()}-label`
 
-  if (group) {
+  if (local.group) {
     return (
-      <SettingsFieldSet className={cn('form-field', wide && 'wide')} aria-describedby={describedBy}>
-        <SettingsFieldLegend className="form-field-label">{label}</SettingsFieldLegend>
-        {children}
-        {hint && <SettingsFieldDescription id={descriptionId}>{hint}</SettingsFieldDescription>}
-        {error && <SettingsFieldError id={errorId}>{error}</SettingsFieldError>}
+      <SettingsFieldSet
+        class={cn('form-field', local.wide && 'wide')}
+        aria-describedby={describedBy()}
+      >
+        <SettingsFieldLegend class="form-field-label">{local.label}</SettingsFieldLegend>
+        {local.children}
+        {local.hint && (
+          <SettingsFieldDescription id={descriptionId()}>{local.hint}</SettingsFieldDescription>
+        )}
+        {local.error && <SettingsFieldError id={errorId()}>{local.error}</SettingsFieldError>}
       </SettingsFieldSet>
     )
   }
 
-  const assignControl = (nodes: ReactNode): { node: ReactNode; assigned: boolean } => {
-    let assigned = false
-    const mapped = Children.map(nodes, (node) => {
-      if (
-        !isValidElement<{
-          id?: string
-          'aria-describedby'?: string
-          'aria-invalid'?: boolean
-          children?: ReactNode
-        }>(node)
-      )
-        return node
-      if (
-        !assigned &&
-        ([Input, Select, Textarea, SettingsCheckbox, SettingsRadio] as unknown[]).includes(
-          node.type
-        )
-      ) {
-        assigned = true
-        return cloneElement(node, {
-          id: controlId,
-          'aria-describedby': describedBy,
-          'aria-invalid': Boolean(error),
-        })
-      }
-      if (node.props.children) {
-        const child = assignControl(node.props.children)
-        assigned = assigned || child.assigned
-        return cloneElement(node, { children: child.node })
-      }
-      return node
-    })
-    return { node: mapped, assigned }
+  // The first settings control inside the field claims the generated id/aria
+  // wiring through context; the label then binds `for` instead of acting as a
+  // group label.
+  const [claimed, setClaimed] = createSignal(Boolean(local.controlId))
+  const controlAssigned = () => Boolean(local.controlId) || claimed()
+  const fieldControl = {
+    id: controlId(),
+    describedBy,
+    invalid: () => Boolean(local.error),
+    taken: false,
+    claim() {
+      if (this.taken) return false
+      this.taken = true
+      setClaimed(true)
+      return true
+    },
   }
 
-  const { node: assignedChildren, assigned: controlAssigned } = providedControlId
-    ? { node: children, assigned: true }
-    : assignControl(children)
-
   return (
-    <SettingsField
-      className={cn('form-field', wide && 'wide')}
-      role={controlAssigned ? undefined : 'group'}
-      aria-labelledby={controlAssigned ? undefined : groupLabelId}
-      aria-describedby={controlAssigned ? undefined : describedBy}
-    >
-      {controlAssigned ? (
-        <SettingsFieldLabel htmlFor={controlId} className="form-field-label">
-          {label}
-        </SettingsFieldLabel>
-      ) : (
-        <span id={groupLabelId} className="form-field-label">
-          {label}
-        </span>
-      )}
-      {assignedChildren}
-      {hint && <SettingsFieldDescription id={descriptionId}>{hint}</SettingsFieldDescription>}
-      {error && <SettingsFieldError id={errorId}>{error}</SettingsFieldError>}
-    </SettingsField>
+    <FieldControlContext.Provider value={fieldControl}>
+      <SettingsField
+        class={cn('form-field', local.wide && 'wide')}
+        role={controlAssigned() ? undefined : 'group'}
+        aria-labelledby={controlAssigned() ? undefined : groupLabelId}
+        aria-describedby={controlAssigned() ? undefined : describedBy()}
+      >
+        {controlAssigned() ? (
+          <SettingsFieldLabel for={controlId()} class="form-field-label">
+            {local.label}
+          </SettingsFieldLabel>
+        ) : (
+          <span id={groupLabelId} class="form-field-label">
+            {local.label}
+          </span>
+        )}
+        {local.children}
+        {local.hint && (
+          <SettingsFieldDescription id={descriptionId()}>{local.hint}</SettingsFieldDescription>
+        )}
+        {local.error && <SettingsFieldError id={errorId()}>{local.error}</SettingsFieldError>}
+      </SettingsField>
+    </FieldControlContext.Provider>
   )
 }
 
-export function NumberField({
-  label,
-  hint,
-  value,
-  min,
-  max,
-  onChange,
-}: {
+export function NumberField(props: {
   label: string
   hint?: string
   value: number
@@ -155,47 +130,40 @@ export function NumberField({
   max: number
   onChange: (value: number) => void
 }) {
-  const [draft, setDraft] = useState(String(value))
-  const [error, setError] = useState('')
-  const [previousValue, setPreviousValue] = useState(value)
-
-  if (value !== previousValue) {
-    setPreviousValue(value)
-    setDraft(String(value))
-    setError('')
-  }
+  const [draft, setDraft] = createSignal(String(props.value))
+  const [error, setError] = createSignal('')
 
   const validate = (raw: string) => {
-    if (!raw) return `${label} is required.`
+    if (!raw) return `${props.label} is required.`
     const next = Number(raw)
     if (!Number.isFinite(next) || !Number.isInteger(next)) {
-      return `${label} must be a whole number.`
+      return `${props.label} must be a whole number.`
     }
-    if (next < min || next > max) {
-      return `${label} must be between ${min} and ${max}.`
+    if (next < props.min || next > props.max) {
+      return `${props.label} must be between ${props.min} and ${props.max}.`
     }
     return ''
   }
 
   return (
-    <Field label={label} hint={hint} error={error}>
+    <Field label={props.label} hint={props.hint} error={error()}>
       <Input
         type="number"
-        aria-label={label}
-        value={draft}
-        min={min}
-        max={max}
+        aria-label={props.label}
+        value={draft()}
+        min={props.min}
+        max={props.max}
         onChange={(event) => {
           const raw = event.target.value
           setDraft(raw)
           const nextError = validate(raw)
           setError(nextError)
-          if (!nextError) onChange(Number(raw))
+          if (!nextError) props.onChange(Number(raw))
         }}
         onBlur={() => {
-          const nextError = validate(draft)
+          const nextError = validate(draft())
           if (nextError) {
-            setDraft(String(value))
+            setDraft(String(props.value))
             setError('')
           }
         }}

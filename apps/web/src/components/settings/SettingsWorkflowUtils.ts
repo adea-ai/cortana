@@ -1,13 +1,13 @@
-import { useEffect, useState } from 'react'
+import { createSignal, onCleanup, onMount, type Accessor } from 'solid-js'
 
 import { isDesktopApp } from '../../api'
 
-export function useDesktopForeground(): boolean {
-  const [foreground, setForeground] = useState(
-    () => typeof document === 'undefined' || document.visibilityState !== 'hidden'
+export function useDesktopForeground(): Accessor<boolean> {
+  const [foreground, setForeground] = createSignal(
+    typeof document === 'undefined' || document.visibilityState !== 'hidden'
   )
 
-  useEffect(() => {
+  onMount(() => {
     const visibility = { current: document.visibilityState !== 'hidden' }
     const focused = { current: true }
     const syncForeground = () => setForeground(visibility.current && focused.current)
@@ -57,14 +57,14 @@ export function useDesktopForeground(): boolean {
         })
         .catch(() => undefined)
     }
-    return () => {
+    onCleanup(() => {
       disposed = true
       window.removeEventListener('focus', markFocused)
       window.removeEventListener('blur', markBlurred)
       document.removeEventListener('visibilitychange', markVisible)
       unlistenFocus?.()
-    }
-  }, [])
+    })
+  })
 
   return foreground
 }

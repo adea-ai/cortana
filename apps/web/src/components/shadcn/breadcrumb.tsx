@@ -1,91 +1,95 @@
-import * as React from 'react'
-import { mergeProps } from '@base-ui/react/merge-props'
-import { useRender } from '@base-ui/react/use-render'
+import { Show, splitProps, type ComponentProps } from 'solid-js'
+import { Dynamic } from 'solid-js/web'
+import type { ValidComponent } from 'solid-js'
 
 import { cn } from '@/lib/utils'
-import { ChevronRightIcon, MoreHorizontalIcon } from 'lucide-react'
+import { ChevronRightIcon, MoreHorizontalIcon } from 'lucide-solid'
 
-function Breadcrumb({ className, ...props }: React.ComponentProps<'nav'>) {
-  return <nav aria-label="breadcrumb" data-slot="breadcrumb" className={cn(className)} {...props} />
+function Breadcrumb(props: ComponentProps<'nav'>) {
+  const [local, rest] = splitProps(props, ['class'])
+  return <nav aria-label="breadcrumb" data-slot="breadcrumb" class={cn(local.class)} {...rest} />
 }
 
-function BreadcrumbList({ className, ...props }: React.ComponentProps<'ol'>) {
+function BreadcrumbList(props: ComponentProps<'ol'>) {
+  const [local, rest] = splitProps(props, ['class'])
   return (
     <ol
       data-slot="breadcrumb-list"
-      className={cn(
+      class={cn(
         'flex flex-wrap items-center gap-1.5 text-sm wrap-break-word text-muted-foreground',
-        className
+        local.class
       )}
-      {...props}
+      {...rest}
     />
   )
 }
 
-function BreadcrumbItem({ className, ...props }: React.ComponentProps<'li'>) {
+function BreadcrumbItem(props: ComponentProps<'li'>) {
+  const [local, rest] = splitProps(props, ['class'])
   return (
     <li
       data-slot="breadcrumb-item"
-      className={cn('inline-flex items-center gap-1', className)}
-      {...props}
+      class={cn('inline-flex items-center gap-1', local.class)}
+      {...rest}
     />
   )
 }
 
-function BreadcrumbLink({ className, render, ...props }: useRender.ComponentProps<'a'>) {
-  return useRender({
-    defaultTagName: 'a',
-    props: mergeProps<'a'>(
-      {
-        className: cn('transition-colors hover:text-foreground', className),
-      },
-      props
-    ),
-    render,
-    state: {
-      slot: 'breadcrumb-link',
-    },
-  })
+function BreadcrumbLink(props: ComponentProps<'a'> & { as?: ValidComponent }) {
+  const [local, rest] = splitProps(props, ['class', 'as'])
+  return (
+    <Dynamic
+      component={local.as ?? 'a'}
+      data-slot="breadcrumb-link"
+      class={cn('transition-colors hover:text-foreground', local.class)}
+      {...rest}
+    />
+  )
 }
 
-function BreadcrumbPage({ className, ...props }: React.ComponentProps<'span'>) {
+function BreadcrumbPage(props: ComponentProps<'span'>) {
+  const [local, rest] = splitProps(props, ['class'])
   return (
     <span
       data-slot="breadcrumb-page"
       role="link"
       aria-disabled="true"
       aria-current="page"
-      className={cn('font-normal text-foreground', className)}
-      {...props}
+      class={cn('font-normal text-foreground', local.class)}
+      {...rest}
     />
   )
 }
 
-function BreadcrumbSeparator({ children, className, ...props }: React.ComponentProps<'li'>) {
+function BreadcrumbSeparator(props: ComponentProps<'li'>) {
+  const [local, rest] = splitProps(props, ['children', 'class'])
   return (
     <li
       data-slot="breadcrumb-separator"
       role="presentation"
       aria-hidden="true"
-      className={cn('[&>svg]:size-3.5', className)}
-      {...props}
+      class={cn('[&>svg]:size-3.5', local.class)}
+      {...rest}
     >
-      {children ?? <ChevronRightIcon />}
+      <Show when={local.children} fallback={<ChevronRightIcon />}>
+        {local.children}
+      </Show>
     </li>
   )
 }
 
-function BreadcrumbEllipsis({ className, ...props }: React.ComponentProps<'span'>) {
+function BreadcrumbEllipsis(props: ComponentProps<'span'>) {
+  const [local, rest] = splitProps(props, ['class'])
   return (
     <span
       data-slot="breadcrumb-ellipsis"
       role="presentation"
       aria-hidden="true"
-      className={cn('flex size-5 items-center justify-center [&>svg]:size-4', className)}
-      {...props}
+      class={cn('flex size-5 items-center justify-center [&>svg]:size-4', local.class)}
+      {...rest}
     >
       <MoreHorizontalIcon />
-      <span className="sr-only">More</span>
+      <span class="sr-only">More</span>
     </span>
   )
 }

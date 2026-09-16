@@ -1,6 +1,6 @@
+import { act } from './test/act'
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-
+import { cleanup, fireEvent, render, screen, waitFor, within } from 'solid-testing-library'
 import { demoEvidence, demoStatus } from './demo'
 import { answerResponse } from './test/fixtures'
 import type {
@@ -11,7 +11,6 @@ import type {
   ContextBundle,
   DesktopSourceJob,
 } from './types'
-
 afterEach(async () => {
   await act(async () => {
     // Stop UtilityView effects before draining pending work so a late shell
@@ -31,7 +30,6 @@ afterEach(async () => {
 // Capture the real api module, then register a mock that delegates every export
 // to a mutable state object so each test controls the network boundary.
 const realApi = await import('./api')
-
 const contextBundle: ContextBundle = {
   query: 'How do releases work?',
   context: demoEvidence.map((item) => item.content).join('\n\n'),
@@ -44,7 +42,6 @@ const contextBundle: ContextBundle = {
     max_tokens: 8000,
   },
 }
-
 const state = {
   status: demoStatus as BrainStatus | null,
   answer: null as ((query?: string) => Promise<AnswerResponse>) | null,
@@ -62,12 +59,13 @@ const state = {
     | ((
         project?: string,
         signal?: AbortSignal,
-        options?: { edgeKind?: BrainGraphPage['edges'][number]['kind'] }
+        options?: {
+          edgeKind?: BrainGraphPage['edges'][number]['kind']
+        }
       ) => Promise<BrainGraphPage>)
     | null,
   graph: null as BrainGraphPage | null,
 }
-
 const resetState = () => {
   state.status = demoStatus
   state.answer = null
@@ -77,20 +75,22 @@ const resetState = () => {
   state.getGraph = null
   state.graph = null
 }
-
 beforeEach(() => {
   // A preceding test file can leave a renderer behind when Bun reuses the
   // worker. Start each utility test from a clean DOM and API fixture state.
   cleanup()
   resetState()
 })
-
 mock.module('./api', () => ({
   ...realApi,
   isDesktopApp: false,
   isDemoMode: false,
   getStatus: () => Promise.resolve(state.status),
-  getDocuments: () => Promise.resolve({ documents: [], next_cursor: null }),
+  getDocuments: () =>
+    Promise.resolve({
+      documents: [],
+      next_cursor: null,
+    }),
   getAnswer: (query?: string) =>
     state.answer ? state.answer(query) : Promise.reject(new Error('Answer request failed (503)')),
   getDocument: (id: string, signal?: AbortSignal) =>
@@ -103,7 +103,9 @@ mock.module('./api', () => ({
     _query?: string,
     _cursor?: string,
     signal?: AbortSignal,
-    options?: { edgeKind?: BrainGraphPage['edges'][number]['kind'] }
+    options?: {
+      edgeKind?: BrainGraphPage['edges'][number]['kind']
+    }
   ) =>
     state.getGraph
       ? state.getGraph(_project, signal, options)
@@ -120,11 +122,9 @@ mock.module('./api', () => ({
   getDesktopInfo: () =>
     Promise.reject(new Error('Desktop information is available in Cortana Desktop')),
 }))
-
 const { App } = await import('./App')
 const { UtilityView } = await import('./components/UtilityView')
 const { M7ActivityInbox } = await import('./components/m7/M7ActivityInbox')
-
 const RAIL_LABELS = [
   'Knowledge',
   'Graph',
@@ -135,33 +135,44 @@ const RAIL_LABELS = [
   'Settings',
   'Help',
 ]
-
 function deferred<T>() {
   let resolve!: (value: T) => void
   const promise = new Promise<T>((next) => {
     resolve = next
   })
-  return { promise, resolve }
+  return {
+    promise,
+    resolve,
+  }
 }
-
 function railButton(label: string) {
-  const rail = screen.getByRole('navigation', { name: 'Primary navigation' })
-  return within(rail).getByRole('button', { name: label })
+  const rail = screen.getByRole('navigation', {
+    name: 'Primary navigation',
+  })
+  return within(rail).getByRole('button', {
+    name: label,
+  })
 }
-
 async function selectHeaderAction(label: string) {
-  fireEvent.click(screen.getByRole('button', { name: 'Actions' }))
-  fireEvent.click(await screen.findByRole('menuitem', { name: label }))
+  // Kobalte menu triggers open on pointerdown, not click. The trigger can
+  // briefly be unreachable while a previous menu's aria-hidden restore lands.
+  fireEvent.pointerDown(
+    await screen.findByRole('button', {
+      name: 'Actions',
+    })
+  )
+  const option = await screen.findByRole('menuitem', {
+    name: label,
+  })
+  // Kobalte menu items select on pointerup, which runs onSelect and closes.
+  fireEvent.pointerUp(option)
 }
-
 async function renderApp() {
-  render(<App />)
+  render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
 }
-
 test('every sidebar destination is enabled and the persistent search remains available', async () => {
   await renderApp()
-
   for (const label of RAIL_LABELS) {
     const button = railButton(label)
     expect(button.hasAttribute('disabled')).toBe(false)
@@ -169,140 +180,235 @@ test('every sidebar destination is enabled and the persistent search remains ava
   }
   expect(screen.getByLabelText('Search your knowledge')).toBeTruthy()
 })
-
 test('titlebar controls perform real navigation actions', async () => {
   state.answer = () => Promise.resolve(answerResponse)
   await renderApp()
-
   await selectHeaderAction('Filter documents')
-  await act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 10))
-  })
-  expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'Filter documents' }))
-
+  // Kobalte defers both focus restoration and its aria-hidden cleanup past the
+  // select event; assert the behavior directly — focus must land on the
+  // filter once the menu has fully dismissed.
+  await waitFor(
+    () => {
+      const filter = document.getElementById('document-filter')
+      expect(filter !== null && document.activeElement === filter).toBe(true)
+    },
+    {
+      timeout: 3_000,
+    }
+  )
   await selectHeaderAction('Open conversations')
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'Conversations' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Conversations',
+      })
+    ).toBeTruthy()
   )
 })
-
 test('navigation and source-header actions use the shared icon-button primitive', async () => {
   await renderApp()
-
   for (const label of ['Add source', 'Source settings']) {
-    expect(screen.getByRole('button', { name: label }).getAttribute('data-slot')).toBe(
-      'tooltip-trigger'
-    )
+    expect(
+      screen
+        .getByRole('button', {
+          name: label,
+        })
+        .getAttribute('data-slot')
+    ).toBe('tooltip-trigger')
   }
-  expect(screen.getByRole('button', { name: 'Actions' }).getAttribute('data-slot')).toBe(
-    'dropdown-menu-trigger'
-  )
+  expect(
+    screen
+      .getByRole('button', {
+        name: 'Actions',
+      })
+      .getAttribute('data-slot')
+  ).toBe('dropdown-menu-trigger')
 })
-
 test('Graph is a separate full-screen sidebar view and Timeline remains result-only', async () => {
   await renderApp()
 
   // Graph routes to a full-screen workspace view without a duplicate top tab.
   fireEvent.click(railButton('Graph'))
   await waitFor(() =>
-    expect(screen.getByRole('heading', { name: 'Graph unavailable' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        name: 'Graph unavailable',
+      })
+    ).toBeTruthy()
   )
   expect(
-    within(screen.getByRole('alert')).getByRole('heading', { name: 'Graph unavailable' })
+    within(screen.getByRole('alert')).getByRole('heading', {
+      name: 'Graph unavailable',
+    })
   ).toBeTruthy()
-  expect(screen.queryByRole('tab', { name: 'Graph' })).toBeNull()
+  expect(
+    screen.queryByRole('tab', {
+      name: 'Graph',
+    })
+  ).toBeNull()
   expect(railButton('Graph').hasAttribute('data-active')).toBe(true)
   expect(screen.getByLabelText('Search your knowledge')).toBeTruthy()
 
   // Without a search result the Timeline rail stays disabled and cannot
   // select the result-only timeline tab.
-  expect(screen.queryByRole('tab', { name: 'Timeline' })).toBeNull()
+  expect(
+    screen.queryByRole('tab', {
+      name: 'Timeline',
+    })
+  ).toBeNull()
 
   // A search result unlocks Timeline, which routes to the workspace Timeline
   // tab and unselects Graph.
   state.answer = () => Promise.resolve(answerResponse)
   const input = screen.getByLabelText('Search your knowledge')
-  fireEvent.change(input, { target: { value: 'release cadence' } })
+  fireEvent.change(input, {
+    target: {
+      value: 'release cadence',
+    },
+  })
   fireEvent.submit(input.closest('form')!)
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'release cadence' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'release cadence',
+      })
+    ).toBeTruthy()
   )
-  fireEvent.click(screen.getByRole('tab', { name: 'Timeline' }))
+  fireEvent.click(
+    screen.getByRole('tab', {
+      name: 'Timeline',
+    })
+  )
   await waitFor(() =>
-    expect(screen.getByRole('tab', { name: 'Timeline' }).getAttribute('aria-selected')).toBe('true')
+    expect(
+      screen
+        .getByRole('tab', {
+          name: 'Timeline',
+        })
+        .getAttribute('aria-selected')
+    ).toBe('true')
   )
   expect(railButton('Graph').hasAttribute('data-active')).toBe(false)
-  expect(screen.queryByRole('tab', { name: 'Graph' })).toBeNull()
+  expect(
+    screen.queryByRole('tab', {
+      name: 'Graph',
+    })
+  ).toBeNull()
 
   // Knowledge returns the workspace to its default tab.
   fireEvent.click(railButton('Knowledge'))
   await waitFor(() =>
-    expect(screen.getByRole('tab', { name: 'Document' }).getAttribute('aria-selected')).toBe('true')
+    expect(
+      screen
+        .getByRole('tab', {
+          name: 'Document',
+        })
+        .getAttribute('aria-selected')
+    ).toBe('true')
   )
   expect(screen.getByLabelText('Search your knowledge')).toBeTruthy()
 })
-
 test('Graph expands to full width and hides the source and context panels', async () => {
   await renderApp()
 
   // The tablet document layout keeps sources inline and context in its Sheet.
   expect(document.querySelector('.source-panel')).toBeTruthy()
   expect(screen.queryByText('Agent context')).toBeNull()
-
   fireEvent.click(railButton('Graph'))
   await waitFor(() =>
-    expect(screen.getByRole('heading', { name: 'Graph unavailable' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        name: 'Graph unavailable',
+      })
+    ).toBeTruthy()
   )
 
   // Full-screen graph: no source panel, no context panel, no workspace tabs,
   // and the shell marks the layout so the graph spans the full width.
   expect(document.querySelector('.source-panel')).toBeNull()
   expect(screen.queryByText('Agent context')).toBeNull()
-  expect(screen.queryByRole('tab', { name: 'Graph' })).toBeNull()
+  expect(
+    screen.queryByRole('tab', {
+      name: 'Graph',
+    })
+  ).toBeNull()
   expect(screen.getByLabelText('Search your knowledge')).toBeTruthy()
 
   // The title-bar source action leaves the full-screen graph so the panel
   // becomes reachable again instead of silently doing nothing.
   await selectHeaderAction('Open sources')
   await waitFor(() => expect(document.querySelector('.source-panel')).toBeTruthy())
-  expect(screen.getByRole('tab', { name: 'Document' }).getAttribute('aria-selected')).toBe('true')
+  expect(
+    screen
+      .getByRole('tab', {
+        name: 'Document',
+      })
+      .getAttribute('aria-selected')
+  ).toBe('true')
 
   // Re-entering the graph hides the panels again; Knowledge restores them.
   fireEvent.click(railButton('Graph'))
   await waitFor(() =>
-    expect(screen.getByRole('heading', { name: 'Graph unavailable' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        name: 'Graph unavailable',
+      })
+    ).toBeTruthy()
   )
   expect(document.querySelector('.source-panel')).toBeNull()
   fireEvent.click(railButton('Knowledge'))
   await waitFor(() => expect(document.querySelector('.source-panel')).toBeTruthy())
   expect(screen.queryByText('Agent context')).toBeNull()
 })
-
 test('graph and timeline evidence actions open the selected source', async () => {
   state.answer = () => Promise.resolve(answerResponse)
   await renderApp()
-
   const input = screen.getByLabelText('Search your knowledge')
-  fireEvent.change(input, { target: { value: 'release cadence' } })
+  fireEvent.change(input, {
+    target: {
+      value: 'release cadence',
+    },
+  })
   fireEvent.submit(input.closest('form')!)
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'release cadence' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'release cadence',
+      })
+    ).toBeTruthy()
   )
   for (const surface of ['Graph', 'Timeline']) {
     if (surface === 'Graph') {
       fireEvent.click(railButton('Graph'))
       await waitFor(() =>
         expect(
-          screen.getByRole('button', { name: 'Open evidence: Deployment playbook' })
+          screen.getByRole('button', {
+            name: 'Open evidence: Deployment playbook',
+          })
         ).toBeTruthy()
       )
-      expect(screen.queryByRole('tab', { name: 'Graph' })).toBeNull()
+      expect(
+        screen.queryByRole('tab', {
+          name: 'Graph',
+        })
+      ).toBeNull()
     } else {
-      fireEvent.click(screen.getByRole('tab', { name: 'Timeline' }))
+      fireEvent.click(
+        screen.getByRole('tab', {
+          name: 'Timeline',
+        })
+      )
       await waitFor(() =>
-        expect(screen.getByRole('tab', { name: surface }).getAttribute('aria-selected')).toBe(
-          'true'
-        )
+        expect(
+          screen
+            .getByRole('tab', {
+              name: surface,
+            })
+            .getAttribute('aria-selected')
+        ).toBe('true')
       )
     }
     const evidenceButton = screen.getByRole('button', {
@@ -313,23 +419,38 @@ test('graph and timeline evidence actions open the selected source', async () =>
     })
     fireEvent.click(evidenceButton)
     await waitFor(() =>
-      expect(screen.getByRole('tab', { name: /Evidence/ }).getAttribute('aria-selected')).toBe(
-        'true'
-      )
+      expect(
+        screen
+          .getByRole('tab', {
+            name: /Evidence/,
+          })
+          .getAttribute('aria-selected')
+      ).toBe('true')
     )
-    expect(screen.getByRole('heading', { level: 1, name: 'Deployment playbook' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Deployment playbook',
+      })
+    ).toBeTruthy()
   }
-
-  expect(screen.getByRole('link', { name: 'Retrieved passage' }).getAttribute('href')).toBe(
-    '#passage'
-  )
-  expect(screen.getByRole('link', { name: 'Related evidence' }).getAttribute('href')).toBe(
-    '#related'
-  )
+  expect(
+    screen
+      .getByRole('link', {
+        name: 'Retrieved passage',
+      })
+      .getAttribute('href')
+  ).toBe('#passage')
+  expect(
+    screen
+      .getByRole('link', {
+        name: 'Related evidence',
+      })
+      .getAttribute('href')
+  ).toBe('#related')
   expect(document.getElementById('passage')).toBeTruthy()
   expect(document.getElementById('related')).toBeTruthy()
 })
-
 test('graph view renders indexed document nodes when the graph endpoint responds', async () => {
   state.graph = {
     nodes: [
@@ -345,65 +466,101 @@ test('graph view renders indexed document nodes when the graph endpoint responds
     edges: [],
     next_cursor: null,
   }
-
   try {
     await renderApp()
     fireEvent.click(railButton('Graph'))
     await waitFor(() => expect(screen.getByText('Showing 1 of 1 document · 0 links')).toBeTruthy())
-    const node = screen.getByRole('button', { name: 'Open document: Release process' })
+    const node = screen.getByRole('button', {
+      name: 'Open document: Release process',
+    })
     node.focus()
-    fireEvent.keyDown(node, { key: 'Enter' })
+    fireEvent.keyDown(node, {
+      key: 'Enter',
+    })
     // Re-query at click time so a slow-runner re-render cannot leave the
     // click targeting a detached button.
-    fireEvent.click(screen.getByRole('button', { name: 'Open document: Release process' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Open document: Release process',
+      })
+    )
     const selection = await waitFor(
-      () => screen.getByRole('complementary', { name: 'Selected graph node' }),
-      { timeout: 15_000 }
+      () =>
+        screen.getByRole('complementary', {
+          name: 'Selected graph node',
+        }),
+      {
+        timeout: 15_000,
+      }
     )
     expect(selection.getAttribute('aria-live')).toBe('polite')
-    expect(within(selection).getByRole('button', { name: 'Open document' })).toBeTruthy()
+    expect(
+      within(selection).getByRole('button', {
+        name: 'Open document',
+      })
+    ).toBeTruthy()
   } finally {
     state.graph = null
   }
 })
-
 test('large graph pages render through a bounded keyboard-operable window', async () => {
   state.graph = {
-    nodes: Array.from({ length: 30 }, (_, index) => ({
-      id: `document:${index}`,
-      kind: 'document' as const,
-      label: `Document ${index}`,
-      project: 'work',
-      source: 'work-code',
-      document_id: `document-${index}`,
-    })),
+    nodes: Array.from(
+      {
+        length: 30,
+      },
+      (_, index) => ({
+        id: `document:${index}`,
+        kind: 'document' as const,
+        label: `Document ${index}`,
+        project: 'work',
+        source: 'work-code',
+        document_id: `document-${index}`,
+      })
+    ),
     edges: [],
     next_cursor: null,
   }
-
   try {
     await renderApp()
     fireEvent.click(railButton('Graph'))
     await waitFor(
       () => expect(screen.getByText('Showing 12 of 30 documents · 0 links')).toBeTruthy(),
-      { timeout: 15_000 }
+      {
+        timeout: 15_000,
+      }
     )
-    expect(screen.getAllByRole('button', { name: /^Open document: Document/ })).toHaveLength(12)
-    const showMore = screen.getByRole('button', { name: 'Show more nodes' })
+    expect(
+      screen.getAllByRole('button', {
+        name: /^Open document: Document/,
+      })
+    ).toHaveLength(12)
+    const showMore = screen.getByRole('button', {
+      name: 'Show more nodes',
+    })
     showMore.focus()
     // Re-query at click time so a slow-runner re-render cannot leave the
     // click targeting a detached button.
-    fireEvent.click(screen.getByRole('button', { name: 'Show more nodes' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Show more nodes',
+      })
+    )
     await waitFor(
       () => expect(screen.getByText('Showing 24 of 30 documents · 0 links')).toBeTruthy(),
-      { timeout: 15_000 }
+      {
+        timeout: 15_000,
+      }
     )
-    expect(screen.getAllByRole('button', { name: /^Open document: Document/ })).toHaveLength(24)
+    expect(
+      screen.getAllByRole('button', {
+        name: /^Open document: Document/,
+      })
+    ).toHaveLength(24)
   } finally {
     state.graph = null
   }
 })
-
 test('closing and reopening graph aborts and discards a stale expansion response', async () => {
   const stale = deferred<BrainGraphPage>()
   const fresh = deferred<BrainGraphPage>()
@@ -428,29 +585,36 @@ test('closing and reopening graph aborts and discards a stale expansion response
     edges: [],
     next_cursor: null,
   })
-
   try {
     await renderApp()
     fireEvent.click(railButton('Graph'))
-    const loading = await screen.findByRole('heading', { name: 'Loading knowledge graph' })
+    const loading = await screen.findByRole('heading', {
+      name: 'Loading knowledge graph',
+    })
     expect(loading.closest('[role="status"]')).toBeTruthy()
     fireEvent.click(railButton('Knowledge'))
     await waitFor(() => expect(staleSignal?.aborted).toBe(true))
     fireEvent.click(railButton('Graph'))
-
     fresh.resolve(page('Fresh graph node'))
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Open document: Fresh graph node' })).toBeTruthy()
+      expect(
+        screen.getByRole('button', {
+          name: 'Open document: Fresh graph node',
+        })
+      ).toBeTruthy()
     )
     stale.resolve(page('Stale graph node'))
     await waitFor(() =>
-      expect(screen.queryByRole('button', { name: 'Open document: Stale graph node' })).toBeNull()
+      expect(
+        screen.queryByRole('button', {
+          name: 'Open document: Stale graph node',
+        })
+      ).toBeNull()
     )
   } finally {
     state.getGraph = null
   }
 })
-
 test('timeline order controls navigate to the selected evidence entry', async () => {
   state.answer = () =>
     Promise.resolve({
@@ -488,34 +652,65 @@ test('timeline order controls navigate to the selected evidence entry', async ()
         queries: ['timeline sort'],
       },
     })
-
   await renderApp()
-
   const input = screen.getByLabelText('Search your knowledge')
-  fireEvent.change(input, { target: { value: 'timeline sort' } })
+  fireEvent.change(input, {
+    target: {
+      value: 'timeline sort',
+    },
+  })
   fireEvent.submit(input.closest('form')!)
-
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'timeline sort' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'timeline sort',
+      })
+    ).toBeTruthy()
   )
-
-  fireEvent.click(screen.getByRole('tab', { name: 'Timeline' }))
+  fireEvent.click(
+    screen.getByRole('tab', {
+      name: 'Timeline',
+    })
+  )
   await waitFor(() =>
-    expect(screen.getByRole('tab', { name: 'Timeline' }).getAttribute('aria-selected')).toBe('true')
+    expect(
+      screen
+        .getByRole('tab', {
+          name: 'Timeline',
+        })
+        .getAttribute('aria-selected')
+    ).toBe('true')
   )
-
-  fireEvent.click(screen.getByRole('button', { name: 'Timeline evidence: Old notes' }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Timeline evidence: Old notes',
+    })
+  )
   await waitFor(() =>
-    expect(screen.getByRole('tab', { name: /Evidence/ }).getAttribute('aria-selected')).toBe('true')
+    expect(
+      screen
+        .getByRole('tab', {
+          name: /Evidence/,
+        })
+        .getAttribute('aria-selected')
+    ).toBe('true')
   )
-  expect(screen.getByRole('heading', { level: 1, name: 'Old notes' })).toBeTruthy()
+  expect(
+    screen.getByRole('heading', {
+      level: 1,
+      name: 'Old notes',
+    })
+  ).toBeTruthy()
 })
-
 test('Inbox renders current sync attention and a truthful idle empty state', async () => {
   // The demo status contains a budget-exceeded sync run that needs attention.
   await renderApp()
   fireEvent.click(railButton('Inbox'))
-  await screen.findByRole('heading', { level: 1, name: 'Inbox' })
+  await screen.findByRole('heading', {
+    level: 1,
+    name: 'Inbox',
+  })
   expect(screen.getByText('community-discord')).toBeTruthy()
   expect(screen.getByText('Budget exceeded')).toBeTruthy()
   // A clean sync run must not be listed as attention.
@@ -523,17 +718,27 @@ test('Inbox renders current sync attention and a truthful idle empty state', asy
 
   // An idle index renders the truthful empty state instead of fabricated history.
   cleanup()
-  state.status = { ...demoStatus, sync_runs: [] }
+  state.status = {
+    ...demoStatus,
+    sync_runs: [],
+  }
   await renderApp()
   fireEvent.click(railButton('Inbox'))
   await waitFor(() => expect(screen.getByText('No sync attention')).toBeTruthy())
-  expect(screen.getByRole('button', { name: 'Open settings' })).toBeTruthy()
+  expect(
+    screen.getByRole('button', {
+      name: 'Open settings',
+    })
+  ).toBeTruthy()
 })
-
 test('shadcn Inbox shares the responsive utility-page spacing contract', () => {
-  render(<M7ActivityInbox status={demoStatus} sourceJobs={[]} onOpenSettings={() => {}} />)
-
-  const inbox = screen.getByRole('heading', { level: 1, name: 'Inbox' }).closest('main')
+  render(() => <M7ActivityInbox status={demoStatus} sourceJobs={[]} onOpenSettings={() => {}} />)
+  const inbox = screen
+    .getByRole('heading', {
+      level: 1,
+      name: 'Inbox',
+    })
+    .closest('main')
   expect(inbox?.className).toContain('m7-utility-view')
   expect(inbox?.querySelector('.utility-header')).toBeTruthy()
   expect(inbox?.querySelector('[data-m7-activity-body].utility-body')).toBeTruthy()
@@ -543,10 +748,9 @@ test('shadcn Inbox shares the responsive utility-page spacing contract', () => {
   expect(inbox?.querySelector('[data-slot="card-description"]')).toBeNull()
   expect(inbox?.querySelector('.max-w-5xl')).toBeNull()
 })
-
 test('Inbox does not claim clean sync history while runtime status is unavailable', () => {
   let retries = 0
-  render(
+  render(() => (
     <UtilityView
       kind="inbox"
       status={null}
@@ -570,14 +774,17 @@ test('Inbox does not claim clean sync history while runtime status is unavailabl
         retries += 1
       }}
     />
-  )
+  ))
   expect(screen.getByText('Sync health unavailable')).toBeTruthy()
   expect(screen.getByText('Runtime status unavailable')).toBeTruthy()
   expect(screen.queryByText('No sync attention')).toBeNull()
-  fireEvent.click(screen.getByRole('button', { name: 'Retry status' }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Retry status',
+    })
+  )
   expect(retries).toBe(1)
 })
-
 test('Inbox retains terminal source-job history after the job stops running', () => {
   const job: DesktopSourceJob = {
     id: 'source-1',
@@ -596,10 +803,13 @@ test('Inbox retains terminal source-job history after the job stops running', ()
     writes_indexed_data: false,
     budget: null,
   }
-  render(
+  render(() => (
     <UtilityView
       kind="inbox"
-      status={{ ...demoStatus, sync_runs: [] }}
+      status={{
+        ...demoStatus,
+        sync_runs: [],
+      }}
       sourceJobs={[job]}
       query=""
       answer={null}
@@ -617,7 +827,7 @@ test('Inbox retains terminal source-job history after the job stops running', ()
       onOpenSettings={() => {}}
       onOpenProject={() => {}}
     />
-  )
+  ))
   expect(screen.getByText('Recent source jobs')).toBeTruthy()
   expect(screen.getByText('work-code · validation')).toBeTruthy()
   expect(screen.getByText('Failed')).toBeTruthy()
@@ -626,7 +836,6 @@ test('Inbox retains terminal source-job history after the job stops running', ()
   expect(screen.getByText('permission denied')).toBeTruthy()
   expect(screen.getByRole('alert').textContent).toBe('Source job cancellation failed')
 })
-
 test('Inbox keeps a cancelling source job visibly in progress until it exits', () => {
   const job: DesktopSourceJob = {
     id: 'source-cancelling',
@@ -645,11 +854,13 @@ test('Inbox keeps a cancelling source job visibly in progress until it exits', (
     writes_indexed_data: true,
     budget: null,
   }
-
-  render(
+  render(() => (
     <UtilityView
       kind="inbox"
-      status={{ ...demoStatus, sync_runs: [] }}
+      status={{
+        ...demoStatus,
+        sync_runs: [],
+      }}
       sourceJobs={[job]}
       query=""
       answer={null}
@@ -667,20 +878,27 @@ test('Inbox keeps a cancelling source job visibly in progress until it exits', (
       onOpenProject={() => {}}
       onCancelSourceJob={() => {}}
     />
-  )
-
+  ))
   expect(screen.getByText('Cancelling…')).toBeTruthy()
   expect(
     screen
-      .getByRole('button', { name: 'Cancel work work-code trial-sync' })
+      .getByRole('button', {
+        name: 'Cancel work work-code trial-sync',
+      })
       .hasAttribute('disabled')
   ).toBe(true)
 })
-
 test('Index renders live BrainStatus metrics and a truthful loading empty state', async () => {
   await renderApp()
   fireEvent.click(railButton('Index'))
-  await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'Index' })).toBeTruthy())
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Index',
+      })
+    ).toBeTruthy()
+  )
 
   // Real metric content from the current status snapshot.
   expect(screen.getByText('9,834')).toBeTruthy()
@@ -697,30 +915,41 @@ test('Index renders live BrainStatus metrics and a truthful loading empty state'
   await waitFor(() => expect(screen.getByText('Loading index')).toBeTruthy())
   expect(screen.getByText('Open settings')).toBeTruthy()
 })
-
 test('Agent tools prompts retrieval and then shows the generated context metrics', async () => {
   await renderApp()
   fireEvent.click(railButton('Agent tools'))
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'Agent tools' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Agent tools',
+      })
+    ).toBeTruthy()
   )
 
   // No bundle has been generated yet: the view clearly prompts retrieval.
   expect(screen.getByText('No context generated yet')).toBeTruthy()
-  expect(screen.getByRole('button', { name: 'Retrieve context' })).toBeTruthy()
+  expect(
+    screen.getByRole('button', {
+      name: 'Retrieve context',
+    })
+  ).toBeTruthy()
   // The agent context window reflects the real current session state.
   expect(screen.getByText(/tokens assembled from the active query/)).toBeTruthy()
 
   // Retrieval succeeds and the generated bundle's real metrics render.
   state.context = contextBundle
-  fireEvent.click(screen.getByRole('button', { name: 'Retrieve context' }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Retrieve context',
+    })
+  )
   await waitFor(() => expect(screen.getByText('Retrieved')).toBeTruthy())
   expect(screen.getByText('512')).toBeTruthy()
   expect(screen.getByText('8,000')).toBeTruthy()
   expect(screen.getByText('Deployment playbook')).toBeTruthy()
   expect(screen.getByText('How do releases work?')).toBeTruthy()
 })
-
 test('Agent tools copies the exact generated context bundle for local agent handoff', async () => {
   let copiedText = ''
   const originalClipboard = navigator.clipboard
@@ -733,9 +962,8 @@ test('Agent tools copies the exact generated context bundle for local agent hand
     },
     configurable: true,
   })
-
   try {
-    render(
+    render(() => (
       <UtilityView
         kind="agent-tools"
         status={demoStatus}
@@ -755,46 +983,70 @@ test('Agent tools copies the exact generated context bundle for local agent hand
         onOpenSettings={() => {}}
         onOpenProject={() => {}}
       />
+    ))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Copy MCP-equivalent context',
+      })
     )
-
-    fireEvent.click(screen.getByRole('button', { name: 'Copy MCP-equivalent context' }))
     await waitFor(() => expect(screen.getByText('Context copied')).toBeTruthy())
     expect(copiedText).toBe(contextBundle.context)
   } finally {
-    Object.defineProperty(navigator, 'clipboard', { value: originalClipboard, configurable: true })
+    Object.defineProperty(navigator, 'clipboard', {
+      value: originalClipboard,
+      configurable: true,
+    })
   }
 })
-
 test('Conversations shows the session state and offers search focus', async () => {
   await renderApp()
   fireEvent.click(railButton('Conversations'))
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'Conversations' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Conversations',
+      })
+    ).toBeTruthy()
   )
 
   // No question has been answered yet: truthful empty state with search focus.
   expect(screen.getByText('No conversation yet')).toBeTruthy()
-  fireEvent.click(screen.getByRole('button', { name: 'Search the brain' }))
-  await waitFor(() =>
-    expect(document.activeElement).toBe(screen.getByLabelText('Search your knowledge'))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Search the brain',
+    })
   )
+  // Compare nodes by identity so retries do not serialize the whole DOM.
+  await waitFor(() => {
+    const input = screen.queryByLabelText('Search your knowledge')
+    expect(input !== null && document.activeElement === input).toBe(true)
+  })
 
   // After a successful search, the current query/answer/evidence state renders.
   state.answer = () => Promise.resolve(answerResponse)
   const input = screen.getByLabelText('Search your knowledge')
-  fireEvent.change(input, { target: { value: 'release cadence' } })
+  fireEvent.change(input, {
+    target: {
+      value: 'release cadence',
+    },
+  })
   fireEvent.submit(input.closest('form')!)
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'release cadence' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'release cadence',
+      })
+    ).toBeTruthy()
   )
   fireEvent.click(railButton('Conversations'))
   await waitFor(() => expect(screen.getByText('4 cited passages')).toBeTruthy())
   expect(screen.getByText(/Merge short-lived changes into main/)).toBeTruthy()
   expect(screen.getByText('How do releases work?')).toBeTruthy()
 })
-
 test('utility actions use the shared token-backed button primitive', () => {
-  render(
+  render(() => (
     <UtilityView
       kind="help"
       status={demoStatus}
@@ -814,15 +1066,15 @@ test('utility actions use the shared token-backed button primitive', () => {
       onOpenSettings={() => {}}
       onOpenProject={() => {}}
     />
-  )
-
-  const openProject = screen.getByRole('button', { name: 'Open project page' })
+  ))
+  const openProject = screen.getByRole('button', {
+    name: 'Open project page',
+  })
   expect(openProject.getAttribute('data-slot')).toBe('button')
   expect(openProject.className).toContain('bg-secondary')
 })
-
 test('shadcn conversations compose cards and actions from the generated primitives', () => {
-  render(
+  render(() => (
     <UtilityView
       kind="conversations"
       status={demoStatus}
@@ -842,15 +1094,17 @@ test('shadcn conversations compose cards and actions from the generated primitiv
       onOpenSettings={() => {}}
       onOpenProject={() => {}}
     />
-  )
-
+  ))
   expect(document.querySelector('[data-m7-utility-view="conversations"]')).toBeTruthy()
   expect(document.querySelector('[data-slot="card"]')).toBeTruthy()
-  expect(screen.getByRole('button', { name: 'Search the brain' }).getAttribute('data-slot')).toBe(
-    'button'
-  )
+  expect(
+    screen
+      .getByRole('button', {
+        name: 'Search the brain',
+      })
+      .getAttribute('data-slot')
+  ).toBe('button')
 })
-
 test('search history arrows navigate previous and next queries', async () => {
   state.answer = (query?: string) =>
     Promise.resolve({
@@ -858,56 +1112,91 @@ test('search history arrows navigate previous and next queries', async () => {
       query: query || answerResponse.query,
       answer: `Answer for ${query || answerResponse.query}`,
     })
-  render(<App />)
-
+  render(() => <App />)
   const input = screen.getByLabelText('Search your knowledge')
   const submit = (value: string) => {
-    fireEvent.change(input, { target: { value } })
+    fireEvent.change(input, {
+      target: {
+        value,
+      },
+    })
     fireEvent.submit(input.closest('form')!)
   }
-
   submit('release cadence')
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'release cadence' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'release cadence',
+      })
+    ).toBeTruthy()
   )
   submit('desktop status')
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'desktop status' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'desktop status',
+      })
+    ).toBeTruthy()
   )
-
-  const previous = screen.getByRole('button', { name: 'Previous search query' })
-  const next = screen.getByRole('button', { name: 'Next search query' })
+  const previous = screen.getByRole('button', {
+    name: 'Previous search query',
+  })
+  const next = screen.getByRole('button', {
+    name: 'Next search query',
+  })
   expect(previous.getAttribute('disabled')).toBeNull()
   expect(next.getAttribute('disabled')).not.toBeNull()
-
   fireEvent.click(previous)
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'release cadence' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'release cadence',
+      })
+    ).toBeTruthy()
   )
   expect((input as HTMLInputElement).value).toBe('release cadence')
   expect(next.getAttribute('disabled')).toBeNull()
-
   fireEvent.click(next)
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'desktop status' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'desktop status',
+      })
+    ).toBeTruthy()
   )
 })
-
 test('Help lists the real keyboard shortcuts and project links', async () => {
   state.answer = () => Promise.resolve(answerResponse)
   await renderApp()
   fireEvent.click(railButton('Help'))
-  await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'Help' })).toBeTruthy())
-
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Help',
+      })
+    ).toBeTruthy()
+  )
   expect(screen.getByText('Focus the search bar')).toBeTruthy()
   expect(screen.getByText('Toggle the command palette')).toBeTruthy()
   expect(screen.getByText('Open the document filter')).toBeTruthy()
   expect(screen.getByText('Close panels and the palette')).toBeTruthy()
-
-  const project = screen.getByRole('link', { name: /GitHub project/ })
+  const project = screen.getByRole('link', {
+    name: /GitHub project/,
+  })
   expect(project.getAttribute('href')).toBe('https://github.com/adea-ai/cortana')
-  const docs = screen.getByRole('link', { name: /Documentation/ })
+  const docs = screen.getByRole('link', {
+    name: /Documentation/,
+  })
   expect(docs.getAttribute('href')).toBe('https://github.com/adea-ai/cortana/tree/main/docs')
   // The desktop-only project opener must not appear in web mode.
-  expect(screen.queryByRole('button', { name: 'Open project page' })).toBeNull()
+  expect(
+    screen.queryByRole('button', {
+      name: 'Open project page',
+    })
+  ).toBeNull()
 })
