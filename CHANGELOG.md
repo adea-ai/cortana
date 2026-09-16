@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.58.2](https://github.com/adea-ai/cortana/compare/v0.58.1...v0.58.2) (2026-09-16)
+
+
+### Bug Fixes
+
+* **web:** restore input semantics, menu stability, and dialog focus for Solid ([#2330](https://github.com/adea-ai/cortana/issues/2330)) ([35005e1](https://github.com/adea-ai/cortana/commit/35005e1459d40c32339d185e1380cc78e63dc1c3))
+
+
+### Maintenance
+
+* **web:** migrate frontend from React to SolidJS and Kobalte ([#2328](https://github.com/adea-ai/cortana/issues/2328)) ([f8a5b6e](https://github.com/adea-ai/cortana/commit/f8a5b6eaae6ea7cce5b9723d520c5d258a985939))
+
 ## [0.58.1](https://github.com/adea-ai/cortana/compare/v0.58.0...v0.58.1) (2026-09-15)
 
 
