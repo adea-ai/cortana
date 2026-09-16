@@ -11,6 +11,7 @@ import {
 } from 'lucide-solid'
 import {
   createComputed,
+  createEffect,
   createMemo,
   createSignal,
   For,
@@ -20,6 +21,7 @@ import {
   type ComponentProps,
   type JSX,
 } from 'solid-js'
+import { createStore, reconcile } from 'solid-js/store'
 import { Dynamic } from 'solid-js/web'
 
 import { isDesktopApp, openDesktopUrl } from '../api'
@@ -818,20 +820,31 @@ function GraphView(props: {
     setVisibleCount(12)
     setSelectedNodeId(null)
   })
-  const nodes = createMemo((): GraphNodeLike[] =>
-    filteredNodes().length
-      ? filteredNodes().slice(0, visibleCount())
-      : usingEvidenceFallback()
-        ? props.evidence.slice(0, 8).map((item) => ({
-            id: item.chunk_id,
-            kind: 'document' as const,
-            label: item.title,
-            project: '',
-            source: item.source,
-            document_id: null,
-          }))
-        : []
-  )
+  // The graph revalidates (SWR) while a node may be focused or selected, and
+  // every fetch returns fresh node objects. Reconcile by id so an unchanged
+  // revalidation keeps row identity — a rebuilt button would drop focus and
+  // lose the pending keyboard activation.
+  const [stableNodes, setStableNodes] = createStore<GraphNodeLike[]>([])
+  createEffect(() => {
+    setStableNodes(
+      reconcile(
+        filteredNodes().length
+          ? filteredNodes()
+          : usingEvidenceFallback()
+            ? props.evidence.slice(0, 8).map((item) => ({
+                id: item.chunk_id,
+                kind: 'document' as const,
+                label: item.title,
+                project: '',
+                source: item.source,
+                document_id: null,
+              }))
+            : [],
+        { key: 'id' }
+      )
+    )
+  })
+  const nodes = createMemo((): GraphNodeLike[] => stableNodes.slice(0, visibleCount()))
   const visibleNodeIds = createMemo(() => new Set(nodes().map((node) => node.id)))
   const visibleEdges = createMemo(() => {
     if (!props.graph || usingEvidenceFallback()) return []
