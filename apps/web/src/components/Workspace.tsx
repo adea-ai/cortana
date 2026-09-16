@@ -10,17 +10,18 @@ import {
   Star,
 } from 'lucide-solid'
 import {
+  createComputed,
   createEffect,
   createMemo,
   createSignal,
   For,
   Match,
   Show,
-  splitProps,
   Switch,
   type ComponentProps,
   type JSX,
 } from 'solid-js'
+import { createStore, reconcile } from 'solid-js/store'
 import { Dynamic } from 'solid-js/web'
 
 import { isDesktopApp, openDesktopUrl } from '../api'
@@ -29,6 +30,7 @@ import { isFavoriteDocument, toggleFavoriteDocument } from '../favoriteDocuments
 import { safeSourceLink } from '../sourceLinks'
 import { Badge } from './shadcn/badge'
 import { TooltipButton as Button } from './cortana/TooltipButton'
+import { VariantButton as WorkspaceButton } from './cortana/VariantButton'
 import {
   Empty,
   EmptyContent,
@@ -65,30 +67,6 @@ export type WorkspaceTab = (typeof tabs)[number]['id'] | 'graph'
 // separate view, so neither is gated.
 const resultGatedTabs = new Set<WorkspaceTab>(['answer', 'sources', 'timeline'])
 const EMPTY_GRAPH_NODES: BrainGraphNode[] = []
-
-type WorkspaceButtonProps = Omit<ComponentProps<typeof Button>, 'variant' | 'size'> & {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'icon' | 'compact'
-}
-
-function WorkspaceButton(props: WorkspaceButtonProps) {
-  const [local, rest] = splitProps(props, ['variant'])
-  const variant = () => local.variant ?? 'secondary'
-  return (
-    <Button
-      {...rest}
-      variant={
-        variant() === 'primary'
-          ? 'default'
-          : variant() === 'danger'
-            ? 'destructive'
-            : variant() === 'ghost' || variant() === 'icon'
-              ? 'ghost'
-              : 'secondary'
-      }
-      size={variant() === 'icon' ? 'icon' : variant() === 'compact' ? 'sm' : 'default'}
-    />
-  )
-}
 
 function WorkspaceInteractive(props: ComponentProps<'button'>) {
   return <Button variant="ghost" {...props} />
@@ -159,13 +137,13 @@ export function Workspace(props: {
     }
   }
 
-  createEffect(() => {
+  createComputed(() => {
     if (props.document) props.onTabChange('document')
   })
-  createEffect(() => {
+  createComputed(() => {
     if (props.answer || props.reflection) props.onTabChange('answer')
   })
-  createEffect(() => {
+  createComputed(() => {
     // Keep an explicitly submitted search visible while retrieval is in
     // flight. The result tab is hidden from the tab strip until evidence
     // arrives, but redirecting it immediately would replace the loading
@@ -306,7 +284,7 @@ function BrainDocumentView(props: {
   const [sourceOpenError, setSourceOpenError] = createSignal(false)
   const [copyStatus, setCopyStatus] = createSignal('')
 
-  createEffect(() => {
+  createComputed(() => {
     const id = props.document.id
     setFavorite(isFavoriteDocument(id))
     setSourceOpenError(false)
@@ -505,7 +483,7 @@ function DocumentView(props: {
   const [favorite, setFavorite] = createSignal(isFavoriteDocument(props.active.chunk_id))
   const [sourceOpenError, setSourceOpenError] = createSignal(false)
 
-  createEffect(() => {
+  createComputed(() => {
     const id = props.active.chunk_id
     setFavorite(isFavoriteDocument(id))
     setSourceOpenError(false)
@@ -835,35 +813,55 @@ function GraphView(props: {
         )
       : graphNodes().filter((node) => kindFilter() === 'all' || node.kind === kindFilter())
   )
-  const graphResetKey = () =>
-    `${props.graph?.nodes[0]?.id ?? ''} ${kindFilter()} ${normalizedFilter()}`
-  createEffect(() => {
-    graphResetKey()
+  // Revalidation can reorder nodes even when the set is unchanged; keying the
+  // reset on nodes[0] cleared an active selection mid-interaction. Only drop
+  // the selection when the selected node actually leaves the filtered set.
+  createComputed(() => {
+    kindFilter()
+    normalizedFilter()
     setVisibleCount(12)
-    setSelectedNodeId(null)
   })
-  const nodes = createMemo((): GraphNodeLike[] =>
-    filteredNodes().length
-      ? filteredNodes().slice(0, visibleCount())
-      : usingEvidenceFallback()
-        ? props.evidence.slice(0, 8).map((item) => ({
-            id: item.chunk_id,
-            kind: 'document' as const,
-            label: item.title,
-            project: '',
-            source: item.source,
-            document_id: null,
-          }))
-        : []
-  )
+  createComputed(() => {
+    const selected = selectedNodeId()
+    if (selected && !filteredNodes().some((node) => node.id === selected)) {
+      setSelectedNodeId(null)
+    }
+  })
+  // The graph revalidates (SWR) while a node may be focused or selected, and
+  // every fetch returns fresh node objects. Reconcile by id so an unchanged
+  // revalidation keeps row identity — a rebuilt button would drop focus and
+  // lose the pending keyboard activation.
+  const [stableNodes, setStableNodes] = createStore<GraphNodeLike[]>([])
+  createEffect(() => {
+    setStableNodes(
+      reconcile(
+        filteredNodes().length
+          ? filteredNodes()
+          : usingEvidenceFallback()
+            ? props.evidence.slice(0, 8).map((item) => ({
+                id: item.chunk_id,
+                kind: 'document' as const,
+                label: item.title,
+                project: '',
+                source: item.source,
+                document_id: null,
+              }))
+            : [],
+        { key: 'id' }
+      )
+    )
+  })
+  const nodes = createMemo((): GraphNodeLike[] => stableNodes.slice(0, visibleCount()))
   const visibleNodeIds = createMemo(() => new Set(nodes().map((node) => node.id)))
   const visibleEdges = createMemo(() => {
     if (!props.graph || usingEvidenceFallback()) return []
     const ids = visibleNodeIds()
     return props.graph.edges.filter((edge) => ids.has(edge.target) || ids.has(edge.source))
   })
+  // Search the full filtered set rather than the visible slice: a revalidation
+  // reorder can push the selected node past the window without removing it.
   const activeGraphNode = createMemo(
-    () => nodes().find((node) => node.id === selectedNodeId()) ?? null
+    () => filteredNodes().find((node) => node.id === selectedNodeId()) ?? null
   )
   const selectedEdges = createMemo(() => {
     const active = activeGraphNode()

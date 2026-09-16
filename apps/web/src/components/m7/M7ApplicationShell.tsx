@@ -1,5 +1,7 @@
-import { createSignal, For, Show, type JSX, onCleanup, onMount } from 'solid-js'
+import { createSignal, For, Show, type JSX } from 'solid-js'
 import { Dynamic } from 'solid-js/web'
+
+import { createMediaQuery } from '@/lib/mediaQuery'
 import {
   ArrowLeft,
   ArrowRight,
@@ -26,16 +28,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/shadcn/breadcrumb'
-import {
-  Command,
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandShortcut,
-} from '@/components/shadcn/command'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -80,6 +72,7 @@ import {
 } from '@/components/shadcn/tooltip'
 import { shortcutLabel } from '@/shortcuts'
 import type { M7ActivityInbox } from '@/components/m7/M7ActivityInbox'
+import type { M7CommandPalette } from '@/components/m7/M7CommandPalette'
 import { WorkspaceLogo } from '@/workspaceLogos'
 
 type WorkspaceOption = { id: string; name: string; color: string | null }
@@ -118,17 +111,6 @@ export type M7HeaderProps = {
   onOpenCommands: (origin?: HTMLElement | null) => void
   workspaceName: string
   location: string
-}
-
-export type M7CommandPaletteProps = {
-  open: boolean
-  finalFocus: { current: HTMLElement | null }
-  workspaces: WorkspaceOption[]
-  onOpenChange: (open: boolean) => void
-  onSearch: () => void
-  onFilterDocuments: () => void
-  onChooseWorkspace: (workspace: string) => void
-  onOpenSettings: () => void
 }
 
 const navigationItems = [
@@ -256,50 +238,6 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
   )
 }
 
-export function M7CommandPalette(props: M7CommandPaletteProps) {
-  const run = (action: () => void) => {
-    props.onOpenChange(false)
-    action()
-  }
-
-  return (
-    <CommandDialog
-      open={props.open}
-      onOpenChange={props.onOpenChange}
-      finalFocus={props.finalFocus}
-      title="Cortana command palette"
-      description="Search navigation and workspace commands"
-    >
-      <Command label="Search Cortana commands">
-        <CommandInput placeholder="Search commands…" />
-        <CommandList>
-          <CommandEmpty>No commands found.</CommandEmpty>
-          <CommandGroup heading="Actions">
-            <CommandItem onSelect={() => run(props.onSearch)}>
-              Search the brain
-              <CommandShortcut>{shortcutLabel('MOD K')}</CommandShortcut>
-            </CommandItem>
-            <CommandItem onSelect={() => run(props.onFilterDocuments)}>
-              Filter documents
-              <CommandShortcut>{shortcutLabel('MOD ⇧ F')}</CommandShortcut>
-            </CommandItem>
-            <CommandItem onSelect={() => run(props.onOpenSettings)}>Open settings</CommandItem>
-          </CommandGroup>
-          <CommandGroup heading="Workspaces">
-            <For each={props.workspaces}>
-              {(item) => (
-                <CommandItem onSelect={() => run(() => props.onChooseWorkspace(item.id))}>
-                  Switch to {item.name}
-                </CommandItem>
-              )}
-            </For>
-          </CommandGroup>
-        </CommandList>
-      </Command>
-    </CommandDialog>
-  )
-}
-
 export type M7StatusBarProps = { children: JSX.Element; demo: boolean }
 
 export type M7PanelBoundaryProps = {
@@ -314,15 +252,7 @@ export type M7PanelBoundaryProps = {
 }
 
 export function M7PanelBoundary(props: M7PanelBoundaryProps) {
-  const [compact, setCompact] = createSignal(false)
-
-  onMount(() => {
-    const query = window.matchMedia(`(max-width: ${props.breakpoint - 1}px)`)
-    const update = () => setCompact(query.matches)
-    update()
-    query.addEventListener('change', update)
-    onCleanup(() => query.removeEventListener('change', update))
-  })
+  const compact = createMediaQuery(() => `(max-width: ${props.breakpoint - 1}px)`)
 
   return (
     <Show when={compact()} fallback={props.children}>

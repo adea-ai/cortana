@@ -1,5 +1,5 @@
 import { Check, Copy, RefreshCw, X } from 'lucide-solid'
-import { For, Show, splitProps, type ComponentProps } from 'solid-js'
+import { For, Show } from 'solid-js'
 
 import { cn } from '@/lib/utils'
 
@@ -8,34 +8,10 @@ import { codeRevisionLabel } from '../codeEvidence'
 import { useClipboardCopy } from '../useClipboardCopy'
 import { Alert, AlertDescription } from './shadcn/alert'
 import { Badge } from './shadcn/badge'
-import { TooltipButton as Button } from './cortana/TooltipButton'
+import { VariantButton as ActionButton } from './cortana/VariantButton'
 import { Card } from './shadcn/card'
 import { ScrollArea } from './shadcn/scroll-area'
 import { Spinner } from './shadcn/spinner'
-
-type ActionButtonProps = Omit<ComponentProps<typeof Button>, 'variant' | 'size'> & {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'icon' | 'compact'
-}
-
-function ActionButton(props: ActionButtonProps) {
-  const [local, rest] = splitProps(props, ['variant'])
-  const variant = () => local.variant ?? 'secondary'
-  return (
-    <Button
-      {...rest}
-      variant={
-        variant() === 'primary'
-          ? 'default'
-          : variant() === 'danger'
-            ? 'destructive'
-            : variant() === 'ghost' || variant() === 'icon'
-              ? 'ghost'
-              : 'secondary'
-      }
-      size={variant() === 'icon' ? 'icon' : variant() === 'compact' ? 'sm' : 'default'}
-    />
-  )
-}
 
 export function ContextPanel(props: {
   open: boolean

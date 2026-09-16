@@ -13,16 +13,19 @@ committed sources and are the enforced part.
 Measured by `scripts/check-web-bundle-budget.mjs` after `bun run --cwd apps/web build`
 (TypeScript 6.0.3 per `bun.lock`, Vite production build):
 
-| Surface                        | Measured bytes | Budget bytes | Headroom     |
-| ------------------------------ | -------------- | ------------ | ------------ |
-| Initial application JavaScript | 796,809        | 800,000      | 3,191 (0.4%) |
-| Complete production JavaScript | 959,164        | 960,000      | 836 (0.1%)   |
-| Application CSS                | 218,947        | 220,000      | 1,053 (0.5%) |
+| Surface                        | Measured bytes | Budget bytes | Headroom        |
+| ------------------------------ | -------------- | ------------ | --------------- |
+| Initial application JavaScript | 409,960        | 500,000      | 90,040 (18.0%)  |
+| Complete production JavaScript | 727,009        | 850,000      | 122,991 (14.5%) |
+| Application CSS                | 208,626        | 220,000      | 11,374 (5.2%)   |
 
-The complete-JavaScript and CSS budgets are effectively exhausted (under 1% headroom). Any
-feature that ships frontend code must either fit inside this headroom, raise the budget with
-reviewed justification in the same PR, or ship code as a lazy chunk outside the production graph
-(the `demoDesktop` exclusion pattern).
+The SolidJS architecture audit (static `App` entry, lazy Settings and command palette, removal of
+manual eager chunking) cut the initial graph by roughly half and the complete graph by a quarter
+versus the pre-audit baseline (796,809 / 959,164 / 218,947 bytes). Budgets were tightened to the
+new measurements; the CSS budget is the tightest at ~5% headroom. Any feature that ships frontend
+code must either fit inside this headroom, raise the budget with reviewed justification in the
+same PR, or ship code as a lazy chunk outside the production graph (the `demoDesktop` exclusion
+pattern).
 
 ## Desktop build path
 

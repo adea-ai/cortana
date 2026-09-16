@@ -39,6 +39,7 @@ Cortana documentation is divided by authority. Each document should define one d
 | Managed tier envelopes and migration contracts          | [Managed tiers and migration](managed-tiers.md)                                                                                   |
 | Local-only sync relay decision                          | [ADR 0008](architecture/0008-local-relay.md)                                                                                      |
 | Measured build and bundle baselines                     | [Performance baselines](performance-baselines.md)                                                                                 |
+| SolidJS reactivity and rendering rules                  | [SolidJS conventions](solid-conventions.md)                                                                                       |
 | Security assets and trust boundaries                    | [Security and trust model](security-model.md)                                                                                     |
 | Native memory taxonomy                                  | [Memory contract](contracts/memory.md)                                                                                            |
 | Bounded non-mutating memory reasoning                   | [Reflection contract](contracts/reflection.md)                                                                                    |

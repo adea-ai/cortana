@@ -14,6 +14,7 @@ import {
   untrack,
   type JSX,
 } from 'solid-js'
+import { createStore, reconcile, unwrap } from 'solid-js/store'
 import {
   getAnswer,
   getDesktopInfo,
@@ -44,7 +45,6 @@ import {
   M7ApplicationHeader,
   M7ApplicationNavigation,
   type AppView,
-  M7CommandPalette,
   M7PanelBoundary,
   M7ShellProvider,
   M7StatusBar,
@@ -90,6 +90,7 @@ import type {
   ReflectResponse,
 } from './types'
 import { useDesktopForeground } from './lib/foreground'
+import { createBoundedCache } from './lib/boundedCache'
 import { cn } from './lib/utils'
 import './shadcn.css'
 const loadSettingsView = () => import('./components/SettingsView')
@@ -98,12 +99,21 @@ const SettingsView = lazy(() =>
     default: module.SettingsView,
   }))
 )
-// Settings is the only lazy shell surface and it is reached on essentially
-// every session, so warm its chunk once the browser is idle instead of
-// paying the fetch when the operator first opens the view.
-const prefetchSettingsView = () => {
+const loadCommandPalette = () => import('./components/m7/M7CommandPalette')
+const M7CommandPalette = lazy(() =>
+  loadCommandPalette().then((module) => ({
+    default: module.M7CommandPalette,
+  }))
+)
+// Settings and the command palette are reached on essentially every session,
+// so warm their chunks once the browser is idle instead of paying the fetch
+// when the operator first opens them.
+const prefetchDeferredSurfaces = () => {
   const idle = window.requestIdleCallback ?? ((work: () => void) => window.setTimeout(work, 1200))
-  idle(() => void loadSettingsView())
+  idle(() => {
+    void loadSettingsView()
+    void loadCommandPalette()
+  })
 }
 const STATUS_REFRESH_MS = 15_000
 const INSTALLER_POLL_MS = 1_000
@@ -168,7 +178,10 @@ function CortanaApplication() {
   const [query, setQuery] = createSignal('How do releases work?')
   const [activeQuery, setActiveQuery] = createSignal(query())
   const [status, setStatus] = createSignal<BrainStatus | null>(null)
-  const [evidence, setEvidence] = createSignal<Evidence[]>([])
+  // Evidence rows are keyed by chunk_id so repeated queries keep stable row
+  // identity instead of rebuilding the result list.
+  const [evidence, setEvidenceStore] = createStore<Evidence[]>([])
+  const setEvidence = (next: Evidence[]) => setEvidenceStore(reconcile(next, { key: 'chunk_id' }))
   const [answer, setAnswer] = createSignal<AnswerResponse | null>(null)
   const [reflection, setReflection] = createSignal<ReflectResponse | null>(null)
   const [selected, setSelected] = createSignal(0)
@@ -204,7 +217,11 @@ function CortanaApplication() {
   const [sourceToggleBusy, setSourceToggleBusy] = createSignal<string | null>(null)
   const [sourceToggleError, setSourceToggleError] = createSignal('')
   const [sourceToggleNotice, setSourceToggleNotice] = createSignal('')
-  const [documents, setDocuments] = createSignal<BrainDocumentSummary[]>([])
+  // Documents are reconciled by id so unchanged rows keep their DOM nodes
+  // across refetches, and so scope caches can restore a snapshot without a
+  // list rebuild.
+  const [documents, setDocumentsStore] = createStore<BrainDocumentSummary[]>([])
+  const setDocuments = (next: BrainDocumentSummary[]) => setDocumentsStore(reconcile(next))
   const [documentCursor, setDocumentCursor] = createSignal<string | null>(null)
   const [documentsLoading, setDocumentsLoading] = createSignal(view() === 'knowledge')
   const [documentsError, setDocumentsError] = createSignal('')
@@ -214,6 +231,9 @@ function CortanaApplication() {
   const [documentQuery, setDocumentQuery] = createSignal('')
   const [debouncedDocumentQuery, setDebouncedDocumentQuery] = createSignal('')
   const [commandPaletteOpen, setCommandPaletteOpen] = createSignal(false)
+  // The palette chunk is lazy; keep it mounted after the first open so close
+  // transitions and focus restoration keep their normal dialog lifecycle.
+  const [commandPaletteMounted, setCommandPaletteMounted] = createSignal(false)
   const [sourceWidth, setSourceWidth] = createSignal(270)
   const [contextWidth, setContextWidth] = createSignal(350)
   const [contextBundle, setContextBundle] = createSignal<ContextBundle | null>(null)
@@ -234,9 +254,7 @@ function CortanaApplication() {
   const [graphFocusHistory, setGraphFocusHistory] = createSignal<Array<string | null>>([null])
   const [graphFocusHistoryIndex, setGraphFocusHistoryIndex] = createSignal(0)
   const pageVisible = useDesktopForeground()
-  const searchRequestRef = {
-    current: 0,
-  }
+  let searchRequestId = 0
   const [contextError, setContextError] = createSignal('')
   const [queryHistory, setQueryHistory] = createSignal<string[]>([])
   const [queryHistoryIndex, setQueryHistoryIndex] = createSignal(-1)
@@ -253,9 +271,7 @@ function CortanaApplication() {
     current: null as HTMLElement | null,
   }
   const sourceJobs = useSourceJobs()
-  const sourceCancelInFlightRef = {
-    current: new Set<string>(),
-  }
+  const sourceCancelInFlight = new Set<string>()
   const sourceJobsError = () => sourceJobError() || sourceJobs.error()
   const sourceJobsRetry = () =>
     sourceJobError() ? undefined : sourceJobs.error() ? sourceJobs.retry : undefined
@@ -272,85 +288,59 @@ function CortanaApplication() {
           }))
   )
   const effectiveWorkspace = createMemo(() => workspace() || workspaces()[0]?.id || '')
-  const installerStatusRef = {
-    current: null as DesktopInstallJob['status'] | null | null,
-  }
+  let previousInstallerStatus: DesktopInstallJob['status'] | null = null
   const installerJobId = () => installerJob()?.id ?? null
   const installerStatus = () => installerJob()?.status ?? null
   const installerActive = () =>
     installerStatus() === 'running' || installerStatus() === 'cancelling'
   const desktopUpdatePhase = () => desktopUpdate()?.phase ?? null
-  const desktopSettingsRequestRef = {
-    current: 0,
-  }
-  const desktopInfoRequestRef = {
-    current: 0,
-  }
-  const desktopUpdateRequestRef = {
-    current: 0,
-  }
-  const desktopServicesRequestRef = {
-    current: 0,
-  }
-  const refreshedSourceJobsRef = {
-    current: new Set() as Set<string>,
-  }
+  let desktopSettingsRequestId = 0
+  let desktopInfoRequestId = 0
+  let desktopUpdateRequestId = 0
+  let desktopServicesRequestId = 0
+  const refreshedSourceJobs = new Set<string>()
   const documentScope = () =>
     `${effectiveWorkspace()}\u0000${source()}\u0000${debouncedDocumentQuery()}`
   const documentFetchReady = () => !isDesktopApp || desktopSettings()?.needs_setup === false
-  const searchAbortRef = {
-    current: null as AbortController | null | null,
-  }
-  const searchScopeRef = {
-    current: '',
-  }
-  const contextAbortRef = {
-    current: null as AbortController | null | null,
-  }
-  const contextScopeRef = {
-    current: '',
-  }
-  const documentListAbortRef = {
-    current: null as AbortController | null | null,
-  }
-  const documentSelectAbortRef = {
-    current: null as AbortController | null | null,
-  }
-  const graphAbortRef = {
-    current: null as AbortController | null | null,
-  }
-  const contextRequestRef = {
-    current: 0,
-  }
-  const documentListRequestRef = {
-    current: 0,
-  }
-  const documentSelectRequestRef = {
-    current: 0,
-  }
-  const graphRequestRef = {
-    current: 0,
-  }
-  const graphAppendRequestRef = {
-    current: 0,
-  }
-  const statusRequestRef = {
-    current: 0,
-  }
-  const statusRefreshRef = {
-    current: null as (() => void) | null | null,
-  }
-  const documentPageLoadingRef = {
-    current: false,
-  }
+  // Bounded stale-while-revalidate snapshots keyed by document scope: a
+  // workspace/source/filter round-trip paints the remembered list instantly
+  // while the fresh read revalidates it. A settings save can change what is
+  // ingested, so applyDesktopSettings clears all three caches.
+  const documentListCache = createBoundedCache<
+    string,
+    { documents: BrainDocumentSummary[]; cursor: string | null }
+  >(24)
+  const documentDetailCache = createBoundedCache<string, BrainDocument>(64)
+  const documentDetailRequests = new Map<string, Promise<BrainDocument>>()
+  const graphCache = createBoundedCache<string, BrainGraphPage>(12)
+  let searchAbort: AbortController | null = null
+  let searchScopeToken = ''
+  let contextAbort: AbortController | null = null
+  let contextScopeToken = ''
+  let documentListAbort: AbortController | null = null
+  let documentSelectAbort: AbortController | null = null
+  let graphAbort: AbortController | null = null
+  let contextRequestId = 0
+  let documentListRequestId = 0
+  let documentSelectRequestId = 0
+  let graphRequestId = 0
+  let graphAppendRequestId = 0
+  let statusRequestId = 0
+  let statusRefresh: (() => void) | null = null
+  let documentPageLoading = false
   const applyDesktopSettings = (next: DesktopSettings) => {
     // Invalidate the one-shot bootstrap read when Settings completes a
     // reload/save. Otherwise a slower initial request can restore an older
     // snapshot after the operator has already reconciled a newer one.
-    desktopSettingsRequestRef.current += 1
+    desktopSettingsRequestId += 1
+    // A settings write can change which sources and workspaces are ingested,
+    // so remembered scoped snapshots may no longer be valid.
+    documentListCache.clear()
+    documentDetailCache.clear()
+    graphCache.clear()
     setDesktopSettings(next)
   }
-  onMount(() => prefetchSettingsView())
+  onMount(() => prefetchDeferredSurfaces())
   createEffect(() => {
     const syncTheme = () => {
       applyTheme(readWorkspaceThemePreference(effectiveWorkspace()) ?? DEFAULT_THEME)
@@ -438,20 +428,19 @@ function CortanaApplication() {
       controller?.abort()
       const nextController = new AbortController()
       controller = nextController
-      const requestId = ++statusRequestRef.current
+      const requestId = ++statusRequestId
       const isInitialRequest = initialRequest
       initialRequest = false
       void getStatus(nextController.signal)
         .then((result) => {
-          if (disposed || nextController.signal.aborted || statusRequestRef.current !== requestId)
+          if (disposed || nextController.signal.aborted || statusRequestId !== requestId)
             return null
           setStatus(result)
           setStatusError('')
           return null
         })
         .catch((caught: unknown) => {
-          if (disposed || nextController.signal.aborted || statusRequestRef.current !== requestId)
-            return
+          if (disposed || nextController.signal.aborted || statusRequestId !== requestId) return
           setStatusError(caught instanceof Error ? caught.message : 'Status unavailable')
         })
         .finally(() => {
@@ -462,58 +451,23 @@ function CortanaApplication() {
             isInitialRequest &&
             !disposed &&
             !nextController.signal.aborted &&
-            statusRequestRef.current === requestId &&
-            searchRequestRef.current === 0
+            statusRequestId === requestId &&
+            searchRequestId === 0
           ) {
             setLoading(false)
           }
         })
     }
-    statusRefreshRef.current = refresh
+    statusRefresh = refresh
     refresh()
     const timer = window.setInterval(refresh, STATUS_REFRESH_MS)
     return onCleanup(() => {
       disposed = true
       window.clearInterval(timer)
       controller?.abort()
-      statusRequestRef.current += 1
-      if (statusRefreshRef.current === refresh) statusRefreshRef.current = null
+      statusRequestId += 1
+      if (statusRefresh === refresh) statusRefresh = null
     })
-  })
-  const documentScopeKey = () =>
-    [
-      view(),
-      documentFetchReady(),
-      source(),
-      effectiveWorkspace(),
-      debouncedDocumentQuery(),
-      documentRetryNonce(),
-      desktopSettings() === null,
-    ].join('\u0000')
-  const [previousDocumentScopeKey, setPreviousDocumentScopeKey] = createSignal(documentScopeKey())
-  createEffect(() => {
-    if (documentScopeKey() === previousDocumentScopeKey()) return
-    setPreviousDocumentScopeKey(documentScopeKey())
-    if (view() !== 'knowledge') {
-      // Settings and utility views do not consume the document list. Keep the
-      // last Knowledge snapshot so returning to it feels continuous, while the
-      // next Knowledge render still performs a fresh scoped read.
-      setDocumentsLoading(false)
-    } else if (!documentFetchReady()) {
-      setDocuments([])
-      setDocumentCursor(null)
-      setDocumentsError('')
-      setActiveDocument(null)
-      // Keep the Knowledge pane honest during the one transient state where
-      // Desktop settings have not arrived yet. Once setup is known to be
-      // required, or while Settings is open, there is no document request to
-      // wait for and the empty state should be calm instead of spinning.
-      setDocumentsLoading(isDesktopApp && desktopSettings() === null)
-    } else {
-      setDocumentsError('')
-      setActiveDocument(null)
-      setDocumentsLoading(true)
-    }
   })
   createEffect(() => {
     // Desktop settings are the control-plane gate for the document index. On
@@ -521,19 +475,49 @@ function CortanaApplication() {
     // not query a half-configured backend (or surface a noisy error) before
     // the user has finished that flow. The Knowledge view is the only surface
     // that consumes this list, so avoid background reads while managing the
-    // local runtime in Settings as well. State resets above run during render.
-    if (view() !== 'knowledge' || !documentFetchReady()) {
-      documentListRequestRef.current += 1
-      documentListAbortRef.current?.abort()
-      documentPageLoadingRef.current = false
+    // local runtime in Settings as well.
+    const scope = documentScope()
+    const inKnowledge = view() === 'knowledge'
+    const ready = documentFetchReady()
+    const settingsPending = isDesktopApp && desktopSettings() === null
+    documentRetryNonce()
+
+    const requestId = ++documentListRequestId
+    documentListAbort?.abort()
+    documentPageLoading = false
+
+    if (!inKnowledge) {
+      // Settings and utility views do not consume the document list. Keep the
+      // last Knowledge snapshot so returning to it feels continuous, while the
+      // next Knowledge render still performs a fresh scoped read.
+      setDocumentsLoading(false)
       return
     }
-    const requestId = ++documentListRequestRef.current
-    documentListAbortRef.current?.abort()
+    if (!ready) {
+      setDocuments([])
+      setDocumentCursor(null)
+      setDocumentsError('')
+      setActiveDocument(null)
+      // Keep the Knowledge pane honest during the one transient state where
+      // Desktop settings have not arrived yet. Once setup is known to be
+      // required there is no document request to wait for and the empty state
+      // should be calm instead of spinning.
+      setDocumentsLoading(settingsPending)
+      return
+    }
+    setDocumentsError('')
+    setActiveDocument(null)
+    const cached = documentListCache.get(scope)
+    if (cached) {
+      // Restore the remembered snapshot for this scope instantly; the request
+      // below still revalidates it against the index.
+      setDocuments(cached.documents)
+      setDocumentCursor(cached.cursor)
+    }
+    setDocumentsLoading(true)
+    documentPageLoading = true
     const controller = new AbortController()
-    documentListAbortRef.current = controller
-    const requestedScope = documentScope()
-    documentPageLoadingRef.current = true
+    documentListAbort = controller
     void getDocuments(
       effectiveWorkspace() || undefined,
       source() || undefined,
@@ -542,73 +526,74 @@ function CortanaApplication() {
       controller.signal
     )
       .then((page) => {
-        if (documentListRequestRef.current !== requestId) return null
-        if (documentScope() !== requestedScope) return null
+        if (documentListRequestId !== requestId) return null
+        if (documentScope() !== scope) return null
+        documentListCache.set(scope, { documents: page.documents, cursor: page.next_cursor })
+        // A fresh list page is the cheapest invalidation signal the API
+        // offers: if a summary's updated_at moved, its cached detail is stale.
+        for (const item of page.documents) {
+          const cachedDetail = documentDetailCache.get(item.id)
+          if (cachedDetail && cachedDetail.updated_at !== item.updated_at) {
+            documentDetailCache.delete(item.id)
+          }
+        }
         setDocuments(page.documents)
         setDocumentCursor(page.next_cursor)
         return null
       })
       .catch((caught: unknown) => {
         if (isAbort(caught) || controller.signal.aborted) return
-        if (documentListRequestRef.current !== requestId) return
-        if (documentScope() !== requestedScope) return
+        if (documentListRequestId !== requestId) return
+        if (documentScope() !== scope) return
         setDocuments([])
         setDocumentCursor(null)
         setDocumentsError(caught instanceof Error ? caught.message : 'Documents unavailable')
       })
       .finally(() => {
         if (
-          documentListRequestRef.current === requestId &&
+          documentListRequestId === requestId &&
           !controller.signal.aborted &&
-          documentScope() === requestedScope
+          documentScope() === scope
         ) {
-          documentPageLoadingRef.current = false
+          documentPageLoading = false
           setDocumentsLoading(false)
         }
       })
-    return onCleanup(() => {
-      controller.abort()
-      if (documentListRequestRef.current === requestId && documentScope() === requestedScope) {
-        documentPageLoadingRef.current = false
-        setDocumentsLoading(false)
-      }
-    })
+    return onCleanup(() => controller.abort())
   })
-  const graphScopeKey = () =>
-    [
-      view(),
-      workspaceTab(),
-      documentFetchReady(),
+  const graphScope = () =>
+    JSON.stringify([
       source(),
       effectiveWorkspace(),
       debouncedDocumentQuery(),
-      graphRetryNonce(),
       graphFocusDocumentId(),
       graphEdgeKind(),
       graphOrigin(),
       graphMinConfidence(),
-    ].join('\u0000')
-  const [previousGraphScopeKey, setPreviousGraphScopeKey] = createSignal(graphScopeKey())
+    ])
   createEffect(() => {
-    if (graphScopeKey() === previousGraphScopeKey()) return
-    setPreviousGraphScopeKey(graphScopeKey())
-    setGraph(null)
-    setGraphError('')
-    setGraphLoading(view() === 'knowledge' && workspaceTab() === 'graph' && documentFetchReady())
-    setGraphAppendLoading(false)
-  })
-  createEffect(() => {
-    if (view() !== 'knowledge' || workspaceTab() !== 'graph' || !documentFetchReady()) {
-      graphRequestRef.current += 1
-      graphAbortRef.current?.abort()
-      graphAppendRequestRef.current += 1
+    const scope = graphScope()
+    const active = view() === 'knowledge' && workspaceTab() === 'graph' && documentFetchReady()
+    graphRetryNonce()
+
+    const requestId = ++graphRequestId
+    graphAbort?.abort()
+    graphAppendRequestId += 1
+
+    if (!active) {
+      setGraphLoading(false)
+      setGraphAppendLoading(false)
       return
     }
-    const requestId = ++graphRequestRef.current
-    graphAbortRef.current?.abort()
+    setGraphError('')
+    setGraphAppendLoading(false)
+    const cached = graphCache.get(scope)
+    setGraph(cached ?? null)
+    // A remembered snapshot paints instantly and revalidates silently; a cold
+    // scope keeps the loading surface.
+    setGraphLoading(!cached)
     const controller = new AbortController()
-    graphAbortRef.current = controller
-    graphAppendRequestRef.current += 1
+    graphAbort = controller
     void getGraph(
       effectiveWorkspace() || undefined,
       source() || undefined,
@@ -629,17 +614,18 @@ function CortanaApplication() {
       }
     )
       .then((result) => {
-        if (graphRequestRef.current !== requestId || controller.signal.aborted) return null
+        if (graphRequestId !== requestId || controller.signal.aborted) return null
+        graphCache.set(scope, result)
         setGraph(result)
         return null
       })
       .catch((caught: unknown) => {
         if (isAbort(caught) || controller.signal.aborted) return
-        if (graphRequestRef.current !== requestId) return
+        if (graphRequestId !== requestId) return
         setGraphError(caught instanceof Error ? caught.message : 'Graph data unavailable')
       })
       .finally(() => {
-        if (graphRequestRef.current === requestId && !controller.signal.aborted) {
+        if (graphRequestId === requestId && !controller.signal.aborted) {
           setGraphLoading(false)
         }
       })
@@ -649,7 +635,8 @@ function CortanaApplication() {
     const current = graph()
     const cursor = current?.next_cursor
     if (!cursor || graphLoading() || graphAppendLoading()) return
-    const requestId = ++graphAppendRequestRef.current
+    const scope = graphScope()
+    const requestId = ++graphAppendRequestId
     setGraphAppendLoading(true)
     void getGraph(
       effectiveWorkspace() || undefined,
@@ -658,7 +645,7 @@ function CortanaApplication() {
       cursor
     )
       .then((result) => {
-        if (graphAppendRequestRef.current !== requestId) return null
+        if (graphAppendRequestId !== requestId) return null
         setGraph((previous) => {
           if (!previous) return result
           const nodes = [...previous.nodes]
@@ -672,21 +659,25 @@ function CortanaApplication() {
             const edgeId = `${edge.source}:${edge.target}:${edge.kind}`
             if (!edgeIds.has(edgeId)) edges.push(edge)
           }
-          return {
+          const merged = {
             nodes,
             edges,
             next_cursor: result.next_cursor,
           }
+          // Keep the accumulated page in the scope cache so leaving and
+          // reopening the graph restores the full loaded window.
+          graphCache.set(scope, merged)
+          return merged
         })
         return null
       })
       .catch((caught: unknown) => {
-        if (graphAppendRequestRef.current === requestId) {
+        if (graphAppendRequestId === requestId) {
           setGraphError(caught instanceof Error ? caught.message : 'Graph data unavailable')
         }
       })
       .finally(() => {
-        if (graphAppendRequestRef.current === requestId) setGraphAppendLoading(false)
+        if (graphAppendRequestId === requestId) setGraphAppendLoading(false)
       })
   }
   createEffect(() => {
@@ -714,6 +705,7 @@ function CortanaApplication() {
         searchRef.current?.select()
       } else if (modifier && key === 'p') {
         event.preventDefault()
+        setCommandPaletteMounted(true)
         setCommandPaletteOpen((open) => {
           if (!open) {
             commandPaletteOriginRef.current =
@@ -750,23 +742,23 @@ function CortanaApplication() {
   })
   createEffect(() => {
     if (!isDesktopApp) return
-    const requestId = ++desktopSettingsRequestRef.current
-    const infoRequestId = ++desktopInfoRequestRef.current
-    const updateRequestId = ++desktopUpdateRequestRef.current
+    const requestId = ++desktopSettingsRequestId
+    const infoRequestId = ++desktopInfoRequestId
+    const updateRequestId = ++desktopUpdateRequestId
     let active = true
     void getDesktopSettings()
       .then((result) => {
-        if (!active || desktopSettingsRequestRef.current !== requestId) return null
+        if (!active || desktopSettingsRequestId !== requestId) return null
         setDesktopSettings(result)
         if (result.needs_setup) setView('settings')
         return null
       })
       .catch(() => {
-        if (active && desktopSettingsRequestRef.current === requestId) setView('settings')
+        if (active && desktopSettingsRequestId === requestId) setView('settings')
       })
     void getDesktopInfo()
       .then((result) => {
-        if (active && desktopInfoRequestRef.current === infoRequestId) {
+        if (active && desktopInfoRequestId === infoRequestId) {
           setDesktopInfo(result)
           return null
         }
@@ -777,7 +769,7 @@ function CortanaApplication() {
       })
     void getDesktopUpdate()
       .then((result) => {
-        if (active && desktopUpdateRequestRef.current === updateRequestId) {
+        if (active && desktopUpdateRequestId === updateRequestId) {
           setDesktopUpdate(result)
           return null
         }
@@ -788,10 +780,10 @@ function CortanaApplication() {
       })
     return onCleanup(() => {
       active = false
-      desktopInfoRequestRef.current += 1
-      desktopUpdateRequestRef.current += 1
-      if (desktopSettingsRequestRef.current === requestId) {
-        desktopSettingsRequestRef.current += 1
+      desktopInfoRequestId += 1
+      desktopUpdateRequestId += 1
+      if (desktopSettingsRequestId === requestId) {
+        desktopSettingsRequestId += 1
       }
     })
   })
@@ -802,17 +794,17 @@ function CortanaApplication() {
     const refresh = () => {
       if (disposed || requestInFlight) return
       requestInFlight = true
-      const requestId = ++desktopServicesRequestRef.current
+      const requestId = ++desktopServicesRequestId
       void getDesktopServices()
         .then((result) => {
-          if (disposed || desktopServicesRequestRef.current !== requestId) return null
+          if (disposed || desktopServicesRequestId !== requestId) return null
           setDesktopServices(result)
           if (result.activity) setServiceActivity(result.activity)
           setDesktopServicesError('')
           return null
         })
         .catch((caught: unknown) => {
-          if (disposed || desktopServicesRequestRef.current !== requestId) return
+          if (disposed || desktopServicesRequestId !== requestId) return
           setDesktopServicesError(
             caught instanceof Error ? caught.message : 'Service status is unavailable'
           )
@@ -826,40 +818,38 @@ function CortanaApplication() {
     return onCleanup(() => {
       disposed = true
       window.clearInterval(timer)
-      desktopServicesRequestRef.current += 1
+      desktopServicesRequestId += 1
     })
   })
   createEffect(() => {
     if (!isDesktopApp) return
-    const completed = sourceJobs
-      .jobs()
-      .filter(
-        (job) =>
-          job.completed_at_unix_seconds !== null && !['running', 'cancelling'].includes(job.status)
-      )
+    const completed = sourceJobs.jobs.filter(
+      (job) =>
+        job.completed_at_unix_seconds !== null && !['running', 'cancelling'].includes(job.status)
+    )
     const completedIds = new Set(completed.map((job) => job.id))
-    for (const id of refreshedSourceJobsRef.current) {
-      if (!completedIds.has(id)) refreshedSourceJobsRef.current.delete(id)
+    for (const id of refreshedSourceJobs) {
+      if (!completedIds.has(id)) refreshedSourceJobs.delete(id)
     }
-    const unseen = completed.filter((job) => !refreshedSourceJobsRef.current.has(job.id))
+    const unseen = completed.filter((job) => !refreshedSourceJobs.has(job.id))
     if (unseen.length === 0) return
-    unseen.forEach((job) => refreshedSourceJobsRef.current.add(job.id))
+    unseen.forEach((job) => refreshedSourceJobs.add(job.id))
     let active = true
-    const requestId = ++statusRequestRef.current
+    const requestId = ++statusRequestId
     void getStatus()
       .then((result) => {
-        if (!active || statusRequestRef.current !== requestId) return null
+        if (!active || statusRequestId !== requestId) return null
         setStatus(result)
         setStatusError('')
         return null
       })
       .catch((caught: unknown) => {
-        if (!active || statusRequestRef.current !== requestId) return
+        if (!active || statusRequestId !== requestId) return
         setStatusError(caught instanceof Error ? caught.message : 'Status unavailable')
       })
     return onCleanup(() => {
       active = false
-      if (statusRequestRef.current === requestId) statusRequestRef.current += 1
+      if (statusRequestId === requestId) statusRequestId += 1
     })
   })
   createEffect(() => {
@@ -892,8 +882,8 @@ function CortanaApplication() {
     })
   })
   createEffect(() => {
-    const previous = installerStatusRef.current
-    installerStatusRef.current = installerStatus()
+    const previous = previousInstallerStatus
+    previousInstallerStatus = installerStatus()
     if (
       !isDesktopApp ||
       !installerStatus() ||
@@ -941,7 +931,7 @@ function CortanaApplication() {
       window.clearInterval(timer)
     })
   })
-  const agentContext = createMemo(() => buildAgentContext(activeQuery(), evidence()))
+  const agentContext = createMemo(() => buildAgentContext(activeQuery(), evidence))
   function boundDocumentQuery(boundedQuery: string) {
     if (textEncoder.encode(boundedQuery).length <= MAX_DOCUMENT_QUERY_BYTES) {
       return boundedQuery
@@ -959,26 +949,26 @@ function CortanaApplication() {
   const abortSearchRequest = (): void => {
     // A connector or test double may resolve after AbortController fires. The
     // generation check keeps that stale result from returning to the shell.
-    searchRequestRef.current += 1
-    searchAbortRef.current?.abort()
+    searchRequestId += 1
+    searchAbort?.abort()
     setLoading(false)
     setError('')
   }
   const abortContextRequest = (): void => {
-    contextRequestRef.current += 1
-    contextAbortRef.current?.abort()
+    contextRequestId += 1
+    contextAbort?.abort()
     setContextBundle(null)
     setContextLoading(false)
     setContextError('')
   }
   const clearScopedResults = (): void => {
-    documentListRequestRef.current += 1
-    documentListAbortRef.current?.abort()
-    documentSelectRequestRef.current += 1
-    documentSelectAbortRef.current?.abort()
-    graphRequestRef.current += 1
-    graphAbortRef.current?.abort()
-    documentPageLoadingRef.current = false
+    documentListRequestId += 1
+    documentListAbort?.abort()
+    documentSelectRequestId += 1
+    documentSelectAbort?.abort()
+    graphRequestId += 1
+    graphAbort?.abort()
+    documentPageLoading = false
     setDocuments([])
     setDocumentCursor(null)
     setDocumentsLoading(true)
@@ -999,8 +989,8 @@ function CortanaApplication() {
   }
   const scopeSources = (nextWorkspace: string, nextSource = source()) => {
     const nextScope = searchScope(nextSource, nextWorkspace, query())
-    searchScopeRef.current = nextScope
-    contextScopeRef.current = contextScope(activeQuery(), nextWorkspace, nextSource)
+    searchScopeToken = nextScope
+    contextScopeToken = contextScope(activeQuery(), nextWorkspace, nextSource)
   }
   async function runSearch(
     value: string,
@@ -1014,7 +1004,7 @@ function CortanaApplication() {
       setQueryHistory(nextHistory)
       setQueryHistoryIndex(nextHistory.length - 1)
     }
-    const requestId = ++searchRequestRef.current
+    const requestId = ++searchRequestId
     const requestedScope = searchScope(nextSource, nextWorkspace, value)
     setLoading(true)
     setError('')
@@ -1022,10 +1012,10 @@ function CortanaApplication() {
     // Otherwise a search started from the document tab looks idle until the
     // answer arrives.
     setWorkspaceTab('answer')
-    searchScopeRef.current = requestedScope
+    searchScopeToken = requestedScope
     const controller = new AbortController()
-    searchAbortRef.current?.abort()
-    searchAbortRef.current = controller
+    searchAbort?.abort()
+    searchAbort = controller
     try {
       const next = await getAnswer(
         value,
@@ -1033,7 +1023,7 @@ function CortanaApplication() {
         nextSource || undefined,
         controller.signal
       )
-      if (searchRequestRef.current !== requestId || searchScopeRef.current !== requestedScope) {
+      if (searchRequestId !== requestId || searchScopeToken !== requestedScope) {
         return
       }
       setAnswer(next)
@@ -1044,7 +1034,7 @@ function CortanaApplication() {
       setSelected(0)
     } catch (caught) {
       if (controller.signal.aborted || isAbort(caught)) return
-      if (searchRequestRef.current !== requestId || searchScopeRef.current !== requestedScope) {
+      if (searchRequestId !== requestId || searchScopeToken !== requestedScope) {
         return
       }
       setError(caught instanceof Error ? caught.message : 'Search failed')
@@ -1053,8 +1043,8 @@ function CortanaApplication() {
       setEvidence([])
     } finally {
       if (
-        searchRequestRef.current === requestId &&
-        searchScopeRef.current === requestedScope &&
+        searchRequestId === requestId &&
+        searchScopeToken === requestedScope &&
         !controller.signal.aborted
       ) {
         setLoading(false)
@@ -1064,12 +1054,12 @@ function CortanaApplication() {
   async function runReflection() {
     const value = query().trim()
     if (!value || loading()) return
-    const requestId = ++searchRequestRef.current
+    const requestId = ++searchRequestId
     const requestedScope = searchScope(source(), effectiveWorkspace(), value)
     const controller = new AbortController()
-    searchAbortRef.current?.abort()
-    searchAbortRef.current = controller
-    searchScopeRef.current = requestedScope
+    searchAbort?.abort()
+    searchAbort = controller
+    searchScopeToken = requestedScope
     setLoading(true)
     setError('')
     setWorkspaceTab('answer')
@@ -1080,8 +1070,7 @@ function CortanaApplication() {
         source() || undefined,
         controller.signal
       )
-      if (searchRequestRef.current !== requestId || searchScopeRef.current !== requestedScope)
-        return
+      if (searchRequestId !== requestId || searchScopeToken !== requestedScope) return
       setAnswer(null)
       setReflection(reflectionResult)
       setEvidence([])
@@ -1091,7 +1080,7 @@ function CortanaApplication() {
       if (controller.signal.aborted || isAbort(caught)) return
       setError(caught instanceof Error ? caught.message : 'Reflection failed')
     } finally {
-      if (searchRequestRef.current === requestId && !controller.signal.aborted) setLoading(false)
+      if (searchRequestId === requestId && !controller.signal.aborted) setLoading(false)
     }
   }
   function submit(event: SubmitEvent) {
@@ -1368,13 +1357,13 @@ function CortanaApplication() {
     setGraphFocusDocumentId(graphFocusHistory()[nextIndex] ?? null)
   }
   async function loadMoreDocuments() {
-    if (!documentCursor() || documentsLoading() || documentPageLoadingRef.current) return
+    if (!documentCursor() || documentsLoading() || documentPageLoading) return
     const requestedScope = documentScope()
-    const requestId = ++documentListRequestRef.current
+    const requestId = ++documentListRequestId
     const controller = new AbortController()
-    documentListAbortRef.current?.abort()
-    documentListAbortRef.current = controller
-    documentPageLoadingRef.current = true
+    documentListAbort?.abort()
+    documentListAbort = controller
+    documentPageLoading = true
     setDocumentsLoading(true)
     setDocumentsError('')
     try {
@@ -1385,65 +1374,99 @@ function CortanaApplication() {
         documentCursor() ?? undefined,
         controller.signal
       )
-      if (documentListRequestRef.current !== requestId) return
+      if (documentListRequestId !== requestId) return
       if (documentScope() !== requestedScope) return
-      setDocuments((current) => [
-        ...current,
-        ...page.documents.filter((item) => !current.some((existing) => existing.id === item.id)),
-      ])
+      const fresh = page.documents.filter(
+        (item) => !documents.some((existing) => existing.id === item.id)
+      )
+      const merged = [...documents, ...fresh]
+      setDocuments(merged)
       setDocumentCursor(page.next_cursor)
+      const cached = documentListCache.get(requestedScope) ?? { documents: [], cursor: null }
+      cached.documents = unwrap(merged)
+      cached.cursor = page.next_cursor
+      documentListCache.set(requestedScope, cached)
     } catch (caught) {
       if (isAbort(caught) || controller.signal.aborted) return
-      if (documentListRequestRef.current !== requestId) return
+      if (documentListRequestId !== requestId) return
       if (documentScope() === requestedScope) {
         setDocumentsError(caught instanceof Error ? caught.message : 'Documents unavailable')
       }
     } finally {
       if (
-        documentListRequestRef.current === requestId &&
+        documentListRequestId === requestId &&
         !controller.signal.aborted &&
         documentScope() === requestedScope
       ) {
-        documentPageLoadingRef.current = false
+        documentPageLoading = false
         setDocumentsLoading(false)
       }
     }
   }
+  function fetchDocumentDetail(id: string, signal?: AbortSignal): Promise<BrainDocument> {
+    const inflight = documentDetailRequests.get(id)
+    if (inflight) return inflight
+    const request = getDocument(id, signal)
+      .then((doc) => {
+        documentDetailCache.set(id, doc)
+        return doc
+      })
+      .finally(() => {
+        if (documentDetailRequests.get(id) === request) documentDetailRequests.delete(id)
+      })
+    documentDetailRequests.set(id, request)
+    return request
+  }
+  // Hovering a row is a strong open intent; warm the detail cache so the
+  // click paints from memory while the revalidation request refreshes it.
+  function prefetchDocument(id: string) {
+    if (documentDetailCache.get(id) || documentDetailRequests.has(id)) return
+    void fetchDocumentDetail(id).catch(() => {})
+  }
   async function chooseDocument(id: string) {
-    const requestId = ++documentSelectRequestRef.current
+    const requestId = ++documentSelectRequestId
     const controller = new AbortController()
-    documentSelectAbortRef.current?.abort()
-    documentSelectAbortRef.current = controller
-    setDocumentLoading(true)
+    documentSelectAbort?.abort()
+    documentSelectAbort = controller
     setDocumentsError('')
+    const cached = documentDetailCache.get(id)
+    if (cached) {
+      setDocumentLoading(false)
+      setActiveDocument(cached)
+      setLeftOpen(false)
+      void fetchDocumentDetail(id)
+        .then((latest) => {
+          if (documentSelectRequestId === requestId) setActiveDocument(latest)
+          return null
+        })
+        .catch(() => {})
+      return
+    }
+    setDocumentLoading(true)
     try {
-      const next = await getDocument(id, controller.signal)
-      if (documentSelectRequestRef.current !== requestId) return
+      const next = await fetchDocumentDetail(id, controller.signal)
+      if (documentSelectRequestId !== requestId) return
       setActiveDocument(next)
       setLeftOpen(false)
     } catch (caught) {
-      if (
-        documentSelectRequestRef.current !== requestId ||
-        controller.signal.aborted ||
-        isAbort(caught)
-      )
+      if (documentSelectRequestId !== requestId || controller.signal.aborted || isAbort(caught))
         return
       setDocumentsError(caught instanceof Error ? caught.message : 'Document unavailable')
     } finally {
-      if (documentSelectRequestRef.current === requestId && !controller.signal.aborted) {
+      if (documentSelectRequestId === requestId && !controller.signal.aborted) {
         setDocumentLoading(false)
       }
     }
   }
   async function retrieveAgentContext() {
-    const requestId = ++contextRequestRef.current
+    const requestId = ++contextRequestId
     const requestedScope = contextScope(activeQuery(), effectiveWorkspace(), source())
     setContextLoading(true)
     setContextError('')
-    contextScopeRef.current = requestedScope
+    contextScopeToken = requestedScope
     const controller = new AbortController()
-    contextAbortRef.current?.abort()
-    contextAbortRef.current = controller
+    contextAbort?.abort()
+    contextAbort = controller
     try {
       const next = await getContext(
         activeQuery(),
@@ -1451,15 +1474,15 @@ function CortanaApplication() {
         source() || undefined,
         controller.signal
       )
-      if (contextRequestRef.current !== requestId || contextScopeRef.current !== requestedScope) {
+      if (contextRequestId !== requestId || contextScopeToken !== requestedScope) {
         return
       }
       setContextBundle(next)
     } catch (caught) {
       if (
-        contextAbortRef.current?.signal.aborted ||
-        contextRequestRef.current !== requestId ||
-        contextScopeRef.current !== requestedScope ||
+        contextAbort?.signal.aborted ||
+        contextRequestId !== requestId ||
+        contextScopeToken !== requestedScope ||
         isAbort(caught)
       ) {
         return
@@ -1467,8 +1490,8 @@ function CortanaApplication() {
       setContextError(caught instanceof Error ? caught.message : 'Context retrieval failed')
     } finally {
       if (
-        contextRequestRef.current === requestId &&
-        contextScopeRef.current === requestedScope &&
+        contextRequestId === requestId &&
+        contextScopeToken === requestedScope &&
         !controller.signal.aborted
       ) {
         setContextLoading(false)
@@ -1525,13 +1548,14 @@ function CortanaApplication() {
       (document.activeElement instanceof HTMLElement && document.activeElement !== document.body
         ? document.activeElement
         : searchRef.current)
+    setCommandPaletteMounted(true)
     setCommandPaletteOpen(true)
   }
   function cancelSourceJob(id: string) {
-    if (sourceCancelInFlightRef.current.has(id)) return
-    const current = sourceJobs.jobs().find((job) => job.id === id)
+    if (sourceCancelInFlight.has(id)) return
+    const current = sourceJobs.jobs.find((job) => job.id === id)
     if (!current || current.status !== 'running') return
-    sourceCancelInFlightRef.current.add(id)
+    sourceCancelInFlight.add(id)
     sourceJobs.remember({
       ...current,
       status: 'cancelling',
@@ -1550,11 +1574,11 @@ function CortanaApplication() {
         )
       })
       .finally(() => {
-        sourceCancelInFlightRef.current.delete(id)
+        sourceCancelInFlight.delete(id)
       })
   }
   const retryStatus = () => {
-    statusRefreshRef.current?.()
+    statusRefresh?.()
   }
   const retryDocuments = () => {
     setDocumentsError('')
@@ -1748,7 +1772,7 @@ function CortanaApplication() {
               initialSection={settingsSection()}
               onDirtyChange={setSettingsDirty}
               onJob={sourceJobs.remember}
-              sourceJobs={sourceJobs.jobs()}
+              sourceJobs={sourceJobs.jobs}
               installerJob={installerJob()}
               onInstallerJob={setInstallerJob}
               readiness={desktopReadiness()}
@@ -1774,25 +1798,25 @@ function CortanaApplication() {
                 // A settings save can change the configured embedding/runtime
                 // services. Refresh the shell-owned snapshots immediately rather
                 // than waiting for the next 15-second health tick.
-                const servicesRequestId = ++desktopServicesRequestRef.current
+                const servicesRequestId = ++desktopServicesRequestId
                 void getDesktopServices()
                   .then((nextServices) => {
-                    if (desktopServicesRequestRef.current !== servicesRequestId) return null
+                    if (desktopServicesRequestId !== servicesRequestId) return null
                     setDesktopServices(nextServices)
                     if (nextServices.activity) setServiceActivity(nextServices.activity)
                     setDesktopServicesError('')
                     return null
                   })
                   .catch((caught: unknown) => {
-                    if (desktopServicesRequestRef.current !== servicesRequestId) return
+                    if (desktopServicesRequestId !== servicesRequestId) return
                     setDesktopServicesError(
                       caught instanceof Error ? caught.message : 'Service status is unavailable'
                     )
                   })
-                const infoRequestId = ++desktopInfoRequestRef.current
+                const infoRequestId = ++desktopInfoRequestId
                 void getDesktopInfo()
                   .then((nextInfo) => {
-                    if (desktopInfoRequestRef.current === infoRequestId) {
+                    if (desktopInfoRequestId === infoRequestId) {
                       setDesktopInfo(nextInfo)
                     }
                     return null
@@ -1801,16 +1825,16 @@ function CortanaApplication() {
                     // Keep the previous metadata snapshot when the refresh is
                     // unavailable; the Services panel can retry explicitly.
                   })
-                const statusRequestId = ++statusRequestRef.current
+                const refreshId = ++statusRequestId
                 void getStatus()
                   .then((nextStatus) => {
-                    if (statusRequestRef.current !== statusRequestId) return null
+                    if (statusRequestId !== refreshId) return null
                     setStatus(nextStatus)
                     setStatusError('')
                     return null
                   })
                   .catch(() => {
-                    if (statusRequestRef.current !== statusRequestId) return
+                    if (statusRequestId !== refreshId) return
                     setStatusError('Status unavailable after saving settings')
                   })
                 if (
@@ -1855,7 +1879,7 @@ function CortanaApplication() {
                   workspaces={workspaces()}
                   documentQuery={documentQuery()}
                   selected={source()}
-                  documents={documents()}
+                  documents={documents}
                   selectedDocument={activeDocument()?.id ?? ''}
                   documentsLoading={documentsLoading()}
                   documentsError={documentsError()}
@@ -1867,6 +1891,7 @@ function CortanaApplication() {
                   onSelect={chooseSource}
                   onDocumentQueryChange={setDocumentQuery}
                   onSelectDocument={(id) => void chooseDocument(id)}
+                  onPrefetchDocument={prefetchDocument}
                   onLoadMoreDocuments={() => void loadMoreDocuments()}
                   onRetryDocuments={retryDocuments}
                   onOpenSourcesSettings={() => {
@@ -1898,7 +1923,7 @@ function CortanaApplication() {
                   sourceToggleNotice={sourceToggleNotice()}
                   onClose={() => setLeftOpen(false)}
                   onCancelSourceJob={cancelSourceJob}
-                  jobs={sourceJobs.jobs()}
+                  jobs={sourceJobs.jobs}
                 />
               </M7PanelBoundary>
             )}
@@ -1927,7 +1952,7 @@ function CortanaApplication() {
               query={activeQuery()}
               answer={answer()}
               reflection={reflection()}
-              evidence={evidence()}
+              evidence={evidence}
               selected={selected()}
               loading={loading()}
               error={error()}
@@ -1971,7 +1996,7 @@ function CortanaApplication() {
                 <ContextPanel
                   open={rightOpen()}
                   query={activeQuery()}
-                  evidence={evidence()}
+                  evidence={evidence}
                   answer={answer()}
                   selected={selected()}
                   status={status()}
@@ -2012,7 +2037,7 @@ function CortanaApplication() {
           <M7ActivityInbox
             status={status()}
             statusError={statusError()}
-            sourceJobs={sourceJobs.jobs()}
+            sourceJobs={sourceJobs.jobs}
             sourceJobError={sourceJobsError()}
             onRetrySourceJobs={sourceJobsRetry()}
             onOpenSettings={() => openSettingsAt('sources')}
@@ -2025,10 +2050,10 @@ function CortanaApplication() {
             status={status()}
             statusError={statusError()}
             onRetryStatus={retryStatus}
-            sourceJobs={sourceJobs.jobs()}
+            sourceJobs={sourceJobs.jobs}
             query={activeQuery()}
             answer={answer()}
-            evidence={evidence()}
+            evidence={evidence}
             loading={loading()}
             error={error()}
             contextBundle={contextBundle()}
@@ -2045,21 +2070,23 @@ function CortanaApplication() {
             onCancelSourceJob={cancelSourceJob}
           />
         )}
-        {
-          <M7CommandPalette
-            open={commandPaletteOpen()}
-            finalFocus={commandPaletteOriginRef}
-            onOpenChange={setCommandPaletteOpen}
-            workspaces={workspaces()}
-            onSearch={focusSearch}
-            onFilterDocuments={focusDocumentFilter}
-            onChooseWorkspace={(nextWorkspace) => {
-              chooseWorkspace(nextWorkspace)
-              setDocumentQuery('')
-            }}
-            onOpenSettings={() => setView('settings')}
-          />
-        }
+        <Show when={commandPaletteMounted()}>
+          <Suspense>
+            <M7CommandPalette
+              open={commandPaletteOpen()}
+              finalFocus={commandPaletteOriginRef}
+              onOpenChange={setCommandPaletteOpen}
+              workspaces={workspaces()}
+              onSearch={focusSearch}
+              onFilterDocuments={focusDocumentFilter}
+              onChooseWorkspace={(nextWorkspace) => {
+                chooseWorkspace(nextWorkspace)
+                setDocumentQuery('')
+              }}
+              onOpenSettings={() => setView('settings')}
+            />
+          </Suspense>
+        </Show>
         {
           <M7StatusBar demo={isDemoMode}>
             <span class={cn(statusError() ? 'text-destructive' : 'text-foreground')}>
@@ -2075,7 +2102,7 @@ function CortanaApplication() {
             </span>
             <IngestionIndicator status={status()} />
             <ActiveSourceJobs
-              jobs={sourceJobs.jobs()}
+              jobs={sourceJobs.jobs}
               onOpen={() => {
                 if (!canLeaveSettings()) return
                 setView('inbox')
@@ -2089,7 +2116,7 @@ function CortanaApplication() {
               }}
             />
             <SourceJobAttentionIndicator
-              jobs={sourceJobs.jobs()}
+              jobs={sourceJobs.jobs}
               onOpen={() => {
                 if (!canLeaveSettings()) return
                 setView('inbox')
@@ -2150,8 +2177,8 @@ function CortanaApplication() {
     </M7ShellProvider>
   )
 }
-function IngestionIndicator(_props: { status: BrainStatus | null }) {
-  const props = _props
+function IngestionIndicator(incoming: { status: BrainStatus | null }) {
+  const props = incoming
   const runs = () => props.status?.sync_runs ?? []
   const running = () => runs().filter((run) => run.status === 'running').length
   const failed = () =>
@@ -2187,8 +2214,8 @@ function IngestionIndicator(_props: { status: BrainStatus | null }) {
     </Show>
   )
 }
-function ActiveSourceJobs(_props2: { jobs: DesktopSourceJob[]; onOpen: () => void }) {
-  const props = _props2
+function ActiveSourceJobs(incoming: { jobs: DesktopSourceJob[]; onOpen: () => void }) {
+  const props = incoming
   const active = () => activeJobs(props.jobs)
   const detail = () =>
     active()
@@ -2213,8 +2240,8 @@ function ActiveSourceJobs(_props2: { jobs: DesktopSourceJob[]; onOpen: () => voi
     </Show>
   )
 }
-function SourceJobsErrorIndicator(_props3: { error: string; onOpen: () => void }) {
-  const props = _props3
+function SourceJobsErrorIndicator(incoming: { error: string; onOpen: () => void }) {
+  const props = incoming
   const detail = () => props.error.replace(/\s+/g, ' ').trim()
   const label = () => (detail().length > 160 ? `${detail().slice(0, 157)}…` : detail())
   return (
@@ -2232,8 +2259,8 @@ function SourceJobsErrorIndicator(_props3: { error: string; onOpen: () => void }
     </Show>
   )
 }
-function SourceJobAttentionIndicator(_props4: { jobs: DesktopSourceJob[]; onOpen: () => void }) {
-  const props = _props4
+function SourceJobAttentionIndicator(incoming: { jobs: DesktopSourceJob[]; onOpen: () => void }) {
+  const props = incoming
   const attention = () => sourceJobAttention(props.jobs)
   const detail = () =>
     attention()
@@ -2260,8 +2287,8 @@ function isActiveInstaller(job: DesktopInstallJob): boolean {
 function isMissingInstallerJobError(error: unknown): boolean {
   return error instanceof Error && error.message.includes('installation job was not found')
 }
-function InstallerIndicator(_props5: { job: DesktopInstallJob | null; onOpen: () => void }) {
-  const props = _props5
+function InstallerIndicator(incoming: { job: DesktopInstallJob | null; onOpen: () => void }) {
+  const props = incoming
   const job = () => props.job
   const active = () => job() !== null && isActiveInstaller(job()!)
   const state = () => (active() ? 'running' : job()?.status === 'succeeded' ? 'healthy' : 'warning')
@@ -2282,11 +2309,11 @@ function InstallerIndicator(_props5: { job: DesktopInstallJob | null; onOpen: ()
     </Show>
   )
 }
-function ServiceActivityIndicator(_props6: {
+function ServiceActivityIndicator(incoming: {
   activity: DesktopServiceActivity | null
   onOpen: () => void
 }) {
-  const props = _props6
+  const props = incoming
   const activity = () => props.activity
   const active = () => activity()?.status === 'running'
   const state = () =>
@@ -2310,11 +2337,11 @@ function ServiceActivityIndicator(_props6: {
     </Show>
   )
 }
-function ReadinessActivityIndicator(_props7: {
+function ReadinessActivityIndicator(incoming: {
   activity: DesktopReadinessActivity | null
   onOpen: () => void
 }) {
-  const props = _props7
+  const props = incoming
   const activity = () => props.activity
   const active = () => activity()?.status === 'running'
   const state = () =>
@@ -2337,7 +2364,7 @@ function ReadinessActivityIndicator(_props7: {
     </Show>
   )
 }
-export function ServiceHealthIndicator(_props8: {
+export function ServiceHealthIndicator(incoming: {
   report: DesktopServiceReport | null
   error: string
   embeddingRequired?: boolean
@@ -2347,7 +2374,7 @@ export function ServiceHealthIndicator(_props8: {
     {
       embeddingRequired: true,
     },
-    _props8
+    incoming
   )
   const report = () => props.report
   const core = () =>

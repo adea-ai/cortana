@@ -1,4 +1,5 @@
 import { createEffect, createSignal, onCleanup } from 'solid-js'
+import { createStore, reconcile } from 'solid-js/store'
 
 import { getDesktopSourceJobs, getDesktopSourceValidation, isDesktopApp } from './api'
 import { useDesktopForeground } from './lib/foreground'
@@ -160,7 +161,9 @@ export function describeSourceJobProgress(
  * error retains the last snapshot.
  */
 export function useSourceJobs() {
-  const [jobs, setJobs] = createSignal<DesktopSourceJob[]>([])
+  // Reconcile by id so a 1s poll that returns unchanged snapshots does not
+  // invalidate every list derived from the job store.
+  const [jobs, setJobs] = createStore<DesktopSourceJob[]>([])
   const [error, setError] = createSignal('')
   const foreground = useDesktopForeground()
   const [retryNonce, setRetryNonce] = createSignal(0)
@@ -168,7 +171,7 @@ export function useSourceJobs() {
 
   const remember = (job: DesktopSourceJob) => {
     setError('')
-    setJobs((current) => upsertJob(current, job))
+    setJobs(reconcile(upsertJob(jobs, job)))
   }
 
   createEffect(() => {
@@ -185,7 +188,7 @@ export function useSourceJobs() {
     void getDesktopSourceJobs()
       .then((next) => {
         if (disposed || epoch !== pollEpoch || !foreground()) return null
-        setJobs((current) => mergeJobSnapshots(current, next))
+        setJobs(reconcile(mergeJobSnapshots(jobs, next)))
         setError('')
         return null
       })
@@ -199,7 +202,7 @@ export function useSourceJobs() {
       })
     const timer = window.setInterval(() => {
       if (!foreground() || polling) return
-      const ids = activeJobIds(jobs())
+      const ids = activeJobIds(jobs)
       if (ids.length === 0) return
       polling = true
       void Promise.allSettled(ids.map((id) => getDesktopSourceValidation(id)))
@@ -208,9 +211,9 @@ export function useSourceJobs() {
           let nextError: string | null = null
           results.forEach((result, index) => {
             if (result.status === 'fulfilled') {
-              setJobs((current) => upsertJob(current, result.value))
+              setJobs(reconcile(upsertJob(jobs, result.value)))
             } else if (isMissingJobError(result.reason)) {
-              setJobs((current) => dropJob(current, ids[index]))
+              setJobs(reconcile(dropJob(jobs, ids[index])))
             } else if (result.reason instanceof Error) {
               nextError = result.reason.message || 'Source job status unavailable'
             } else {

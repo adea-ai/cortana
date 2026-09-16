@@ -34,25 +34,5 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true,
     manifest: true,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (
-            id.endsWith('/M7ApplicationShell.tsx') ||
-            id.endsWith('/M7ActivityInbox.tsx') ||
-            id.endsWith('/hooks/use-mobile.ts') ||
-            id.endsWith('/lib/utils.ts') ||
-            id.includes('/node_modules/@kobalte/') ||
-            id.includes('/node_modules/cmdk-solid/') ||
-            id.includes('/node_modules/class-variance-authority/') ||
-            id.includes('/node_modules/clsx/') ||
-            id.includes('/node_modules/tailwind-merge/')
-          ) {
-            return 'm7-production-shell'
-          }
-          if (id.includes('/components/shadcn/')) return 'shadcn-ui'
-        },
-      },
-    },
   },
 })

@@ -167,7 +167,7 @@ const SETTINGS_NAV_SECONDARY_SECTIONS: Section[] = [
   'ingestion',
   'advanced',
 ]
-function SettingsViewContent(_props: {
+function SettingsViewContent(incoming: {
   /** Shell-owned settings snapshot. Standalone renders fetch their own copy. */
   desktopSettings?: DesktopSettings
   /** Report a standalone settings load back to the Desktop shell. */
@@ -212,9 +212,13 @@ function SettingsViewContent(_props: {
     {
       initialSection: 'readiness' as Section,
     },
-    _props
+    incoming
   )
   const confirm = useSettingsConfirm()
+  // The draft stays a signal: it is seeded from and compared against the
+  // shell-owned desktopSettings object, and a store would write leaf edits
+  // into that shared object. A draft owned by the store would need a deep
+  // copy on every external adoption, which is a worse trade-off here.
   const [settings, setSettings] = createSignal<DesktopSettings | null>(
     props.desktopSettings ?? null
   )
@@ -232,12 +236,10 @@ function SettingsViewContent(_props: {
   const installerJob = () =>
     props.installerJob === undefined ? localInstallerJob() : props.installerJob
   const setInstallerJob = props.onInstallerJob ?? setLocalInstallerJob
-  const componentMounted = {
-    current: true,
-  }
-  const settingsRef = {
-    current: settings()!,
-  }
+  let componentMounted = true
+  onCleanup(() => {
+    componentMounted = false
+  })
   const settingsNavRef = {
     current: null as HTMLElement | null,
   }
@@ -246,9 +248,7 @@ function SettingsViewContent(_props: {
   // whenever `dirty` changes would overwrite a just-saved draft with that
   // stale snapshot. Defer newer snapshots while dirty and adopt them once the
   // draft is clean.
-  const appliedExternalSettingsRef = {
-    current: props.desktopSettings,
-  }
+  let appliedExternalSettings = props.desktopSettings
   const [providerModels, setProviderModels] = createSignal<ProviderModelsState[]>([])
   const [modelsLoading, setModelsLoading] = createSignal<ProviderModelKind | null>(null)
   const [modelsError, setModelsError] = createSignal<Record<ProviderModelKind, string>>({
@@ -267,7 +267,7 @@ function SettingsViewContent(_props: {
    * stale list can never be attached to a different provider.
    */
   const refreshProviderModels = async (kind: ProviderModelKind) => {
-    const current = settingsRef.current
+    const current = settings()
     if (!current) return
     const provider = kind === 'embedding' ? current.embedding : current.query
     const captured = {
@@ -282,8 +282,8 @@ function SettingsViewContent(_props: {
     })
     try {
       const list = await listDesktopProviderModels(kind)
-      if (!componentMounted.current) return
-      const live = settingsRef.current
+      if (!componentMounted) return
+      const live = settings()
       if (!live) return
       const liveProvider = kind === 'embedding' ? live.embedding : live.query
       if (
@@ -309,13 +309,13 @@ function SettingsViewContent(_props: {
         },
       ])
     } catch (caught) {
-      if (!componentMounted.current) return
+      if (!componentMounted) return
       setModelsError((previous) => ({
         ...previous,
         [kind]: caught instanceof Error ? caught.message : 'Unable to refresh provider models',
       }))
     } finally {
-      if (componentMounted.current) setModelsLoading(null)
+      if (componentMounted) setModelsLoading(null)
     }
   }
 
@@ -334,26 +334,17 @@ function SettingsViewContent(_props: {
     return entry
   }
   createEffect(() => {
-    settingsRef.current = settings()!
-  })
-  createEffect(() => {
-    componentMounted.current = true
-    return onCleanup(() => {
-      componentMounted.current = false
-    })
-  })
-  createEffect(() => {
     if (props.desktopSettings) {
       // The shell owns the saved snapshot. Do not replace an in-progress local
       // draft, or re-apply the same stale object when a save clears `dirty`.
       // A new object is adopted once the draft is clean; this preserves parent
       // updates that arrived while the operator was editing.
-      if (dirty() || appliedExternalSettingsRef.current === props.desktopSettings) return
-      appliedExternalSettingsRef.current = props.desktopSettings
+      if (dirty() || appliedExternalSettings === props.desktopSettings) return
+      appliedExternalSettings = props.desktopSettings
       setSettings(props.desktopSettings)
       return
     }
-    appliedExternalSettingsRef.current = undefined
+    appliedExternalSettings = undefined
     if (!isDesktopApp) return
     void getDesktopSettings()
       .then(applyLoadedSettings)
@@ -361,11 +352,16 @@ function SettingsViewContent(_props: {
         setError(caught instanceof Error ? caught.message : 'Unable to load settings')
       )
   })
-  const [previousInitialSection, setPreviousInitialSection] = createSignal(props.initialSection)
-  if (props.initialSection !== previousInitialSection()) {
-    setPreviousInitialSection(props.initialSection)
-    setSection(props.initialSection)
-  }
+  // The shell can retarget the visible section (for example a status-bar
+  // indicator opening Services) while Settings stays mounted. A component
+  // body check would only run once, so track the handoff in an effect.
+  let previousInitialSection = props.initialSection
+  createEffect(() => {
+    const next = props.initialSection
+    if (next === previousInitialSection) return
+    previousInitialSection = next
+    setSection(next)
+  })
   createEffect(() => {
     if (typeof window.matchMedia !== 'function') return
     if (!window.matchMedia('(max-width: 799px)').matches) return
@@ -390,7 +386,7 @@ function SettingsViewContent(_props: {
     })
     void runDesktopServicesActionAll('restart')
       .then(() => {
-        if (!componentMounted.current) return
+        if (!componentMounted) return
         props.onServiceActivity?.({
           target: 'core services',
           action: 'restart',
@@ -407,7 +403,7 @@ function SettingsViewContent(_props: {
         return null
       })
       .catch((caught: unknown) => {
-        if (!componentMounted.current) return
+        if (!componentMounted) return
         props.onServiceActivity?.({
           target: 'core services',
           action: 'restart',
@@ -932,13 +928,13 @@ export function SettingsView(props: SettingsViewProps) {
     </SettingsSurfaceProvider>
   )
 }
-function SetupGuide(_props2: {
+function SetupGuide(incoming: {
   settings: DesktopSettings
   readiness: DesktopReadiness | null
   dirty: boolean
   onOpen: (section: Section) => void
 }) {
-  const props = _props2
+  const props = incoming
   const steps = buildSetupSteps(props.settings, props.readiness)
   const complete = steps.filter((step) => step.complete).length
   return (
@@ -982,7 +978,7 @@ function SetupGuide(_props2: {
     </section>
   )
 }
-function ServicesSection(_props3: {
+function ServicesSection(incoming: {
   settings: DesktopSettings
   dirty: boolean
   services?: DesktopServiceReport | null
@@ -995,7 +991,7 @@ function ServicesSection(_props3: {
   onServiceActivity?: (activity: DesktopServiceActivity | null) => void
   onRestarted?: () => void
 }) {
-  const props = _props3
+  const props = incoming
   const confirm = useSettingsConfirm()
   const foreground = useDesktopForeground()
   const [localReport, setLocalReport] = createSignal<DesktopServiceReport | null>(null)
@@ -1022,41 +1018,31 @@ function ServicesSection(_props3: {
   const [databaseResult, setDatabaseResult] = createSignal<DesktopDatabaseActionResult | null>(null)
   const [databaseError, setDatabaseError] = createSignal('')
   const error = () => localError() || props.servicesError || ''
-  const refreshInFlightRef = {
-    current: false,
-  }
-  const actionInFlightRef = {
-    current: false,
-  }
-  const mountedRef = {
-    current: true,
-  }
-  const servicesRequestRef = {
-    current: 0,
-  }
-  createEffect(() => {
-    mountedRef.current = true
-    return onCleanup(() => {
-      mountedRef.current = false
-    })
+  let refreshInFlight = false
+  let serviceActionInFlight = false
+  let mounted = true
+  onCleanup(() => {
+    mounted = false
   })
-  const isFreshServicesRequest = (requestId: number) =>
-    mountedRef.current && requestId === servicesRequestRef.current
+  let servicesRequestId = 0
+  const isFreshServicesRequest = (requestId: number) => mounted && requestId === servicesRequestId
 
   // Desktop shells own service status errors. When a parent shell refresh
   // succeeds after a previous section-local failure, clear stale local messages
   // so the user-visible banner is driven by the latest snapshot.
-  const [previousServicesError, setPreviousServicesError] = createSignal(props.servicesError)
-  if (props.servicesError !== previousServicesError()) {
-    setPreviousServicesError(props.servicesError)
-    if (props.servicesError !== undefined && props.servicesError.length === 0) {
+  let previousServicesError = props.servicesError
+  createEffect(() => {
+    const next = props.servicesError
+    if (next === previousServicesError) return
+    previousServicesError = next
+    if (next !== undefined && next.length === 0) {
       setLocalError('')
     }
-  }
+  })
   const refresh = async () => {
-    if (refreshInFlightRef.current || actionInFlightRef.current) return
-    refreshInFlightRef.current = true
-    const requestId = ++servicesRequestRef.current
+    if (refreshInFlight || serviceActionInFlight) return
+    refreshInFlight = true
+    const requestId = ++servicesRequestId
     setLocalError('')
     try {
       const [nextReport, nextInfo] = await Promise.all([getDesktopServices(), getDesktopInfo()])
@@ -1071,7 +1057,7 @@ function ServicesSection(_props3: {
       setLocalError(message)
       props.onServicesError?.(message)
     } finally {
-      if (servicesRequestRef.current === requestId) refreshInFlightRef.current = false
+      if (servicesRequestId === requestId) refreshInFlight = false
     }
   }
   createEffect(() => {
@@ -1080,8 +1066,8 @@ function ServicesSection(_props3: {
     const timer = window.setInterval(() => void refresh(), 15_000)
     return onCleanup(() => {
       window.clearInterval(timer)
-      servicesRequestRef.current += 1
-      refreshInFlightRef.current = false
+      servicesRequestId += 1
+      refreshInFlight = false
     })
   })
   createEffect(() => {
@@ -1109,7 +1095,7 @@ function ServicesSection(_props3: {
     setScheduleError('')
     try {
       const next = await saveDesktopSchedule(scheduleDraft()!)
-      if (!mountedRef.current) return
+      if (!mounted) return
       setSchedule(next)
       setScheduleDraft(next)
       if (report()?.services.some((service) => service.name === 'sync' && service.installed)) {
@@ -1136,9 +1122,9 @@ function ServicesSection(_props3: {
         : ''
     if (!(await confirm(`${action} ${service.label}?${warning}`))) return
     setBusy(`${service.name}:${action}`)
-    actionInFlightRef.current = true
-    refreshInFlightRef.current = false
-    servicesRequestRef.current += 1
+    serviceActionInFlight = true
+    refreshInFlight = false
+    servicesRequestId += 1
     setLocalError('')
     props.onServiceActivity?.({
       target: service.name,
@@ -1148,7 +1134,7 @@ function ServicesSection(_props3: {
     })
     try {
       const next = await runDesktopServiceAction(service.name, action)
-      if (mountedRef.current || props.onServices) {
+      if (mounted || props.onServices) {
         setReport(next)
         props.onServicesError?.('')
       }
@@ -1160,7 +1146,7 @@ function ServicesSection(_props3: {
       })
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : 'Service action failed'
-      if (mountedRef.current) setLocalError(message)
+      if (mounted) setLocalError(message)
       props.onServiceActivity?.({
         target: service.name,
         action,
@@ -1168,25 +1154,25 @@ function ServicesSection(_props3: {
         detail: message,
       })
     } finally {
-      actionInFlightRef.current = false
-      if (mountedRef.current) setBusy('')
+      serviceActionInFlight = false
+      if (mounted) setBusy('')
     }
   }
   const toggleAutostart = async (enabled: boolean) => {
     setBusy('autostart')
-    actionInFlightRef.current = true
-    refreshInFlightRef.current = false
-    servicesRequestRef.current += 1
+    serviceActionInFlight = true
+    refreshInFlight = false
+    servicesRequestId += 1
     setLocalError('')
     try {
       const next = await setDesktopAutostart(enabled)
-      if (mountedRef.current) setInfo(next)
+      if (mounted) setInfo(next)
     } catch (caught) {
       setLocalError(
         caught instanceof Error ? caught.message : 'Desktop autostart could not be changed'
       )
     } finally {
-      actionInFlightRef.current = false
+      serviceActionInFlight = false
       setBusy('')
     }
   }
@@ -1203,9 +1189,9 @@ function ServicesSection(_props3: {
       return
     }
     setBusy(`all:${action}`)
-    actionInFlightRef.current = true
-    refreshInFlightRef.current = false
-    servicesRequestRef.current += 1
+    serviceActionInFlight = true
+    refreshInFlight = false
+    servicesRequestId += 1
     setLocalError('')
     props.onServiceActivity?.({
       target: 'core services',
@@ -1215,7 +1201,7 @@ function ServicesSection(_props3: {
     })
     try {
       const next = await runDesktopServicesActionAll(action)
-      if (mountedRef.current || props.onServices) {
+      if (mounted || props.onServices) {
         setReport(next)
         props.onServicesError?.('')
       }
@@ -1225,10 +1211,10 @@ function ServicesSection(_props3: {
         status: 'succeeded',
         detail: null,
       })
-      if (mountedRef.current && action === 'restart') props.onRestarted?.()
+      if (mounted && action === 'restart') props.onRestarted?.()
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : 'Whole-app service action failed'
-      if (mountedRef.current) setLocalError(message)
+      if (mounted) setLocalError(message)
       props.onServiceActivity?.({
         target: 'core services',
         action,
@@ -1236,8 +1222,8 @@ function ServicesSection(_props3: {
         detail: message,
       })
     } finally {
-      actionInFlightRef.current = false
-      if (mountedRef.current) setBusy('')
+      serviceActionInFlight = false
+      if (mounted) setBusy('')
     }
   }
   const databaseAction = async (action: 'backup' | 'restore') => {
@@ -1277,9 +1263,9 @@ function ServicesSection(_props3: {
       return
     }
     setBusy('install')
-    actionInFlightRef.current = true
-    refreshInFlightRef.current = false
-    servicesRequestRef.current += 1
+    serviceActionInFlight = true
+    refreshInFlight = false
+    servicesRequestId += 1
     setLocalError('')
     props.onServiceActivity?.({
       target: 'core services',
@@ -1289,7 +1275,7 @@ function ServicesSection(_props3: {
     })
     try {
       const next = await installDesktopServices()
-      if (mountedRef.current || props.onServices) {
+      if (mounted || props.onServices) {
         setReport(next)
         props.onServicesError?.('')
       }
@@ -1302,7 +1288,7 @@ function ServicesSection(_props3: {
     } catch (caught) {
       const message =
         caught instanceof Error ? caught.message : 'Cortana services could not be installed'
-      if (mountedRef.current) setLocalError(message)
+      if (mounted) setLocalError(message)
       props.onServiceActivity?.({
         target: 'core services',
         action: 'install',
@@ -1310,8 +1296,8 @@ function ServicesSection(_props3: {
         detail: message,
       })
     } finally {
-      actionInFlightRef.current = false
-      if (mountedRef.current) setBusy('')
+      serviceActionInFlight = false
+      if (mounted) setBusy('')
     }
   }
   const installSync = async () => {
@@ -1348,9 +1334,9 @@ function ServicesSection(_props3: {
       return
     }
     setBusy('sync-install')
-    actionInFlightRef.current = true
-    refreshInFlightRef.current = false
-    servicesRequestRef.current += 1
+    serviceActionInFlight = true
+    refreshInFlight = false
+    servicesRequestId += 1
     setLocalError('')
     props.onServiceActivity?.({
       target: 'recurring sync',
@@ -1360,9 +1346,9 @@ function ServicesSection(_props3: {
     })
     try {
       const next = await installDesktopSyncService()
-      if (mountedRef.current || props.onServices) {
+      if (mounted || props.onServices) {
         setReport(next)
-        if (mountedRef.current) setScheduleApplyPending(false)
+        if (mounted) setScheduleApplyPending(false)
         props.onServicesError?.('')
       }
       props.onServiceActivity?.({
@@ -1374,7 +1360,7 @@ function ServicesSection(_props3: {
     } catch (caught) {
       const message =
         caught instanceof Error ? caught.message : 'Recurring sync could not be installed'
-      if (mountedRef.current) setLocalError(message)
+      if (mounted) setLocalError(message)
       props.onServiceActivity?.({
         target: 'recurring sync',
         action: 'install',
@@ -1382,8 +1368,8 @@ function ServicesSection(_props3: {
         detail: message,
       })
     } finally {
-      actionInFlightRef.current = false
-      if (mountedRef.current) setBusy('')
+      serviceActionInFlight = false
+      if (mounted) setBusy('')
     }
   }
   const needsCoreInstall = () =>
@@ -1691,11 +1677,11 @@ function ServicesSection(_props3: {
     </SettingsSection>
   )
 }
-function UpdatesSection(_props4: {
+function UpdatesSection(incoming: {
   desktopUpdate?: DesktopUpdate | null
   onDesktopUpdate?: (update: DesktopUpdate) => void
 }) {
-  const props = _props4
+  const props = incoming
   const confirm = useSettingsConfirm()
   const foreground = useDesktopForeground()
   const [localUpdate, setLocalUpdate] = createSignal<DesktopUpdate | null>(null)
@@ -1912,11 +1898,11 @@ function UpdatesSection(_props4: {
   )
 }
 function NativeMemorySection(
-  _props5: SettingsSectionProps & {
+  incoming: SettingsSectionProps & {
     settings: DesktopSettings
   }
 ) {
-  const props = _props5
+  const props = incoming
   const change = (patch: Partial<DesktopSettings['memory']>) =>
     props.update((current) => ({
       ...current,
@@ -1982,14 +1968,14 @@ function NativeMemorySection(
   )
 }
 function AccessSection(
-  _props6: SettingsSectionProps & {
+  incoming: SettingsSectionProps & {
     secretValues: Record<string, string>
     onSecret: (values: Record<string, string>) => void
     clearedSecrets: Set<string>
     onClearSecret: (name: string) => void
   }
 ) {
-  const props = _props6
+  const props = incoming
   const confirm = useSettingsConfirm()
   const change = (index: number, patch: Partial<AuthPrincipalSettings>) =>
     props.update((current) => ({
@@ -2176,18 +2162,16 @@ function AuditSection() {
   const [desktop, setDesktop] = createSignal<AuditEvent[]>([])
   const [loading, setLoading] = createSignal(true)
   const [error, setError] = createSignal('')
-  const refreshRequestRef = {
-    current: 0,
-  }
+  let refreshRequestId = 0
   const refresh = async () => {
-    const requestId = ++refreshRequestRef.current
+    const requestId = ++refreshRequestId
     const [runtimeResult, desktopResult] = await Promise.allSettled([
       getRuntimeAudit(100),
       getDesktopAudit(100),
     ])
     // A manual refresh can overlap the initial request. Never let a slower
     // response replace a newer audit snapshot or clear its error state.
-    if (refreshRequestRef.current !== requestId) return
+    if (refreshRequestId !== requestId) return
     if (runtimeResult.status === 'fulfilled') setRuntime(runtimeResult.value)
     if (desktopResult.status === 'fulfilled') setDesktop(desktopResult.value)
     const errors = [runtimeResult, desktopResult]
@@ -2201,7 +2185,7 @@ function AuditSection() {
   createEffect(() => {
     queueMicrotask(() => void refresh())
     return onCleanup(() => {
-      refreshRequestRef.current += 1
+      refreshRequestId += 1
     })
   })
 
@@ -2265,8 +2249,8 @@ function AuditSection() {
     </SettingsSection>
   )
 }
-function AuditList(_props7: { title: string; events: AuditEvent[] }) {
-  const props = _props7
+function AuditList(incoming: { title: string; events: AuditEvent[] }) {
+  const props = incoming
   return (
     <div class="audit-list">
       <h3>{props.title}</h3>
@@ -2301,7 +2285,7 @@ function auditOutcome(event: AuditEvent): 'success' | 'failure' | 'neutral' {
   if (/^(failure|failed|error|cancelled|canceled|budget_exceeded)$/.test(value)) return 'failure'
   return 'neutral'
 }
-function ReadinessSection(_props8: {
+function ReadinessSection(incoming: {
   autoScan?: boolean
   readiness: DesktopReadiness | null
   onResult: (readiness: DesktopReadiness | null) => void
@@ -2317,7 +2301,7 @@ function ReadinessSection(_props8: {
       autoScan: false,
       pollInstaller: true,
     },
-    _props8
+    incoming
   )
   const confirm = useSettingsConfirm()
   const foreground = useDesktopForeground()
@@ -2325,14 +2309,10 @@ function ReadinessSection(_props8: {
   const [migratingGeneration, setMigratingGeneration] = createSignal(false)
   const [error, setError] = createSignal('')
   const [migrationNotice, setMigrationNotice] = createSignal('')
-  const autoScanAttemptedRef = {
-    current: false,
-  }
-  const pollAlive = {
-    current: true,
-  }
+  let autoScanAttempted = false
+  let pollAlive = true
   onCleanup(() => {
-    pollAlive.current = false
+    pollAlive = false
   })
   createEffect(() => {
     if (
@@ -2351,32 +2331,32 @@ function ReadinessSection(_props8: {
       void getDesktopInstaller(jobId)
         .then((result) => {
           // A stale poll for a superseded job must not overwrite the current one.
-          if (!pollAlive.current || props.job?.id !== jobId) return null
+          if (!pollAlive || props.job?.id !== jobId) return null
           props.onJob(result)
           if (result.status === 'succeeded') {
             props.onResult(null)
             setScanning(true)
             void (props.onReadinessScan ? props.onReadinessScan() : scanDesktopReadiness())
               .then((scan) => {
-                if (!pollAlive.current) return null
+                if (!pollAlive) return null
                 props.onResult(scan)
                 return null
               })
               .catch((caught: unknown) => {
-                if (pollAlive.current) {
+                if (pollAlive) {
                   setError(
                     caught instanceof Error ? caught.message : 'Post-install readiness scan failed'
                   )
                 }
               })
               .finally(() => {
-                if (pollAlive.current) setScanning(false)
+                if (pollAlive) setScanning(false)
               })
           }
           return null
         })
         .catch((caught: unknown) => {
-          if (pollAlive.current) {
+          if (pollAlive) {
             setError(caught instanceof Error ? caught.message : 'Installer status failed')
           }
         })
@@ -2440,36 +2420,34 @@ function ReadinessSection(_props8: {
       setMigratingGeneration(false)
     }
   }
-  const autoScanAlive = {
-    current: true,
-  }
+  let autoScanAlive = true
   onCleanup(() => {
-    autoScanAlive.current = false
+    autoScanAlive = false
   })
   createEffect(() => {
-    if (!props.autoScan || props.readiness || autoScanAttemptedRef.current) return
+    if (!props.autoScan || props.readiness || autoScanAttempted) return
     // First-launch readiness is intentionally one-shot. A failed scan is
     // surfaced for the operator to retry explicitly; it must not loop every
     // time the shell-owned activity status changes to failed. The liveness
     // flag is component-scoped: props.readiness changes re-run this effect
     // while the scan is still in flight, and a per-effect flag would leave
     // scanning stuck on.
-    autoScanAttemptedRef.current = true
+    autoScanAttempted = true
     setScanning(true)
     setError('')
     void (props.onReadinessScan ? props.onReadinessScan() : scanDesktopReadiness())
       .then((result) => {
-        if (!autoScanAlive.current) return null
+        if (!autoScanAlive) return null
         props.onResult(result)
         return null
       })
       .catch((caught: unknown) => {
-        if (autoScanAlive.current) {
+        if (autoScanAlive) {
           setError(caught instanceof Error ? caught.message : 'Readiness scan failed')
         }
       })
       .finally(() => {
-        if (autoScanAlive.current) setScanning(false)
+        if (autoScanAlive) setScanning(false)
       })
   })
   const readinessInFlight = () =>
@@ -2672,11 +2650,11 @@ function ReadinessSection(_props8: {
     </SettingsSection>
   )
 }
-function WorkspaceSection(_props9: {
+function WorkspaceSection(incoming: {
   settings: DesktopSettings
   update: (change: (draft: DesktopSettings) => DesktopSettings) => void
 }) {
-  const props = _props9
+  const props = incoming
   const confirm = useSettingsConfirm()
   const [logoError, setLogoError] = createSignal('')
   const [logoLoading, setLogoLoading] = createSignal<string | null>(null)
@@ -3003,8 +2981,8 @@ function WorkspaceSection(_props9: {
     </SettingsSection>
   )
 }
-function SafeMarkdown(_props0: { text: string }) {
-  const props = _props0
+function SafeMarkdown(incoming: { text: string }) {
+  const props = incoming
   return <div class="safe-markdown">{renderMarkdownToNodes(props.text)}</div>
 }
 function renderMarkdownToNodes(text: string): JSX.Element[] {
@@ -3142,7 +3120,7 @@ type ProviderModelsState = {
 function normalizeProviderUrl(value: string): string {
   return value.trim().replace(/\/+$/, '')
 }
-function EmbeddingSection(_props1: {
+function EmbeddingSection(incoming: {
   settings: DesktopSettings
   secretValues: Record<string, string>
   onSecret: (values: Record<string, string>) => void
@@ -3155,7 +3133,7 @@ function EmbeddingSection(_props1: {
   modelsTruncated: boolean
   onRefreshModels: () => void
 }) {
-  const props = _props1
+  const props = incoming
   const setEmbedding = (embedding: DesktopSettings['embedding']) =>
     props.update((current) => ({
       ...current,
@@ -3278,7 +3256,7 @@ function EmbeddingSection(_props1: {
     </ProviderSection>
   )
 }
-function ProviderSection<T extends ProviderValue>(_props10: {
+function ProviderSection<T extends ProviderValue>(incoming: {
   title: string
   description: string
   provider: T
@@ -3302,7 +3280,7 @@ function ProviderSection<T extends ProviderValue>(_props10: {
     {
       modelControl: 'combobox',
     },
-    _props10
+    incoming
   )
   const confirm = useSettingsConfirm()
   const modelFieldId = createUniqueId()
@@ -3581,7 +3559,7 @@ function ProviderSection<T extends ProviderValue>(_props10: {
     </SettingsSection>
   )
 }
-function QuerySection(_props11: {
+function QuerySection(incoming: {
   settings: DesktopSettings
   secrets: DesktopSettings['secrets']
   secretValues: Record<string, string>
@@ -3595,7 +3573,7 @@ function QuerySection(_props11: {
   modelsTruncated: boolean
   onRefreshModels: () => void
 }) {
-  const props = _props11
+  const props = incoming
   const setQuery = (query: DesktopSettings['query']) =>
     props.update((current) => ({
       ...current,
@@ -3765,8 +3743,8 @@ function QuerySection(_props11: {
     </ProviderSection>
   )
 }
-function IngestionSection(_props12: SettingsSectionProps) {
-  const props = _props12
+function IngestionSection(incoming: SettingsSectionProps) {
+  const props = incoming
   const setIngestion = (patch: Partial<DesktopSettings['ingestion']>) =>
     props.update((current) => ({
       ...current,
