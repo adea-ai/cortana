@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.58.3](https://github.com/adea-ai/cortana/compare/v0.58.2...v0.58.3) (2026-09-16)
+
+
+### CI
+
+* **codeql:** shard Rust analysis by source root instead of a whole-repo pass ([#2332](https://github.com/adea-ai/cortana/issues/2332)) ([6b76a1d](https://github.com/adea-ai/cortana/commit/6b76a1dbd38a18a32c502e963f0d380f5b92d75f))
+
 ## [0.58.2](https://github.com/adea-ai/cortana/compare/v0.58.1...v0.58.2) (2026-09-16)
 
 
