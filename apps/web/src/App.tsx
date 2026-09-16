@@ -9,7 +9,9 @@ import {
   createMemo,
   createSignal,
   onCleanup,
+  onMount,
   mergeProps,
+  untrack,
   type JSX,
 } from 'solid-js'
 import {
@@ -87,13 +89,22 @@ import type {
   Evidence,
   ReflectResponse,
 } from './types'
+import { useDesktopForeground } from './lib/foreground'
 import { cn } from './lib/utils'
 import './shadcn.css'
+const loadSettingsView = () => import('./components/SettingsView')
 const SettingsView = lazy(() =>
-  import('./components/SettingsView').then((module) => ({
+  loadSettingsView().then((module) => ({
     default: module.SettingsView,
   }))
 )
+// Settings is the only lazy shell surface and it is reached on essentially
+// every session, so warm its chunk once the browser is idle instead of
+// paying the fetch when the operator first opens the view.
+const prefetchSettingsView = () => {
+  const idle = window.requestIdleCallback ?? ((work: () => void) => window.setTimeout(work, 1200))
+  idle(() => void loadSettingsView())
+}
 const STATUS_REFRESH_MS = 15_000
 const INSTALLER_POLL_MS = 1_000
 const MAX_DOCUMENT_QUERY_BYTES = 256
@@ -222,9 +233,7 @@ function CortanaApplication() {
   const [graphMinConfidence, setGraphMinConfidence] = createSignal<number | null>(null)
   const [graphFocusHistory, setGraphFocusHistory] = createSignal<Array<string | null>>([null])
   const [graphFocusHistoryIndex, setGraphFocusHistoryIndex] = createSignal(0)
-  const [pageVisible, setPageVisible] = createSignal(
-    (() => typeof document === 'undefined' || document.visibilityState !== 'hidden')()
-  )
+  const pageVisible = useDesktopForeground()
   const searchRequestRef = {
     current: 0,
   }
@@ -334,18 +343,6 @@ function CortanaApplication() {
   const documentPageLoadingRef = {
     current: false,
   }
-  const sourceWidthRef = {
-    current: sourceWidth(),
-  }
-  const contextWidthRef = {
-    current: contextWidth(),
-  }
-  createEffect(() => {
-    sourceWidthRef.current = sourceWidth()
-  })
-  createEffect(() => {
-    contextWidthRef.current = contextWidth()
-  })
   const applyDesktopSettings = (next: DesktopSettings) => {
     // Invalidate the one-shot bootstrap read when Settings completes a
     // reload/save. Otherwise a slower initial request can restore an older
@@ -353,6 +350,7 @@ function CortanaApplication() {
     desktopSettingsRequestRef.current += 1
     setDesktopSettings(next)
   }
+  onMount(() => prefetchSettingsView())
   createEffect(() => {
     const syncTheme = () => {
       applyTheme(readWorkspaceThemePreference(effectiveWorkspace()) ?? DEFAULT_THEME)
@@ -398,73 +396,6 @@ function CortanaApplication() {
     )
     return onCleanup(() => {
       active = false
-    })
-  })
-  createEffect(() => {
-    const visibility = {
-      current: document.visibilityState !== 'hidden',
-    }
-    const focused = {
-      current: true,
-    }
-    const syncForeground = () => setPageVisible(visibility.current && focused.current)
-    const handleVisibilityChange = () => {
-      visibility.current = document.visibilityState !== 'hidden'
-      syncForeground()
-    }
-    const handleFocus = () => {
-      focused.current = true
-      syncForeground()
-    }
-    const handleBlur = () => {
-      focused.current = false
-      syncForeground()
-    }
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('focus', handleFocus)
-    window.addEventListener('blur', handleBlur)
-    let disposed = false
-    let unlistenFocus: (() => void) | undefined
-    if (isDesktopApp && '__TAURI_INTERNALS__' in window) {
-      void import('@tauri-apps/api/window')
-        .then(({ getCurrentWindow }) => {
-          const currentWindow = getCurrentWindow()
-          void currentWindow
-            .isFocused()
-            .then((payload) => {
-              if (!disposed) {
-                focused.current = payload
-                syncForeground()
-              }
-              return null
-            })
-            .catch(() => {
-              // The browser visibility and focus events remain the fallback
-              // when the native focus snapshot is unavailable at startup.
-            })
-          return currentWindow.onFocusChanged(({ payload }) => {
-            if (!disposed) {
-              focused.current = payload
-              syncForeground()
-            }
-          })
-        })
-        .then((unlisten) => {
-          if (disposed) unlisten()
-          else unlistenFocus = unlisten
-          return null
-        })
-        .catch(() => {
-          // Browser visibility remains the fallback when a native focus
-          // listener is unavailable during early Desktop startup.
-        })
-    }
-    return onCleanup(() => {
-      disposed = true
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('focus', handleFocus)
-      window.removeEventListener('blur', handleBlur)
-      unlistenFocus?.()
     })
   })
   const runReadinessScan = async (): Promise<DesktopReadiness> => {
@@ -806,13 +737,15 @@ function CortanaApplication() {
     function clampPaneWidths() {
       if (window.innerWidth <= 1280) return
       const available = window.innerWidth - 72 - 520
-      const nextSource = Math.min(sourceWidthRef.current, Math.max(220, available - 280))
-      const nextContext = Math.min(contextWidthRef.current, Math.max(280, available - nextSource))
+      const nextSource = Math.min(sourceWidth(), Math.max(220, available - 280))
+      const nextContext = Math.min(contextWidth(), Math.max(280, available - nextSource))
       setSourceWidth(nextSource)
       setContextWidth(nextContext)
     }
     window.addEventListener('resize', clampPaneWidths)
-    clampPaneWidths()
+    // The initial clamp reads the width signals; untrack it so pane drags do
+    // not re-register the listener. Later invocations run outside tracking.
+    untrack(clampPaneWidths)
     return onCleanup(() => window.removeEventListener('resize', clampPaneWidths))
   })
   createEffect(() => {

@@ -842,7 +842,7 @@ function GraphView(props: {
     setVisibleCount(12)
     setSelectedNodeId(null)
   })
-  const nodes = (): GraphNodeLike[] =>
+  const nodes = createMemo((): GraphNodeLike[] =>
     filteredNodes().length
       ? filteredNodes().slice(0, visibleCount())
       : usingEvidenceFallback()
@@ -855,20 +855,22 @@ function GraphView(props: {
             document_id: null,
           }))
         : []
-  const visibleNodeIds = () => new Set(nodes().map((node) => node.id))
-  const visibleEdges = () =>
-    props.graph && !usingEvidenceFallback()
-      ? props.graph.edges.filter(
-          (edge) => visibleNodeIds().has(edge.target) || visibleNodeIds().has(edge.source)
-        )
+  )
+  const visibleNodeIds = createMemo(() => new Set(nodes().map((node) => node.id)))
+  const visibleEdges = createMemo(() => {
+    if (!props.graph || usingEvidenceFallback()) return []
+    const ids = visibleNodeIds()
+    return props.graph.edges.filter((edge) => ids.has(edge.target) || ids.has(edge.source))
+  })
+  const activeGraphNode = createMemo(
+    () => nodes().find((node) => node.id === selectedNodeId()) ?? null
+  )
+  const selectedEdges = createMemo(() => {
+    const active = activeGraphNode()
+    return active
+      ? visibleEdges().filter((edge) => edge.source === active.id || edge.target === active.id)
       : []
-  const activeGraphNode = () => nodes().find((node) => node.id === selectedNodeId()) ?? null
-  const selectedEdges = () =>
-    activeGraphNode()
-      ? visibleEdges().filter(
-          (edge) => edge.source === activeGraphNode()!.id || edge.target === activeGraphNode()!.id
-        )
-      : []
+  })
 
   return (
     <Switch>

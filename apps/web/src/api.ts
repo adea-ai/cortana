@@ -1,15 +1,5 @@
 import { invoke, isTauri } from '@tauri-apps/api/core'
 
-import {
-  demoCanonicalMemories,
-  demoDerivedMemories,
-  demoEvidence,
-  demoDocumentId,
-  demoDocumentRelations,
-  demoMemoryCandidates,
-  demoMemoryClassification,
-  demoStatus,
-} from './demo'
 import { buildAgentContext, estimateTokens } from './context'
 import { safeSourceLink } from './sourceLinks'
 import type {
@@ -394,7 +384,7 @@ export async function startDesktopInitialSync(
 }
 
 export async function getStatus(signal?: AbortSignal): Promise<BrainStatus> {
-  if (isDemoMode) return demoStatus
+  if (isDemoMode) return (await import('./demo')).demoStatus
   if (isTauri()) return invokeDesktop<BrainStatus>('brain_status', undefined, signal)
   const response = await authorizedFetch('/v1/status', { signal })
   if (!response.ok) {
@@ -419,6 +409,7 @@ export async function getContext(
   signal?: AbortSignal
 ): Promise<ContextBundle> {
   if (isDemoMode) {
+    const { demoEvidence } = await import('./demo')
     const evidence = demoEvidence
       .filter((item) => !source || item.source === source)
       // oxlint-disable-next-line unicorn/no-array-sort -- filter returns a fresh array
@@ -502,6 +493,7 @@ export async function listMemoryCandidates(
 ): Promise<MemoryCandidate[]> {
   if (isDemoMode) {
     const needle = queryValue?.trim().toLowerCase()
+    const { demoMemoryCandidates } = await import('./demo')
     return demoMemoryCandidates.filter(
       (candidate) =>
         (!project || candidate.project === project) &&
@@ -540,7 +532,10 @@ export async function listMemoryCandidates(
 }
 
 export async function classifyMemoryCandidate(id: string): Promise<MemoryCandidateClassification> {
-  if (isDemoMode) return { ...demoMemoryClassification, candidate_id: id }
+  if (isDemoMode) {
+    const { demoMemoryClassification } = await import('./demo')
+    return { ...demoMemoryClassification, candidate_id: id }
+  }
   if (isTauri()) {
     return invokeDesktop<MemoryCandidateClassification>('brain_memory_candidate_action', {
       id,
@@ -664,7 +659,7 @@ export async function getMemoryConsolidationState(): Promise<{
 }
 
 export async function listDerivedMemories(project?: string): Promise<DerivedMemoryResponse> {
-  if (isDemoMode) return demoDerivedMemories
+  if (isDemoMode) return (await import('./demo')).demoDerivedMemories
   const request = { project: project || null, limit: 64 }
   if (isTauri()) {
     return invokeDesktop<DerivedMemoryResponse>('brain_memory_derived', { request })
@@ -678,6 +673,7 @@ export async function listDerivedMemories(project?: string): Promise<DerivedMemo
 
 export async function listCanonicalMemories(project?: string): Promise<AgentMemory[]> {
   if (isDemoMode) {
+    const { demoCanonicalMemories } = await import('./demo')
     return demoCanonicalMemories.filter((memory) => !project || memory.project === project)
   }
   const request = { project: project || null, limit: 100 }
@@ -727,6 +723,7 @@ export async function getDocuments(
       return getLargeDemoDocuments(project, source, query, cursor)
     }
     const normalizedQuery = query?.trim().toLowerCase()
+    const { demoEvidence, demoDocumentId } = await import('./demo')
     const documents = demoEvidence
       .filter(
         (item) =>
@@ -780,6 +777,7 @@ export async function getDocument(id: string, signal?: AbortSignal): Promise<Bra
       const { getLargeDemoDocumentDetails } = await import('./demoLargeApi')
       return getLargeDemoDocumentDetails(id)
     }
+    const { demoEvidence, demoDocumentRelations } = await import('./demo')
     const item = demoEvidence.find(
       (candidate) => candidate.chunk_id.replace(/[^a-f0-9]/gi, '').padEnd(16, '0') === id
     )
@@ -974,6 +972,7 @@ export async function getAnswer(
   signal?: AbortSignal
 ): Promise<AnswerResponse> {
   if (isDemoMode) {
+    const { demoEvidence } = await import('./demo')
     const evidence = demoEvidence
       .filter((item) => !source || item.source === source)
       // oxlint-disable-next-line unicorn/no-array-sort -- filter returns a fresh array

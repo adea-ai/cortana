@@ -35,12 +35,32 @@ const LOGO_EXTENSION_TYPES: Record<string, string> = {
 
 type WorkspaceLogoMap = Record<string, string>
 
+// The stored map holds base64 data URLs (up to 200 KB each), so parsing it
+// per reader is measurable work. Every WorkspaceLogo mount and every
+// LOGO_EVENT broadcast calls readLogoMap; localStorage lookups are cheap, so
+// cache the parsed map keyed by the raw string — clear(), external writes,
+// and same-document mutations all change the string and reparse naturally.
+let lastLogoMapRaw: string | null = null
+let lastLogoMap: WorkspaceLogoMap | null = null
+
 function readLogoMap(): WorkspaceLogoMap {
+  let raw: string | null
   try {
     if (typeof localStorage === 'undefined') return {}
-    const parsed: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
-    return Object.fromEntries(
+    raw = localStorage.getItem(STORAGE_KEY)
+  } catch {
+    return {}
+  }
+  if (lastLogoMap && raw === lastLogoMapRaw) return lastLogoMap
+  try {
+    const parsed: unknown = JSON.parse(raw || '{}')
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      lastLogoMapRaw = raw
+      lastLogoMap = {}
+      return lastLogoMap
+    }
+    lastLogoMapRaw = raw
+    lastLogoMap = Object.fromEntries(
       Object.entries(parsed).filter(
         ([key, value]) =>
           /^[a-z0-9][a-z0-9_-]*$/.test(key) &&
@@ -48,6 +68,7 @@ function readLogoMap(): WorkspaceLogoMap {
           isWorkspaceLogoDataUrl(value)
       )
     )
+    return lastLogoMap
   } catch {
     return {}
   }
@@ -66,7 +87,7 @@ export function readWorkspaceLogo(workspaceId: string): string | null {
 
 export function writeWorkspaceLogo(workspaceId: string, logo: string | null): void {
   if (!/^[a-z0-9][a-z0-9_-]*$/.test(workspaceId)) return
-  const next = readLogoMap()
+  const next = { ...readLogoMap() }
   if (logo && isWorkspaceLogoDataUrl(logo)) next[workspaceId] = logo
   else delete next[workspaceId]
   try {

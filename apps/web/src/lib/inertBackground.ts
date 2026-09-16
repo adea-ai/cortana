@@ -37,12 +37,15 @@ export function installInertBackground(root: HTMLElement) {
     root.removeAttribute('aria-hidden')
     root.removeAttribute('inert')
   }
-  // Watch the body subtree for portal mounts/unmounts and overlay state flips
-  // (data-closed marks an exiting surface) as well as root's aria-hidden
-  // marker; all of them change whether the background should be inert.
-  const observer = new MutationObserver(sync)
-  observer.observe(document.body, {
-    childList: true,
+  // Portals mount as direct body children, so childList on body alone covers
+  // mounts/unmounts. A second observer watches the subtree for the marker
+  // attributes only (data-closed marks an exiting surface, aria-hidden is
+  // Kobalte's own background marker). Splitting the scopes keeps ordinary app
+  // DOM writes from running this sync on every mutation.
+  const structureObserver = new MutationObserver(sync)
+  structureObserver.observe(document.body, { childList: true })
+  const attributeObserver = new MutationObserver(sync)
+  attributeObserver.observe(document.body, {
     subtree: true,
     attributes: true,
     attributeFilter: ['aria-hidden', 'data-closed', 'data-expanded', 'hidden'],
