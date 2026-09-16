@@ -813,12 +813,19 @@ function GraphView(props: {
         )
       : graphNodes().filter((node) => kindFilter() === 'all' || node.kind === kindFilter())
   )
-  const graphResetKey = () =>
-    `${props.graph?.nodes[0]?.id ?? ''} ${kindFilter()} ${normalizedFilter()}`
+  // Revalidation can reorder nodes even when the set is unchanged; keying the
+  // reset on nodes[0] cleared an active selection mid-interaction. Only drop
+  // the selection when the selected node actually leaves the filtered set.
   createComputed(() => {
-    graphResetKey()
+    kindFilter()
+    normalizedFilter()
     setVisibleCount(12)
-    setSelectedNodeId(null)
+  })
+  createComputed(() => {
+    const selected = selectedNodeId()
+    if (selected && !filteredNodes().some((node) => node.id === selected)) {
+      setSelectedNodeId(null)
+    }
   })
   // The graph revalidates (SWR) while a node may be focused or selected, and
   // every fetch returns fresh node objects. Reconcile by id so an unchanged
@@ -851,8 +858,10 @@ function GraphView(props: {
     const ids = visibleNodeIds()
     return props.graph.edges.filter((edge) => ids.has(edge.target) || ids.has(edge.source))
   })
+  // Search the full filtered set rather than the visible slice: a revalidation
+  // reorder can push the selected node past the window without removing it.
   const activeGraphNode = createMemo(
-    () => nodes().find((node) => node.id === selectedNodeId()) ?? null
+    () => filteredNodes().find((node) => node.id === selectedNodeId()) ?? null
   )
   const selectedEdges = createMemo(() => {
     const active = activeGraphNode()

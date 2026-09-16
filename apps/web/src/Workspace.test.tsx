@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from 'bun:test'
+import { createSignal } from 'solid-js'
 import { cleanup, fireEvent, render, screen } from 'solid-testing-library'
 import { Workspace } from './components/Workspace'
 import { safeSourceLink } from './sourceLinks'
@@ -468,6 +469,68 @@ test('graph supports bounded filtering and explains selected relationships', () 
   )
   expect(relationshipFilters).toEqual(['contains', 'explicit', '0.75'])
 }, 15_000)
+test('graph keeps the selection across reordered revalidations and prunes vanished nodes', () => {
+  const firstPage = {
+    nodes: [
+      {
+        id: 'document:one',
+        kind: 'document' as const,
+        label: 'Release notes',
+        project: 'work',
+        source: 'code',
+        document_id: 'one',
+      },
+      {
+        id: 'document:two',
+        kind: 'document' as const,
+        label: 'Personal journal',
+        project: 'personal',
+        source: 'notes',
+        document_id: 'two',
+      },
+    ],
+    edges: [],
+    next_cursor: null,
+  }
+  const [graph, setGraph] = createSignal(firstPage)
+  render(() => (
+    <Workspace {...props} document={null} tab="graph" graph={graph()} onSelectDocument={() => {}} />
+  ))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Open document: Release notes/,
+    })
+  )
+  expect(
+    screen.getByRole('complementary', {
+      name: 'Selected graph node',
+    })
+  ).toBeTruthy()
+  // A silent revalidation that returns the same nodes in a different order
+  // must not clear the selection or hide the inspector.
+  setGraph({
+    nodes: firstPage.nodes.toReversed(),
+    edges: [],
+    next_cursor: null,
+  })
+  expect(
+    screen.getByRole('complementary', {
+      name: 'Selected graph node',
+    })
+  ).toBeTruthy()
+  expect(
+    screen.getByRole('button', {
+      name: 'Open document',
+      exact: true,
+    })
+  ).toBeTruthy()
+  setGraph({ nodes: [firstPage.nodes[1]], edges: [], next_cursor: null })
+  expect(
+    screen.queryByRole('complementary', {
+      name: 'Selected graph node',
+    })
+  ).toBeNull()
+})
 test('graph exposes workspace and source nodes with bounded type filters', () => {
   const focused: string[] = []
   render(() => (
