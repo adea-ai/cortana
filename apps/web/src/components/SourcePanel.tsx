@@ -9,10 +9,11 @@ import {
   Settings,
   X,
 } from 'lucide-solid'
-import { createMemo, createSignal, For, Show } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, Show } from 'solid-js'
+import { createStore, reconcile } from 'solid-js/store'
 
 import { activeJobs, describeSourceJobProgress } from '../sourceJobs'
-import { operationalSources, sourceHealth } from '../operations'
+import { operationalSources, sourceHealth, type OperationalSource } from '../operations'
 import { SourceIcon } from './sourceIcons'
 import { cn } from '@/lib/utils'
 
@@ -76,15 +77,24 @@ export function SourcePanel(props: {
   const sourceToggleNotice = () => props.sourceToggleNotice ?? ''
   const jobs = () => props.jobs ?? EMPTY_JOBS
   const selectedWorkspaceId = () => props.workspace || props.workspaces[0]?.id || ''
-  const sources = createMemo(() =>
-    operationalSources(props.status).filter((item) => item.project === selectedWorkspaceId())
-  )
+  // Status polls replace the snapshot wholesale. Reconcile by source name —
+  // unique within the workspace-filtered list — so an unchanged poll keeps
+  // every row's identity instead of rebuilding the tree every interval.
+  const [sources, setSources] = createStore<OperationalSource[]>([])
+  createEffect(() => {
+    setSources(
+      reconcile(
+        operationalSources(props.status).filter((item) => item.project === selectedWorkspaceId()),
+        { key: 'source' }
+      )
+    )
+  })
   // The job snapshot store reconciles by id, so this only re-runs when a job
   // actually changed instead of on every poll tick.
   const active = createMemo(() => activeJobs(jobs()))
   const selectedWorkspace = () =>
     props.workspaces.find((item) => item.id === props.workspace) ?? props.workspaces[0]
-  const selectedSource = () => sources().find((item) => item.source === props.selected)
+  const selectedSource = () => sources.find((item) => item.source === props.selected)
   const statusLoading = () => props.status === null && props.statusError === ''
   const sourceModeClass = () =>
     props.status
@@ -244,7 +254,7 @@ export function SourcePanel(props: {
           }
         >
           <Show
-            when={sources().length}
+            when={sources.length}
             fallback={
               <div class="source-empty">
                 <Database size={20} />
@@ -255,7 +265,7 @@ export function SourcePanel(props: {
           >
             <div class="source-tree">
               <section>
-                <For each={sources()}>
+                <For each={sources}>
                   {(item) => {
                     const health = () => sourceHealth(item)
                     const key = `${item.project}:${item.source}`
