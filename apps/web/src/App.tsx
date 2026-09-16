@@ -289,9 +289,6 @@ function CortanaApplication() {
   const documentScope = () =>
     `${effectiveWorkspace()}\u0000${source()}\u0000${debouncedDocumentQuery()}`
   const documentFetchReady = () => !isDesktopApp || desktopSettings()?.needs_setup === false
-  const documentScopeRef = {
-    current: documentScope(),
-  }
   const searchAbortRef = {
     current: null as AbortController | null | null,
   }
@@ -343,9 +340,6 @@ function CortanaApplication() {
   const contextWidthRef = {
     current: contextWidth(),
   }
-  createEffect(() => {
-    documentScopeRef.current = documentScope()
-  })
   createEffect(() => {
     sourceWidthRef.current = sourceWidth()
   })
@@ -496,8 +490,11 @@ function CortanaApplication() {
     }
   }
   createEffect(() => {
+    // The signal read must stay synchronous so the effect tracks it; a read
+    // inside the timeout callback would make the debounce run only once.
+    const next = boundDocumentQuery(documentQuery()).trim()
     const timeout = window.setTimeout(() => {
-      setDebouncedDocumentQuery(boundDocumentQuery(documentQuery()).trim())
+      setDebouncedDocumentQuery(next)
     }, 250)
     return onCleanup(() => window.clearTimeout(timeout))
   })
@@ -604,7 +601,7 @@ function CortanaApplication() {
     documentListAbortRef.current?.abort()
     const controller = new AbortController()
     documentListAbortRef.current = controller
-    const requestedScope = documentScopeRef.current
+    const requestedScope = documentScope()
     documentPageLoadingRef.current = true
     void getDocuments(
       effectiveWorkspace() || undefined,
@@ -615,7 +612,7 @@ function CortanaApplication() {
     )
       .then((page) => {
         if (documentListRequestRef.current !== requestId) return null
-        if (documentScopeRef.current !== requestedScope) return null
+        if (documentScope() !== requestedScope) return null
         setDocuments(page.documents)
         setDocumentCursor(page.next_cursor)
         return null
@@ -623,7 +620,7 @@ function CortanaApplication() {
       .catch((caught: unknown) => {
         if (isAbort(caught) || controller.signal.aborted) return
         if (documentListRequestRef.current !== requestId) return
-        if (documentScopeRef.current !== requestedScope) return
+        if (documentScope() !== requestedScope) return
         setDocuments([])
         setDocumentCursor(null)
         setDocumentsError(caught instanceof Error ? caught.message : 'Documents unavailable')
@@ -632,7 +629,7 @@ function CortanaApplication() {
         if (
           documentListRequestRef.current === requestId &&
           !controller.signal.aborted &&
-          documentScopeRef.current === requestedScope
+          documentScope() === requestedScope
         ) {
           documentPageLoadingRef.current = false
           setDocumentsLoading(false)
@@ -640,10 +637,7 @@ function CortanaApplication() {
       })
     return onCleanup(() => {
       controller.abort()
-      if (
-        documentListRequestRef.current === requestId &&
-        documentScopeRef.current === requestedScope
-      ) {
+      if (documentListRequestRef.current === requestId && documentScope() === requestedScope) {
         documentPageLoadingRef.current = false
         setDocumentsLoading(false)
       }
@@ -1442,7 +1436,7 @@ function CortanaApplication() {
   }
   async function loadMoreDocuments() {
     if (!documentCursor() || documentsLoading() || documentPageLoadingRef.current) return
-    const requestedScope = documentScopeRef.current
+    const requestedScope = documentScope()
     const requestId = ++documentListRequestRef.current
     const controller = new AbortController()
     documentListAbortRef.current?.abort()
@@ -1459,7 +1453,7 @@ function CortanaApplication() {
         controller.signal
       )
       if (documentListRequestRef.current !== requestId) return
-      if (documentScopeRef.current !== requestedScope) return
+      if (documentScope() !== requestedScope) return
       setDocuments((current) => [
         ...current,
         ...page.documents.filter((item) => !current.some((existing) => existing.id === item.id)),
@@ -1468,14 +1462,14 @@ function CortanaApplication() {
     } catch (caught) {
       if (isAbort(caught) || controller.signal.aborted) return
       if (documentListRequestRef.current !== requestId) return
-      if (documentScopeRef.current === requestedScope) {
+      if (documentScope() === requestedScope) {
         setDocumentsError(caught instanceof Error ? caught.message : 'Documents unavailable')
       }
     } finally {
       if (
         documentListRequestRef.current === requestId &&
         !controller.signal.aborted &&
-        documentScopeRef.current === requestedScope
+        documentScope() === requestedScope
       ) {
         documentPageLoadingRef.current = false
         setDocumentsLoading(false)

@@ -49,12 +49,17 @@ function SheetContent(
     'showCloseButton',
     'finalFocus',
     'onCloseAutoFocus',
+    'ref',
   ])
   const side = () => local.side ?? 'right'
+  // Kobalte restores focus to the SheetTrigger element on close; sheets opened
+  // programmatically have no trigger, so capture the focused element when the
+  // portaled content actually mounts (before autofocus runs) and restore to it.
+  let previouslyFocused: HTMLElement | null = null
   const handleCloseAutoFocus = (event: Event) => {
     local.onCloseAutoFocus?.(event)
-    const target = local.finalFocus?.current
-    if (!event.defaultPrevented && target) {
+    const target = local.finalFocus?.current ?? previouslyFocused
+    if (!event.defaultPrevented && target?.isConnected) {
       event.preventDefault()
       target.focus()
     }
@@ -64,6 +69,11 @@ function SheetContent(
       <SheetOverlay />
       <SheetPrimitive.Content
         data-slot="sheet-content"
+        ref={(el) => {
+          previouslyFocused =
+            document.activeElement instanceof HTMLElement ? document.activeElement : null
+          if (typeof local.ref === 'function') local.ref(el)
+        }}
         onCloseAutoFocus={handleCloseAutoFocus}
         data-side={side()}
         class={cn(
