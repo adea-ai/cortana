@@ -1,7 +1,7 @@
+import { act } from './test/act'
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from 'solid-testing-library'
 import userEvent from '@testing-library/user-event'
-
 import { desktopInfo, desktopSettings } from './test/fixtures'
 import type {
   DesktopSettings,
@@ -9,11 +9,8 @@ import type {
   ProviderModelKind,
   ProviderModelList,
 } from './types'
-
 afterEach(cleanup)
-
 const realApi = await import('./api')
-
 const advertised: ProviderModelList = {
   kind: 'embedding',
   provider: 'https://api.openai.com/v1',
@@ -35,7 +32,6 @@ const advertised: ProviderModelList = {
     },
   ],
 }
-
 function cloudSettings(): DesktopSettings {
   return {
     ...desktopSettings,
@@ -55,7 +51,6 @@ function cloudSettings(): DesktopSettings {
     },
   }
 }
-
 const state = {
   settings: cloudSettings(),
   refreshCalls: [] as ProviderModelKind[],
@@ -64,7 +59,6 @@ const state = {
   savedUpdates: [] as DesktopSettingsUpdate[],
   saved: null as DesktopSettings | null,
 }
-
 beforeEach(() => {
   state.settings = cloudSettings()
   state.refreshCalls = []
@@ -73,14 +67,16 @@ beforeEach(() => {
   state.savedUpdates = []
   state.saved = null
 })
-
 mock.module('./api', () => ({
   ...realApi,
   isDesktopApp: true,
   getDesktopSettings: () => Promise.resolve(state.settings),
   getDesktopInfo: () => Promise.resolve(desktopInfo),
   getDesktopSchedule: () =>
-    Promise.resolve({ sync_interval_seconds: 900, backup_interval_seconds: 86400 }),
+    Promise.resolve({
+      sync_interval_seconds: 900,
+      backup_interval_seconds: 86400,
+    }),
   saveDesktopSchedule: (schedule: {
     sync_interval_seconds: number
     backup_interval_seconds: number
@@ -122,11 +118,9 @@ mock.module('./api', () => ({
     return Promise.resolve(saved)
   },
 }))
-
 const { SettingsView } = await import('./components/SettingsView')
-
 function renderEmbeddingSettings() {
-  render(
+  render(() => (
     <SettingsView
       initialSection="embedding"
       desktopSettings={state.settings}
@@ -134,17 +128,20 @@ function renderEmbeddingSettings() {
         state.saved = next
       }}
     />
+  ))
+}
+function modelCatalog(): HTMLElement {
+  return screen.getByRole('combobox', {
+    name: 'Model catalog',
+  })
+}
+async function openEmbeddingCatalog() {
+  fireEvent.pointerDown(
+    await screen.findByRole('combobox', {
+      name: 'Model catalog',
+    })
   )
 }
-
-function modelCatalog(): HTMLElement {
-  return screen.getByRole('combobox', { name: 'Model catalog' })
-}
-
-async function openEmbeddingCatalog() {
-  fireEvent.click(await screen.findByRole('combobox', { name: 'Model catalog' }))
-}
-
 test('refresh exposes provider-advertised models without stale cloud presets', async () => {
   // The current model is one the provider advertises, so the select stays.
   state.settings.embedding.model = 'text-embedding-3-small'
@@ -153,21 +150,33 @@ test('refresh exposes provider-advertised models without stale cloud presets', a
   // Cloud models are not maintained as a stale static list; discovery is the
   // source of truth and the current value is preserved as custom until then.
   expect(modelCatalog().textContent).toContain('text-embedding-3-small')
-
-  fireEvent.click(screen.getByRole('button', { name: /Refresh Embedding model models/ }))
-
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Refresh Embedding model models/,
+    })
+  )
   await openEmbeddingCatalog()
-  expect(await screen.findByRole('option', { name: 'text-embedding-3-small' })).toBeTruthy()
-  expect(screen.getByRole('option', { name: 'text-embedding-3-large' })).toBeTruthy()
+  expect(
+    await screen.findByRole('option', {
+      name: 'text-embedding-3-small',
+    })
+  ).toBeTruthy()
+  expect(
+    screen.getByRole('option', {
+      name: 'text-embedding-3-large',
+    })
+  ).toBeTruthy()
   expect(state.refreshCalls).toEqual(['embedding'])
   expect(screen.getByText(/2 models advertised by the provider/)).toBeTruthy()
 })
-
 test('a current model that is not advertised falls back to the custom field unchanged', async () => {
   state.settings.embedding.model = 'provider-custom-embedding'
   renderEmbeddingSettings()
-
-  fireEvent.click(screen.getByRole('button', { name: /Refresh Embedding model models/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Refresh Embedding model models/,
+    })
+  )
 
   // Flush the refresh continuation (scheduled outside `fireEvent`'s act scope).
   await act(async () => {
@@ -175,54 +184,77 @@ test('a current model that is not advertised falls back to the custom field unch
   })
   expect(modelCatalog().textContent).toContain('provider-custom-embedding')
 })
-
 test('selecting an advertised model updates the provider settings', async () => {
   const user = userEvent.setup()
   state.settings.embedding.model = 'text-embedding-3-small'
   renderEmbeddingSettings()
-  fireEvent.click(screen.getByRole('button', { name: /Refresh Embedding model models/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Refresh Embedding model models/,
+    })
+  )
   await openEmbeddingCatalog()
-
-  await user.click(screen.getByRole('option', { name: 'text-embedding-3-large' }))
+  await user.click(
+    screen.getByRole('option', {
+      name: 'text-embedding-3-large',
+    })
+  )
   await waitFor(() => expect(modelCatalog().textContent).toContain('text-embedding-3-large'))
-
-  fireEvent.click(screen.getByRole('button', { name: /Save/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Save/,
+    })
+  )
   await waitFor(() => {
     expect(state.saved?.embedding.model).toBe('text-embedding-3-large')
   })
 })
-
 test('failed discovery keeps the explicit model and reports the error', async () => {
   state.refreshError = new Error('provider /models request failed with status 404')
   renderEmbeddingSettings()
-
-  fireEvent.click(screen.getByRole('button', { name: /Refresh Embedding model models/ }))
-
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Refresh Embedding model models/,
+    })
+  )
   await waitFor(() => {
     expect(screen.getByText(/provider \/models request failed with status 404/)).toBeTruthy()
   })
   expect(modelCatalog().textContent).toContain('provider-custom-embedding')
 })
-
 test('changing the endpoint invalidates the advertised catalog', async () => {
   const user = userEvent.setup()
   state.settings.embedding.model = 'text-embedding-3-small'
   renderEmbeddingSettings()
-  fireEvent.click(screen.getByRole('button', { name: /Refresh Embedding model models/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Refresh Embedding model models/,
+    })
+  )
   await openEmbeddingCatalog()
-  expect(screen.getByRole('option', { name: 'text-embedding-3-large' })).toBeTruthy()
-  await user.click(screen.getByRole('option', { name: 'text-embedding-3-small' }))
+  expect(
+    screen.getByRole('option', {
+      name: 'text-embedding-3-large',
+    })
+  ).toBeTruthy()
+  await user.click(
+    screen.getByRole('option', {
+      name: 'text-embedding-3-small',
+    })
+  )
 
   // The user edits the endpoint; the stale advertised list must not apply to
   // the new provider.
   const endpoint = screen.getByLabelText('OpenAI-compatible endpoint') as HTMLInputElement
-  fireEvent.change(endpoint, { target: { value: 'https://other.example.test/v1' } })
-
+  fireEvent.change(endpoint, {
+    target: {
+      value: 'https://other.example.test/v1',
+    },
+  })
   await waitFor(() => {
     expect(modelCatalog().textContent).toContain('text-embedding-3-small')
   })
 })
-
 test('query section refreshes the query provider separately', async () => {
   state.refreshResult = {
     kind: 'query',
@@ -243,10 +275,16 @@ test('query section refreshes the query provider separately', async () => {
         created: null,
         capabilities: null,
       },
-      { id: 'o3-mini', object: 'model', owned_by: 'openai', created: null, capabilities: null },
+      {
+        id: 'o3-mini',
+        object: 'model',
+        owned_by: 'openai',
+        created: null,
+        capabilities: null,
+      },
     ],
   }
-  render(
+  render(() => (
     <SettingsView
       initialSection="query"
       desktopSettings={state.settings}
@@ -254,14 +292,26 @@ test('query section refreshes the query provider separately', async () => {
         state.saved = next
       }}
     />
+  ))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Refresh Query and answer model models/,
+    })
   )
-
-  fireEvent.click(screen.getByRole('button', { name: /Refresh Query and answer model models/ }))
-
-  const catalog = await screen.findByRole('combobox', { name: 'Model catalog' })
-  fireEvent.click(catalog)
-  expect(await screen.findByRole('option', { name: 'o3-mini' })).toBeTruthy()
-  expect(screen.getByRole('option', { name: 'provider-chat-large' })).toBeTruthy()
+  const catalog = await screen.findByRole('combobox', {
+    name: 'Model catalog',
+  })
+  fireEvent.pointerDown(catalog)
+  expect(
+    await screen.findByRole('option', {
+      name: 'o3-mini',
+    })
+  ).toBeTruthy()
+  expect(
+    screen.getByRole('option', {
+      name: 'provider-chat-large',
+    })
+  ).toBeTruthy()
   expect(state.refreshCalls).toEqual(['query'])
   expect(screen.getByText(/first 512 shown/)).toBeTruthy()
 })

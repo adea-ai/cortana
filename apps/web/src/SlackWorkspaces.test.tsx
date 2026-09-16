@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from 'solid-testing-library'
 import userEvent from '@testing-library/user-event'
-
 import { desktopInfo, desktopSettings } from './test/fixtures'
 import type {
   DesktopSettings,
@@ -9,19 +8,21 @@ import type {
   SlackWorkspaceList,
   SourceSettings,
 } from './types'
-
 afterEach(cleanup)
-
 const realApi = await import('./api')
-
 const workspaces: SlackWorkspaceList = {
   truncated: false,
   teams: [
-    { id: 'T0123456789', name: 'Acme Engineering' },
-    { id: 'T9876543210', name: 'Acme Community' },
+    {
+      id: 'T0123456789',
+      name: 'Acme Engineering',
+    },
+    {
+      id: 'T9876543210',
+      name: 'Acme Community',
+    },
   ],
 }
-
 const slackSource: SourceSettings = {
   name: 'work-slack',
   kind: 'slack',
@@ -49,11 +50,12 @@ const slackSource: SourceSettings = {
   acl: [],
   editable: true,
 }
-
 function settingsWith(source: SourceSettings): DesktopSettings {
-  return { ...desktopSettings, sources: [source] }
+  return {
+    ...desktopSettings,
+    sources: [source],
+  }
 }
-
 const state = {
   settings: settingsWith(slackSource),
   discoverCalls: [] as string[],
@@ -63,7 +65,6 @@ const state = {
   savedUpdates: [] as DesktopSettingsUpdate[],
   saved: null as DesktopSettings | null,
 }
-
 beforeEach(() => {
   state.settings = settingsWith(slackSource)
   state.discoverCalls = []
@@ -73,14 +74,16 @@ beforeEach(() => {
   state.savedUpdates = []
   state.saved = null
 })
-
 mock.module('./api', () => ({
   ...realApi,
   isDesktopApp: true,
   getDesktopSettings: () => Promise.resolve(state.settings),
   getDesktopInfo: () => Promise.resolve(desktopInfo),
   getDesktopSchedule: () =>
-    Promise.resolve({ sync_interval_seconds: 900, backup_interval_seconds: 86400 }),
+    Promise.resolve({
+      sync_interval_seconds: 900,
+      backup_interval_seconds: 86400,
+    }),
   saveDesktopSchedule: (schedule: {
     sync_interval_seconds: number
     backup_interval_seconds: number
@@ -126,11 +129,9 @@ mock.module('./api', () => ({
     return Promise.resolve(saved)
   },
 }))
-
 const { SettingsView } = await import('./components/SettingsView')
-
 async function renderSlackSettings() {
-  render(
+  render(() => (
     <SettingsView
       initialSection="sources"
       desktopSettings={state.settings}
@@ -138,16 +139,22 @@ async function renderSlackSettings() {
         state.saved = next
       }}
     />
+  ))
+  fireEvent.click(
+    await screen.findByRole('button', {
+      name: /Advanced source settings/,
+    })
   )
-  fireEvent.click(await screen.findByRole('button', { name: /Advanced source settings/ }))
   await screen.findByLabelText(/^Source name/)
 }
-
 test('slack workspace chooser discovers teams and persists per-workspace assignment', async () => {
   const user = userEvent.setup()
   await renderSlackSettings()
-
-  fireEvent.click(screen.getByRole('button', { name: /Discover workspaces/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Discover workspaces/,
+    })
+  )
   await waitFor(() => expect(screen.getByText('Acme Engineering')).toBeTruthy())
   expect(state.discoverCalls).toEqual(['work-slack'])
   expect(screen.getByText('Acme Community')).toBeTruthy()
@@ -156,24 +163,36 @@ test('slack workspace chooser discovers teams and persists per-workspace assignm
   // index-aligned in `team_names`, persisted per source (each Slack source
   // belongs to exactly one workspace). A Slack user token is scoped to
   // exactly one workspace, so assigning a second team replaces the first.
-  await user.click(screen.getByRole('checkbox', { name: /Acme Engineering/ }))
-  await user.click(screen.getByRole('checkbox', { name: /Acme Community/ }))
-
-  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+  await user.click(
+    screen.getByRole('checkbox', {
+      name: /Acme Engineering/,
+    })
+  )
+  await user.click(
+    screen.getByRole('checkbox', {
+      name: /Acme Community/,
+    })
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Save changes',
+    })
+  )
   await waitFor(() => expect(state.savedUpdates).toHaveLength(1))
   expect(state.savedUpdates[0].sources[0].teams).toEqual(['T9876543210'])
   expect(state.savedUpdates[0].sources[0].team_names).toEqual(['Acme Community'])
   expect(state.saved?.sources[0].teams).toEqual(['T9876543210'])
   expect(state.saved?.sources[0].team_names).toEqual(['Acme Community'])
 })
-
 test('slack workspace chooser refuses to discover unsaved changes and surfaces failures', async () => {
   await renderSlackSettings()
 
   // Editing the source makes the native command unsafe until it is saved, so
   // the discovery button is disabled and no IPC call can start.
   fireEvent.change(screen.getByLabelText(/^Source name/), {
-    target: { value: 'work-slack-renamed' },
+    target: {
+      value: 'work-slack-renamed',
+    },
   })
   const discoverButton = screen.getByRole('button', {
     name: /Discover workspaces/,
@@ -186,9 +205,17 @@ test('slack workspace chooser refuses to discover unsaved changes and surfaces f
   state.workspacesError = new Error(
     'Slack workspace discovery failed; check browser authorization: Slack workspace discovery requires browser authorization; run `cortana authorize-slack work-slack-renamed` first'
   )
-  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Save changes',
+    })
+  )
   await waitFor(() => expect(state.savedUpdates).toHaveLength(1))
-  fireEvent.click(screen.getByRole('button', { name: /Discover workspaces/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Discover workspaces/,
+    })
+  )
   await waitFor(() =>
     expect(
       screen
@@ -197,12 +224,17 @@ test('slack workspace chooser refuses to discover unsaved changes and surfaces f
     ).toBe(true)
   )
 })
-
 test('slack workspace chooser warns when discovery is truncated at 100 teams', async () => {
-  state.workspacesResult = { ...workspaces, truncated: true }
+  state.workspacesResult = {
+    ...workspaces,
+    truncated: true,
+  }
   await renderSlackSettings()
-
-  fireEvent.click(screen.getByRole('button', { name: /Discover workspaces/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Discover workspaces/,
+    })
+  )
   await waitFor(() =>
     expect(
       screen
@@ -215,7 +247,6 @@ test('slack workspace chooser warns when discovery is truncated at 100 teams', a
     ).toBe(true)
   )
 })
-
 test('slack authorize action names Slack and starts browser authorization', async () => {
   state.settings = settingsWith({
     ...slackSource,
@@ -223,7 +254,6 @@ test('slack authorize action names Slack and starts browser authorization', asyn
     oauth_client_path: '/Users/you/.config/cortana/slack-oauth-client.json',
   })
   await renderSlackSettings()
-
   const confirm = mock((message?: string) => {
     confirmMessage = message ?? ''
     return true
@@ -231,40 +261,64 @@ test('slack authorize action names Slack and starts browser authorization', asyn
   let confirmMessage = ''
   const originalConfirm = window.confirm
   window.confirm = confirm
-
-  fireEvent.click(screen.getByRole('button', { name: 'Authorize' }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Authorize',
+    })
+  )
   await waitFor(() => expect(state.authorizationCalls).toEqual(['work-slack']))
   expect(confirmMessage).toContain('Authorize work-slack with Slack')
-
   window.confirm = originalConfirm
 })
-
 test('slack authorize action stays hidden until saved OAuth paths are available', async () => {
   await renderSlackSettings()
-
-  expect(screen.queryByRole('button', { name: 'Authorize' })).toBeNull()
+  expect(
+    screen.queryByRole('button', {
+      name: 'Authorize',
+    })
+  ).toBeNull()
   expect(state.authorizationCalls).toEqual([])
 
   // A token destination without a client JSON is still incomplete, and the
   // native runtime must not be invoked with unsaved edits anyway.
   fireEvent.change(
     screen.getByPlaceholderText('/Users/you/.config/cortana/slack-user-token.json'),
-    { target: { value: '/Users/you/.config/cortana/slack-user-token.json' } }
+    {
+      target: {
+        value: '/Users/you/.config/cortana/slack-user-token.json',
+      },
+    }
   )
   fireEvent.change(
     screen.getByPlaceholderText('/Users/you/.config/cortana/slack-oauth-client.json'),
-    { target: { value: '/Users/you/.config/cortana/slack-oauth-client.json' } }
+    {
+      target: {
+        value: '/Users/you/.config/cortana/slack-oauth-client.json',
+      },
+    }
   )
-  expect(screen.queryByRole('button', { name: 'Authorize' })).toBeNull()
+  expect(
+    screen.queryByRole('button', {
+      name: 'Authorize',
+    })
+  ).toBeNull()
 
   // Once the paths are saved, the same source card offers browser
   // authorization for Slack.
-  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Save changes',
+    })
+  )
   await waitFor(() => expect(state.savedUpdates).toHaveLength(1))
   await waitFor(() =>
-    expect((screen.getByRole('button', { name: 'Authorize' }) as HTMLButtonElement).disabled).toBe(
-      false
-    )
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Authorize',
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(false)
   )
   expect(state.saved?.sources[0].token_path).toBe(
     '/Users/you/.config/cortana/slack-user-token.json'

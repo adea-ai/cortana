@@ -1,17 +1,16 @@
-'use client'
+import { Collapsible as CollapsiblePrimitive } from '@kobalte/core/collapsible'
+import type { ComponentProps } from 'solid-js'
 
-import { Collapsible as CollapsiblePrimitive } from '@base-ui/react/collapsible'
-
-function Collapsible({ ...props }: CollapsiblePrimitive.Root.Props) {
-  return <CollapsiblePrimitive.Root data-slot="collapsible" {...props} />
+function Collapsible(props: ComponentProps<typeof CollapsiblePrimitive>) {
+  return <CollapsiblePrimitive data-slot="collapsible" {...props} />
 }
 
-function CollapsibleTrigger({ ...props }: CollapsiblePrimitive.Trigger.Props) {
+function CollapsibleTrigger(props: ComponentProps<typeof CollapsiblePrimitive.Trigger>) {
   return <CollapsiblePrimitive.Trigger data-slot="collapsible-trigger" {...props} />
 }
 
-function CollapsibleContent({ ...props }: CollapsiblePrimitive.Panel.Props) {
-  return <CollapsiblePrimitive.Panel data-slot="collapsible-content" {...props} />
+function CollapsibleContent(props: ComponentProps<typeof CollapsiblePrimitive.Content>) {
+  return <CollapsiblePrimitive.Content data-slot="collapsible-content" {...props} />
 }
 
 export { Collapsible, CollapsibleTrigger, CollapsibleContent }

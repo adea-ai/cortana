@@ -1,102 +1,103 @@
-import * as React from 'react'
+import { splitProps, type ComponentProps } from 'solid-js'
 import { type VariantProps } from 'class-variance-authority'
 
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/shadcn/button-variants'
-import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from 'lucide-react'
+import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from 'lucide-solid'
 
-function Pagination({ className, ...props }: React.ComponentProps<'nav'>) {
+function Pagination(props: ComponentProps<'nav'>) {
+  const [local, rest] = splitProps(props, ['class'])
   return (
     <nav
       role="navigation"
       aria-label="pagination"
       data-slot="pagination"
-      className={cn('mx-auto flex w-full justify-center', className)}
-      {...props}
+      class={cn('mx-auto flex w-full justify-center', local.class)}
+      {...rest}
     />
   )
 }
 
-function PaginationContent({ className, ...props }: React.ComponentProps<'ul'>) {
+function PaginationContent(props: ComponentProps<'ul'>) {
+  const [local, rest] = splitProps(props, ['class'])
   return (
     <ul
       data-slot="pagination-content"
-      className={cn('flex items-center gap-0.5', className)}
-      {...props}
+      class={cn('flex items-center gap-0.5', local.class)}
+      {...rest}
     />
   )
 }
 
-function PaginationItem({ ...props }: React.ComponentProps<'li'>) {
+function PaginationItem(props: ComponentProps<'li'>) {
   return <li data-slot="pagination-item" {...props} />
 }
 
 type PaginationLinkProps = {
   isActive?: boolean
 } & Pick<VariantProps<typeof buttonVariants>, 'size'> &
-  React.ComponentProps<'a'>
+  ComponentProps<'a'>
 
-function PaginationLink({ className, isActive, size = 'icon', ...props }: PaginationLinkProps) {
+function PaginationLink(props: PaginationLinkProps) {
+  const [local, rest] = splitProps(props, ['class', 'isActive', 'size'])
   return (
     <a
-      aria-current={isActive ? 'page' : undefined}
+      aria-current={local.isActive ? 'page' : undefined}
       data-slot="pagination-link"
-      data-active={isActive}
-      className={cn(buttonVariants({ variant: isActive ? 'outline' : 'ghost', size }), className)}
-      {...props}
+      data-active={local.isActive}
+      class={cn(
+        buttonVariants({ variant: local.isActive ? 'outline' : 'ghost', size: local.size }),
+        local.class
+      )}
+      {...rest}
     />
   )
 }
 
-function PaginationPrevious({
-  className,
-  text = 'Previous',
-  ...props
-}: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
-  return (
-    <PaginationLink
-      aria-label="Go to previous page"
-      size="default"
-      className={cn('pl-1.5!', className)}
-      {...props}
-    >
-      <ChevronLeftIcon data-icon="inline-start" />
-      <span className="hidden sm:block">{text}</span>
-    </PaginationLink>
-  )
-}
-
-function PaginationNext({
-  className,
-  text = 'Next',
-  ...props
-}: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
+function PaginationNext(props: ComponentProps<typeof PaginationLink> & { text?: string }) {
+  const [local, rest] = splitProps(props, ['class', 'text', 'children'])
   return (
     <PaginationLink
       aria-label="Go to next page"
       size="default"
-      className={cn('pr-1.5!', className)}
-      {...props}
+      class={cn('pr-1.5!', local.class)}
+      {...rest}
     >
-      <span className="hidden sm:block">{text}</span>
+      <span class="hidden sm:block">{local.text ?? 'Next'}</span>
       <ChevronRightIcon data-icon="inline-end" />
     </PaginationLink>
   )
 }
 
-function PaginationEllipsis({ className, ...props }: React.ComponentProps<'span'>) {
+function PaginationPrevious(props: ComponentProps<typeof PaginationLink> & { text?: string }) {
+  const [local, rest] = splitProps(props, ['class', 'text'])
+  return (
+    <PaginationLink
+      aria-label="Go to previous page"
+      size="default"
+      class={cn('pl-1.5!', local.class)}
+      {...rest}
+    >
+      <ChevronLeftIcon data-icon="inline-start" />
+      <span class="hidden sm:block">{local.text ?? 'Previous'}</span>
+    </PaginationLink>
+  )
+}
+
+function PaginationEllipsis(props: ComponentProps<'span'>) {
+  const [local, rest] = splitProps(props, ['class'])
   return (
     <span
       aria-hidden
       data-slot="pagination-ellipsis"
-      className={cn(
+      class={cn(
         "flex size-8 items-center justify-center [&_svg:not([class*='size-'])]:size-4",
-        className
+        local.class
       )}
-      {...props}
+      {...rest}
     >
       <MoreHorizontalIcon />
-      <span className="sr-only">More pages</span>
+      <span class="sr-only">More pages</span>
     </span>
   )
 }

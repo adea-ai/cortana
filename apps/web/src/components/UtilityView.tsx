@@ -16,8 +16,8 @@ import {
   Settings,
   Sparkles,
   TerminalSquare,
-} from 'lucide-react'
-import { type ComponentProps, useState } from 'react'
+} from 'lucide-solid'
+import { createSignal, For, Show, splitProps, type ComponentProps, type JSX } from 'solid-js'
 
 import { openDesktopUrl } from '../api'
 import { codeRevisionLabel } from '../codeEvidence'
@@ -35,7 +35,7 @@ import { useClipboardCopy } from '../useClipboardCopy'
 import { Button as ShadcnButton } from './shadcn/button'
 import { Card } from './shadcn/card'
 
-const EMPTY_ACTIONS: Array<{ label: string; icon: React.ReactNode; onClick: () => void }> = []
+const EMPTY_ACTIONS: Array<{ label: string; icon: JSX.Element; onClick: () => void }> = []
 
 export type UtilityKind = 'inbox' | 'conversations' | 'agent-tools' | 'index' | 'help'
 
@@ -71,20 +71,22 @@ type ButtonProps = Omit<ComponentProps<typeof ShadcnButton>, 'variant' | 'size'>
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'icon' | 'compact'
 }
 
-function Button({ variant = 'secondary', ...props }: ButtonProps) {
+function Button(props: ButtonProps) {
+  const [local, rest] = splitProps(props, ['variant'])
+  const variant = () => local.variant ?? 'secondary'
   return (
     <ShadcnButton
-      {...props}
+      {...rest}
       variant={
-        variant === 'primary'
+        variant() === 'primary'
           ? 'default'
-          : variant === 'danger'
+          : variant() === 'danger'
             ? 'destructive'
-            : variant === 'ghost' || variant === 'icon'
+            : variant() === 'ghost' || variant() === 'icon'
               ? 'ghost'
               : 'secondary'
       }
-      size={variant === 'icon' ? 'icon' : variant === 'compact' ? 'sm' : 'default'}
+      size={variant() === 'icon' ? 'icon' : variant() === 'compact' ? 'sm' : 'default'}
     />
   )
 }
@@ -93,30 +95,7 @@ function UtilityCard(props: ComponentProps<'div'>) {
   return <Card {...props} />
 }
 
-export function UtilityView({
-  kind,
-  status,
-  statusError = '',
-  onRetryStatus,
-  sourceJobs,
-  query,
-  answer,
-  evidence,
-  loading,
-  error,
-  contextBundle,
-  contextLoading,
-  contextError,
-  contextTokens,
-  desktopAvailable,
-  sourceJobError,
-  onRetrySourceJobs,
-  onSearchFocus,
-  onRetrieveContext,
-  onOpenSettings,
-  onOpenProject,
-  onCancelSourceJob,
-}: {
+export function UtilityView(props: {
   kind: UtilityKind
   status: BrainStatus | null
   statusError?: string
@@ -140,76 +119,67 @@ export function UtilityView({
   onOpenProject: () => void | Promise<void>
   onCancelSourceJob?: (id: string) => void
 }) {
-  const { eyebrow, title, description } = TITLES[kind]
+  const titles = () => TITLES[props.kind]
   return (
-    <main id="main-content" className="utility-view m7-utility-view" data-m7-utility-view={kind}>
-      <header className="utility-header">
+    <main id="main-content" class="utility-view m7-utility-view" data-m7-utility-view={props.kind}>
+      <header class="utility-header">
         <div>
-          <span className="eyebrow">{eyebrow}</span>
-          <h1>{title}</h1>
-          <p>{description}</p>
+          <span class="eyebrow">{titles().eyebrow}</span>
+          <h1>{titles().title}</h1>
+          <p>{titles().description}</p>
         </div>
       </header>
-      <div className="utility-body">
-        {kind === 'inbox' && (
+      <div class="utility-body">
+        <Show when={props.kind === 'inbox'}>
           <InboxView
-            status={status}
-            statusError={statusError}
-            sourceJobs={sourceJobs}
-            sourceJobError={sourceJobError}
-            onRetrySourceJobs={onRetrySourceJobs}
-            onOpenSettings={onOpenSettings}
-            onRetryStatus={onRetryStatus}
-            onCancelSourceJob={onCancelSourceJob}
+            status={props.status}
+            statusError={props.statusError ?? ''}
+            sourceJobs={props.sourceJobs}
+            sourceJobError={props.sourceJobError}
+            onRetrySourceJobs={props.onRetrySourceJobs}
+            onOpenSettings={props.onOpenSettings}
+            onRetryStatus={props.onRetryStatus}
+            onCancelSourceJob={props.onCancelSourceJob}
           />
-        )}
-        {kind === 'conversations' && (
+        </Show>
+        <Show when={props.kind === 'conversations'}>
           <ConversationsView
-            query={query}
-            answer={answer}
-            evidence={evidence}
-            loading={loading}
-            error={error}
-            onSearchFocus={onSearchFocus}
+            query={props.query}
+            answer={props.answer}
+            evidence={props.evidence}
+            loading={props.loading}
+            error={props.error}
+            onSearchFocus={props.onSearchFocus}
           />
-        )}
-        {kind === 'agent-tools' && (
+        </Show>
+        <Show when={props.kind === 'agent-tools'}>
           <AgentToolsView
-            query={query}
-            evidence={evidence}
-            contextBundle={contextBundle}
-            contextLoading={contextLoading}
-            contextError={contextError}
-            contextTokens={contextTokens}
-            onRetrieveContext={onRetrieveContext}
+            query={props.query}
+            evidence={props.evidence}
+            contextBundle={props.contextBundle}
+            contextLoading={props.contextLoading}
+            contextError={props.contextError}
+            contextTokens={props.contextTokens}
+            onRetrieveContext={props.onRetrieveContext}
           />
-        )}
-        {kind === 'index' && (
+        </Show>
+        <Show when={props.kind === 'index'}>
           <IndexView
-            status={status}
-            statusError={statusError}
-            onOpenSettings={onOpenSettings}
-            onRetryStatus={onRetryStatus}
+            status={props.status}
+            statusError={props.statusError ?? ''}
+            onOpenSettings={props.onOpenSettings}
+            onRetryStatus={props.onRetryStatus}
           />
-        )}
-        {kind === 'help' && (
-          <HelpView desktopAvailable={desktopAvailable} onOpenProject={onOpenProject} />
-        )}
+        </Show>
+        <Show when={props.kind === 'help'}>
+          <HelpView desktopAvailable={props.desktopAvailable} onOpenProject={props.onOpenProject} />
+        </Show>
       </div>
     </main>
   )
 }
 
-function InboxView({
-  status,
-  statusError,
-  sourceJobs,
-  sourceJobError,
-  onRetrySourceJobs,
-  onOpenSettings,
-  onRetryStatus,
-  onCancelSourceJob,
-}: {
+function InboxView(props: {
   status: BrainStatus | null
   statusError: string
   sourceJobs: DesktopSourceJob[]
@@ -219,193 +189,202 @@ function InboxView({
   onRetryStatus?: () => void
   onCancelSourceJob?: (id: string) => void
 }) {
-  const attention = (status?.sync_runs ?? []).filter((run) =>
-    ['running', 'failed', 'cancelled', 'budget_exceeded'].includes(run.status)
-  )
-  const activeJobs = sourceJobs.filter(
-    (job) => job.status === 'running' || job.status === 'cancelling'
-  )
-  const completedJobs = recentCompletedJobs(sourceJobs)
-  if (
-    !sourceJobError &&
-    attention.length === 0 &&
-    activeJobs.length === 0 &&
-    completedJobs.length === 0
-  ) {
-    if (!status) {
-      return (
+  const attention = () =>
+    (props.status?.sync_runs ?? []).filter((run) =>
+      ['running', 'failed', 'cancelled', 'budget_exceeded'].includes(run.status)
+    )
+  const activeJobs = () =>
+    props.sourceJobs.filter((job) => job.status === 'running' || job.status === 'cancelling')
+  const completedJobs = () => recentCompletedJobs(props.sourceJobs)
+  const empty = () =>
+    !props.sourceJobError &&
+    attention().length === 0 &&
+    activeJobs().length === 0 &&
+    completedJobs().length === 0
+
+  const emptyView = (
+    <Show
+      when={props.status}
+      fallback={
         <UtilityEmpty
           icon={
-            statusError ? <AlertTriangle size={26} /> : <LoaderCircle className="spin" size={26} />
+            props.statusError ? (
+              <AlertTriangle size={26} />
+            ) : (
+              <LoaderCircle class="spin" size={26} />
+            )
           }
-          title={statusError ? 'Sync health unavailable' : 'Loading sync health'}
+          title={props.statusError ? 'Sync health unavailable' : 'Loading sync health'}
           detail={
-            statusError ||
+            props.statusError ||
             'Waiting for the runtime status snapshot before reporting source health or sync history.'
           }
           actions={[
-            ...(onRetryStatus
-              ? [{ label: 'Retry status', icon: <RefreshCw size={15} />, onClick: onRetryStatus }]
+            ...(props.onRetryStatus
+              ? [
+                  {
+                    label: 'Retry status',
+                    icon: <RefreshCw size={15} />,
+                    onClick: props.onRetryStatus!,
+                  },
+                ]
               : []),
-            { label: 'Open settings', icon: <Settings size={15} />, onClick: onOpenSettings },
+            { label: 'Open settings', icon: <Settings size={15} />, onClick: props.onOpenSettings },
           ]}
         />
-      )
-    }
-    return (
+      }
+    >
       <UtilityEmpty
         icon={<Inbox size={26} />}
         title="No sync attention"
         detail={
-          statusError
-            ? `${statusError} No attention is recorded in the last known snapshot.`
+          props.statusError
+            ? `${props.statusError} No attention is recorded in the last known snapshot.`
             : 'Every configured source is idle and the last sync of each source finished cleanly. New sync activity will appear here as it happens.'
         }
         actions={[
-          { label: 'Open settings', icon: <Settings size={15} />, onClick: onOpenSettings },
+          { label: 'Open settings', icon: <Settings size={15} />, onClick: props.onOpenSettings },
         ]}
       />
-    )
-  }
+    </Show>
+  )
+
   return (
-    <>
-      {sourceJobError && (
-        <p className="utility-error" role="alert">
-          {sourceJobError}
-          {onRetrySourceJobs && (
-            <>
-              {' '}
-              <Button
-                variant="ghost"
-                type="button"
-                className="link-button"
-                onClick={onRetrySourceJobs}
-              >
-                Retry source jobs
-              </Button>
-            </>
-          )}
+    <Show when={!empty()} fallback={emptyView}>
+      <Show when={props.sourceJobError}>
+        <p class="utility-error" role="alert">
+          {props.sourceJobError}
+          <Show when={props.onRetrySourceJobs}>
+            {' '}
+            <Button
+              variant="ghost"
+              type="button"
+              class="link-button"
+              onClick={props.onRetrySourceJobs}
+            >
+              Retry source jobs
+            </Button>
+          </Show>
         </p>
-      )}
-      {statusError && status && (
-        <p className="utility-error" role="status">
-          {statusError} Showing the last known sync snapshot.{' '}
-          {onRetryStatus && (
-            <Button variant="ghost" type="button" className="link-button" onClick={onRetryStatus}>
+      </Show>
+      <Show when={props.statusError && props.status}>
+        <p class="utility-error" role="status">
+          {props.statusError} Showing the last known sync snapshot.{' '}
+          <Show when={props.onRetryStatus}>
+            <Button variant="ghost" type="button" class="link-button" onClick={props.onRetryStatus}>
               Retry status
             </Button>
-          )}
+          </Show>
         </p>
-      )}
-      {attention.length > 0 && (
-        <section className="utility-section">
+      </Show>
+      <Show when={attention().length > 0}>
+        <section class="utility-section">
           <h2>Sync attention</h2>
-          <div className="utility-list">
-            {attention.map((run) => (
-              <div className="utility-item" key={`${run.project}:${run.source}:${run.started_at}`}>
-                <SyncIcon status={run.status} />
-                <div className="utility-item-main">
-                  <strong>{run.source}</strong>
-                  <span>
-                    {run.project} · started {new Date(run.started_at).toLocaleString()} ·{' '}
-                    {describeSyncRunProgress(run)} ·{' '}
-                    {run.progress_documents ?? run.documents ?? '—'} documents ·{' '}
-                    {run.progress_bytes ?? run.bytes ?? '—'} bytes
-                  </span>
-                </div>
-                <StatusPill status={run.status} />
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-      {activeJobs.length > 0 && (
-        <section className="utility-section">
-          <h2>Active source jobs</h2>
-          <div className="utility-list">
-            {activeJobs.map((job) => (
-              <div className="utility-item" key={job.id}>
-                <LoaderCircle className="spin" size={16} />
-                <div className="utility-item-main">
-                  <strong>{job.source}</strong>
-                  <span>
-                    {job.project} · {job.operation} · {describeSourceJobProgress(job)} · started{' '}
-                    {new Date(job.started_at_unix_seconds * 1000).toLocaleString()}
-                  </span>
-                </div>
-                <StatusPill status={job.status} />
-                {onCancelSourceJob && (
-                  <Button
-                    variant="compact"
-                    type="button"
-                    className="utility-cancel"
-                    disabled={job.status === 'cancelling'}
-                    aria-label={`Cancel ${job.project} ${job.source} ${job.operation}`}
-                    onClick={() => onCancelSourceJob(job.id)}
-                  >
-                    <CircleStop size={14} /> Cancel
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-      {completedJobs.length > 0 && (
-        <section className="utility-section">
-          <h2>Recent source jobs</h2>
-          <div className="utility-list">
-            {completedJobs.map((job) => {
-              const terminalStatus = job.status === 'cancelling' ? 'running' : job.status
-              const started = new Date(job.started_at_unix_seconds * 1000)
-              const completed = job.completed_at_unix_seconds
-                ? new Date(job.completed_at_unix_seconds * 1000)
-                : null
-              const duration = completed
-                ? `${Math.max(0, Math.round((completed.getTime() - started.getTime()) / 1000))}s`
-                : 'duration unavailable'
-              return (
-                <div className="utility-item" key={job.id}>
-                  <SyncIcon status={terminalStatus} />
-                  <div className="utility-item-main">
-                    <strong>
-                      {job.source} · {job.operation}
-                    </strong>
+          <div class="utility-list">
+            <For each={attention()}>
+              {(run) => (
+                <div class="utility-item">
+                  <SyncIcon status={run.status} />
+                  <div class="utility-item-main">
+                    <strong>{run.source}</strong>
                     <span>
-                      {job.project} · {job.summary} · started {started.toLocaleString()} ·{' '}
-                      {duration}
+                      {run.project} · started {new Date(run.started_at).toLocaleString()} ·{' '}
+                      {describeSyncRunProgress(run)} ·{' '}
+                      {run.progress_documents ?? run.documents ?? '—'} documents ·{' '}
+                      {run.progress_bytes ?? run.bytes ?? '—'} bytes
                     </span>
-                    {job.log && (
-                      <details className="utility-job-log">
-                        <summary>View job log</summary>
-                        <pre>{job.log}</pre>
-                      </details>
-                    )}
                   </div>
-                  <StatusPill status={terminalStatus} />
+                  <StatusPill status={run.status} />
                 </div>
-              )
-            })}
+              )}
+            </For>
           </div>
         </section>
-      )}
-      <div className="utility-actions">
-        <Button variant="secondary" onClick={onOpenSettings}>
+      </Show>
+      <Show when={activeJobs().length > 0}>
+        <section class="utility-section">
+          <h2>Active source jobs</h2>
+          <div class="utility-list">
+            <For each={activeJobs()}>
+              {(job) => (
+                <div class="utility-item">
+                  <LoaderCircle class="spin" size={16} />
+                  <div class="utility-item-main">
+                    <strong>{job.source}</strong>
+                    <span>
+                      {job.project} · {job.operation} · {describeSourceJobProgress(job)} · started{' '}
+                      {new Date(job.started_at_unix_seconds * 1000).toLocaleString()}
+                    </span>
+                  </div>
+                  <StatusPill status={job.status} />
+                  <Show when={props.onCancelSourceJob}>
+                    <Button
+                      variant="compact"
+                      type="button"
+                      class="utility-cancel"
+                      disabled={job.status === 'cancelling'}
+                      aria-label={`Cancel ${job.project} ${job.source} ${job.operation}`}
+                      onClick={() => props.onCancelSourceJob?.(job.id)}
+                    >
+                      <CircleStop size={14} /> Cancel
+                    </Button>
+                  </Show>
+                </div>
+              )}
+            </For>
+          </div>
+        </section>
+      </Show>
+      <Show when={completedJobs().length > 0}>
+        <section class="utility-section">
+          <h2>Recent source jobs</h2>
+          <div class="utility-list">
+            <For each={completedJobs()}>
+              {(job) => {
+                const terminalStatus = job.status === 'cancelling' ? 'running' : job.status
+                const started = new Date(job.started_at_unix_seconds * 1000)
+                const completed = job.completed_at_unix_seconds
+                  ? new Date(job.completed_at_unix_seconds * 1000)
+                  : null
+                const duration = completed
+                  ? `${Math.max(0, Math.round((completed.getTime() - started.getTime()) / 1000))}s`
+                  : 'duration unavailable'
+                return (
+                  <div class="utility-item">
+                    <SyncIcon status={terminalStatus} />
+                    <div class="utility-item-main">
+                      <strong>
+                        {job.source} · {job.operation}
+                      </strong>
+                      <span>
+                        {job.project} · {job.summary} · started {started.toLocaleString()} ·{' '}
+                        {duration}
+                      </span>
+                      <Show when={job.log}>
+                        <details class="utility-job-log">
+                          <summary>View job log</summary>
+                          <pre>{job.log}</pre>
+                        </details>
+                      </Show>
+                    </div>
+                    <StatusPill status={terminalStatus} />
+                  </div>
+                )
+              }}
+            </For>
+          </div>
+        </section>
+      </Show>
+      <div class="utility-actions">
+        <Button variant="secondary" onClick={props.onOpenSettings}>
           <Settings size={15} /> Manage ingestion in settings
         </Button>
       </div>
-    </>
+    </Show>
   )
 }
 
-function ConversationsView({
-  query,
-  answer,
-  evidence,
-  loading,
-  error,
-  onSearchFocus,
-}: {
+function ConversationsView(props: {
   query: string
   answer: AnswerResponse | null
   evidence: Evidence[]
@@ -413,108 +392,115 @@ function ConversationsView({
   error: string
   onSearchFocus: () => void
 }) {
-  if (loading) {
-    return (
-      <UtilityEmpty
-        icon={<LoaderCircle className="spin" size={26} />}
-        title="Searching the brain"
-        detail={`Fusing semantic and exact-term evidence for “${query}”.`}
-      />
-    )
-  }
-  if (error && !answer) {
-    return (
-      <UtilityEmpty
-        icon={<AlertTriangle size={26} />}
-        title="The brain is unreachable"
-        detail={`${error} Start the Rust API or add ?demo=1 to preview the workspace.`}
-        actions={[
-          { label: 'Search the brain', icon: <Search size={15} />, onClick: onSearchFocus },
-        ]}
-      />
-    )
-  }
-  if (!answer) {
-    return (
-      <UtilityEmpty
-        icon={<MessageCircle size={26} />}
-        title="No conversation yet"
-        detail="Ask a question in the search bar above. The current query, answer, and cited evidence will be tracked here."
-        actions={[
-          { label: 'Search the brain', icon: <Search size={15} />, onClick: onSearchFocus },
-        ]}
-      />
-    )
-  }
   return (
-    <>
-      <section className="utility-section">
-        <h2>Current conversation</h2>
-        <UtilityCard className="utility-card">
-          <span className="utility-card-eyebrow">
-            <Sparkles size={14} /> Query
-          </span>
-          <h3>{query}</h3>
-          <div className="utility-meta">
-            <span>{answer.mode}</span>
-            <span>
-              {answer.retrieval_degraded
-                ? 'lexical fallback'
-                : answer.retrieval_mode || 'hybrid retrieval'}
-            </span>
-            <span>{answer.cached ? 'cache hit' : `${answer.latency_ms} ms`}</span>
-            <span>
-              {answer.plan.queries.length}{' '}
-              {answer.plan.queries.length === 1 ? 'retrieval' : 'retrievals'}
-            </span>
-            <span>{evidence.length} cited passages</span>
-          </div>
-          <p className="utility-answer">{answer.answer}</p>
-          {answer.warnings.map((warning, index) => (
-            // oxlint-disable-next-line react/no-array-index-key -- warnings render in response order
-            <p className="answer-warning" key={`${warning}:${index}`}>
-              {warning}
-            </p>
-          ))}
-        </UtilityCard>
-      </section>
-      {evidence.length > 0 && (
-        <section className="utility-section">
-          <h2>Cited evidence</h2>
-          <div className="utility-list">
-            {evidence.slice(0, 4).map((item, index) => (
-              <div className="utility-item" key={item.chunk_id}>
-                <span className="utility-index">{index + 1}</span>
-                <div className="utility-item-main">
-                  <strong>{item.title}</strong>
-                  <span>
-                    {codeRevisionLabel(item) ?? item.source} · updated{' '}
-                    {new Date(item.updated_at).toLocaleDateString()}
+    <Show
+      when={!props.loading}
+      fallback={
+        <UtilityEmpty
+          icon={<LoaderCircle class="spin" size={26} />}
+          title="Searching the brain"
+          detail={`Fusing semantic and exact-term evidence for “${props.query}”.`}
+        />
+      }
+    >
+      <Show
+        when={!(props.error && !props.answer)}
+        fallback={
+          <UtilityEmpty
+            icon={<AlertTriangle size={26} />}
+            title="The brain is unreachable"
+            detail={`${props.error} Start the Rust API or add ?demo=1 to preview the workspace.`}
+            actions={[
+              {
+                label: 'Search the brain',
+                icon: <Search size={15} />,
+                onClick: props.onSearchFocus,
+              },
+            ]}
+          />
+        }
+      >
+        <Show
+          when={props.answer}
+          fallback={
+            <UtilityEmpty
+              icon={<MessageCircle size={26} />}
+              title="No conversation yet"
+              detail="Ask a question in the search bar above. The current query, answer, and cited evidence will be tracked here."
+              actions={[
+                {
+                  label: 'Search the brain',
+                  icon: <Search size={15} />,
+                  onClick: props.onSearchFocus,
+                },
+              ]}
+            />
+          }
+        >
+          {(answer) => (
+            <>
+              <section class="utility-section">
+                <h2>Current conversation</h2>
+                <UtilityCard class="utility-card">
+                  <span class="utility-card-eyebrow">
+                    <Sparkles size={14} /> Query
                   </span>
-                </div>
+                  <h3>{props.query}</h3>
+                  <div class="utility-meta">
+                    <span>{answer().mode}</span>
+                    <span>
+                      {answer().retrieval_degraded
+                        ? 'lexical fallback'
+                        : answer().retrieval_mode || 'hybrid retrieval'}
+                    </span>
+                    <span>{answer().cached ? 'cache hit' : `${answer().latency_ms} ms`}</span>
+                    <span>
+                      {answer().plan.queries.length}{' '}
+                      {answer().plan.queries.length === 1 ? 'retrieval' : 'retrievals'}
+                    </span>
+                    <span>{props.evidence.length} cited passages</span>
+                  </div>
+                  <p class="utility-answer">{answer().answer}</p>
+                  <For each={answer().warnings}>
+                    {(warning) => <p class="answer-warning">{warning}</p>}
+                  </For>
+                </UtilityCard>
+              </section>
+              <Show when={props.evidence.length > 0}>
+                <section class="utility-section">
+                  <h2>Cited evidence</h2>
+                  <div class="utility-list">
+                    <For each={props.evidence.slice(0, 4)}>
+                      {(item, index) => (
+                        <div class="utility-item">
+                          <span class="utility-index">{index() + 1}</span>
+                          <div class="utility-item-main">
+                            <strong>{item.title}</strong>
+                            <span>
+                              {codeRevisionLabel(item) ?? item.source} · updated{' '}
+                              {new Date(item.updated_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </For>
+                  </div>
+                </section>
+              </Show>
+              <div class="utility-actions">
+                <Button variant="secondary" onClick={props.onSearchFocus}>
+                  <Search size={15} /> Search the brain
+                </Button>
               </div>
-            ))}
-          </div>
-        </section>
-      )}
-      <div className="utility-actions">
-        <Button variant="secondary" onClick={onSearchFocus}>
-          <Search size={15} /> Search the brain
-        </Button>
-      </div>
-    </>
+            </>
+          )}
+        </Show>
+      </Show>
+    </Show>
   )
 }
 
-function AgentToolsView({
-  query,
-  evidence,
-  contextBundle,
-  contextLoading,
-  contextError,
-  contextTokens,
-  onRetrieveContext,
-}: {
+function AgentToolsView(props: {
   query: string
   evidence: Evidence[]
   contextBundle: ContextBundle | null
@@ -523,106 +509,127 @@ function AgentToolsView({
   contextTokens: number
   onRetrieveContext: () => void
 }) {
-  const { copied, copyError, copy } = useClipboardCopy(contextBundle?.context ?? null)
+  const { copied, copyError, copy } = useClipboardCopy(() => props.contextBundle?.context ?? null)
 
   return (
     <>
-      <section className="utility-section">
+      <section class="utility-section">
         <h2>Generated context</h2>
-        {contextLoading ? (
-          <UtilityEmpty
-            icon={<LoaderCircle className="spin" size={26} />}
-            title="Retrieving context"
-            detail={`Building a token-bounded bundle for “${query}”.`}
-          />
-        ) : contextBundle ? (
-          <>
-            <div className="utility-metrics">
-              <Metric label="Retrieval" value={contextBundle.retrieval_mode || 'hybrid'} />
-              <Metric label="Retrieved" value={contextBundle.metrics.retrieved.toLocaleString()} />
-              <Metric label="Included" value={contextBundle.metrics.included.toLocaleString()} />
-              <Metric label="Omitted" value={contextBundle.metrics.omitted.toLocaleString()} />
-              <Metric
-                label="Native memory"
-                value={(
-                  contextBundle.metrics.memories_included ??
-                  contextBundle.memories?.length ??
-                  0
-                ).toLocaleString()}
+        <Show
+          when={!props.contextLoading}
+          fallback={
+            <UtilityEmpty
+              icon={<LoaderCircle class="spin" size={26} />}
+              title="Retrieving context"
+              detail={`Building a token-bounded bundle for “${props.query}”.`}
+            />
+          }
+        >
+          <Show
+            when={props.contextBundle}
+            fallback={
+              <UtilityEmpty
+                icon={<TerminalSquare size={26} />}
+                title="No context generated yet"
+                detail="Retrieve the token-bounded context bundle for the current conversation. It is the same citation-ready surface the agent integrations receive."
+                actions={[
+                  {
+                    label: 'Retrieve context',
+                    icon: <Sparkles size={15} />,
+                    onClick: props.onRetrieveContext,
+                  },
+                ]}
               />
-              <Metric
-                label="Estimated tokens"
-                value={contextBundle.metrics.estimated_tokens.toLocaleString()}
-              />
-              <Metric
-                label="Max tokens"
-                value={contextBundle.metrics.max_tokens.toLocaleString()}
-              />
-            </div>
-            {contextBundle.retrieval_warning && (
-              <p className="answer-warning" role="status">
-                {contextBundle.retrieval_warning}
-              </p>
-            )}
-            {contextBundle.evidence.length > 0 && (
-              <div className="utility-list utility-list-spaced">
-                {contextBundle.evidence.map((item) => (
-                  <div className="utility-item" key={item.chunk_id}>
-                    <FileText size={16} />
-                    <div className="utility-item-main">
-                      <strong>{item.title}</strong>
-                      <span>
-                        {item.source} · score {item.score.toFixed(2)}
-                      </span>
-                    </div>
+            }
+          >
+            {(contextBundle) => (
+              <>
+                <div class="utility-metrics">
+                  <Metric label="Retrieval" value={contextBundle().retrieval_mode || 'hybrid'} />
+                  <Metric
+                    label="Retrieved"
+                    value={contextBundle().metrics.retrieved.toLocaleString()}
+                  />
+                  <Metric
+                    label="Included"
+                    value={contextBundle().metrics.included.toLocaleString()}
+                  />
+                  <Metric
+                    label="Omitted"
+                    value={contextBundle().metrics.omitted.toLocaleString()}
+                  />
+                  <Metric
+                    label="Native memory"
+                    value={(
+                      contextBundle().metrics.memories_included ??
+                      contextBundle().memories?.length ??
+                      0
+                    ).toLocaleString()}
+                  />
+                  <Metric
+                    label="Estimated tokens"
+                    value={contextBundle().metrics.estimated_tokens.toLocaleString()}
+                  />
+                  <Metric
+                    label="Max tokens"
+                    value={contextBundle().metrics.max_tokens.toLocaleString()}
+                  />
+                </div>
+                <Show when={contextBundle().retrieval_warning}>
+                  <p class="answer-warning" role="status">
+                    {contextBundle().retrieval_warning}
+                  </p>
+                </Show>
+                <Show when={contextBundle().evidence.length > 0}>
+                  <div class="utility-list utility-list-spaced">
+                    <For each={contextBundle().evidence}>
+                      {(item) => (
+                        <div class="utility-item">
+                          <FileText size={16} />
+                          <div class="utility-item-main">
+                            <strong>{item.title}</strong>
+                            <span>
+                              {item.source} · score {item.score.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </For>
                   </div>
-                ))}
-              </div>
+                </Show>
+                <div class="utility-actions">
+                  <Button
+                    variant="secondary"
+                    aria-label="Copy MCP-equivalent context"
+                    onClick={() => void copy()}
+                  >
+                    {copied() ? <Check size={15} /> : <Copy size={15} />}
+                    {copied() ? 'Context copied' : 'Copy MCP-equivalent context'}
+                  </Button>
+                  <Show when={copyError()}>
+                    <p class="utility-error" role="alert">
+                      {copyError()}
+                    </p>
+                  </Show>
+                </div>
+              </>
             )}
-            <div className="utility-actions">
-              <Button
-                variant="secondary"
-                aria-label="Copy MCP-equivalent context"
-                onClick={() => void copy()}
-              >
-                {copied ? <Check size={15} /> : <Copy size={15} />}
-                {copied ? 'Context copied' : 'Copy MCP-equivalent context'}
-              </Button>
-              {copyError && (
-                <p className="utility-error" role="alert">
-                  {copyError}
-                </p>
-              )}
-            </div>
-          </>
-        ) : (
-          <UtilityEmpty
-            icon={<TerminalSquare size={26} />}
-            title="No context generated yet"
-            detail="Retrieve the token-bounded context bundle for the current conversation. It is the same citation-ready surface the agent integrations receive."
-            actions={[
-              {
-                label: 'Retrieve context',
-                icon: <Sparkles size={15} />,
-                onClick: onRetrieveContext,
-              },
-            ]}
-          />
-        )}
-        {contextError && (
-          <p className="utility-error" role="alert">
-            {contextError}
+          </Show>
+        </Show>
+        <Show when={props.contextError}>
+          <p class="utility-error" role="alert">
+            {props.contextError}
           </p>
-        )}
+        </Show>
       </section>
-      <section className="utility-section">
+      <section class="utility-section">
         <h2>Agent context window</h2>
-        <UtilityCard className="utility-card">
-          <p className="utility-answer">
-            ~{contextTokens.toLocaleString()} tokens assembled from the active query and{' '}
-            {evidence.length} cited {evidence.length === 1 ? 'passage' : 'passages'}.
+        <UtilityCard class="utility-card">
+          <p class="utility-answer">
+            ~{props.contextTokens.toLocaleString()} tokens assembled from the active query and{' '}
+            {props.evidence.length} cited {props.evidence.length === 1 ? 'passage' : 'passages'}.
           </p>
-          <p className="utility-note">
+          <p class="utility-note">
             The window is rebuilt locally from the current session state and never leaves this
             machine.
           </p>
@@ -632,119 +639,122 @@ function AgentToolsView({
   )
 }
 
-function IndexView({
-  status,
-  statusError,
-  onOpenSettings,
-  onRetryStatus,
-}: {
+function IndexView(props: {
   status: BrainStatus | null
   statusError: string
   onOpenSettings: () => void
   onRetryStatus?: () => void
 }) {
-  if (!status) {
-    return (
-      <UtilityEmpty
-        icon={
-          statusError ? <AlertTriangle size={26} /> : <LoaderCircle className="spin" size={26} />
-        }
-        title={statusError ? 'Index unavailable' : 'Loading index'}
-        detail={
-          statusError ||
-          'Waiting for the runtime status snapshot before reporting live index metrics.'
-        }
-        actions={[
-          ...(onRetryStatus
-            ? [{ label: 'Retry status', icon: <RefreshCw size={15} />, onClick: onRetryStatus }]
-            : []),
-          { label: 'Open settings', icon: <Settings size={15} />, onClick: onOpenSettings },
-        ]}
-      />
-    )
-  }
   return (
-    <>
-      {status.stats_stale && (
-        <p className="utility-warning" role="status">
-          {status.stats_warning ?? 'Live database statistics are temporarily stale.'}
-          {typeof status.stats_age_seconds === 'number'
-            ? ` Snapshot age: ${status.stats_age_seconds.toLocaleString()} seconds.`
-            : ''}
-        </p>
+    <Show
+      when={props.status}
+      fallback={
+        <UtilityEmpty
+          icon={
+            props.statusError ? (
+              <AlertTriangle size={26} />
+            ) : (
+              <LoaderCircle class="spin" size={26} />
+            )
+          }
+          title={props.statusError ? 'Index unavailable' : 'Loading index'}
+          detail={
+            props.statusError ||
+            'Waiting for the runtime status snapshot before reporting live index metrics.'
+          }
+          actions={[
+            ...(props.onRetryStatus
+              ? [
+                  {
+                    label: 'Retry status',
+                    icon: <RefreshCw size={15} />,
+                    onClick: props.onRetryStatus,
+                  },
+                ]
+              : []),
+            { label: 'Open settings', icon: <Settings size={15} />, onClick: props.onOpenSettings },
+          ]}
+        />
+      }
+    >
+      {(status) => (
+        <>
+          <Show when={status().stats_stale}>
+            <p class="utility-warning" role="status">
+              {status().stats_warning ?? 'Live database statistics are temporarily stale.'}
+              {typeof status().stats_age_seconds === 'number'
+                ? ` Snapshot age: ${status().stats_age_seconds!.toLocaleString()} seconds.`
+                : ''}
+            </p>
+          </Show>
+          <section class="utility-section">
+            <h2>Live metrics</h2>
+            <div class="utility-metrics">
+              <Metric label="Documents" value={status().documents.toLocaleString()} />
+              <Metric label="Chunks" value={status().chunks.toLocaleString()} />
+              <Metric label="Sources" value={status().sources.length.toLocaleString()} />
+              <Metric
+                label="Embedding cache"
+                value={`${status().embedding_cache_entries.toLocaleString()} entries`}
+              />
+              <Metric
+                label="Embedding cache hits"
+                value={status().embedding_cache_hits.toLocaleString()}
+              />
+              <Metric
+                label="Query cache"
+                value={`${status().query_cache_entries.toLocaleString()} entries`}
+              />
+              <Metric label="Query cache hits" value={status().query_cache_hits.toLocaleString()} />
+              <Metric
+                label="Retrieval fallbacks"
+                value={(status().retrieval_fallbacks_total ?? 0).toLocaleString()}
+              />
+              <Metric label="Answers total" value={status().answers_total.toLocaleString()} />
+              <Metric
+                label="Native memory"
+                value={`${status().memory.active.toLocaleString()} active · ${status().memory.total.toLocaleString()} total`}
+              />
+              <Metric label="Expired memory" value={status().memory.expired.toLocaleString()} />
+            </div>
+          </section>
+          <section class="utility-section">
+            <h2>Configuration</h2>
+            <UtilityCard class="utility-card">
+              <div class="utility-line">
+                <span>Embedding</span>
+                <strong>{status().embedding_fingerprint ?? '—'}</strong>
+              </div>
+              <div class="utility-line">
+                <span>Query mode</span>
+                <strong>{status().query.mode}</strong>
+              </div>
+              <div class="utility-line">
+                <span>Ingestion</span>
+                <strong>
+                  {status().ingestion.mode}
+                  {status().ingestion.scheduled ? ' · scheduled' : ' · manual'}
+                </strong>
+              </div>
+              <div class="utility-line">
+                <span>Workspaces</span>
+                <strong>{status().workspaces.length}</strong>
+              </div>
+            </UtilityCard>
+          </section>
+          <div class="utility-actions">
+            <Button variant="secondary" onClick={props.onOpenSettings}>
+              <Settings size={15} /> Open settings
+            </Button>
+          </div>
+        </>
       )}
-      <section className="utility-section">
-        <h2>Live metrics</h2>
-        <div className="utility-metrics">
-          <Metric label="Documents" value={status.documents.toLocaleString()} />
-          <Metric label="Chunks" value={status.chunks.toLocaleString()} />
-          <Metric label="Sources" value={status.sources.length.toLocaleString()} />
-          <Metric
-            label="Embedding cache"
-            value={`${status.embedding_cache_entries.toLocaleString()} entries`}
-          />
-          <Metric
-            label="Embedding cache hits"
-            value={status.embedding_cache_hits.toLocaleString()}
-          />
-          <Metric
-            label="Query cache"
-            value={`${status.query_cache_entries.toLocaleString()} entries`}
-          />
-          <Metric label="Query cache hits" value={status.query_cache_hits.toLocaleString()} />
-          <Metric
-            label="Retrieval fallbacks"
-            value={(status.retrieval_fallbacks_total ?? 0).toLocaleString()}
-          />
-          <Metric label="Answers total" value={status.answers_total.toLocaleString()} />
-          <Metric
-            label="Native memory"
-            value={`${status.memory.active.toLocaleString()} active · ${status.memory.total.toLocaleString()} total`}
-          />
-          <Metric label="Expired memory" value={status.memory.expired.toLocaleString()} />
-        </div>
-      </section>
-      <section className="utility-section">
-        <h2>Configuration</h2>
-        <UtilityCard className="utility-card">
-          <div className="utility-line">
-            <span>Embedding</span>
-            <strong>{status.embedding_fingerprint ?? '—'}</strong>
-          </div>
-          <div className="utility-line">
-            <span>Query mode</span>
-            <strong>{status.query.mode}</strong>
-          </div>
-          <div className="utility-line">
-            <span>Ingestion</span>
-            <strong>
-              {status.ingestion.mode}
-              {status.ingestion.scheduled ? ' · scheduled' : ' · manual'}
-            </strong>
-          </div>
-          <div className="utility-line">
-            <span>Workspaces</span>
-            <strong>{status.workspaces.length}</strong>
-          </div>
-        </UtilityCard>
-      </section>
-      <div className="utility-actions">
-        <Button variant="secondary" onClick={onOpenSettings}>
-          <Settings size={15} /> Open settings
-        </Button>
-      </div>
-    </>
+    </Show>
   )
 }
 
-function HelpView({
-  desktopAvailable,
-  onOpenProject,
-}: {
-  desktopAvailable: boolean
-  onOpenProject: () => void | Promise<void>
-}) {
-  const [projectError, setProjectError] = useState('')
+function HelpView(props: { desktopAvailable: boolean; onOpenProject: () => void | Promise<void> }) {
+  const [projectError, setProjectError] = createSignal('')
   const shortcuts = [
     { keys: shortcutLabel('MOD K'), action: 'Focus the search bar' },
     { keys: shortcutLabel('MOD P'), action: 'Toggle the command palette' },
@@ -765,56 +775,59 @@ function HelpView({
   ]
   return (
     <>
-      <section className="utility-section">
+      <section class="utility-section">
         <h2>Keyboard shortcuts</h2>
-        <div className="utility-list">
-          {shortcuts.map(({ keys, action }) => (
-            <div className="utility-shortcut" key={keys}>
-              <kbd>{keys}</kbd>
-              <span>{action}</span>
-            </div>
-          ))}
+        <div class="utility-list">
+          <For each={shortcuts}>
+            {({ keys, action }) => (
+              <div class="utility-shortcut">
+                <kbd>{keys}</kbd>
+                <span>{action}</span>
+              </div>
+            )}
+          </For>
         </div>
       </section>
-      <section className="utility-section">
+      <section class="utility-section">
         <h2>Project and docs</h2>
-        <div className="utility-list">
-          {links.map(({ label, href, detail }) => (
-            <a
-              className="utility-link"
-              href={href}
-              target="_blank"
-              rel="noreferrer"
-              key={href}
-              onClick={(event) => {
-                if (!desktopAvailable) return
-                event.preventDefault()
-                setProjectError('')
-                void openDesktopUrl(href).catch((caught: unknown) => {
-                  setProjectError(
-                    caught instanceof Error
-                      ? caught.message
-                      : `Unable to open ${label.toLowerCase()} in the system browser`
-                  )
-                })
-              }}
-            >
-              <BookOpen size={16} />
-              <span>
-                <strong>{label}</strong>
-                <small>{detail}</small>
-              </span>
-              <ExternalLink size={14} />
-            </a>
-          ))}
+        <div class="utility-list">
+          <For each={links}>
+            {({ label, href, detail }) => (
+              <a
+                class="utility-link"
+                href={href}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(event) => {
+                  if (!props.desktopAvailable) return
+                  event.preventDefault()
+                  setProjectError('')
+                  void openDesktopUrl(href).catch((caught: unknown) => {
+                    setProjectError(
+                      caught instanceof Error
+                        ? caught.message
+                        : `Unable to open ${label.toLowerCase()} in the system browser`
+                    )
+                  })
+                }}
+              >
+                <BookOpen size={16} />
+                <span>
+                  <strong>{label}</strong>
+                  <small>{detail}</small>
+                </span>
+                <ExternalLink size={14} />
+              </a>
+            )}
+          </For>
         </div>
-        {desktopAvailable && (
-          <div className="utility-actions">
+        <Show when={props.desktopAvailable}>
+          <div class="utility-actions">
             <Button
               variant="secondary"
               onClick={() => {
                 setProjectError('')
-                void Promise.resolve(onOpenProject()).catch((caught: unknown) => {
+                void Promise.resolve(props.onOpenProject()).catch((caught: unknown) => {
                   setProjectError(
                     caught instanceof Error
                       ? caught.message
@@ -826,13 +839,13 @@ function HelpView({
               <ExternalLink size={15} /> Open project page
             </Button>
           </div>
-        )}
-        {projectError && (
-          <p className="utility-error" role="alert">
-            {projectError}
+        </Show>
+        <Show when={projectError()}>
+          <p class="utility-error" role="alert">
+            {projectError()}
           </p>
-        )}
-        <p className="utility-note">
+        </Show>
+        <p class="utility-note">
           Cortana is local-first: your index, context bundles, and settings stay on this machine.
         </p>
       </section>
@@ -840,75 +853,73 @@ function HelpView({
   )
 }
 
-function SyncIcon({ status }: { status: string }) {
-  if (status === 'running' || status === 'cancelling') {
-    return <LoaderCircle className="spin" size={16} />
-  }
-  if (status === 'succeeded') {
-    return <CheckCircle2 size={16} />
-  }
-  if (status === 'cancelled') {
-    return <CircleX size={16} />
-  }
-  return <AlertTriangle size={16} />
+function SyncIcon(props: { status: string }) {
+  return (
+    <>
+      {props.status === 'running' || props.status === 'cancelling' ? (
+        <LoaderCircle class="spin" size={16} />
+      ) : props.status === 'succeeded' ? (
+        <CheckCircle2 size={16} />
+      ) : props.status === 'cancelled' ? (
+        <CircleX size={16} />
+      ) : (
+        <AlertTriangle size={16} />
+      )}
+    </>
+  )
 }
 
-function StatusPill({
-  status,
-}: {
+function StatusPill(props: {
   status: 'running' | 'cancelling' | 'succeeded' | 'failed' | 'cancelled' | 'budget_exceeded'
 }) {
-  const label =
-    status === 'budget_exceeded'
+  const label = () =>
+    props.status === 'budget_exceeded'
       ? 'Budget exceeded'
-      : status === 'cancelling'
+      : props.status === 'cancelling'
         ? 'Cancelling…'
-        : status === 'succeeded'
+        : props.status === 'succeeded'
           ? 'Succeeded'
-          : status[0].toUpperCase() + status.slice(1)
-  const tone =
-    status === 'running' || status === 'cancelling'
+          : props.status[0].toUpperCase() + props.status.slice(1)
+  const tone = () =>
+    props.status === 'running' || props.status === 'cancelling'
       ? 'running'
-      : status === 'succeeded'
+      : props.status === 'succeeded'
         ? 'healthy'
         : 'warning'
-  return <span className={`status-pill ${tone}`}>{label}</span>
+  return <span class={`status-pill ${tone()}`}>{label()}</span>
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric(props: { label: string; value: string }) {
   return (
-    <div className="utility-metric">
-      <strong>{value}</strong>
-      <span>{label}</span>
+    <div class="utility-metric">
+      <strong>{props.value}</strong>
+      <span>{props.label}</span>
     </div>
   )
 }
 
-function UtilityEmpty({
-  icon,
-  title,
-  detail,
-  actions = EMPTY_ACTIONS,
-}: {
-  icon: React.ReactNode
+function UtilityEmpty(props: {
+  icon: JSX.Element
   title: string
   detail: string
-  actions?: Array<{ label: string; icon: React.ReactNode; onClick: () => void }>
+  actions?: Array<{ label: string; icon: JSX.Element; onClick: () => void }>
 }) {
   return (
-    <div className="utility-empty">
-      {icon}
-      <strong>{title}</strong>
-      <p>{detail}</p>
-      {actions.length > 0 && (
-        <div className="utility-actions utility-actions-center">
-          {actions.map(({ label, icon: actionIcon, onClick }) => (
-            <Button variant="secondary" key={label} onClick={onClick}>
-              {actionIcon} {label}
-            </Button>
-          ))}
+    <div class="utility-empty">
+      {props.icon}
+      <strong>{props.title}</strong>
+      <p>{props.detail}</p>
+      <Show when={(props.actions ?? EMPTY_ACTIONS).length > 0}>
+        <div class="utility-actions utility-actions-center">
+          <For each={props.actions ?? EMPTY_ACTIONS}>
+            {({ label, icon: actionIcon, onClick }) => (
+              <Button variant="secondary" onClick={onClick}>
+                {actionIcon} {label}
+              </Button>
+            )}
+          </For>
         </div>
-      )}
+      </Show>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { defineConfig, searchForWorkspaceRoot } from 'vite'
-import react from '@vitejs/plugin-react'
+import solid from 'vite-plugin-solid'
 import tailwindcss from '@tailwindcss/vite'
 import { realpathSync } from 'node:fs'
 import { dirname } from 'node:path'
@@ -10,7 +10,7 @@ const geistPackagePath = realpathSync(
 )
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [solid(), tailwindcss()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -42,8 +42,8 @@ export default defineConfig({
             id.endsWith('/M7ActivityInbox.tsx') ||
             id.endsWith('/hooks/use-mobile.ts') ||
             id.endsWith('/lib/utils.ts') ||
-            id.includes('/node_modules/@base-ui/react/') ||
-            id.includes('/node_modules/cmdk/') ||
+            id.includes('/node_modules/@kobalte/') ||
+            id.includes('/node_modules/cmdk-solid/') ||
             id.includes('/node_modules/class-variance-authority/') ||
             id.includes('/node_modules/clsx/') ||
             id.includes('/node_modules/tailwind-merge/')

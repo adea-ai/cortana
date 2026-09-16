@@ -1,12 +1,17 @@
 import { describe, expect, test } from 'bun:test'
-
 import { buildSetupSteps } from './setup'
-
 describe('guided setup progress', () => {
   test('requires a verified runtime and at least one source', () => {
     const steps = buildSetupSteps(
       {
-        workspaces: [{ id: 'work', name: 'Work', account_label: null, color: null }],
+        workspaces: [
+          {
+            id: 'work',
+            name: 'Work',
+            account_label: null,
+            color: null,
+          },
+        ],
         embedding: {
           provider: 'local',
           base_url: 'http://127.0.0.1:6999/v1',
@@ -28,14 +33,16 @@ describe('guided setup progress', () => {
         core: {
           passed: true,
           query_mode: 'extractive',
-          embedding_generation: { stored: null, configured: 'deterministic:256' },
+          embedding_generation: {
+            stored: null,
+            configured: 'deterministic:256',
+          },
           checks: [],
         },
         core_error: null,
         tools: [],
       }
     )
-
     expect(steps.filter((step) => step.complete).map((step) => step.section)).toEqual([
       'readiness',
       'workspaces',

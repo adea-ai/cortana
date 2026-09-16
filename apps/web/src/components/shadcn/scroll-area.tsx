@@ -1,50 +1,32 @@
-'use client'
-
-import { ScrollArea as ScrollAreaPrimitive } from '@base-ui/react/scroll-area'
+import { splitProps, type ComponentProps } from 'solid-js'
 
 import { cn } from '@/lib/utils'
 
-function ScrollArea({ className, children, ...props }: ScrollAreaPrimitive.Root.Props) {
+// Kobalte does not ship a ScrollArea primitive; a native overflow container
+// preserves the same layout contract (data-slot + class passthrough).
+function ScrollArea(props: ComponentProps<'div'>) {
+  const [local, rest] = splitProps(props, ['class', 'children'])
   return (
-    <ScrollAreaPrimitive.Root
-      data-slot="scroll-area"
-      className={cn('relative', className)}
-      {...props}
-    >
-      <ScrollAreaPrimitive.Viewport
+    <div data-slot="scroll-area" class={cn('relative', local.class)} {...rest}>
+      <div
         data-slot="scroll-area-viewport"
-        tabIndex={0}
-        className="size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1"
+        class="size-full overflow-x-auto overflow-y-auto overscroll-contain rounded-[inherit] outline-none transition-[color,box-shadow] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-1"
       >
-        {children}
-      </ScrollAreaPrimitive.Viewport>
-      <ScrollBar />
-      <ScrollAreaPrimitive.Corner />
-    </ScrollAreaPrimitive.Root>
+        {local.children}
+      </div>
+    </div>
   )
 }
 
-function ScrollBar({
-  className,
-  orientation = 'vertical',
-  ...props
-}: ScrollAreaPrimitive.Scrollbar.Props) {
+function ScrollBar(props: ComponentProps<'div'> & { orientation?: 'horizontal' | 'vertical' }) {
+  const [local, rest] = splitProps(props, ['orientation'])
   return (
-    <ScrollAreaPrimitive.Scrollbar
+    <div
       data-slot="scroll-area-scrollbar"
-      data-orientation={orientation}
-      orientation={orientation}
-      className={cn(
-        'flex touch-none p-px transition-colors select-none data-horizontal:h-2.5 data-horizontal:flex-col data-horizontal:border-t data-horizontal:border-t-transparent data-vertical:h-full data-vertical:w-2.5 data-vertical:border-l data-vertical:border-l-transparent',
-        className
-      )}
-      {...props}
-    >
-      <ScrollAreaPrimitive.Thumb
-        data-slot="scroll-area-thumb"
-        className="relative flex-1 rounded-full bg-border"
-      />
-    </ScrollAreaPrimitive.Scrollbar>
+      data-orientation={local.orientation ?? 'vertical'}
+      aria-hidden="true"
+      {...rest}
+    />
   )
 }
 

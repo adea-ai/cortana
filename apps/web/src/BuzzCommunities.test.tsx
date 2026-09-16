@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from 'solid-testing-library'
+import { createSignal } from 'solid-js'
 import userEvent from '@testing-library/user-event'
-
 import { desktopInfo, desktopSettings } from './test/fixtures'
 import type {
   BuzzCommunityList,
@@ -9,19 +9,21 @@ import type {
   DesktopSettingsUpdate,
   SourceSettings,
 } from './types'
-
 afterEach(cleanup)
-
 const realApi = await import('./api')
-
 const communities: BuzzCommunityList = {
   truncated: false,
   communities: [
-    { id: 'builtin-team:welcome', name: 'Welcome Team' },
-    { id: 'team:research', name: 'Research' },
+    {
+      id: 'builtin-team:welcome',
+      name: 'Welcome Team',
+    },
+    {
+      id: 'team:research',
+      name: 'Research',
+    },
   ],
 }
-
 const buzzSource: SourceSettings = {
   name: 'agent-buzz',
   kind: 'buzz',
@@ -49,11 +51,12 @@ const buzzSource: SourceSettings = {
   acl: [],
   editable: true,
 }
-
 function settingsWith(source: SourceSettings): DesktopSettings {
-  return { ...desktopSettings, sources: [source] }
+  return {
+    ...desktopSettings,
+    sources: [source],
+  }
 }
-
 const state = {
   settings: settingsWith(buzzSource),
   discoverCalls: [] as string[],
@@ -62,7 +65,6 @@ const state = {
   savedUpdates: [] as DesktopSettingsUpdate[],
   saved: null as DesktopSettings | null,
 }
-
 beforeEach(() => {
   state.settings = settingsWith(buzzSource)
   state.discoverCalls = []
@@ -71,14 +73,16 @@ beforeEach(() => {
   state.savedUpdates = []
   state.saved = null
 })
-
 mock.module('./api', () => ({
   ...realApi,
   isDesktopApp: true,
   getDesktopSettings: () => Promise.resolve(state.settings),
   getDesktopInfo: () => Promise.resolve(desktopInfo),
   getDesktopSchedule: () =>
-    Promise.resolve({ sync_interval_seconds: 900, backup_interval_seconds: 86400 }),
+    Promise.resolve({
+      sync_interval_seconds: 900,
+      backup_interval_seconds: 86400,
+    }),
   saveDesktopSchedule: (schedule: {
     sync_interval_seconds: number
     backup_interval_seconds: number
@@ -120,46 +124,45 @@ mock.module('./api', () => ({
     return Promise.resolve(saved)
   },
 }))
-
 const { SettingsView } = await import('./components/SettingsView')
-
 async function renderBuzzSettings() {
-  const view = render(
+  const [ds, setDs] = createSignal(state.settings)
+  const view = render(() => (
     <SettingsView
       initialSection="sources"
-      desktopSettings={state.settings}
+      desktopSettings={ds()}
       onSaved={(next) => {
         state.saved = next
       }}
     />
+  ))
+  fireEvent.click(
+    await screen.findByRole('button', {
+      name: /Advanced source settings/,
+    })
   )
-  fireEvent.click(await screen.findByRole('button', { name: /Advanced source settings/ }))
   await screen.findByLabelText(/^Source name/)
   return {
     view,
     rerender: () => {
-      view.rerender(
-        <SettingsView
-          initialSection="sources"
-          desktopSettings={state.settings}
-          onSaved={(next) => {
-            state.saved = next
-          }}
-        />
-      )
+      setDs({ ...state.settings })
     },
   }
 }
-
 test('buzz community chooser discovers the identity file and persists per-workspace assignment', async () => {
   const user = userEvent.setup()
   const { rerender } = await renderBuzzSettings()
-
-  fireEvent.click(screen.getByRole('button', { name: /Discover communities/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Discover communities/,
+    })
+  )
   await waitFor(() => expect(screen.getByText('Welcome Team')).toBeTruthy())
   expect(state.discoverCalls).toEqual(['agent-buzz'])
   expect(screen.getByText('Research')).toBeTruthy()
-  const chooser = screen.getByRole('group', { name: 'Community chooser' })
+  const chooser = screen.getByRole('group', {
+    name: 'Community chooser',
+  })
   expect(within(chooser).getAllByRole('checkbox')).toHaveLength(2)
   expect(chooser.getAttribute('aria-describedby')).toBeTruthy()
 
@@ -168,10 +171,21 @@ test('buzz community chooser discovers the identity file and persists per-worksp
   // source belongs to exactly one workspace, so the chooser is scoped to the
   // selected workspace). Unlike Slack's single-team contract, multiple
   // communities can be assigned.
-  await user.click(screen.getByRole('checkbox', { name: /Welcome Team/ }))
-  await user.click(screen.getByRole('checkbox', { name: /Research/ }))
-
-  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+  await user.click(
+    screen.getByRole('checkbox', {
+      name: /Welcome Team/,
+    })
+  )
+  await user.click(
+    screen.getByRole('checkbox', {
+      name: /Research/,
+    })
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Save changes',
+    })
+  )
   await waitFor(() => expect(state.savedUpdates).toHaveLength(1))
   expect(state.savedUpdates[0].sources[0].communities).toEqual([
     'builtin-team:welcome',
@@ -186,20 +200,29 @@ test('buzz community chooser discovers the identity file and persists per-worksp
   rerender()
 
   // Unchecking one community removes exactly that id and its aligned name.
-  await user.click(screen.getByRole('checkbox', { name: /Research/ }))
-  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+  await user.click(
+    screen.getByRole('checkbox', {
+      name: /Research/,
+    })
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Save changes',
+    })
+  )
   await waitFor(() => expect(state.savedUpdates).toHaveLength(2))
   expect(state.savedUpdates[1].sources[0].communities).toEqual(['builtin-team:welcome'])
   expect(state.savedUpdates[1].sources[0].community_names).toEqual(['Welcome Team'])
 })
-
 test('buzz community chooser refuses to discover unsaved changes and surfaces failures', async () => {
   await renderBuzzSettings()
 
   // Editing the source makes the native command unsafe until it is saved, so
   // the discovery button is disabled and no IPC call can start.
   fireEvent.change(screen.getByLabelText(/^Source name/), {
-    target: { value: 'agent-buzz-renamed' },
+    target: {
+      value: 'agent-buzz-renamed',
+    },
   })
   const discoverButton = screen.getByRole('button', {
     name: /Discover communities/,
@@ -212,9 +235,17 @@ test('buzz community chooser refuses to discover unsaved changes and surfaces fa
   state.communitiesError = new Error(
     'Buzz community discovery failed; check the configured Buzz data directory: Buzz community discovery for agent-buzz-renamed found no identity file at /Users/you/Library/Application Support/xyz.block.buzz.app/agents/teams.json; make sure the Buzz data directory is configured as the source root and Buzz has written agents/teams.json'
   )
-  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Save changes',
+    })
+  )
   await waitFor(() => expect(state.savedUpdates).toHaveLength(1))
-  fireEvent.click(screen.getByRole('button', { name: /Discover communities/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Discover communities/,
+    })
+  )
   await waitFor(() =>
     expect(
       screen
@@ -223,12 +254,17 @@ test('buzz community chooser refuses to discover unsaved changes and surfaces fa
     ).toBe(true)
   )
 })
-
 test('buzz community chooser warns when discovery is truncated at 100 communities', async () => {
-  state.communitiesResult = { ...communities, truncated: true }
+  state.communitiesResult = {
+    ...communities,
+    truncated: true,
+  }
   await renderBuzzSettings()
-
-  fireEvent.click(screen.getByRole('button', { name: /Discover communities/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Discover communities/,
+    })
+  )
   await waitFor(() =>
     expect(
       screen
@@ -241,30 +277,58 @@ test('buzz community chooser warns when discovery is truncated at 100 communitie
     ).toBe(true)
   )
 })
-
 test('buzz community chooser is scoped to the selected workspace', async () => {
   // The chooser renders only sources assigned to the selected workspace tab:
   // a Buzz source assigned to "personal" surfaces under the Personal tab,
   // disappears while the Work tab is active, and reappears with its
   // per-workspace community chooser when switching back.
-  state.settings = settingsWith({ ...buzzSource, project: 'personal' })
+  state.settings = settingsWith({
+    ...buzzSource,
+    project: 'personal',
+  })
   await renderBuzzSettings()
 
   // The workspace tab with sources is selected initially.
   await waitFor(() =>
-    expect(screen.getByRole('button', { name: /Discover communities/ })).toBeTruthy()
+    expect(
+      screen.getByRole('button', {
+        name: /Discover communities/,
+      })
+    ).toBeTruthy()
   )
-
-  fireEvent.click(screen.getByRole('tab', { name: /Work/ }))
+  fireEvent.click(
+    screen.getByRole('tab', {
+      name: /Work/,
+    })
+  )
   await waitFor(() =>
-    expect(screen.queryByRole('button', { name: /Discover communities/ })).toBeNull()
+    expect(
+      screen.queryByRole('button', {
+        name: /Discover communities/,
+      })
+    ).toBeNull()
   )
-
-  fireEvent.click(screen.getByRole('tab', { name: /Personal/ }))
-  fireEvent.click(await screen.findByRole('button', { name: /Advanced source settings/ }))
+  fireEvent.click(
+    screen.getByRole('tab', {
+      name: /Personal/,
+    })
+  )
+  fireEvent.click(
+    await screen.findByRole('button', {
+      name: /Advanced source settings/,
+    })
+  )
   await waitFor(() =>
-    expect(screen.getByRole('button', { name: /Discover communities/ })).toBeTruthy()
+    expect(
+      screen.getByRole('button', {
+        name: /Discover communities/,
+      })
+    ).toBeTruthy()
   )
-  fireEvent.click(screen.getByRole('button', { name: /Discover communities/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Discover communities/,
+    })
+  )
   await waitFor(() => expect(state.discoverCalls).toEqual(['agent-buzz']))
 })

@@ -1,5 +1,5 @@
-import { lazy, StrictMode, Suspense } from 'react'
-import { createRoot } from 'react-dom/client'
+import { lazy, Suspense } from 'solid-js'
+import { render } from 'solid-js/web'
 
 import { RendererErrorBoundary } from './components/RendererErrorBoundary'
 import { applyTheme, DEFAULT_THEME } from './theme'
@@ -12,12 +12,13 @@ const App = lazy(() =>
 
 applyTheme(DEFAULT_THEME)
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
+render(
+  () => (
     <RendererErrorBoundary>
       <Suspense fallback={<main aria-label="Loading Cortana" />}>
         <App />
       </Suspense>
     </RendererErrorBoundary>
-  </StrictMode>
+  ),
+  document.getElementById('root')!
 )

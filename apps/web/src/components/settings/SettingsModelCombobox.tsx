@@ -1,4 +1,4 @@
-import type { ComponentProps, ReactNode } from 'react'
+import { splitProps, type ComponentProps, type JSX } from 'solid-js'
 
 import { cn } from '@/lib/utils'
 
@@ -9,34 +9,33 @@ import {
   ComboboxInput,
   ComboboxItem,
   ComboboxList,
+  type ComboboxOptionValue,
 } from '../shadcn/combobox'
 
-export function SettingsModelCombobox({
-  value,
-  choices,
-  onValueChange,
-  ...props
-}: Omit<ComponentProps<'input'>, 'value' | 'onChange'> & {
-  value: string
-  choices: Array<{ value: string; label: ReactNode }>
-  onValueChange: (value: string) => void
-}) {
+export function SettingsModelCombobox(
+  props: Omit<ComponentProps<'input'>, 'value' | 'onChange'> & {
+    value: string
+    choices: Array<{ value: string; label: JSX.Element }>
+    onValueChange: (value: string) => void
+  }
+) {
+  const [local, rest] = splitProps(props, ['value', 'choices', 'onValueChange'])
   return (
-    <Combobox value={value} onValueChange={(next) => next && onValueChange(String(next))}>
+    <Combobox<ComboboxOptionValue>
+      options={local.choices}
+      value={local.choices.find((choice) => String(choice.value) === local.value) ?? null}
+      onChange={(option) => option && local.onValueChange(String(option.value))}
+      itemComponent={(itemProps) => (
+        <ComboboxItem item={itemProps.item}>{itemProps.item.rawValue.label}</ComboboxItem>
+      )}
+    >
       <ComboboxInput
-        {...props}
-        className={cn('border-border bg-background shadow-xs', props.className)}
-        value={value}
+        {...(rest as any)}
+        class={cn('border-border bg-background shadow-xs', rest.class)}
       />
       <ComboboxContent>
         <ComboboxEmpty>No matching models.</ComboboxEmpty>
-        <ComboboxList>
-          {choices.map((choice) => (
-            <ComboboxItem key={choice.value} value={choice.value}>
-              {choice.label}
-            </ComboboxItem>
-          ))}
-        </ComboboxList>
+        <ComboboxList />
       </ComboboxContent>
     </Combobox>
   )

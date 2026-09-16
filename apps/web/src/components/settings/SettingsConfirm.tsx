@@ -1,12 +1,11 @@
 import {
   createContext,
-  type ReactNode,
-  useCallback,
+  createEffect,
+  createSignal,
+  onCleanup,
   useContext,
-  useEffect,
-  useRef,
-  useState,
-} from 'react'
+  type JSX,
+} from 'solid-js'
 
 import {
   AlertDialog,
@@ -36,18 +35,18 @@ type PendingConfirmation = {
   scope: HTMLElement | null
 }
 
-export function SettingsConfirmProvider({ children }: { children: ReactNode }) {
-  const [pending, setPending] = useState<PendingConfirmation | null>(null)
-  const pendingRef = useRef<PendingConfirmation | null>(null)
-  const restoreRef = useRef<(PendingConfirmation & { confirmed: boolean }) | null>(null)
+export function SettingsConfirmProvider(props: { children: JSX.Element }) {
+  const [pending, setPending] = createSignal<PendingConfirmation | null>(null)
+  let pendingRef: PendingConfirmation | null = null
+  let restoreRef: (PendingConfirmation & { confirmed: boolean }) | null = null
 
-  const restoreFocus = useCallback(() => {
-    const current = restoreRef.current
+  const restoreFocus = () => {
+    const current = restoreRef
     if (!current) return
-    restoreRef.current = null
+    restoreRef = null
     current.resolve(current.confirmed)
     // Resolve first because a confirmed action may remove its trigger. Wait
-    // until React commits that action before choosing the surviving target.
+    // until Solid commits that action before choosing the surviving target.
     window.setTimeout(() => {
       if (current.trigger?.isConnected) {
         current.trigger.focus()
@@ -60,52 +59,49 @@ export function SettingsConfirmProvider({ children }: { children: ReactNode }) {
         )
       if (fallback?.isConnected) fallback.focus()
     }, 50)
-  }, [])
+  }
 
-  const settle = useCallback((confirmed: boolean) => {
-    const current = pendingRef.current
+  const settle = (confirmed: boolean) => {
+    const current = pendingRef
     if (!current) return
-    pendingRef.current = null
-    restoreRef.current = { ...current, confirmed }
+    pendingRef = null
+    restoreRef = { ...current, confirmed }
     setPending(null)
-  }, [])
+  }
 
-  useEffect(() => () => settle(false), [settle])
+  createEffect(() => {
+    if (pending() === null) restoreFocus()
+  })
 
-  const confirm = useCallback<ConfirmSettingsAction>(
-    (description) => {
-      settle(false)
-      if (window.confirm !== initialWindowConfirm) return window.confirm(description)
-      return new Promise<boolean>((resolve) => {
-        const next = {
-          description,
-          resolve,
-          trigger: document.activeElement instanceof HTMLElement ? document.activeElement : null,
-          scope:
-            document.activeElement instanceof HTMLElement
-              ? document.activeElement.closest<HTMLElement>('.settings-view')
-              : null,
-        }
-        pendingRef.current = next
-        setPending(next)
-      })
-    },
-    [settle]
-  )
+  onCleanup(() => settle(false))
+
+  const confirm: ConfirmSettingsAction = (description) => {
+    settle(false)
+    if (window.confirm !== initialWindowConfirm) return window.confirm(description)
+    return new Promise<boolean>((resolve) => {
+      const next = {
+        description,
+        resolve,
+        trigger: document.activeElement instanceof HTMLElement ? document.activeElement : null,
+        scope:
+          document.activeElement instanceof HTMLElement
+            ? document.activeElement.closest<HTMLElement>('.settings-view')
+            : null,
+      }
+      pendingRef = next
+      setPending(next)
+    })
+  }
 
   return (
     <SettingsConfirmContext.Provider value={confirm}>
-      {children}
-      <AlertDialog
-        open={Boolean(pending)}
-        onOpenChange={(open) => !open && settle(false)}
-        onOpenChangeComplete={(open) => !open && restoreFocus()}
-      >
+      {props.children}
+      <AlertDialog open={Boolean(pending())} onOpenChange={(open) => !open && settle(false)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm this action</AlertDialogTitle>
-            <AlertDialogDescription className="whitespace-pre-line">
-              {pending?.description}
+            <AlertDialogDescription class="whitespace-pre-line">
+              {pending()?.description}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

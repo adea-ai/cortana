@@ -1,13 +1,5 @@
-import {
-  Fragment,
-  useEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-  type FormEvent,
-  type ReactNode,
-  type RefObject,
-} from 'react'
+import { createSignal, For, Show, type JSX, onCleanup, onMount } from 'solid-js'
+import { Dynamic } from 'solid-js/web'
 import {
   ArrowLeft,
   ArrowRight,
@@ -23,7 +15,7 @@ import {
   Settings,
   Sparkles,
   TerminalSquare,
-} from 'lucide-react'
+} from 'lucide-solid'
 
 import { Badge } from '@/components/shadcn/badge'
 import { Button } from '@/components/shadcn/button'
@@ -111,11 +103,11 @@ export type M7NavigationProps = {
 export type M7HeaderProps = {
   query: string
   loading: boolean
-  searchRef: RefObject<HTMLInputElement | null>
+  searchRef: { current: HTMLInputElement | null }
   canGoBack: boolean
   canGoForward: boolean
   onQueryChange: (value: string) => void
-  onSubmit: (event: FormEvent) => void
+  onSubmit: (event: SubmitEvent) => void
   onReflect: () => void
   onHistoryBack: () => void
   onHistoryForward: () => void
@@ -130,7 +122,7 @@ export type M7HeaderProps = {
 
 export type M7CommandPaletteProps = {
   open: boolean
-  finalFocus: RefObject<HTMLElement | null>
+  finalFocus: { current: HTMLElement | null }
   workspaces: WorkspaceOption[]
   onOpenChange: (open: boolean) => void
   onSearch: () => void
@@ -144,43 +136,22 @@ const navigationItems = [
   { view: 'conversations' as const, label: 'Conversations', icon: MessageCircle },
 ]
 
-export function M7ApplicationHeader({
-  query,
-  loading,
-  searchRef,
-  canGoBack,
-  canGoForward,
-  onQueryChange,
-  onSubmit,
-  onReflect,
-  onHistoryBack,
-  onHistoryForward,
-  onOpenSources,
-  onOpenFilters,
-  onOpenHistory,
-  onOpenContext,
-  onOpenCommands,
-  workspaceName,
-  location,
-}: M7HeaderProps) {
-  const actionsRef = useRef<HTMLButtonElement>(null)
+export function M7ApplicationHeader(props: M7HeaderProps) {
+  const actionsRef = { current: null as HTMLButtonElement | null }
   return (
-    <header className="m7-application-header min-h-14 shrink-0 border-b px-2 backdrop-blur md:px-4">
-      <div className="m7-header-leading flex min-w-0 items-center gap-1">
+    <header class="m7-application-header min-h-14 shrink-0 border-b px-2 backdrop-blur md:px-4">
+      <div class="m7-header-leading flex min-w-0 items-center gap-1">
         <SidebarTrigger aria-label="Toggle navigation" />
-        <div className="m7-header-context hidden min-w-0 items-center gap-1 sm:flex">
-          <div className="flex items-center gap-1" role="group" aria-label="Search history">
+        <div class="m7-header-context hidden min-w-0 items-center gap-1 sm:flex">
+          <div class="flex items-center gap-1" role="group" aria-label="Search history">
             <Tooltip>
               <TooltipTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Previous search query"
-                    disabled={!canGoBack}
-                    onClick={onHistoryBack}
-                  />
-                }
+                as={Button}
+                variant="ghost"
+                size="icon"
+                aria-label="Previous search query"
+                disabled={!props.canGoBack}
+                onClick={props.onHistoryBack}
               >
                 <ArrowLeft aria-hidden="true" />
               </TooltipTrigger>
@@ -188,45 +159,42 @@ export function M7ApplicationHeader({
             </Tooltip>
             <Tooltip>
               <TooltipTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Next search query"
-                    disabled={!canGoForward}
-                    onClick={onHistoryForward}
-                  />
-                }
+                as={Button}
+                variant="ghost"
+                size="icon"
+                aria-label="Next search query"
+                disabled={!props.canGoForward}
+                onClick={props.onHistoryForward}
               >
                 <ArrowRight aria-hidden="true" />
               </TooltipTrigger>
               <TooltipContent>Next search query</TooltipContent>
             </Tooltip>
           </div>
-          <Breadcrumb className="hidden min-w-0 lg:block">
+          <Breadcrumb class="hidden min-w-0 lg:block">
             <BreadcrumbList>
-              <BreadcrumbItem>{workspaceName}</BreadcrumbItem>
+              <BreadcrumbItem>{props.workspaceName}</BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>{location}</BreadcrumbPage>
+                <BreadcrumbPage>{props.location}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
         </div>
       </div>
-      <div className="m7-search-cluster flex min-w-0 items-center justify-center gap-2">
-        <form className="relative min-w-0 flex-1" onSubmit={onSubmit}>
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+      <div class="m7-search-cluster flex min-w-0 items-center justify-center gap-2">
+        <form class="relative min-w-0 flex-1" onSubmit={props.onSubmit}>
+          <Search class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            ref={searchRef}
+            ref={(el) => (props.searchRef.current = el)}
             aria-label="Search your knowledge"
-            className="h-9 pr-16 pl-9"
-            value={query}
-            onChange={(event) => onQueryChange(event.target.value)}
+            class="h-9 pr-16 pl-9"
+            value={props.query}
+            onChange={(event) => props.onQueryChange(event.target.value)}
           />
-          <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-xs text-muted-foreground">
-            {loading ? (
-              <LoaderCircle className="size-4 animate-spin" aria-label="Searching" />
+          <span class="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-xs text-muted-foreground">
+            {props.loading ? (
+              <LoaderCircle class="size-4 animate-spin" aria-label="Searching" />
             ) : (
               <kbd>{shortcutLabel('MOD K')}</kbd>
             )}
@@ -236,54 +204,49 @@ export function M7ApplicationHeader({
           type="button"
           size="sm"
           aria-label="Reflect on this objective"
-          onClick={onReflect}
-          disabled={loading || !query.trim()}
+          onClick={props.onReflect}
+          disabled={props.loading || !props.query.trim()}
         >
           <Sparkles aria-hidden="true" />
-          <span className="hidden md:inline">Reflect</span>
+          <span class="hidden md:inline">Reflect</span>
         </Button>
       </div>
-      <div className="m7-header-actions flex items-center justify-end">
+      <div class="m7-header-actions flex items-center justify-end">
         <DropdownMenu>
           <DropdownMenuTrigger
-            render={
-              <Button
-                ref={actionsRef}
-                variant="outline"
-                size="icon"
-                aria-label="Actions"
-                title="Actions"
-              />
-            }
+            as={Button}
+            ref={(el: HTMLButtonElement) => (actionsRef.current = el)}
+            variant="outline"
+            size="icon"
+            aria-label="Actions"
+            title="Actions"
           >
             <MoreVertical aria-hidden="true" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuGroup>
               <DropdownMenuLabel>Workspace</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => onOpenSources(actionsRef.current)}>
+              <DropdownMenuItem onSelect={() => props.onOpenSources(actionsRef.current)}>
                 Open sources
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={onOpenFilters}>Filter documents</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onOpenContext(actionsRef.current)}>
+              <DropdownMenuItem onSelect={props.onOpenFilters}>Filter documents</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => props.onOpenContext(actionsRef.current)}>
                 Open agent context
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={onOpenHistory}>Open conversations</DropdownMenuItem>
+              <DropdownMenuItem onSelect={props.onOpenHistory}>Open conversations</DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuLabel>Search history</DropdownMenuLabel>
-              <DropdownMenuItem disabled={!canGoBack} onClick={onHistoryBack}>
+              <DropdownMenuItem disabled={!props.canGoBack} onSelect={props.onHistoryBack}>
                 Previous query
               </DropdownMenuItem>
-              <DropdownMenuItem disabled={!canGoForward} onClick={onHistoryForward}>
+              <DropdownMenuItem disabled={!props.canGoForward} onSelect={props.onHistoryForward}>
                 Next query
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onOpenCommands(actionsRef.current)}>
+              <DropdownMenuItem onSelect={() => props.onOpenCommands(actionsRef.current)}>
                 Command palette
-                <span className="ml-auto text-xs text-muted-foreground">
-                  {shortcutLabel('MOD P')}
-                </span>
+                <span class="ml-auto text-xs text-muted-foreground">{shortcutLabel('MOD P')}</span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>
@@ -293,26 +256,17 @@ export function M7ApplicationHeader({
   )
 }
 
-export function M7CommandPalette({
-  open,
-  finalFocus,
-  workspaces,
-  onOpenChange,
-  onSearch,
-  onFilterDocuments,
-  onChooseWorkspace,
-  onOpenSettings,
-}: M7CommandPaletteProps) {
+export function M7CommandPalette(props: M7CommandPaletteProps) {
   const run = (action: () => void) => {
-    onOpenChange(false)
+    props.onOpenChange(false)
     action()
   }
 
   return (
     <CommandDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      finalFocus={finalFocus}
+      open={props.open}
+      onOpenChange={props.onOpenChange}
+      finalFocus={props.finalFocus}
       title="Cortana command palette"
       description="Search navigation and workspace commands"
     >
@@ -321,22 +275,24 @@ export function M7CommandPalette({
         <CommandList>
           <CommandEmpty>No commands found.</CommandEmpty>
           <CommandGroup heading="Actions">
-            <CommandItem onSelect={() => run(onSearch)}>
+            <CommandItem onSelect={() => run(props.onSearch)}>
               Search the brain
               <CommandShortcut>{shortcutLabel('MOD K')}</CommandShortcut>
             </CommandItem>
-            <CommandItem onSelect={() => run(onFilterDocuments)}>
+            <CommandItem onSelect={() => run(props.onFilterDocuments)}>
               Filter documents
               <CommandShortcut>{shortcutLabel('MOD ⇧ F')}</CommandShortcut>
             </CommandItem>
-            <CommandItem onSelect={() => run(onOpenSettings)}>Open settings</CommandItem>
+            <CommandItem onSelect={() => run(props.onOpenSettings)}>Open settings</CommandItem>
           </CommandGroup>
           <CommandGroup heading="Workspaces">
-            {workspaces.map((item) => (
-              <CommandItem key={item.id} onSelect={() => run(() => onChooseWorkspace(item.id))}>
-                Switch to {item.name}
-              </CommandItem>
-            ))}
+            <For each={props.workspaces}>
+              {(item) => (
+                <CommandItem onSelect={() => run(() => props.onChooseWorkspace(item.id))}>
+                  Switch to {item.name}
+                </CommandItem>
+              )}
+            </For>
           </CommandGroup>
         </CommandList>
       </Command>
@@ -344,7 +300,7 @@ export function M7CommandPalette({
   )
 }
 
-export type M7StatusBarProps = { children: ReactNode; demo: boolean }
+export type M7StatusBarProps = { children: JSX.Element; demo: boolean }
 
 export type M7PanelBoundaryProps = {
   side: 'left' | 'right'
@@ -352,57 +308,51 @@ export type M7PanelBoundaryProps = {
   open: boolean
   title: string
   description: string
-  finalFocus: RefObject<HTMLElement | null>
+  finalFocus: { current: HTMLElement | null }
   onOpenChange: (open: boolean) => void
-  children: ReactNode
+  children: JSX.Element
 }
 
-export function M7PanelBoundary({
-  side,
-  breakpoint,
-  open,
-  title,
-  description,
-  finalFocus,
-  onOpenChange,
-  children,
-}: M7PanelBoundaryProps) {
-  const [compact, setCompact] = useState(false)
+export function M7PanelBoundary(props: M7PanelBoundaryProps) {
+  const [compact, setCompact] = createSignal(false)
 
-  useEffect(() => {
-    const query = window.matchMedia(`(max-width: ${breakpoint - 1}px)`)
+  onMount(() => {
+    const query = window.matchMedia(`(max-width: ${props.breakpoint - 1}px)`)
     const update = () => setCompact(query.matches)
     update()
     query.addEventListener('change', update)
-    return () => query.removeEventListener('change', update)
-  }, [breakpoint])
+    onCleanup(() => query.removeEventListener('change', update))
+  })
 
-  if (!compact) return children
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        finalFocus={finalFocus}
-        side={side}
-        className="m7-panel-boundary max-w-none gap-0 p-0"
-      >
-        <SheetHeader className="sr-only">
-          <SheetTitle>{title}</SheetTitle>
-          <SheetDescription>{description}</SheetDescription>
-        </SheetHeader>
-        {children}
-      </SheetContent>
-    </Sheet>
+    <Show when={compact()} fallback={props.children}>
+      <Sheet open={props.open} onOpenChange={props.onOpenChange}>
+        <SheetContent
+          finalFocus={props.finalFocus}
+          side={props.side}
+          class="m7-panel-boundary max-w-none gap-0 p-0"
+        >
+          <SheetHeader class="sr-only">
+            <SheetTitle>{props.title}</SheetTitle>
+            <SheetDescription>{props.description}</SheetDescription>
+          </SheetHeader>
+          {props.children}
+        </SheetContent>
+      </Sheet>
+    </Show>
   )
 }
 
-export function M7StatusBar({ children, demo }: M7StatusBarProps) {
+export function M7StatusBar(props: M7StatusBarProps) {
   return (
-    <footer className="shrink-0 border-t bg-background" aria-label="Application status">
-      <ScrollArea className="w-full whitespace-nowrap">
-        <div className="flex min-h-10 items-center gap-3 px-3 py-1.5 text-xs text-muted-foreground">
-          {children}
-          <span className="ml-auto" />
-          {demo ? <Badge variant="secondary">Demo data</Badge> : null}
+    <footer class="shrink-0 border-t bg-background" aria-label="Application status">
+      <ScrollArea class="w-full whitespace-nowrap">
+        <div class="flex min-h-10 items-center gap-3 px-3 py-1.5 text-xs text-muted-foreground">
+          {props.children}
+          <span class="ml-auto" />
+          <Show when={props.demo}>
+            <Badge variant="secondary">Demo data</Badge>
+          </Show>
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
@@ -410,23 +360,18 @@ export function M7StatusBar({ children, demo }: M7StatusBarProps) {
   )
 }
 
-export function M7ApplicationNavigation({
-  navigation,
-  workspaces,
-  workspace,
-  onWorkspaceChange,
-}: {
+export function M7ApplicationNavigation(props: {
   navigation: M7NavigationProps
   workspaces: WorkspaceOption[]
   workspace: string
   onWorkspaceChange: (workspace: string) => void
 }) {
-  const activeWorkspace = workspaces.find((item) => item.id === workspace)
-  const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false)
+  const activeWorkspace = () => props.workspaces.find((item) => item.id === props.workspace)
+  const [workspaceMenuOpen, setWorkspaceMenuOpen] = createSignal(false)
   const { isMobile, mobileFinalFocusRef, mobileTriggerRef, setOpenMobile } = useSidebar()
   const runNavigation = (action: () => void, focusDestination = false) => {
     action()
-    if (isMobile) {
+    if (isMobile()) {
       mobileFinalFocusRef.current =
         focusDestination && document.activeElement instanceof HTMLElement
           ? document.activeElement
@@ -435,61 +380,67 @@ export function M7ApplicationNavigation({
     }
   }
 
+  const navActive = (view: 'knowledge' | 'conversations') =>
+    props.navigation.view === view &&
+    (view !== 'knowledge' || props.navigation.workspaceTab !== 'graph')
+
   return (
     <Sidebar
       variant="sidebar"
       collapsible="icon"
       role="navigation"
       aria-label="Primary navigation"
-      className="m7-application-sidebar"
+      class="m7-application-sidebar"
     >
-      <SidebarHeader className="m7-workspace-header">
-        <DropdownMenu open={workspaceMenuOpen} onOpenChange={setWorkspaceMenuOpen}>
+      <SidebarHeader class="m7-workspace-header">
+        <DropdownMenu open={workspaceMenuOpen()} onOpenChange={setWorkspaceMenuOpen}>
           <DropdownMenuTrigger
-            render={
-              <SidebarMenuButton
-                size="lg"
-                className="m7-workspace-trigger p-0"
-                tooltip={`Workspace: ${activeWorkspace?.name ?? 'Choose workspace'}`}
-                aria-label="Switch workspace"
-              />
-            }
+            as={SidebarMenuButton}
+            size="lg"
+            class="m7-workspace-trigger p-0"
+            tooltip={`Workspace: ${activeWorkspace()?.name ?? 'Choose workspace'}`}
+            aria-label="Switch workspace"
           >
-            {activeWorkspace ? (
-              <WorkspaceLogo workspace={activeWorkspace} size="large" />
-            ) : (
-              <span
-                className="workspace-logo workspace-logo--large workspace-picker-mark"
-                aria-hidden="true"
-              >
-                ?
+            <Show
+              when={activeWorkspace()}
+              fallback={
+                <span
+                  class="workspace-logo workspace-logo--large workspace-picker-mark"
+                  aria-hidden="true"
+                >
+                  ?
+                </span>
+              }
+            >
+              {(workspace) => <WorkspaceLogo workspace={workspace()} size="large" />}
+            </Show>
+            <span data-workspace-labels class="min-w-0 flex-1 pr-2 text-left">
+              <span class="block truncate text-sm font-medium">
+                {activeWorkspace()?.name ?? 'Choose workspace'}
               </span>
-            )}
-            <span data-workspace-labels className="min-w-0 flex-1 pr-2 text-left">
-              <span className="block truncate text-sm font-medium">
-                {activeWorkspace?.name ?? 'Choose workspace'}
-              </span>
-              <span className="block truncate text-xs text-muted-foreground">Workspace</span>
+              <span class="block truncate text-xs text-muted-foreground">Workspace</span>
             </span>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" sideOffset={6} className="min-w-56">
+          <DropdownMenuContent align="start" sideOffset={6} class="min-w-56">
             <DropdownMenuGroup>
               <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
               <DropdownMenuRadioGroup
-                value={workspace}
-                onValueChange={(value) =>
+                value={props.workspace}
+                onChange={(value: unknown) =>
                   runNavigation(() => {
                     setWorkspaceMenuOpen(false)
-                    onWorkspaceChange(value)
+                    props.onWorkspaceChange(value as string)
                   })
                 }
               >
-                {workspaces.map((item) => (
-                  <DropdownMenuRadioItem key={item.id} value={item.id} closeOnClick>
-                    <WorkspaceLogo workspace={item} size="small" />
-                    {item.name}
-                  </DropdownMenuRadioItem>
-                ))}
+                <For each={props.workspaces}>
+                  {(item) => (
+                    <DropdownMenuRadioItem value={item.id} closeOnSelect>
+                      <WorkspaceLogo workspace={item} size="small" />
+                      {item.name}
+                    </DropdownMenuRadioItem>
+                  )}
+                </For>
               </DropdownMenuRadioGroup>
             </DropdownMenuGroup>
           </DropdownMenuContent>
@@ -497,81 +448,81 @@ export function M7ApplicationNavigation({
       </SidebarHeader>
       <SidebarSeparator />
       <SidebarContent>
-        <SidebarGroup className="p-3">
+        <SidebarGroup class="p-3">
           <SidebarGroupLabel>Workspace</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="gap-0.5">
-              {navigationItems.map(({ view, label, icon: Icon }) => (
-                <Fragment key={view}>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      size="lg"
-                      tooltip={label}
-                      isActive={
-                        navigation.view === view &&
-                        (view !== 'knowledge' || navigation.workspaceTab !== 'graph')
-                      }
-                      aria-current={
-                        navigation.view === view &&
-                        (view !== 'knowledge' || navigation.workspaceTab !== 'graph')
-                          ? 'page'
-                          : undefined
-                      }
-                      onClick={() => runNavigation(() => navigation.onNavigate(view))}
-                    >
-                      <Icon aria-hidden="true" />
-                      <span>{label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  {view === 'knowledge' && (
+            <SidebarMenu class="gap-0.5">
+              <For each={navigationItems}>
+                {({ view, label, icon }) => (
+                  <>
                     <SidebarMenuItem>
                       <SidebarMenuButton
                         size="lg"
-                        tooltip="Graph"
-                        isActive={
-                          navigation.view === 'knowledge' && navigation.workspaceTab === 'graph'
-                        }
-                        aria-current={
-                          navigation.view === 'knowledge' && navigation.workspaceTab === 'graph'
-                            ? 'page'
-                            : undefined
-                        }
-                        onClick={() => runNavigation(navigation.onOpenGraph)}
+                        tooltip={label}
+                        isActive={navActive(view)}
+                        aria-current={navActive(view) ? 'page' : undefined}
+                        onClick={() => runNavigation(() => props.navigation.onNavigate(view))}
                       >
-                        <GitFork aria-hidden="true" />
-                        <span>Graph</span>
+                        <Dynamic component={icon} aria-hidden="true" />
+                        <span>{label}</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                  )}
-                  {view === 'conversations' && (
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        size="lg"
-                        tooltip="Agent tools"
-                        isActive={navigation.view === 'agent-tools'}
-                        aria-current={navigation.view === 'agent-tools' ? 'page' : undefined}
-                        onClick={() => runNavigation(() => navigation.onNavigate('agent-tools'))}
-                      >
-                        <TerminalSquare aria-hidden="true" />
-                        <span>Agent tools</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )}
-                </Fragment>
-              ))}
+                    <Show when={view === 'knowledge'}>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          size="lg"
+                          tooltip="Graph"
+                          isActive={
+                            props.navigation.view === 'knowledge' &&
+                            props.navigation.workspaceTab === 'graph'
+                          }
+                          aria-current={
+                            props.navigation.view === 'knowledge' &&
+                            props.navigation.workspaceTab === 'graph'
+                              ? 'page'
+                              : undefined
+                          }
+                          onClick={() => runNavigation(props.navigation.onOpenGraph)}
+                        >
+                          <GitFork aria-hidden="true" />
+                          <span>Graph</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </Show>
+                    <Show when={view === 'conversations'}>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          size="lg"
+                          tooltip="Agent tools"
+                          isActive={props.navigation.view === 'agent-tools'}
+                          aria-current={
+                            props.navigation.view === 'agent-tools' ? 'page' : undefined
+                          }
+                          onClick={() =>
+                            runNavigation(() => props.navigation.onNavigate('agent-tools'))
+                          }
+                        >
+                          <TerminalSquare aria-hidden="true" />
+                          <span>Agent tools</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </Show>
+                  </>
+                )}
+              </For>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-3">
-        <SidebarMenu className="gap-0.5">
+      <SidebarFooter class="p-3">
+        <SidebarMenu class="gap-0.5">
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
               tooltip="Settings"
-              isActive={navigation.view === 'settings'}
-              aria-current={navigation.view === 'settings' ? 'page' : undefined}
-              onClick={() => runNavigation(() => navigation.onNavigate('settings'))}
+              isActive={props.navigation.view === 'settings'}
+              aria-current={props.navigation.view === 'settings' ? 'page' : undefined}
+              onClick={() => runNavigation(() => props.navigation.onNavigate('settings'))}
             >
               <Settings aria-hidden="true" />
               <span>Settings</span>
@@ -581,9 +532,9 @@ export function M7ApplicationNavigation({
             <SidebarMenuButton
               size="lg"
               tooltip="Inbox"
-              isActive={navigation.view === 'inbox'}
-              aria-current={navigation.view === 'inbox' ? 'page' : undefined}
-              onClick={() => runNavigation(() => navigation.onNavigate('inbox'))}
+              isActive={props.navigation.view === 'inbox'}
+              aria-current={props.navigation.view === 'inbox' ? 'page' : undefined}
+              onClick={() => runNavigation(() => props.navigation.onNavigate('inbox'))}
             >
               <Inbox aria-hidden="true" />
               <span>Inbox</span>
@@ -593,9 +544,9 @@ export function M7ApplicationNavigation({
             <SidebarMenuButton
               size="lg"
               tooltip="Index"
-              isActive={navigation.view === 'index'}
-              aria-current={navigation.view === 'index' ? 'page' : undefined}
-              onClick={() => runNavigation(() => navigation.onNavigate('index'))}
+              isActive={props.navigation.view === 'index'}
+              aria-current={props.navigation.view === 'index' ? 'page' : undefined}
+              onClick={() => runNavigation(() => props.navigation.onNavigate('index'))}
             >
               <Database aria-hidden="true" />
               <span>Index</span>
@@ -605,9 +556,9 @@ export function M7ApplicationNavigation({
             <SidebarMenuButton
               size="lg"
               tooltip="Help"
-              isActive={navigation.view === 'help'}
-              aria-current={navigation.view === 'help' ? 'page' : undefined}
-              onClick={() => runNavigation(() => navigation.onNavigate('help'))}
+              isActive={props.navigation.view === 'help'}
+              aria-current={props.navigation.view === 'help' ? 'page' : undefined}
+              onClick={() => runNavigation(() => props.navigation.onNavigate('help'))}
             >
               <CircleHelp aria-hidden="true" />
               <span>Help</span>
@@ -619,21 +570,21 @@ export function M7ApplicationNavigation({
   )
 }
 
-export function M7ShellProvider({ children }: { children: ReactNode }) {
+export function M7ShellProvider(props: { children: JSX.Element }) {
   return (
     <TooltipProvider delay={250}>
       <SidebarProvider
         defaultOpen={false}
-        className="m7-shell-provider min-h-0 overflow-hidden"
-        style={{ '--sidebar-width-icon': '3.5rem' } as CSSProperties}
+        class="m7-shell-provider min-h-0 overflow-hidden"
+        style={{ '--sidebar-width-icon': '3.5rem' } as JSX.CSSProperties}
       >
-        {children}
+        {props.children}
       </SidebarProvider>
     </TooltipProvider>
   )
 }
 
-export type M7ShellProviderProps = { children: ReactNode }
+export type M7ShellProviderProps = { children: JSX.Element }
 
 export type M7ShellComponents = {
   ActivityInbox: typeof M7ActivityInbox

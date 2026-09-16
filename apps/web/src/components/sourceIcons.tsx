@@ -1,26 +1,34 @@
-import type { CSSProperties } from 'react'
+import type { JSX } from 'solid-js'
+import { Dynamic } from 'solid-js/web'
 
 import { sourceBrandForKind, sourceIconForKind } from './sourceIconData'
 
-export function SourceIcon({ kind, size = 17 }: { kind: string; size?: number }) {
-  const brand = sourceBrandForKind(kind)
-  if (!brand) {
-    const Icon = sourceIconForKind(kind)
-    // oxlint-disable-next-line react/static-components -- sourceIconForKind is a lookup, not a component factory
-    return <Icon className="source-icon" size={size} aria-hidden="true" />
-  }
+export function SourceIcon(props: { kind: string; size?: number }) {
+  const brand = () => sourceBrandForKind(props.kind)
+  const size = () => props.size ?? 17
   return (
-    <svg
-      className="source-icon"
-      viewBox="0 0 24 24"
-      width={size}
-      height={size}
-      fill="currentColor"
-      aria-hidden="true"
-      focusable="false"
-      style={{ '--source-icon-color': `#${brand.hex}` } as CSSProperties}
-    >
-      <path d={brand.path} />
-    </svg>
+    <>
+      {brand() ? (
+        <svg
+          class="source-icon"
+          viewBox="0 0 24 24"
+          width={size()}
+          height={size()}
+          fill="currentColor"
+          aria-hidden="true"
+
+          style={{ '--source-icon-color': `#${brand()!.hex}` } as JSX.CSSProperties}
+        >
+          <path d={brand()!.path} />
+        </svg>
+      ) : (
+        <Dynamic
+          component={sourceIconForKind(props.kind)}
+          class="source-icon"
+          size={size()}
+          aria-hidden="true"
+        />
+      )}
+    </>
   )
 }

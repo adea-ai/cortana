@@ -1,4 +1,4 @@
-import type { ComponentProps } from 'react'
+import { Show, splitProps, type ComponentProps } from 'solid-js'
 
 import { Button } from '../shadcn/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../shadcn/tooltip'
@@ -9,12 +9,16 @@ type TooltipButtonProps = ComponentProps<typeof Button> & {
 }
 
 /** Shared shadcn button composition for concise, accessible action help. */
-export function TooltipButton({ tooltip, tooltipSide, ...props }: TooltipButtonProps) {
-  if (!tooltip) return <Button {...props} />
+export function TooltipButton(props: TooltipButtonProps) {
+  const [local, rest] = splitProps(props, ['tooltip', 'tooltipSide'])
   return (
-    <Tooltip>
-      <TooltipTrigger render={<Button {...props} />} />
-      <TooltipContent side={tooltipSide}>{tooltip}</TooltipContent>
-    </Tooltip>
+    <Show when={local.tooltip} fallback={<Button {...rest} />}>
+      {(tooltip) => (
+        <Tooltip>
+          <TooltipTrigger as={Button} {...(rest as any)} />
+          <TooltipContent side={local.tooltipSide}>{tooltip()}</TooltipContent>
+        </Tooltip>
+      )}
+    </Show>
   )
 }

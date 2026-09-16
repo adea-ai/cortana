@@ -9,7 +9,7 @@ import {
   Mail,
   MessageCircle,
   StickyNote,
-} from 'lucide-react'
+} from 'lucide-solid'
 import {
   siApple,
   siDiscord,

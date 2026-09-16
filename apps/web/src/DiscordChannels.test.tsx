@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from 'solid-testing-library'
 import userEvent from '@testing-library/user-event'
-
 import { desktopInfo, desktopSettings } from './test/fixtures'
 import type {
   DesktopSettings,
@@ -9,11 +8,8 @@ import type {
   DiscordChannelList,
   SourceSettings,
 } from './types'
-
 afterEach(cleanup)
-
 const realApi = await import('./api')
-
 const discovery: DiscordChannelList = {
   truncated: false,
   guilds: [
@@ -22,20 +18,37 @@ const discovery: DiscordChannelList = {
       name: 'Engineering',
       truncated: false,
       channels: [
-        { id: '175928847299117064', name: 'release', kind: 'text' },
-        { id: '175928847299117065', name: 'standup', kind: 'text' },
-        { id: '175928847299117066', name: 'Town Hall', kind: 'voice' },
+        {
+          id: '175928847299117064',
+          name: 'release',
+          kind: 'text',
+        },
+        {
+          id: '175928847299117065',
+          name: 'standup',
+          kind: 'text',
+        },
+        {
+          id: '175928847299117066',
+          name: 'Town Hall',
+          kind: 'voice',
+        },
       ],
     },
     {
       id: '175928847299117067',
       name: 'Community',
       truncated: false,
-      channels: [{ id: '175928847299117068', name: 'announcements', kind: 'announcement' }],
+      channels: [
+        {
+          id: '175928847299117068',
+          name: 'announcements',
+          kind: 'announcement',
+        },
+      ],
     },
   ],
 }
-
 const discordSource: SourceSettings = {
   name: 'work-discord',
   kind: 'discord',
@@ -63,11 +76,12 @@ const discordSource: SourceSettings = {
   acl: [],
   editable: true,
 }
-
 function settingsWith(source: SourceSettings): DesktopSettings {
-  return { ...desktopSettings, sources: [source] }
+  return {
+    ...desktopSettings,
+    sources: [source],
+  }
 }
-
 const state = {
   settings: settingsWith(discordSource),
   discoverCalls: [] as string[],
@@ -76,7 +90,6 @@ const state = {
   savedUpdates: [] as DesktopSettingsUpdate[],
   saved: null as DesktopSettings | null,
 }
-
 beforeEach(() => {
   state.settings = settingsWith(discordSource)
   state.discoverCalls = []
@@ -85,14 +98,16 @@ beforeEach(() => {
   state.savedUpdates = []
   state.saved = null
 })
-
 mock.module('./api', () => ({
   ...realApi,
   isDesktopApp: true,
   getDesktopSettings: () => Promise.resolve(state.settings),
   getDesktopInfo: () => Promise.resolve(desktopInfo),
   getDesktopSchedule: () =>
-    Promise.resolve({ sync_interval_seconds: 900, backup_interval_seconds: 86400 }),
+    Promise.resolve({
+      sync_interval_seconds: 900,
+      backup_interval_seconds: 86400,
+    }),
   saveDesktopSchedule: (schedule: {
     sync_interval_seconds: number
     backup_interval_seconds: number
@@ -134,11 +149,9 @@ mock.module('./api', () => ({
     return Promise.resolve(saved)
   },
 }))
-
 const { SettingsView } = await import('./components/SettingsView')
-
 async function renderDiscordSettings() {
-  render(
+  render(() => (
     <SettingsView
       initialSection="sources"
       desktopSettings={state.settings}
@@ -146,20 +159,25 @@ async function renderDiscordSettings() {
         state.saved = next
       }}
     />
+  ))
+  fireEvent.click(
+    await screen.findByRole('button', {
+      name: /Advanced source settings/,
+    })
   )
-  fireEvent.click(await screen.findByRole('button', { name: /Advanced source settings/ }))
   await screen.findByLabelText(/^Source name/)
 }
-
 function channelIdsTextarea(): HTMLTextAreaElement {
   return screen.getByLabelText('Channel IDs') as HTMLTextAreaElement
 }
-
 test('discord chooser discovers guilds and channels and persists selected snowflake ids', async () => {
   const user = userEvent.setup()
   await renderDiscordSettings()
-
-  fireEvent.click(screen.getByRole('button', { name: /Discover channels/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Discover channels/,
+    })
+  )
   await waitFor(() => expect(screen.getByText('Engineering')).toBeTruthy())
   expect(state.discoverCalls).toEqual(['work-discord'])
   expect(screen.getByText('Community')).toBeTruthy()
@@ -170,63 +188,95 @@ test('discord chooser discovers guilds and channels and persists selected snowfl
 
   // Selections land in the same `channels` field the native runtime reads,
   // as exact snowflake strings (renderer numbers cannot hold 64-bit ids).
-  await user.click(screen.getByRole('checkbox', { name: /release · text/ }))
+  await user.click(
+    screen.getByRole('checkbox', {
+      name: /release · text/,
+    })
+  )
   expect(channelIdsTextarea().value).toBe('175928847299117064')
-
-  await user.click(screen.getByRole('checkbox', { name: /announcements · announcement/ }))
+  await user.click(
+    screen.getByRole('checkbox', {
+      name: /announcements · announcement/,
+    })
+  )
   expect(channelIdsTextarea().value).toBe('175928847299117064, 175928847299117068')
-
-  await user.click(screen.getByRole('checkbox', { name: /release · text/ }))
+  await user.click(
+    screen.getByRole('checkbox', {
+      name: /release · text/,
+    })
+  )
   expect(channelIdsTextarea().value).toBe('175928847299117068')
 
   // Saving persists the selected channel ids through the settings bridge.
-  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Save changes',
+    })
+  )
   await waitFor(() => expect(state.savedUpdates).toHaveLength(1))
   expect(state.savedUpdates[0].sources[0].channels).toEqual(['175928847299117068'])
   expect(state.saved?.sources[0].channels).toEqual(['175928847299117068'])
 })
-
 test('discord chooser selects every text and announcement channel in the assigned servers', async () => {
   await renderDiscordSettings()
-
-  fireEvent.click(screen.getByRole('button', { name: /Discover channels/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Discover channels/,
+    })
+  )
   await waitFor(() => expect(screen.getByText('Engineering')).toBeTruthy())
-
-  fireEvent.click(screen.getByRole('button', { name: /Select all Discord text channels/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Select all Discord text channels/,
+    })
+  )
   await waitFor(() =>
     expect(channelIdsTextarea().value).toBe(
       '175928847299117064, 175928847299117065, 175928847299117068'
     )
   )
   expect(
-    screen.getByRole('checkbox', { name: /Town Hall · voice/ }).getAttribute('aria-checked')
+    screen
+      .getByRole('checkbox', {
+        name: /Town Hall · voice/,
+      })
+      .getAttribute('aria-checked')
   ).toBe('false')
 })
-
 test('discord chooser limits select-all to assigned servers', async () => {
   state.settings = settingsWith({
     ...discordSource,
     servers: ['175928847299117067'],
   })
   await renderDiscordSettings()
-
-  fireEvent.click(screen.getByRole('button', { name: /Discover channels/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Discover channels/,
+    })
+  )
   await waitFor(() => expect(screen.getByText('Community')).toBeTruthy())
-
-  fireEvent.click(screen.getByRole('button', { name: /Select all Discord text channels/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Select all Discord text channels/,
+    })
+  )
   await waitFor(() => expect(channelIdsTextarea().value).toBe('175928847299117068'))
 })
-
 test('discord chooser refuses to discover unsaved changes and surfaces failures', async () => {
   // A selected channel keeps the required Channel IDs field satisfied so the
   // rename can be saved and the failure path reached.
-  state.settings = settingsWith({ ...discordSource, channels: ['175928847299117064'] })
+  state.settings = settingsWith({
+    ...discordSource,
+    channels: ['175928847299117064'],
+  })
   await renderDiscordSettings()
 
   // Editing the source makes the native command unsafe until it is saved, so
   // the discovery button is disabled and no IPC call can start.
   fireEvent.change(screen.getByLabelText(/^Source name/), {
-    target: { value: 'work-discord-renamed' },
+    target: {
+      value: 'work-discord-renamed',
+    },
   })
   const discoverButton = screen.getByRole('button', {
     name: /Discover channels/,
@@ -240,10 +290,18 @@ test('discord chooser refuses to discover unsaved changes and surfaces failures'
   state.discoveryError = new Error(
     'Discord channel discovery failed; check Discord Desktop RPC authorization: Discord Desktop RPC is unavailable'
   )
-  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Save changes',
+    })
+  )
   await waitFor(() => expect(state.savedUpdates).toHaveLength(1))
   expect(state.savedUpdates[0].sources[0].name).toBe('work-discord-renamed')
-  fireEvent.click(screen.getByRole('button', { name: /Discover channels/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Discover channels/,
+    })
+  )
   await waitFor(() =>
     expect(
       screen
@@ -253,12 +311,17 @@ test('discord chooser refuses to discover unsaved changes and surfaces failures'
   )
   expect(state.saved?.sources[0].channels).toEqual(['175928847299117064'])
 })
-
 test('discord chooser warns when discovery is truncated at 100 servers', async () => {
-  state.discoveryResult = { ...discovery, truncated: true }
+  state.discoveryResult = {
+    ...discovery,
+    truncated: true,
+  }
   await renderDiscordSettings()
-
-  fireEvent.click(screen.getByRole('button', { name: /Discover channels/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Discover channels/,
+    })
+  )
   await waitFor(() =>
     expect(
       screen
@@ -272,14 +335,18 @@ test('discord chooser warns when discovery is truncated at 100 servers', async (
   )
   await waitFor(() => expect(screen.getByText('Engineering')).toBeTruthy())
 })
-
 test('discord chooser marks a server with more than 100 channels as truncated', async () => {
   const user = userEvent.setup()
-  const manyChannels = Array.from({ length: 100 }, (_, index) => ({
-    id: `1759288472991${String(index).padStart(6, '0')}`,
-    name: `channel-${index}`,
-    kind: 'text',
-  }))
+  const manyChannels = Array.from(
+    {
+      length: 100,
+    },
+    (_, index) => ({
+      id: `1759288472991${String(index).padStart(6, '0')}`,
+      name: `channel-${index}`,
+      kind: 'text',
+    })
+  )
   state.discoveryResult = {
     truncated: false,
     guilds: [
@@ -292,15 +359,26 @@ test('discord chooser marks a server with more than 100 channels as truncated', 
     ],
   }
   await renderDiscordSettings()
-
-  fireEvent.click(screen.getByRole('button', { name: /Discover channels/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Discover channels/,
+    })
+  )
   await waitFor(() => expect(screen.getByText('channel-99 · text')).toBeTruthy())
   await waitFor(() =>
-    expect(screen.getByRole('checkbox', { name: /channel-0 · text/ })).toBeTruthy()
+    expect(
+      screen.getByRole('checkbox', {
+        name: /channel-0 · text/,
+      })
+    ).toBeTruthy()
   )
   // The per-server truncation marker is always rendered so the user knows
   // the persisted selection is limited to the returned channels.
   expect(screen.getByText(/first 100 channels/)).toBeTruthy()
-  await user.click(screen.getByRole('checkbox', { name: /channel-0 · text/ }))
+  await user.click(
+    screen.getByRole('checkbox', {
+      name: /channel-0 · text/,
+    })
+  )
   await waitFor(() => expect(channelIdsTextarea().value).toBe('1759288472991000000'))
 })

@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { splitProps, type ComponentProps } from 'solid-js'
 import { cva, type VariantProps } from 'class-variance-authority'
 
 import { cn } from '@/lib/utils'
@@ -19,50 +19,50 @@ const alertVariants = cva(
   }
 )
 
-function Alert({
-  className,
-  variant,
-  ...props
-}: React.ComponentProps<'div'> & VariantProps<typeof alertVariants>) {
+function Alert(props: ComponentProps<'div'> & VariantProps<typeof alertVariants>) {
+  const [local, rest] = splitProps(props, ['class', 'variant'])
   return (
     <div
       data-slot="alert"
       role="alert"
-      className={cn(alertVariants({ variant }), className)}
-      {...props}
+      class={cn(alertVariants({ variant: local.variant }), local.class)}
+      {...rest}
     />
   )
 }
 
-function AlertTitle({ className, ...props }: React.ComponentProps<'div'>) {
+function AlertTitle(props: ComponentProps<'div'>) {
+  const [local, rest] = splitProps(props, ['class'])
   return (
     <div
       data-slot="alert-title"
-      className={cn(
+      class={cn(
         'font-medium group-has-[>svg]/alert:col-start-2 [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground',
-        className
+        local.class
       )}
-      {...props}
+      {...rest}
     />
   )
 }
 
-function AlertDescription({ className, ...props }: React.ComponentProps<'div'>) {
+function AlertDescription(props: ComponentProps<'div'>) {
+  const [local, rest] = splitProps(props, ['class'])
   return (
     <div
       data-slot="alert-description"
-      className={cn(
+      class={cn(
         'text-sm text-balance text-muted-foreground md:text-pretty [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground [&_p:not(:last-child)]:mb-4',
-        className
+        local.class
       )}
-      {...props}
+      {...rest}
     />
   )
 }
 
-function AlertAction({ className, ...props }: React.ComponentProps<'div'>) {
+function AlertAction(props: ComponentProps<'div'>) {
+  const [local, rest] = splitProps(props, ['class'])
   return (
-    <div data-slot="alert-action" className={cn('absolute top-2 right-2', className)} {...props} />
+    <div data-slot="alert-action" class={cn('absolute top-2 right-2', local.class)} {...rest} />
   )
 }
 

@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from 'solid-testing-library'
 import userEvent from '@testing-library/user-event'
-
 import { desktopInfo, desktopSettings } from './test/fixtures'
 import type {
   DesktopSettings,
@@ -10,11 +9,8 @@ import type {
   DiscordServerList,
   SourceSettings,
 } from './types'
-
 afterEach(cleanup)
-
 const realApi = await import('./api')
-
 const channels: DiscordChannelList = {
   truncated: false,
   guilds: [
@@ -22,25 +18,41 @@ const channels: DiscordChannelList = {
       id: '175928847299117063',
       name: 'Engineering',
       truncated: false,
-      channels: [{ id: '175928847299117064', name: 'release', kind: 'text' }],
+      channels: [
+        {
+          id: '175928847299117064',
+          name: 'release',
+          kind: 'text',
+        },
+      ],
     },
     {
       id: '175928847299117067',
       name: 'Community',
       truncated: false,
-      channels: [{ id: '175928847299117068', name: 'announcements', kind: 'announcement' }],
+      channels: [
+        {
+          id: '175928847299117068',
+          name: 'announcements',
+          kind: 'announcement',
+        },
+      ],
     },
   ],
 }
-
 const servers: DiscordServerList = {
   truncated: false,
   guilds: [
-    { id: '175928847299117063', name: 'Engineering' },
-    { id: '175928847299117067', name: 'Community' },
+    {
+      id: '175928847299117063',
+      name: 'Engineering',
+    },
+    {
+      id: '175928847299117067',
+      name: 'Community',
+    },
   ],
 }
-
 const discordSource: SourceSettings = {
   name: 'work-discord',
   kind: 'discord',
@@ -68,11 +80,12 @@ const discordSource: SourceSettings = {
   acl: [],
   editable: true,
 }
-
 function settingsWith(source: SourceSettings): DesktopSettings {
-  return { ...desktopSettings, sources: [source] }
+  return {
+    ...desktopSettings,
+    sources: [source],
+  }
 }
-
 const state = {
   settings: settingsWith(discordSource),
   discoverCalls: [] as string[],
@@ -82,7 +95,6 @@ const state = {
   savedUpdates: [] as DesktopSettingsUpdate[],
   saved: null as DesktopSettings | null,
 }
-
 beforeEach(() => {
   state.settings = settingsWith(discordSource)
   state.discoverCalls = []
@@ -92,14 +104,16 @@ beforeEach(() => {
   state.savedUpdates = []
   state.saved = null
 })
-
 mock.module('./api', () => ({
   ...realApi,
   isDesktopApp: true,
   getDesktopSettings: () => Promise.resolve(state.settings),
   getDesktopInfo: () => Promise.resolve(desktopInfo),
   getDesktopSchedule: () =>
-    Promise.resolve({ sync_interval_seconds: 900, backup_interval_seconds: 86400 }),
+    Promise.resolve({
+      sync_interval_seconds: 900,
+      backup_interval_seconds: 86400,
+    }),
   saveDesktopSchedule: (schedule: {
     sync_interval_seconds: number
     backup_interval_seconds: number
@@ -146,11 +160,9 @@ mock.module('./api', () => ({
     return Promise.resolve(saved)
   },
 }))
-
 const { SettingsView } = await import('./components/SettingsView')
-
 async function renderDiscordSettings() {
-  render(
+  render(() => (
     <SettingsView
       initialSection="sources"
       desktopSettings={state.settings}
@@ -158,26 +170,43 @@ async function renderDiscordSettings() {
         state.saved = next
       }}
     />
+  ))
+  fireEvent.click(
+    await screen.findByRole('button', {
+      name: /Advanced source settings/,
+    })
   )
-  fireEvent.click(await screen.findByRole('button', { name: /Advanced source settings/ }))
   await screen.findByLabelText(/^Source name/)
 }
-
 test('discord server chooser discovers guilds and persists per-workspace assignment', async () => {
   const user = userEvent.setup()
   await renderDiscordSettings()
-
-  fireEvent.click(screen.getByRole('button', { name: /Discover servers/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Discover servers/,
+    })
+  )
   await waitFor(() => expect(screen.getByText('Engineering')).toBeTruthy())
   expect(state.discoverCalls).toEqual(['work-discord'])
   expect(screen.getByText('Community')).toBeTruthy()
 
   // Server selection lands in the `servers` field, which is persisted per
   // source (each Discord source belongs to exactly one workspace).
-  await user.click(screen.getByRole('checkbox', { name: /Engineering/ }))
-  await user.click(screen.getByRole('checkbox', { name: /Community/ }))
-
-  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+  await user.click(
+    screen.getByRole('checkbox', {
+      name: /Engineering/,
+    })
+  )
+  await user.click(
+    screen.getByRole('checkbox', {
+      name: /Community/,
+    })
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Save changes',
+    })
+  )
   await waitFor(() => expect(state.savedUpdates).toHaveLength(1))
   expect(state.savedUpdates[0].sources[0].servers).toEqual([
     '175928847299117063',
@@ -185,14 +214,15 @@ test('discord server chooser discovers guilds and persists per-workspace assignm
   ])
   expect(state.saved?.sources[0].servers).toEqual(['175928847299117063', '175928847299117067'])
 })
-
 test('discord server chooser refuses to discover unsaved changes and surfaces failures', async () => {
   await renderDiscordSettings()
 
   // Editing the source makes the native command unsafe until it is saved, so
   // the discovery button is disabled and no IPC call can start.
   fireEvent.change(screen.getByLabelText(/^Source name/), {
-    target: { value: 'work-discord-renamed' },
+    target: {
+      value: 'work-discord-renamed',
+    },
   })
   const discoverButton = screen.getByRole('button', {
     name: /Discover servers/,
@@ -205,9 +235,17 @@ test('discord server chooser refuses to discover unsaved changes and surfaces fa
   state.serversError = new Error(
     'Discord server discovery failed; check Discord Desktop RPC authorization: Discord Desktop RPC is unavailable; run `cortana authorize-discord work-discord-renamed` while Discord is running'
   )
-  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Save changes',
+    })
+  )
   await waitFor(() => expect(state.savedUpdates).toHaveLength(1))
-  fireEvent.click(screen.getByRole('button', { name: /Discover servers/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Discover servers/,
+    })
+  )
   await waitFor(() =>
     expect(
       screen
@@ -216,12 +254,17 @@ test('discord server chooser refuses to discover unsaved changes and surfaces fa
     ).toBe(true)
   )
 })
-
 test('discord server chooser warns when discovery is truncated at 100 servers', async () => {
-  state.serversResult = { ...servers, truncated: true }
+  state.serversResult = {
+    ...servers,
+    truncated: true,
+  }
   await renderDiscordSettings()
-
-  fireEvent.click(screen.getByRole('button', { name: /Discover servers/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Discover servers/,
+    })
+  )
   await waitFor(() =>
     expect(
       screen
@@ -234,15 +277,17 @@ test('discord server chooser warns when discovery is truncated at 100 servers', 
     ).toBe(true)
   )
 })
-
 test('discord channels outside assigned servers are marked when servers are assigned', async () => {
   state.settings = settingsWith({
     ...discordSource,
     servers: ['175928847299117063'],
   })
   await renderDiscordSettings()
-
-  fireEvent.click(screen.getByRole('button', { name: /Discover channels/ }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Discover channels/,
+    })
+  )
   await waitFor(() => expect(screen.getByText('release · text')).toBeTruthy())
   // The unassigned guild is labeled; the assigned guild is not.
   expect(screen.getByText(/not assigned to this workspace/)).toBeTruthy()
@@ -253,7 +298,6 @@ test('discord channels outside assigned servers are marked when servers are assi
   const community = screen.getAllByText('Community')[0]
   expect(community.closest('.discord-guild')?.className ?? '').toContain('discord-guild-unassigned')
 })
-
 test('discord authorize action names Discord and starts Desktop authorization', async () => {
   state.settings = settingsWith({
     ...discordSource,
@@ -261,7 +305,6 @@ test('discord authorize action names Discord and starts Desktop authorization', 
     oauth_client_path: '/Users/you/.config/cortana/discord-rpc-client.json',
   })
   await renderDiscordSettings()
-
   const confirm = mock((message?: string) => {
     confirmMessage = message ?? ''
     return true
@@ -269,14 +312,15 @@ test('discord authorize action names Discord and starts Desktop authorization', 
   let confirmMessage = ''
   const originalConfirm = window.confirm
   window.confirm = confirm
-
-  fireEvent.click(screen.getByRole('button', { name: 'Authorize' }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Authorize',
+    })
+  )
   await waitFor(() => expect(state.authorizationCalls).toEqual(['work-discord']))
   expect(confirmMessage).toContain('Authorize work-discord with Discord')
-
   window.confirm = originalConfirm
 })
-
 test('discord authorize action stays hidden until OAuth paths are saved', async () => {
   state.settings = settingsWith({
     ...discordSource,
@@ -284,30 +328,53 @@ test('discord authorize action stays hidden until OAuth paths are saved', async 
     oauth_client_path: null,
   })
   await renderDiscordSettings()
-
-  expect(screen.queryByRole('button', { name: 'Authorize' })).toBeNull()
+  expect(
+    screen.queryByRole('button', {
+      name: 'Authorize',
+    })
+  ).toBeNull()
   expect(state.authorizationCalls).toEqual([])
 
   // A token destination without a client JSON is still incomplete, and the
   // native runtime must not be invoked with unsaved edits anyway.
   fireEvent.change(
     screen.getByPlaceholderText('/Users/you/.config/cortana/discord-rpc-token.json'),
-    { target: { value: '/Users/you/.config/cortana/discord-rpc-token.json' } }
+    {
+      target: {
+        value: '/Users/you/.config/cortana/discord-rpc-token.json',
+      },
+    }
   )
   fireEvent.change(
     screen.getByPlaceholderText('/Users/you/.config/cortana/discord-rpc-client.json'),
-    { target: { value: '/Users/you/.config/cortana/discord-rpc-client.json' } }
+    {
+      target: {
+        value: '/Users/you/.config/cortana/discord-rpc-client.json',
+      },
+    }
   )
-  expect(screen.queryByRole('button', { name: 'Authorize' })).toBeNull()
+  expect(
+    screen.queryByRole('button', {
+      name: 'Authorize',
+    })
+  ).toBeNull()
 
   // Once the paths are saved, the same source card offers Desktop RPC
   // authorization for Discord.
-  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Save changes',
+    })
+  )
   await waitFor(() => expect(state.savedUpdates).toHaveLength(1))
   await waitFor(() =>
-    expect((screen.getByRole('button', { name: 'Authorize' }) as HTMLButtonElement).disabled).toBe(
-      false
-    )
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Authorize',
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(false)
   )
   expect(state.saved?.sources[0].token_path).toBe(
     '/Users/you/.config/cortana/discord-rpc-token.json'

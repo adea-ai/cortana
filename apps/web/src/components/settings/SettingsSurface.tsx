@@ -1,10 +1,12 @@
 import {
-  Children,
+  children as resolveChildren,
+  createContext,
+  createMemo,
+  splitProps,
+  useContext,
   type ComponentProps,
-  type ChangeEvent,
-  isValidElement,
-  type ReactNode,
-} from 'react'
+  type JSX,
+} from 'solid-js'
 
 import { cn } from '../../lib/utils'
 
@@ -24,63 +26,93 @@ import {
 } from '../shadcn/field'
 import { Input } from '../shadcn/input'
 import { RadioGroup, RadioGroupItem } from '../shadcn/radio-group'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../shadcn/select'
+import { Select, SelectContent, SelectTrigger, SelectValue } from '../shadcn/select'
+import type { SelectOptionValue } from '../shadcn/select'
 import { Switch } from '../shadcn/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../shadcn/tabs'
 import { Textarea } from '../shadcn/textarea'
 
-export function SettingsSurfaceProvider({ children }: { children: ReactNode }) {
-  return children
+export function SettingsSurfaceProvider(props: { children: JSX.Element }) {
+  return props.children as JSX.Element
+}
+
+/** Shared between Field and the settings controls it wraps: the first control
+    inside a Field claims the generated control id plus describedby/invalid. */
+export const FieldControlContext = createContext<{
+  id: string
+  describedBy: () => string | undefined
+  invalid: () => boolean
+  taken: boolean
+  claim: () => boolean
+} | null>(null)
+
+function claimFieldControl() {
+  const field = useContext(FieldControlContext)
+  if (!field) return null
+  return field.claim() ? field : null
 }
 
 type SettingsButtonProps = Omit<ComponentProps<typeof Button>, 'variant' | 'size'> & {
   variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost' | 'icon' | 'compact'
 }
 
-export function SettingsButton({ variant = 'secondary', ...props }: SettingsButtonProps) {
+export function SettingsButton(props: SettingsButtonProps) {
+  const [local, rest] = splitProps(props, ['variant'])
+  const variant = () => local.variant ?? 'secondary'
   return (
     <Button
-      {...props}
+      {...rest}
       variant={
-        variant === 'primary'
+        variant() === 'primary'
           ? 'default'
-          : variant === 'outline'
+          : variant() === 'outline'
             ? 'outline'
-            : variant === 'danger'
+            : variant() === 'danger'
               ? 'destructive'
-              : variant === 'ghost' || variant === 'icon'
+              : variant() === 'ghost' || variant() === 'icon'
                 ? 'ghost'
                 : 'secondary'
       }
-      size={variant === 'icon' ? 'icon' : variant === 'compact' ? 'sm' : 'default'}
+      size={variant() === 'icon' ? 'icon' : variant() === 'compact' ? 'sm' : 'default'}
     />
   )
 }
 
 export function SettingsInput(props: ComponentProps<'input'>) {
-  return <Input {...props} />
+  const field = claimFieldControl()
+  const [local, rest] = splitProps(props, ['id', 'aria-describedby', 'aria-invalid'])
+  return (
+    <Input
+      id={local.id ?? field?.id}
+      aria-describedby={local['aria-describedby'] ?? field?.describedBy()}
+      aria-invalid={local['aria-invalid'] ?? (field?.invalid() || undefined)}
+      {...rest}
+    />
+  )
 }
 
 export function SettingsTextarea(props: ComponentProps<'textarea'>) {
-  return <Textarea {...props} />
+  const field = claimFieldControl()
+  const [local, rest] = splitProps(props, ['id', 'aria-describedby', 'aria-invalid'])
+  return (
+    <Textarea
+      id={local.id ?? field?.id}
+      aria-describedby={local['aria-describedby'] ?? field?.describedBy()}
+      aria-invalid={local['aria-invalid'] ?? (field?.invalid() || undefined)}
+      {...rest}
+    />
+  )
 }
 
 export function SettingsCard(props: ComponentProps<'div'>) {
   return <Card {...props} />
 }
 
-export function SettingsAlert({
-  variant = 'default',
-  ...props
-}: ComponentProps<'div'> & { variant?: 'default' | 'destructive' }) {
-  return <Alert variant={variant} {...props} />
+export function SettingsAlert(
+  props: ComponentProps<'div'> & { variant?: 'default' | 'destructive' }
+) {
+  const [local, rest] = splitProps(props, ['variant'])
+  return <Alert variant={local.variant ?? 'default'} {...rest} />
 }
 
 export function SettingsField(props: ComponentProps<'div'>) {
@@ -111,220 +143,226 @@ export function SettingsFieldError(props: ComponentProps<'div'>) {
   return <FieldError {...props} />
 }
 
-export function SettingsCheckbox({ onChange, ...props }: Omit<ComponentProps<'input'>, 'type'>) {
+/** Minimal event shape settings callers read after a checked change. */
+type CheckedChangeEvent = {
+  target: { checked: boolean; value?: string }
+  currentTarget: { checked: boolean; value?: string }
+}
+
+/** Minimal event shape settings callers read after a value change. */
+type ValueChangeEvent = {
+  target: { value: string }
+  currentTarget: { value: string }
+}
+
+export function SettingsCheckbox(
+  props: Omit<ComponentProps<'input'>, 'type' | 'onChange'> & {
+    onChange?: (event: CheckedChangeEvent) => void
+  }
+) {
+  const field = claimFieldControl()
   return (
     <Checkbox
-      id={props.id}
+      id={props.id ?? field?.id}
       name={props.name}
       checked={Boolean(props.checked)}
       disabled={props.disabled}
       required={props.required}
       aria-label={props['aria-label']}
-      aria-describedby={props['aria-describedby']}
-      aria-invalid={props['aria-invalid']}
+      aria-describedby={props['aria-describedby'] ?? field?.describedBy()}
+      aria-invalid={props['aria-invalid'] ?? (field?.invalid() || undefined)}
       title={props.title}
-      onCheckedChange={(checked) => {
-        onChange?.({
+      onChange={(checked) => {
+        props.onChange?.({
           target: { checked },
           currentTarget: { checked },
-        } as unknown as ChangeEvent<HTMLInputElement>)
+        })
       }}
     />
   )
 }
 
-export function SettingsSwitch({ onChange, ...props }: Omit<ComponentProps<'input'>, 'type'>) {
+export function SettingsSwitch(
+  props: Omit<ComponentProps<'input'>, 'type' | 'onChange'> & {
+    onChange?: (event: CheckedChangeEvent) => void
+  }
+) {
+  const field = claimFieldControl()
   return (
     <Switch
-      id={props.id}
+      id={props.id ?? field?.id}
       name={props.name}
       checked={Boolean(props.checked)}
       disabled={props.disabled}
       required={props.required}
       aria-label={props['aria-label']}
-      aria-describedby={props['aria-describedby']}
-      aria-invalid={props['aria-invalid']}
+      aria-describedby={props['aria-describedby'] ?? field?.describedBy()}
+      aria-invalid={props['aria-invalid'] ?? (field?.invalid() || undefined)}
       title={props.title}
-      onCheckedChange={(checked) => {
-        onChange?.({
+      onChange={(checked) => {
+        props.onChange?.({
           target: { checked },
           currentTarget: { checked },
-        } as unknown as ChangeEvent<HTMLInputElement>)
+        })
       }}
     />
   )
 }
 
-export function SettingsRadioGroup({
-  value,
-  onValueChange,
-  children,
-  ...props
-}: ComponentProps<'div'> & {
-  value: string
-  onValueChange: (value: string) => void
-}) {
+export function SettingsRadioGroup(
+  props: ComponentProps<'div'> & {
+    value: string
+    onValueChange: (value: string) => void
+  }
+) {
+  const [local, rest] = splitProps(props, ['value', 'onValueChange', 'children', 'onChange'])
   return (
-    <RadioGroup value={value} onValueChange={onValueChange} {...props}>
-      {children}
+    <RadioGroup value={local.value} onChange={local.onValueChange} {...rest}>
+      {local.children}
     </RadioGroup>
   )
 }
 
-export function SettingsRadio({ value, ...props }: Omit<ComponentProps<'input'>, 'type'>) {
+export function SettingsRadio(props: Omit<ComponentProps<'input'>, 'type'>) {
+  const field = claimFieldControl()
   return (
     <RadioGroupItem
-      value={String(value ?? '')}
+      value={String(props.value ?? '')}
       disabled={props.disabled}
       aria-label={props['aria-label']}
-      aria-describedby={props['aria-describedby']}
+      aria-describedby={props['aria-describedby'] ?? field?.describedBy()}
     />
   )
 }
 
-export function SettingsTabs({
-  value,
-  onValueChange,
-  children,
-  ...props
-}: ComponentProps<'div'> & { value: string; onValueChange: (value: string) => void }) {
+export function SettingsTabs(
+  props: ComponentProps<'div'> & { value: string; onValueChange: (value: string) => void }
+) {
+  const [local, rest] = splitProps(props, ['value', 'onValueChange', 'children', 'onChange'])
   return (
-    <Tabs value={value} onValueChange={onValueChange} {...props}>
-      {children}
+    <Tabs value={local.value} onChange={local.onValueChange} {...rest}>
+      {local.children}
     </Tabs>
   )
 }
 
-export function SettingsTabsList({
-  variant,
-  ...props
-}: ComponentProps<'div'> & { variant?: 'default' | 'line' }) {
-  return <TabsList variant={variant} {...props} />
+export function SettingsTabsList(props: ComponentProps<'div'> & { variant?: 'default' | 'line' }) {
+  const [local, rest] = splitProps(props, ['variant'])
+  return <TabsList variant={local.variant} {...rest} />
 }
 
-export function SettingsTabsTrigger({
-  value,
-  ...props
-}: ComponentProps<'button'> & { value: string }) {
-  return <TabsTrigger value={value} {...props} />
+export function SettingsTabsTrigger(
+  props: Omit<ComponentProps<'button'>, 'type'> & { value: string }
+) {
+  const [local, rest] = splitProps(props, ['value'])
+  return <TabsTrigger value={local.value} {...rest} />
 }
 
-export function SettingsTabsContent({
-  value,
-  ...props
-}: ComponentProps<'div'> & { value: string }) {
-  return <TabsContent value={value} {...props} />
+export function SettingsTabsContent(props: ComponentProps<'div'> & { value: string }) {
+  const [local, rest] = splitProps(props, ['value'])
+  return <TabsContent value={local.value} {...rest} />
 }
 
-export function SettingsAccordion({
-  className,
-  children,
-}: {
-  className?: string
-  children: ReactNode
-}) {
-  return <Accordion className={className}>{children}</Accordion>
+export function SettingsAccordion(props: { class?: string; children: JSX.Element }) {
+  return <Accordion class={props.class}>{props.children}</Accordion>
 }
 
-export function SettingsAccordionItem({
-  value,
-  className,
-  children,
-}: {
+export function SettingsAccordionItem(props: {
   value: string
-  className?: string
-  children: ReactNode
+  class?: string
+  children: JSX.Element
 }) {
   return (
-    <AccordionItem value={value} className={className}>
-      {children}
+    <AccordionItem value={props.value} class={props.class}>
+      {props.children}
     </AccordionItem>
   )
 }
 
-export function SettingsAccordionTrigger({
-  className,
-  children,
-}: {
-  className?: string
-  children: ReactNode
-}) {
-  return <AccordionTrigger className={className}>{children}</AccordionTrigger>
+export function SettingsAccordionTrigger(props: { class?: string; children: JSX.Element }) {
+  return <AccordionTrigger class={props.class}>{props.children}</AccordionTrigger>
 }
 
-export function SettingsAccordionContent({
-  className,
-  children,
-}: {
-  className?: string
-  children: ReactNode
-}) {
-  return <AccordionContent className={className}>{children}</AccordionContent>
+export function SettingsAccordionContent(props: { class?: string; children: JSX.Element }) {
+  return <AccordionContent class={props.class}>{props.children}</AccordionContent>
 }
 
-type SelectOption = {
-  value: string
-  label: ReactNode
-  disabled: boolean
-}
-
-function selectOptions(children: ReactNode): SelectOption[] {
-  return Children.toArray(children).flatMap((child) => {
-    if (
-      !isValidElement<{ value?: string | number; disabled?: boolean; children?: ReactNode }>(child)
-    ) {
-      return []
+function collectOptions(nodes: unknown[], out: SelectOptionValue[]) {
+  for (const node of nodes) {
+    if (Array.isArray(node)) {
+      collectOptions(node, out)
+    } else if (node instanceof HTMLOptionElement) {
+      out.push({
+        value: node.value,
+        label: node.textContent ?? node.value,
+        disabled: node.disabled,
+      })
+    } else if (node instanceof Element || node instanceof DocumentFragment) {
+      collectOptions(Array.from(node.childNodes), out)
     }
-    if (child.type !== 'option') return selectOptions(child.props.children)
-    return [
-      {
-        value: String(child.props.value ?? ''),
-        label: child.props.children,
-        disabled: Boolean(child.props.disabled),
-      },
-    ]
-  })
+  }
 }
 
-export function SettingsSelect({ children, onChange, value, ...props }: ComponentProps<'select'>) {
-  const options = selectOptions(children)
+export function SettingsSelect(
+  props: Omit<ComponentProps<'select'>, 'onChange'> & {
+    onChange?: (event: ValueChangeEvent) => void
+  }
+) {
+  const field = claimFieldControl()
+  const [local] = splitProps(props, [
+    'children',
+    'onChange',
+    'value',
+    'disabled',
+    'name',
+    'required',
+    'id',
+    'class',
+    'aria-label',
+    'aria-describedby',
+    'aria-invalid',
+    'title',
+    'style',
+  ])
+
+  const options = createMemo<SelectOptionValue[]>(() => {
+    const out: SelectOptionValue[] = []
+    collectOptions(resolveChildren(() => local.children).toArray(), out)
+    return out
+  })
+
   return (
-    <Select
-      value={String(value ?? '')}
-      disabled={props.disabled}
-      name={props.name}
-      required={props.required}
-      onValueChange={(next) =>
-        onChange?.({
+    <Select<SelectOptionValue>
+      options={options()}
+      value={options().find((option) => String(option.value) === String(local.value ?? '')) ?? null}
+      disabled={local.disabled}
+      name={local.name}
+      required={local.required}
+      onChange={(option) => {
+        // Kobalte re-emits selection when the collection rebuilds, including
+        // transient null echoes; skip them and no-op repeats so updates do
+        // not feed a render loop or blank the controlled value.
+        if (option == null) return
+        const next = String(option.value ?? '')
+        if (next === String(local.value ?? '')) return
+        local.onChange?.({
           target: { value: next },
           currentTarget: { value: next },
-        } as unknown as ChangeEvent<HTMLSelectElement>)
-      }
+        })
+      }}
     >
       <SelectTrigger
-        id={props.id}
-        className={cn('w-full border-border bg-background shadow-xs', props.className)}
-        aria-label={props['aria-label']}
-        aria-describedby={props['aria-describedby']}
-        aria-invalid={props['aria-invalid']}
-        title={props.title}
-        style={props.style}
+        id={local.id ?? field?.id}
+        class={cn('w-full border-border bg-background shadow-xs', local.class)}
+        aria-label={local['aria-label']}
+        aria-describedby={local['aria-describedby'] ?? field?.describedBy()}
+        aria-invalid={local['aria-invalid'] ?? (field?.invalid() || undefined)}
+        title={local.title}
+        style={local.style}
       >
-        <SelectValue>
-          {(selected) =>
-            options.find((option) => option.value === String(selected))?.label ?? selected
-          }
-        </SelectValue>
+        <SelectValue />
       </SelectTrigger>
-      <SelectContent>
-        <SelectGroup>
-          {options.map((option) => (
-            <SelectItem key={option.value} value={option.value} disabled={option.disabled}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectGroup>
-      </SelectContent>
+      <SelectContent />
     </Select>
   )
 }

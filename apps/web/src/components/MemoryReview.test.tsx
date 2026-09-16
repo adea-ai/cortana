@@ -1,10 +1,7 @@
 import { afterEach, expect, mock, test } from 'bun:test'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-
+import { cleanup, fireEvent, render, screen, waitFor } from 'solid-testing-library'
 import { MemoryReview, type MemoryReviewClient } from './MemoryReview'
-
 afterEach(cleanup)
-
 const candidate = {
   id: 'candidate-1',
   observation_kind: 'evidence-backed',
@@ -21,7 +18,9 @@ const candidate = {
   sensitivity: 'normal',
   status: 'pending',
   acl: ['work'],
-  provenance: { evidence_ids: ['document-1'] },
+  provenance: {
+    evidence_ids: ['document-1'],
+  },
   expires_at: '2099-01-01T00:00:00Z',
   rejection_reason: null,
   created_at: '2026-08-25T00:00:00Z',
@@ -40,8 +39,9 @@ const candidate = {
     supporting_memory_ids: ['memory-1'],
   },
 }
-
-function client(): MemoryReviewClient & { actions: string[] } {
+function client(): MemoryReviewClient & {
+  actions: string[]
+} {
   const actions: string[] = []
   return {
     actions,
@@ -96,86 +96,128 @@ function client(): MemoryReviewClient & { actions: string[] } {
       ]),
     act: (_id, action) => {
       actions.push(action)
-      return Promise.resolve({ status: 'complete', memory_id: 'memory-1' })
+      return Promise.resolve({
+        status: 'complete',
+        memory_id: 'memory-1',
+      })
     },
     setConsolidationPaused: (paused) => {
       actions.push(paused ? 'pause' : 'resume')
       return Promise.resolve()
     },
-    getConsolidationState: () => Promise.resolve({ paused: false, canControl: true }),
+    getConsolidationState: () =>
+      Promise.resolve({
+        paused: false,
+        canControl: true,
+      }),
   }
 }
-
 test('shadcn renderer composes memory review controls from shared primitives', async () => {
-  render(<MemoryReview client={client()} />)
-
+  render(() => <MemoryReview client={client()} />)
   expect(document.querySelector('[data-m7-memory-review]')).toBeTruthy()
   expect(document.querySelector('[data-slot="input"]')).toBeTruthy()
   expect(document.querySelector('[data-slot="button"]')).toBeTruthy()
   expect(document.querySelector('[data-slot="toggle"]')).toBeTruthy()
   expect(
-    (await screen.findByRole('checkbox', { name: /Select Release preference/ })).getAttribute(
-      'data-slot'
-    )
+    (
+      await screen.findByRole('checkbox', {
+        name: /Select Release preference/,
+      })
+    ).getAttribute('data-slot')
   ).toBe('checkbox')
 })
-
 test('renders a bounded searchable queue with inspectable policy and provenance', async () => {
   const api = client()
-  render(<MemoryReview client={api} />)
-
-  expect(await screen.findByRole('list', { name: 'Memory candidate queue' })).toBeTruthy()
-  fireEvent.click(await screen.findByRole('button', { name: /Release preference/ }))
+  render(() => <MemoryReview client={api} />)
+  expect(
+    await screen.findByRole('list', {
+      name: 'Memory candidate queue',
+    })
+  ).toBeTruthy()
+  fireEvent.click(
+    await screen.findByRole('button', {
+      name: /Release preference/,
+    })
+  )
   expect(await screen.findByText('A new scoped preference.')).toBeTruthy()
   expect(screen.getByText('cortana.memory.consolidation.v1:abcd')).toBeTruthy()
   fireEvent.click(screen.getByText('Provenance and support'))
   expect(screen.getByText(/document-1/)).toBeTruthy()
-  expect(screen.getByRole('heading', { name: 'Canonical memory' })).toBeTruthy()
-  expect(screen.getByRole('heading', { name: 'Derived · not canonical' })).toBeTruthy()
-
-  fireEvent.change(screen.getByRole('searchbox', { name: 'Search memory candidates' }), {
-    target: { value: 'missing' },
-  })
+  expect(
+    screen.getByRole('heading', {
+      name: 'Canonical memory',
+    })
+  ).toBeTruthy()
+  expect(
+    screen.getByRole('heading', {
+      name: 'Derived · not canonical',
+    })
+  ).toBeTruthy()
+  fireEvent.change(
+    screen.getByRole('searchbox', {
+      name: 'Search memory candidates',
+    }),
+    {
+      target: {
+        value: 'missing',
+      },
+    }
+  )
   expect(await screen.findByText('No candidates match this view.')).toBeTruthy()
 })
-
 test('requires confirmation for canonical approval and keeps queue controls explicit', async () => {
   const api = client()
   const originalConfirm = window.confirm
   window.confirm = mock(() => true)
-  render(<MemoryReview client={api} />)
-
-  fireEvent.click(await screen.findByRole('button', { name: /Release preference/ }))
-  fireEvent.click(screen.getByRole('button', { name: 'Approve canonical memory' }))
+  render(() => <MemoryReview client={api} />)
+  fireEvent.click(
+    await screen.findByRole('button', {
+      name: /Release preference/,
+    })
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Approve canonical memory',
+    })
+  )
   await waitFor(() => expect(api.actions).toContain('approve'))
-
-  fireEvent.click(screen.getByRole('button', { name: 'Pause consolidation' }))
+  const pause = screen.getByRole('button', {
+    name: 'Pause consolidation',
+  })
+  // Consolidation control stays disabled until the first refresh resolves.
+  await waitFor(() => expect(pause.hasAttribute('disabled')).toBe(false))
+  fireEvent.click(pause)
   await waitFor(() => expect(api.actions).toContain('pause'))
   window.confirm = originalConfirm
 })
-
 test('keeps the review queue available while disabling owner-only consolidation controls', async () => {
   const api = client()
-  api.getConsolidationState = () => Promise.resolve({ paused: false, canControl: false })
-  render(<MemoryReview client={api} />)
-
-  expect(await screen.findByRole('list', { name: 'Memory candidate queue' })).toBeTruthy()
-  const pause = screen.getByRole('button', { name: 'Pause consolidation' })
+  api.getConsolidationState = () =>
+    Promise.resolve({
+      paused: false,
+      canControl: false,
+    })
+  render(() => <MemoryReview client={api} />)
+  expect(
+    await screen.findByRole('list', {
+      name: 'Memory candidate queue',
+    })
+  ).toBeTruthy()
+  const pause = screen.getByRole('button', {
+    name: 'Pause consolidation',
+  })
   expect(pause.hasAttribute('disabled')).toBe(true)
   expect(pause.getAttribute('title')).toMatch(/owner/i)
 })
-
 test('surfaces bounded-response truncation instead of presenting a partial queue as complete', async () => {
   const api = client()
   api.listCandidates = () =>
     Promise.reject(
       new Error('Memory candidate review was truncated; narrow the search or status filter')
     )
-  render(<MemoryReview client={api} />)
-
+  render(() => <MemoryReview client={api} />)
   expect((await screen.findByRole('alert')).textContent).toMatch(/truncated.*narrow/i)
 })
-
 test('reports review-only supersession without claiming a canonical write', async () => {
   const api = client()
   api.act = (_id, action) => {
@@ -193,14 +235,20 @@ test('reports review-only supersession without claiming a canonical write', asyn
   }
   const originalConfirm = window.confirm
   window.confirm = mock(() => true)
-  render(<MemoryReview client={api} />)
-
-  fireEvent.click(await screen.findByRole('button', { name: /Release preference/ }))
-  fireEvent.click(screen.getByRole('button', { name: 'Review and supersede' }))
+  render(() => <MemoryReview client={api} />)
+  fireEvent.click(
+    await screen.findByRole('button', {
+      name: /Release preference/,
+    })
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Review and supersede',
+    })
+  )
   expect(await screen.findByText(/remain in review; no canonical memory changed/)).toBeTruthy()
   window.confirm = originalConfirm
 })
-
 test('terminal candidates show stored outcome without reclassification or actions', async () => {
   const api = client()
   const terminal = {
@@ -220,11 +268,18 @@ test('terminal candidates show stored outcome without reclassification or action
     classifications += 1
     return Promise.reject(new Error('must not classify terminal candidates'))
   }
-  render(<MemoryReview client={api} />)
-
-  fireEvent.click(await screen.findByRole('button', { name: /Release preference/ }))
+  render(() => <MemoryReview client={api} />)
+  fireEvent.click(
+    await screen.findByRole('button', {
+      name: /Release preference/,
+    })
+  )
   expect(await screen.findByText('memory-terminal')).toBeTruthy()
   expect(screen.getByText(/stored outcome is shown above/)).toBeTruthy()
-  expect(screen.queryByRole('button', { name: 'Approve canonical memory' })).toBeNull()
+  expect(
+    screen.queryByRole('button', {
+      name: 'Approve canonical memory',
+    })
+  ).toBeNull()
   expect(classifications).toBe(0)
 })

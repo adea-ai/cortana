@@ -1,6 +1,6 @@
+import { act } from './test/act'
 import { afterEach, expect, mock, test } from 'bun:test'
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-
+import { cleanup, fireEvent, render, screen, waitFor } from 'solid-testing-library'
 import { demoEvidence, demoStatus } from './demo'
 import {
   answerResponse,
@@ -20,20 +20,17 @@ import type {
 // Capture the real api module, then register a mock that delegates every export
 // to a mutable state object so each test controls the network boundary.
 const realApi = await import('./api')
-
 type DocumentsCall = {
   project: string | undefined
   source: string | undefined
   query: string | undefined
   cursor: string | undefined
 }
-
 type Deferred<T> = {
   promise: Promise<T>
   resolve: (value: T) => void
   reject: (reason?: unknown) => void
 }
-
 function deferred<T>(): Deferred<T> {
   let resolve!: (value: T) => void
   let reject!: (reason?: unknown) => void
@@ -41,9 +38,12 @@ function deferred<T>(): Deferred<T> {
     resolve = next
     reject = fail
   })
-  return { promise, resolve, reject }
+  return {
+    promise,
+    resolve,
+    reject,
+  }
 }
-
 const state = {
   status: demoStatus as BrainStatus,
   statusRequest: null as (() => Promise<BrainStatus>) | null,
@@ -74,18 +74,26 @@ const state = {
   reflection: null as
     | ((objective: string, project?: string, source?: string) => Promise<ReflectResponse>)
     | null,
-  reflectionCalls: [] as Array<{ objective: string; project?: string; source?: string }>,
+  reflectionCalls: [] as Array<{
+    objective: string
+    project?: string
+    source?: string
+  }>,
   getDocument: null as ((id: string, signal?: AbortSignal) => Promise<BrainDocument>) | null,
   document: canonicalDocument,
 }
-
 mock.module('./api', () => ({
   ...realApi,
   isDesktopApp: false,
   isDemoMode: false,
   getStatus: () => (state.statusRequest ? state.statusRequest() : Promise.resolve(state.status)),
   getDocuments: (project?: string, source?: string, query?: string, cursor?: string) => {
-    state.documentsCalls.push({ project, source, query, cursor })
+    state.documentsCalls.push({
+      project,
+      source,
+      query,
+      cursor,
+    })
     return state.documents(project, source, query, cursor)
   },
   getAnswer: (query?: string, project?: string, source?: string, signal?: AbortSignal) =>
@@ -93,13 +101,22 @@ mock.module('./api', () => ({
       ? state.answer(query, project, source, signal)
       : Promise.reject(new Error('Answer request failed (503)')),
   getDocument: (id: string, signal?: AbortSignal) =>
-    state.getDocument ? state.getDocument(id, signal) : Promise.resolve({ ...state.document, id }),
+    state.getDocument
+      ? state.getDocument(id, signal)
+      : Promise.resolve({
+          ...state.document,
+          id,
+        }),
   getContext: (query: string, project?: string, source?: string, signal?: AbortSignal) =>
     state.getContext
       ? state.getContext(query, project, source, signal)
       : Promise.reject(new Error('Context retrieval failed (503)')),
   getReflection: (objective: string, project?: string, source?: string) => {
-    state.reflectionCalls.push({ objective, project, source })
+    state.reflectionCalls.push({
+      objective,
+      project,
+      source,
+    })
     return state.reflection
       ? state.reflection(objective, project, source)
       : Promise.reject(new Error('Reflection failed (503)'))
@@ -108,9 +125,7 @@ mock.module('./api', () => ({
   getDesktopInfo: () =>
     Promise.reject(new Error('Desktop information is available in Cortana Desktop')),
 }))
-
 const { App } = await import('./App')
-
 afterEach(async () => {
   await act(async () => {
     // Unmount before draining pending shell work so a late promise cannot
@@ -136,67 +151,126 @@ afterEach(async () => {
   state.getDocument = null
   window.innerWidth = 1024
 })
-
 async function flushAppBootstrap() {
   await act(async () => {
     await Promise.resolve()
     await Promise.resolve()
   })
 }
-
 async function chooseWorkspace(id: string) {
-  fireEvent.click(screen.getByRole('button', { name: 'Switch workspace' }))
+  // Kobalte menu triggers open on pointerdown, not click.
+  fireEvent.pointerDown(
+    screen.getByRole('button', {
+      name: 'Switch workspace',
+    })
+  )
   const name = id[0].toUpperCase() + id.slice(1)
-  const option = await screen.findByRole('menuitemradio', { name: new RegExp(name) })
-  fireEvent.click(option)
+  const option = await screen.findByRole('menuitemradio', {
+    name: new RegExp(name),
+  })
+  // Kobalte menu items select on pointerup.
+  fireEvent.pointerUp(option)
 }
-
 test('the shadcn renderer composes the real application shell and state', async () => {
-  render(<App />)
+  render(() => <App />)
   await flushAppBootstrap()
-
   const shell = document.querySelector('[data-m7-production-shell-ready]')
   expect(shell).not.toBeNull()
-  expect(screen.getByRole('navigation', { name: 'Primary navigation' })).not.toBeNull()
-  expect(screen.getByRole('button', { name: 'Knowledge' }).getAttribute('aria-current')).toBe(
-    'page'
+  expect(
+    screen.getByRole('navigation', {
+      name: 'Primary navigation',
+    })
+  ).not.toBeNull()
+  expect(
+    screen
+      .getByRole('button', {
+        name: 'Knowledge',
+      })
+      .getAttribute('aria-current')
+  ).toBe('page')
+  expect(
+    screen.getByRole('textbox', {
+      name: 'Search your knowledge',
+    })
+  ).not.toBeNull()
+  expect(
+    screen.getByRole('contentinfo', {
+      name: 'Application status',
+    }).textContent
+  ).toContain('9,834')
+  fireEvent.pointerDown(
+    screen.getByRole('button', {
+      name: 'Actions',
+    })
   )
-  expect(screen.getByRole('textbox', { name: 'Search your knowledge' })).not.toBeNull()
-  expect(screen.getByRole('contentinfo', { name: 'Application status' }).textContent).toContain(
-    '9,834'
+  expect(
+    await screen.findByRole('menuitem', {
+      name: 'Open sources',
+    })
+  ).not.toBeNull()
+  fireEvent.keyDown(document.activeElement ?? document.body, {
+    key: 'Escape',
+  })
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Inbox',
+    })
   )
-
-  fireEvent.click(screen.getByRole('button', { name: 'Actions' }))
-  expect(await screen.findByRole('menuitem', { name: 'Open sources' })).not.toBeNull()
-  fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
-
-  fireEvent.click(screen.getByRole('button', { name: 'Inbox' }))
   await act(async () => new Promise((resolve) => setTimeout(resolve, 0)))
-  expect(screen.getByRole('heading', { name: 'Inbox' })).not.toBeNull()
+  expect(
+    screen.getByRole('heading', {
+      name: 'Inbox',
+    })
+  ).not.toBeNull()
   expect(document.querySelector('[data-m7-activity-inbox]')).not.toBeNull()
   expect(document.querySelector('[data-slot="card"], [data-slot="empty"]')).not.toBeNull()
-  expect(screen.getByRole('button', { name: 'Inbox' }).getAttribute('aria-current')).toBe('page')
+  expect(
+    screen
+      .getByRole('button', {
+        name: 'Inbox',
+      })
+      .getAttribute('aria-current')
+  ).toBe('page')
 })
-
 test('mobile navigation dismisses after selecting the current destination', async () => {
   window.innerWidth = 320
-  render(<App />)
+  render(() => <App />)
   await flushAppBootstrap()
-
   await act(async () => new Promise((resolve) => setTimeout(resolve, 20)))
   expect(window.innerWidth).toBe(320)
-  expect(screen.queryByRole('navigation', { name: 'Primary navigation' })).toBeNull()
-  fireEvent.click(screen.getByRole('button', { name: 'Toggle navigation' }))
+  expect(
+    screen.queryByRole('navigation', {
+      name: 'Primary navigation',
+    })
+  ).toBeNull()
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Toggle navigation',
+    })
+  )
   await act(async () => new Promise((resolve) => setTimeout(resolve, 20)))
   expect(document.querySelector('[data-mobile="true"]')).not.toBeNull()
-  expect(screen.getByRole('navigation', { name: 'Primary navigation' })).not.toBeNull()
-
-  fireEvent.click(screen.getByRole('button', { name: 'Inbox' }))
-  await act(async () => new Promise((resolve) => setTimeout(resolve, 20)))
-  expect(document.querySelector('[data-mobile="true"]')).toBeNull()
-  expect(screen.getByRole('heading', { name: 'Inbox' })).not.toBeNull()
+  expect(
+    screen.getByRole('navigation', {
+      name: 'Primary navigation',
+    })
+  ).not.toBeNull()
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Inbox',
+    })
+  )
+  // Kobalte restores aria-hidden on the next animation frame after the sheet
+  // closes, so the destination can briefly be unreachable by role.
+  await waitFor(() => expect(document.querySelector('[data-mobile="true"]')).toBeNull())
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        name: 'Inbox',
+      })
+    ).not.toBeNull()
+  )
 })
-
 test('Reflect presents grounded reflection separately from ordinary search', async () => {
   window.localStorage.setItem('cortana.workspace-selection.v1', 'work')
   state.reflection = (objective, project) =>
@@ -208,7 +282,11 @@ test('Reflect presents grounded reflection separately from ordinary search', asy
       project,
       memory_revision: 9,
       privacy_scope_digest: 'scope-digest',
-      provider: { policy: 'deterministic-only', selected: 'deterministic', status: 'succeeded' },
+      provider: {
+        policy: 'deterministic-only',
+        selected: 'deterministic',
+        status: 'succeeded',
+      },
       claims: [
         {
           text: 'The launch checklist requires a rollback owner.',
@@ -236,18 +314,22 @@ test('Reflect presents grounded reflection separately from ordinary search', asy
         canonical_memory_mutated: false,
       },
     })
-
-  render(<App />)
+  render(() => <App />)
   await waitFor(() => expect(screen.getByText('Choose a document')).toBeTruthy())
   await waitFor(() => expect(state.documentsCalls.at(-1)?.project).toBeTruthy())
   await waitFor(() => expect(screen.queryByText('Loading documents…')).toBeNull())
   const input = screen.getByLabelText('Search your knowledge')
-  fireEvent.change(input, { target: { value: 'Review launch risk' } })
+  fireEvent.change(input, {
+    target: {
+      value: 'Review launch risk',
+    },
+  })
   expect((input as HTMLInputElement).value).toBe('Review launch risk')
-  const reflectButton = screen.getByRole('button', { name: 'Reflect on this objective' })
+  const reflectButton = screen.getByRole('button', {
+    name: 'Reflect on this objective',
+  })
   await waitFor(() => expect(reflectButton.hasAttribute('disabled')).toBe(false))
   fireEvent.click(reflectButton)
-
   await waitFor(() => expect(state.reflectionCalls).toHaveLength(1))
   expect(state.reflectionCalls[0]?.objective).toBe('Review launch risk')
   await waitFor(() =>
@@ -256,21 +338,20 @@ test('Reflect presents grounded reflection separately from ordinary search', asy
   expect(screen.getAllByText(/Supporting memory: memory-1/).length).toBeGreaterThan(0)
   expect(state.answer).toBeNull()
 })
-
 test('provides a keyboard skip link to the active main surface', async () => {
-  render(<App />)
+  render(() => <App />)
   await flushAppBootstrap()
-
-  const skipLink = screen.getByRole('link', { name: 'Skip to main content' })
+  const skipLink = screen.getByRole('link', {
+    name: 'Skip to main content',
+  })
   expect(skipLink.getAttribute('href')).toBe('#main-content')
   expect(document.getElementById('main-content')).toBeTruthy()
 })
-
 test('workspace and source selection scopes the source tree and document requests', async () => {
   state.documentsCalls = []
   window.localStorage.setItem('cortana.workspace-selection.v1', 'personal')
   window.localStorage.removeItem('cortana.source-selection.v1')
-  render(<App />)
+  render(() => <App />)
   await flushAppBootstrap()
 
   // Sources are scoped to the primary workspace by default.
@@ -280,15 +361,32 @@ test('workspace and source selection scopes the source tree and document request
 
   // Primary workspace sources render, while other workspace sources are hidden.
   if (primaryWorkspace === 'work') {
-    await waitFor(() => expect(screen.getByRole('button', { name: /^work-code/ })).toBeTruthy())
-    expect(screen.queryByRole('button', { name: /^personal-notes/ })).toBeNull()
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', {
+          name: /^work-code/,
+        })
+      ).toBeTruthy()
+    )
+    expect(
+      screen.queryByRole('button', {
+        name: /^personal-notes/,
+      })
+    ).toBeNull()
   } else {
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: /^personal-notes/ })).toBeTruthy()
+      expect(
+        screen.getByRole('button', {
+          name: /^personal-notes/,
+        })
+      ).toBeTruthy()
     )
-    expect(screen.queryByRole('button', { name: /^work-code/ })).toBeNull()
+    expect(
+      screen.queryByRole('button', {
+        name: /^work-code/,
+      })
+    ).toBeNull()
   }
-
   const targetWorkspace = primaryWorkspace === 'personal' ? 'work' : 'personal'
   const targetWorkspaceSource = new RegExp(
     `^${targetWorkspace === 'work' ? 'work-code' : 'personal-notes'}`
@@ -300,9 +398,17 @@ test('workspace and source selection scopes the source tree and document request
   const primaryHiddenSource = new RegExp(
     `^${primaryWorkspace === 'work' ? 'work-code' : 'personal-notes'}`
   )
-  expect(screen.queryByRole('button', { name: primaryHiddenSource })).toBeNull()
+  expect(
+    screen.queryByRole('button', {
+      name: primaryHiddenSource,
+    })
+  ).toBeNull()
   await waitFor(() =>
-    expect(screen.getByRole('button', { name: targetWorkspaceSource })).toBeTruthy()
+    expect(
+      screen.getByRole('button', {
+        name: targetWorkspaceSource,
+      })
+    ).toBeTruthy()
   )
   expect(state.documentsCalls.at(-1)).toEqual({
     project: targetWorkspace,
@@ -312,11 +418,17 @@ test('workspace and source selection scopes the source tree and document request
   })
 
   // Selecting a source inside the workspace presses it and rescopes documents.
-  const firstSource = screen.getByRole('button', { name: targetWorkspaceSource })
+  const firstSource = screen.getByRole('button', {
+    name: targetWorkspaceSource,
+  })
   fireEvent.click(firstSource)
   await waitFor(() =>
     expect(
-      screen.getByRole('button', { name: targetWorkspaceSource }).getAttribute('aria-pressed')
+      screen
+        .getByRole('button', {
+          name: targetWorkspaceSource,
+        })
+        .getAttribute('aria-pressed')
     ).toBe('true')
   )
   expect(state.documentsCalls.at(-1)).toEqual({
@@ -327,15 +439,22 @@ test('workspace and source selection scopes the source tree and document request
   })
 
   // Clicking the same source again toggles the selection off.
-  fireEvent.click(screen.getByRole('button', { name: targetWorkspaceSource }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: targetWorkspaceSource,
+    })
+  )
   await waitFor(() =>
     expect(
-      screen.getByRole('button', { name: targetWorkspaceSource }).getAttribute('aria-pressed')
+      screen
+        .getByRole('button', {
+          name: targetWorkspaceSource,
+        })
+        .getAttribute('aria-pressed')
     ).toBe('false')
   )
   expect(state.documentsCalls.at(-1)?.source).toBeUndefined()
 }, 10_000)
-
 test('document filter bounds requests to the native query byte budget', async () => {
   const longUnicodeQuery = 'é'.repeat(200)
   const expectedQuery = (() => {
@@ -349,13 +468,16 @@ test('document filter bounds requests to the native query byte budget', async ()
     }
     return parts.join('')
   })()
-
   state.documentsCalls = []
-  render(<App />)
-
-  const filter = await screen.findByRole('textbox', { name: 'Filter documents' })
-  fireEvent.change(filter, { target: { value: longUnicodeQuery } })
-
+  render(() => <App />)
+  const filter = await screen.findByRole('textbox', {
+    name: 'Filter documents',
+  })
+  fireEvent.change(filter, {
+    target: {
+      value: longUnicodeQuery,
+    },
+  })
   await waitFor(() => expect(state.documentsCalls.at(-1)?.query).toBe(expectedQuery))
   const lastQuery = state.documentsCalls.at(-1)?.query ?? ''
   expect(new TextEncoder().encode(lastQuery).length).toBeLessThanOrEqual(256)
@@ -368,38 +490,54 @@ test('document filter bounds requests to the native query byte budget', async ()
   // Unicode characters should be counted as UTF-8 bytes, not code points.
   expect(lastQuery.length).toBeLessThan(longUnicodeQuery.length)
 })
-
 test('changing workspace clears evidence from the previous security scope', async () => {
-  state.answer = () => Promise.resolve({ ...answerResponse, query: 'private release query' })
-
+  state.answer = () =>
+    Promise.resolve({
+      ...answerResponse,
+      query: 'private release query',
+    })
   try {
-    render(<App />)
+    render(() => <App />)
     const input = screen.getByLabelText('Search your knowledge')
-    fireEvent.change(input, { target: { value: 'private release query' } })
+    fireEvent.change(input, {
+      target: {
+        value: 'private release query',
+      },
+    })
     fireEvent.submit(input.closest('form')!)
-
     await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1, name: 'private release query' })).toBeTruthy()
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'private release query',
+        })
+      ).toBeTruthy()
     )
-
     await chooseWorkspace('work')
-
     await waitFor(() =>
-      expect(screen.queryByRole('heading', { level: 1, name: 'private release query' })).toBeNull()
+      expect(
+        screen.queryByRole('heading', {
+          level: 1,
+          name: 'private release query',
+        })
+      ).toBeNull()
     )
     expect(screen.getByText('Choose a document')).toBeTruthy()
   } finally {
     state.answer = null
   }
 })
-
 test('keyset pagination appends the next page and document selection opens the canonical view', async () => {
   state.documentsCalls = []
-  render(<App />)
+  render(() => <App />)
 
   // First keyset page renders; the explicit load-more action is available.
   await waitFor(() =>
-    expect(screen.getByRole('option', { name: /How do releases work/ })).toBeTruthy()
+    expect(
+      screen.getByRole('option', {
+        name: /How do releases work/,
+      })
+    ).toBeTruthy()
   )
   // The first status snapshot can replace the initial empty workspace scope
   // with the primary workspace. Wait for that scoped request to settle before
@@ -407,90 +545,182 @@ test('keyset pagination appends the next page and document selection opens the c
   // its response is correctly discarded as stale.
   await waitFor(() => expect(state.documentsCalls.at(-1)?.cursor).toBeUndefined())
   await waitFor(() => expect(screen.queryByText('Loading documents…')).toBeNull())
-  expect(screen.getByRole('option', { name: /Deployment playbook/ })).toBeTruthy()
-  expect(screen.getByRole('button', { name: 'Load next page' })).toBeTruthy()
+  expect(
+    screen.getByRole('option', {
+      name: /Deployment playbook/,
+    })
+  ).toBeTruthy()
+  expect(
+    screen.getByRole('button', {
+      name: 'Load next page',
+    })
+  ).toBeTruthy()
   expect(screen.getByText('2 loaded')).toBeTruthy()
 
   // Loading the next keyset page appends the new document and consumes the cursor.
-  fireEvent.click(screen.getByRole('button', { name: 'Load next page' }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Load next page',
+    })
+  )
   await waitFor(() => expect(screen.getByText('3 loaded')).toBeTruthy())
   expect(state.documentsCalls.at(-1)?.cursor).toBe('cursor-2')
-  expect(screen.getByRole('option', { name: /Slack: #releases/ })).toBeTruthy()
+  expect(
+    screen.getByRole('option', {
+      name: /Slack: #releases/,
+    })
+  ).toBeTruthy()
   // The cursor is consumed, so the load-more action disappears.
-  await waitFor(() => expect(screen.queryByRole('button', { name: 'Load next page' })).toBeNull())
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('button', {
+        name: 'Load next page',
+      })
+    ).toBeNull()
+  )
   await waitFor(() => expect(screen.queryByText('Loading more…')).toBeNull())
 
   // Selecting a document fetches the canonical record and renders it.
-  fireEvent.click(screen.getByRole('option', { name: /Deployment playbook/ }))
+  fireEvent.click(
+    screen.getByRole('option', {
+      name: /Deployment playbook/,
+    })
+  )
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'Deployment playbook' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Deployment playbook',
+      })
+    ).toBeTruthy()
   )
   expect(
-    screen.getByRole('option', { name: /Deployment playbook/ }).getAttribute('aria-selected')
+    screen
+      .getByRole('option', {
+        name: /Deployment playbook/,
+      })
+      .getAttribute('aria-selected')
   ).toBe('true')
   expect(screen.getByText(/^work · work-code · /)).toBeTruthy()
   expect(screen.getByText(/Merge into main only after unit, integration/)).toBeTruthy()
   expect(screen.getByText(/Observe the release before closing it/)).toBeTruthy()
   expect(screen.getByText('Backlinks')).toBeTruthy()
-  expect(screen.getByRole('button', { name: /Deployment rollback checklist/ })).toBeTruthy()
+  expect(
+    screen.getByRole('button', {
+      name: /Deployment rollback checklist/,
+    })
+  ).toBeTruthy()
   expect(screen.getByText('Surrounding documents')).toBeTruthy()
   expect(screen.getByText(/Canonical content protected by workspace ACLs/)).toBeTruthy()
   // Document tabs switch to the canonical document view.
-  expect(screen.getByRole('tab', { name: /Document/ })).toBeTruthy()
+  expect(
+    screen.getByRole('tab', {
+      name: /Document/,
+    })
+  ).toBeTruthy()
 
   // The document action is local and explicit rather than a dead decorative button.
-  const favorite = screen.getByRole('button', { name: 'Add favorite' })
+  const favorite = screen.getByRole('button', {
+    name: 'Add favorite',
+  })
   expect(favorite.getAttribute('aria-pressed')).toBe('false')
   fireEvent.click(favorite)
-  expect(screen.getByRole('button', { name: 'Remove favorite' }).getAttribute('aria-pressed')).toBe(
-    'true'
+  expect(
+    screen
+      .getByRole('button', {
+        name: 'Remove favorite',
+      })
+      .getAttribute('aria-pressed')
+  ).toBe('true')
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Deployment rollback checklist/,
+    })
   )
-
-  fireEvent.click(screen.getByRole('button', { name: /Deployment rollback checklist/ }))
-  await waitFor(() => expect(screen.getByRole('button', { name: 'Add favorite' })).toBeTruthy())
-})
-
-test('settings navigation explains the desktop-only view in web mode', async () => {
-  render(<App />)
-  await waitFor(() => expect(screen.getByRole('button', { name: 'Settings' })).toBeTruthy())
-
-  fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'Desktop settings' })).toBeTruthy()
+    expect(
+      screen.getByRole('button', {
+        name: 'Add favorite',
+      })
+    ).toBeTruthy()
+  )
+})
+test('settings navigation explains the desktop-only view in web mode', async () => {
+  render(() => <App />)
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', {
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Settings',
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Desktop settings',
+      })
+    ).toBeTruthy()
   )
   expect(screen.getByText(/Install Cortana Desktop to manage local models/)).toBeTruthy()
   // The desktop-only updates shortcut must not appear in the web footer.
-  expect(screen.queryByRole('button', { name: /Updates/ })).toBeNull()
+  expect(
+    screen.queryByRole('button', {
+      name: /Updates/,
+    })
+  ).toBeNull()
 
   // Navigating back returns to the knowledge workspace.
-  fireEvent.click(screen.getByRole('button', { name: 'Knowledge' }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Knowledge',
+    })
+  )
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
 })
-
 test('a failed search surfaces the error state and Try again recovers', async () => {
   state.answer = () => Promise.reject(new Error('Answer request failed (503)'))
-  render(<App />)
+  render(() => <App />)
   await waitFor(() => expect(screen.getByText('Choose a document')).toBeTruthy())
-
   const input = screen.getByLabelText('Search your knowledge')
-  fireEvent.change(input, { target: { value: 'release cadence' } })
+  fireEvent.change(input, {
+    target: {
+      value: 'release cadence',
+    },
+  })
   fireEvent.submit(input.closest('form')!)
-
   await waitFor(() => expect(screen.getByText('Cortana could not reach the brain')).toBeTruthy())
   expect(screen.getByText(/Answer request failed \(503\)/)).toBeTruthy()
-  expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
+  expect(
+    screen.getByRole('button', {
+      name: 'Try again',
+    })
+  ).toBeTruthy()
 
   // The same query succeeds on retry and the synthesized answer renders.
   state.answer = () => Promise.resolve(answerResponse)
-  fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Try again',
+    })
+  )
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'release cadence' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'release cadence',
+      })
+    ).toBeTruthy()
   )
   expect(screen.getByText(/Merge short-lived changes into main/)).toBeTruthy()
   expect(screen.getByText('Read-only preview')).toBeTruthy()
   expect(screen.getByText('4 cited passages')).toBeTruthy()
 })
-
 test('stale search responses do not overwrite the latest query', async () => {
   const oldSearch = deferred<AnswerResponse>()
   const freshSearch = deferred<AnswerResponse>()
@@ -499,14 +729,20 @@ test('stale search responses do not overwrite the latest query', async () => {
     if (query === 'latest query') return freshSearch.promise
     return Promise.resolve(answerResponse)
   }
-
-  render(<App />)
+  render(() => <App />)
   const input = screen.getByLabelText('Search your knowledge')
-  fireEvent.change(input, { target: { value: 'first query' } })
+  fireEvent.change(input, {
+    target: {
+      value: 'first query',
+    },
+  })
   fireEvent.submit(input.closest('form')!)
-  fireEvent.change(input, { target: { value: 'latest query' } })
+  fireEvent.change(input, {
+    target: {
+      value: 'latest query',
+    },
+  })
   fireEvent.submit(input.closest('form')!)
-
   freshSearch.resolve({
     ...answerResponse,
     query: 'latest query',
@@ -514,7 +750,12 @@ test('stale search responses do not overwrite the latest query', async () => {
     evidence: demoEvidence,
   })
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'latest query' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'latest query',
+      })
+    ).toBeTruthy()
   )
   oldSearch.resolve({
     ...answerResponse,
@@ -522,41 +763,52 @@ test('stale search responses do not overwrite the latest query', async () => {
     answer: 'Stale answer content',
     evidence: demoEvidence,
   })
-
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'latest query' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'latest query',
+      })
+    ).toBeTruthy()
   )
   expect(screen.getByText('Fresh answer content')).toBeTruthy()
   expect(screen.queryByText('Stale answer content')).toBeNull()
 })
-
 test('initial status completion does not hide a search that started first', async () => {
   const status = deferred<BrainStatus>()
   const answer = deferred<AnswerResponse>()
   state.statusRequest = () => status.promise
   state.answer = () => answer.promise
-
   try {
-    render(<App />)
+    render(() => <App />)
     const input = screen.getByLabelText('Search your knowledge')
-    fireEvent.change(input, { target: { value: 'status race query' } })
+    fireEvent.change(input, {
+      target: {
+        value: 'status race query',
+      },
+    })
     fireEvent.submit(input.closest('form')!)
 
     // Health can arrive after the query has started, but the query remains
     // visibly in flight until its own response settles.
     status.resolve(demoStatus)
     await waitFor(() => expect(screen.getByText('Searching your brain')).toBeTruthy())
-
-    answer.resolve({ ...answerResponse, query: 'status race query' })
+    answer.resolve({
+      ...answerResponse,
+      query: 'status race query',
+    })
     await waitFor(() =>
-      expect(screen.getByRole('heading', { name: 'status race query' })).toBeTruthy()
+      expect(
+        screen.getByRole('heading', {
+          name: 'status race query',
+        })
+      ).toBeTruthy()
     )
   } finally {
     state.statusRequest = null
     state.answer = null
   }
 })
-
 test('stale document responses do not overwrite the currently selected document', async () => {
   const staleDocument = deferred<BrainDocument>()
   const freshDocument = deferred<BrainDocument>()
@@ -565,17 +817,29 @@ test('stale document responses do not overwrite the currently selected document'
   state.getDocument = (id: string) => {
     if (id === first.id) return staleDocument.promise
     if (id === second.id) return freshDocument.promise
-    return Promise.resolve({ ...canonicalDocument, id })
+    return Promise.resolve({
+      ...canonicalDocument,
+      id,
+    })
   }
-
-  render(<App />)
+  render(() => <App />)
   await waitFor(() =>
-    expect(screen.getByRole('option', { name: /How do releases work/ })).toBeTruthy()
+    expect(
+      screen.getByRole('option', {
+        name: /How do releases work/,
+      })
+    ).toBeTruthy()
   )
-
-  fireEvent.click(screen.getByRole('option', { name: /How do releases work/ }))
-  fireEvent.click(screen.getByRole('option', { name: /Deployment playbook/ }))
-
+  fireEvent.click(
+    screen.getByRole('option', {
+      name: /How do releases work/,
+    })
+  )
+  fireEvent.click(
+    screen.getByRole('option', {
+      name: /Deployment playbook/,
+    })
+  )
   freshDocument.resolve({
     ...canonicalDocument,
     id: second.id,
@@ -585,13 +849,14 @@ test('stale document responses do not overwrite the currently selected document'
     updated_at: second.updated_at,
     project: second.project,
   })
-
   await waitFor(() =>
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Freshly selected document' })
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Freshly selected document',
+      })
     ).toBeTruthy()
   )
-
   staleDocument.resolve({
     ...canonicalDocument,
     id: first.id,
@@ -601,10 +866,12 @@ test('stale document responses do not overwrite the currently selected document'
     updated_at: first.updated_at,
     project: first.project,
   })
-
   await waitFor(() =>
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Freshly selected document' })
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Freshly selected document',
+      })
     ).toBeTruthy()
   )
   expect(screen.queryByText('Stale document result')).toBeNull()
@@ -652,43 +919,79 @@ test('scope-changed context request does not overwrite newer state', async () =>
       max_tokens: 8000,
     },
   }
-
   state.answer = () => Promise.resolve(answerResponse)
   state.getContext = (_query, project?: string) => {
     if (project === 'work') return newContext.promise
     return oldContext.promise
   }
-
-  render(<App />)
+  render(() => <App />)
   const input = screen.getByLabelText('Search your knowledge')
-  fireEvent.change(input, { target: { value: 'first context query' } })
+  fireEvent.change(input, {
+    target: {
+      value: 'first context query',
+    },
+  })
   fireEvent.submit(input.closest('form')!)
-
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'first context query' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'first context query',
+      })
+    ).toBeTruthy()
   )
-
-  fireEvent.click(screen.getByRole('button', { name: 'Agent tools' }))
-  await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'Agent tools' })).toBeTruthy()
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Agent tools',
+    })
   )
-  fireEvent.click(screen.getByRole('button', { name: 'Retrieve context' }))
-
-  fireEvent.click(screen.getByRole('button', { name: 'Knowledge' }))
   await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'first context query' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Agent tools',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Retrieve context',
+    })
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Knowledge',
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'first context query',
+      })
+    ).toBeTruthy()
   )
   await chooseWorkspace('work')
-
-  fireEvent.click(screen.getByRole('button', { name: 'Agent tools' }))
-  await waitFor(() =>
-    expect(screen.getByRole('heading', { level: 1, name: 'Agent tools' })).toBeTruthy()
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Agent tools',
+    })
   )
-  fireEvent.click(screen.getByRole('button', { name: 'Retrieve context' }))
-
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Agent tools',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Retrieve context',
+    })
+  )
   newContext.resolve(newBundle)
   oldContext.resolve(oldBundle)
-
   await waitFor(() => expect(screen.getByText('Fresh context evidence')).toBeTruthy())
   expect(screen.queryByText('Stale context evidence')).toBeNull()
   await flushAppBootstrap()

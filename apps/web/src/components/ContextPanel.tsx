@@ -1,5 +1,5 @@
-import { Check, Copy, RefreshCw, X } from 'lucide-react'
-import type { ComponentProps } from 'react'
+import { Check, Copy, RefreshCw, X } from 'lucide-solid'
+import { For, Show, splitProps, type ComponentProps } from 'solid-js'
 
 import { cn } from '@/lib/utils'
 
@@ -17,40 +17,27 @@ type ActionButtonProps = Omit<ComponentProps<typeof Button>, 'variant' | 'size'>
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'icon' | 'compact'
 }
 
-function ActionButton({ variant = 'secondary', ...props }: ActionButtonProps) {
+function ActionButton(props: ActionButtonProps) {
+  const [local, rest] = splitProps(props, ['variant'])
+  const variant = () => local.variant ?? 'secondary'
   return (
     <Button
-      {...props}
+      {...rest}
       variant={
-        variant === 'primary'
+        variant() === 'primary'
           ? 'default'
-          : variant === 'danger'
+          : variant() === 'danger'
             ? 'destructive'
-            : variant === 'ghost' || variant === 'icon'
+            : variant() === 'ghost' || variant() === 'icon'
               ? 'ghost'
               : 'secondary'
       }
-      size={variant === 'icon' ? 'icon' : variant === 'compact' ? 'sm' : 'default'}
+      size={variant() === 'icon' ? 'icon' : variant() === 'compact' ? 'sm' : 'default'}
     />
   )
 }
 
-export function ContextPanel({
-  open,
-  query,
-  evidence,
-  answer,
-  selected,
-  status,
-  context,
-  contextTokens,
-  serverContext,
-  contextLoading,
-  contextError,
-  onRetrieveContext,
-  onSelect,
-  onClose,
-}: {
+export function ContextPanel(props: {
   open: boolean
   query: string
   evidence: Evidence[]
@@ -66,90 +53,93 @@ export function ContextPanel({
   onSelect: (index: number) => void
   onClose: () => void
 }) {
-  const copyValue = serverContext?.context ?? context
-  const { copied, copyError, copy } = useClipboardCopy(copyValue)
+  const { copied, copyError, copy } = useClipboardCopy(
+    () => props.serverContext?.context ?? props.context
+  )
 
   return (
     <aside
-      className={cn('context-panel m7-context-panel', open && 'mobile-open')}
+      class={cn('context-panel m7-context-panel', props.open && 'mobile-open')}
       data-m7-context-panel=""
     >
-      <div className="context-heading">
+      <div class="context-heading">
         <strong>Agent context</strong>
         <ActionButton
           variant="icon"
           aria-label="Close agent context"
           tooltip="Close agent context"
-          className=""
-          onClick={onClose}
+          class=""
+          onClick={props.onClose}
         >
           <X size={17} />
         </ActionButton>
       </div>
-      <ScrollArea className="context-scroll">
-        <Card className="query-summary">
+      <ScrollArea class="context-scroll">
+        <Card class="query-summary">
           <span>Query</span>
-          <p>{query}</p>
+          <p>{props.query}</p>
         </Card>
-        {answer && (
-          <section className="retrieval-diagnostics">
-            <span className="section-title">Retrieval diagnostics</span>
-            <dl>
-              <div>
-                <dt>Mode</dt>
-                <dd>{answer.mode}</dd>
-              </div>
-              <div>
-                <dt>Latency</dt>
-                <dd>{answer.cached ? 'cache hit' : `${answer.latency_ms} ms`}</dd>
-              </div>
-              <div>
-                <dt>Planned queries</dt>
-                <dd>{answer.plan.queries.length}</dd>
-              </div>
-              <div>
-                <dt>Evidence</dt>
-                <dd>{answer.evidence.length}</dd>
-              </div>
-            </dl>
-            <ol>
-              {answer.plan.queries.map((planned, index) => (
-                // oxlint-disable-next-line react/no-array-index-key -- planned queries render in plan order
-                <li key={`${planned}:${index}`}>{planned}</li>
-              ))}
-            </ol>
-          </section>
-        )}
-        <section className="section-label">
-          <span>Retrieved evidence</span>
-          <Badge variant="secondary">{evidence.length}</Badge>
-        </section>
-        <div className="evidence-list">
-          {evidence.map((item, index) => (
-            <ActionButton
-              variant="ghost"
-              type="button"
-              key={item.chunk_id}
-              className={cn(selected === index && 'selected')}
-              onClick={() => onSelect(index)}
-            >
-              <span>{index + 1}</span>
-              <strong>{item.title}</strong>
-              {codeRevisionLabel(item) && <small>{codeRevisionLabel(item)}</small>}
-              <time>{new Date(item.updated_at).toLocaleDateString()}</time>
-            </ActionButton>
-          ))}
-        </div>
-        {serverContext?.memories && serverContext.memories.length > 0 && (
-          <>
-            <section className="section-label">
-              <span>Native agent memory</span>
-              <Badge variant="secondary">{serverContext.memories.length}</Badge>
+        <Show when={props.answer}>
+          {(answer) => (
+            <section class="retrieval-diagnostics">
+              <span class="section-title">Retrieval diagnostics</span>
+              <dl>
+                <div>
+                  <dt>Mode</dt>
+                  <dd>{answer().mode}</dd>
+                </div>
+                <div>
+                  <dt>Latency</dt>
+                  <dd>{answer().cached ? 'cache hit' : `${answer().latency_ms} ms`}</dd>
+                </div>
+                <div>
+                  <dt>Planned queries</dt>
+                  <dd>{answer().plan.queries.length}</dd>
+                </div>
+                <div>
+                  <dt>Evidence</dt>
+                  <dd>{answer().evidence.length}</dd>
+                </div>
+              </dl>
+              <ol>
+                <For each={answer().plan.queries}>{(planned) => <li>{planned}</li>}</For>
+              </ol>
             </section>
-            <div className="evidence-list">
-              {serverContext.memories.map((memory) => (
-                <div className="utility-item" key={memory.id}>
-                  <div className="utility-item-main">
+          )}
+        </Show>
+        <section class="section-label">
+          <span>Retrieved evidence</span>
+          <Badge variant="secondary">{props.evidence.length}</Badge>
+        </section>
+        <div class="evidence-list">
+          <For each={props.evidence}>
+            {(item, index) => (
+              <ActionButton
+                variant="ghost"
+                type="button"
+                class={cn(props.selected === index() && 'selected')}
+                onClick={() => props.onSelect(index())}
+              >
+                <span>{index() + 1}</span>
+                <strong>{item.title}</strong>
+                <Show when={codeRevisionLabel(item)}>
+                  <small>{codeRevisionLabel(item)}</small>
+                </Show>
+                <time>{new Date(item.updated_at).toLocaleDateString()}</time>
+              </ActionButton>
+            )}
+          </For>
+        </div>
+        <Show when={props.serverContext?.memories && props.serverContext.memories.length > 0}>
+          <section class="section-label">
+            <span>Native agent memory</span>
+            <Badge variant="secondary">{props.serverContext!.memories?.length}</Badge>
+          </section>
+          <div class="evidence-list">
+            <For each={props.serverContext!.memories}>
+              {(memory) => (
+                <div class="utility-item">
+                  <div class="utility-item-main">
                     <strong>{memory.title}</strong>
                     <time>
                       {memory.content_type ?? memory.kind} · {memory.retention_tier ?? 'durable'} ·{' '}
@@ -161,82 +151,91 @@ export function ContextPanel({
                     </time>
                   </div>
                 </div>
-              ))}
-            </div>
-          </>
-        )}
-        {serverContext?.degradation && (
-          <p className="context-error" role="status">
-            Degraded retrieval: {serverContext.degradation.detail || serverContext.degradation.code}
+              )}
+            </For>
+          </div>
+        </Show>
+        <Show when={props.serverContext?.degradation}>
+          <p class="context-error" role="status">
+            Degraded retrieval:{' '}
+            {props.serverContext!.degradation!.detail || props.serverContext!.degradation!.code}
           </p>
-        )}
-        <section className="provenance">
-          <span className="section-title">Embedding</span>
-          <p>{status?.embedding_fingerprint ?? 'unavailable'}</p>
-          {serverContext?.context_bundle_id && (
-            <p>Bundle {serverContext.context_bundle_id.slice(0, 16)}…</p>
-          )}
+        </Show>
+        <section class="provenance">
+          <span class="section-title">Embedding</span>
+          <p>{props.status?.embedding_fingerprint ?? 'unavailable'}</p>
+          <Show when={props.serverContext?.context_bundle_id}>
+            <p>Bundle {props.serverContext!.context_bundle_id!.slice(0, 16)}…</p>
+          </Show>
           <p>
-            {contextTokens.toLocaleString()} context tokens ·{' '}
-            {(status?.embedding_cache_hits ?? 0).toLocaleString()} cache hits
+            {props.contextTokens.toLocaleString()} context tokens ·{' '}
+            {(props.status?.embedding_cache_hits ?? 0).toLocaleString()} cache hits
           </p>
         </section>
-        <section className="server-context">
-          <span className="section-title">Agent integration bundle</span>
+        <section class="server-context">
+          <span class="section-title">Agent integration bundle</span>
           <p>
             Build the exact bounded context returned by the HTTP and MCP query layer for this
             workspace scope.
           </p>
-          <ActionButton variant="secondary" disabled={contextLoading} onClick={onRetrieveContext}>
-            {contextLoading ? <Spinner /> : <RefreshCw size={15} />}
-            {serverContext ? 'Refresh MCP-equivalent context' : 'Build MCP-equivalent context'}
+          <ActionButton
+            variant="secondary"
+            disabled={props.contextLoading}
+            onClick={props.onRetrieveContext}
+          >
+            {props.contextLoading ? <Spinner /> : <RefreshCw size={15} />}
+            {props.serverContext
+              ? 'Refresh MCP-equivalent context'
+              : 'Build MCP-equivalent context'}
           </ActionButton>
-          {contextError && (
+          <Show when={props.contextError}>
             <Alert variant="destructive">
-              <AlertDescription>{contextError}</AlertDescription>
+              <AlertDescription>{props.contextError}</AlertDescription>
             </Alert>
-          )}
-          {serverContext && (
-            <dl>
-              <div>
-                <dt>Included</dt>
-                <dd>{serverContext.metrics.included}</dd>
-              </div>
-              <div>
-                <dt>Omitted</dt>
-                <dd>{serverContext.metrics.omitted}</dd>
-              </div>
-              <div>
-                <dt>Tokens</dt>
-                <dd>
-                  {serverContext.metrics.estimated_tokens.toLocaleString()} /{' '}
-                  {serverContext.metrics.max_tokens.toLocaleString()}
-                </dd>
-              </div>
-            </dl>
-          )}
+          </Show>
+          <Show when={props.serverContext}>
+            {(serverContext) => (
+              <dl>
+                <div>
+                  <dt>Included</dt>
+                  <dd>{serverContext().metrics.included}</dd>
+                </div>
+                <div>
+                  <dt>Omitted</dt>
+                  <dd>{serverContext().metrics.omitted}</dd>
+                </div>
+                <div>
+                  <dt>Tokens</dt>
+                  <dd>
+                    {serverContext().metrics.estimated_tokens.toLocaleString()} /{' '}
+                    {serverContext().metrics.max_tokens.toLocaleString()}
+                  </dd>
+                </div>
+              </dl>
+            )}
+          </Show>
         </section>
       </ScrollArea>
-      <div className="copy-area">
+      <div class="copy-area">
         <ActionButton
           variant="primary"
           aria-label="Copy agent context"
           tooltip="Copy agent context"
-          className=""
+          class=""
           onClick={() => void copy()}
         >
-          {copied ? <Check size={17} /> : <Copy size={17} />}
-          {copied
+          {copied() ? <Check size={17} /> : <Copy size={17} />}
+          {copied()
             ? 'Context copied'
-            : serverContext
+            : props.serverContext
               ? 'Copy MCP-equivalent context'
               : 'Copy preview context'}
         </ActionButton>
-        {copyError && (
+        <Show when={copyError()}>
           <Alert variant="destructive">
-            <AlertDescription>{copyError}</AlertDescription>
+            <AlertDescription>{copyError()}</AlertDescription>
           </Alert>
-        )}
+        </Show>
       </div>
     </aside>
   )
