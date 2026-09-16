@@ -19,6 +19,8 @@ export function VirtualDocumentList(props: {
 }) {
   let viewportRef: HTMLDivElement | undefined
   let loadRequested = false
+  let pendingScrollTop = 0
+  let scrollFrame: number | null = null
   const [scrollTop, setScrollTop] = createSignal(0)
   const [viewportHeight, setViewportHeight] = createSignal(240)
   const selectedIndex = () =>
@@ -33,15 +35,15 @@ export function VirtualDocumentList(props: {
   )
 
   // Keep the keyboard cursor aligned with the external selection.
-  createEffect(() => {
-    selectedIndex()
-    setActiveIndex(selectedIndex())
-  })
+  createEffect(() => setActiveIndex(selectedIndex()))
 
   onMount(() => {
     const observer = new ResizeObserver(([entry]) => setViewportHeight(entry.contentRect.height))
     observer.observe(viewportRef!)
-    onCleanup(() => observer.disconnect())
+    onCleanup(() => {
+      observer.disconnect()
+      if (scrollFrame !== null) window.cancelAnimationFrame(scrollFrame)
+    })
   })
 
   createEffect(() => {
@@ -88,7 +90,15 @@ export function VirtualDocumentList(props: {
       onKeyDown={handleKeyDown}
       onScroll={(event) => {
         const viewport = event.currentTarget
-        setScrollTop(viewport.scrollTop)
+        // Trackpad and touch scrolling can fire at 120Hz+; coalesce each
+        // burst into one reactive range recompute per frame.
+        pendingScrollTop = viewport.scrollTop
+        if (scrollFrame === null) {
+          scrollFrame = window.requestAnimationFrame(() => {
+            scrollFrame = null
+            setScrollTop(pendingScrollTop)
+          })
+        }
         if (
           props.hasMore &&
           !props.loading &&
