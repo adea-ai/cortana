@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.58.1](https://github.com/adea-ai/cortana/compare/v0.58.0...v0.58.1) (2026-09-15)
+
+
+### Bug Fixes
+
+* **security:** harden HKDF key derivation and recovery-key display ([#2326](https://github.com/adea-ai/cortana/issues/2326)) ([1f39965](https://github.com/adea-ai/cortana/commit/1f3996565f1eb627758cee08e4a3b7505be4d2fe))
+
 ## [0.58.0](https://github.com/adea-ai/cortana/compare/v0.57.0...v0.58.0) (2026-09-15)
 
 
