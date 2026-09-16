@@ -12,6 +12,7 @@ import {
 } from './test/fixtures'
 import type {
   AuditEvent,
+  BrainGraphPage,
   DesktopServiceReport,
   DesktopDatabaseActionResult,
   DesktopSettings,
@@ -51,6 +52,7 @@ afterEach(() => {
   window.localStorage.removeItem('cortana.workspace-themes.v1')
   state.getDocumentsCalls = []
   state.getGraphCalls = 0
+  state.graphResult = null
   state.saveSettingsCalls = 0
   state.applySettingsUpdate = false
   state.lastSettingsUpdate = null
@@ -184,6 +186,7 @@ const state = {
     cursor: string | null | undefined
   }>,
   getGraphCalls: 0,
+  graphResult: null as BrainGraphPage | Error | null,
   statusCalls: 0,
   getDesktopSettingsCalls: 0,
   deferDesktopSettings: false,
@@ -369,6 +372,8 @@ mock.module('./api', () => ({
   },
   getGraph: () => {
     state.getGraphCalls += 1
+    if (state.graphResult instanceof Error) return Promise.reject(state.graphResult)
+    if (state.graphResult) return Promise.resolve(state.graphResult)
     return Promise.resolve({
       nodes: [],
       edges: [],
@@ -1046,6 +1051,53 @@ test('desktop setup does not query documents before the control plane is ready',
     await flushDesktopBootstrap()
   } finally {
     state.settings = originalSettings
+  }
+})
+test('graph retry issues a fresh scoped request after a failure', async () => {
+  state.graphResult = new Error('Graph data unavailable')
+  try {
+    render(() => <App />)
+    await flushDesktopBootstrap()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Graph',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Graph unavailable',
+        })
+      ).toBeTruthy()
+    )
+    const callsBefore = state.getGraphCalls
+    state.graphResult = {
+      nodes: [
+        {
+          id: 'node-1',
+          kind: 'document',
+          label: 'Recovered graph node',
+          project: 'work',
+          source: 'work-code',
+          document_id: 'doc-1',
+        },
+      ],
+      edges: [],
+      next_cursor: null,
+    }
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Try again',
+      })
+    )
+    // The retry nonce must reach the fetch effect; before the merged effect
+    // the click only reset state and no new request was issued.
+    await waitFor(() => expect(state.getGraphCalls).toBeGreaterThan(callsBefore))
+    await waitFor(() => expect(screen.getByText('Recovered graph node')).toBeTruthy())
+    await flushDesktopBootstrap()
+  } finally {
+    state.graphResult = null
   }
 })
 test('desktop shell pauses passive health polling while hidden and refreshes on restore', async () => {

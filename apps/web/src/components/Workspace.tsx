@@ -10,13 +10,12 @@ import {
   Star,
 } from 'lucide-solid'
 import {
-  createEffect,
+  createComputed,
   createMemo,
   createSignal,
   For,
   Match,
   Show,
-  splitProps,
   Switch,
   type ComponentProps,
   type JSX,
@@ -29,6 +28,7 @@ import { isFavoriteDocument, toggleFavoriteDocument } from '../favoriteDocuments
 import { safeSourceLink } from '../sourceLinks'
 import { Badge } from './shadcn/badge'
 import { TooltipButton as Button } from './cortana/TooltipButton'
+import { VariantButton as WorkspaceButton } from './cortana/VariantButton'
 import {
   Empty,
   EmptyContent,
@@ -65,30 +65,6 @@ export type WorkspaceTab = (typeof tabs)[number]['id'] | 'graph'
 // separate view, so neither is gated.
 const resultGatedTabs = new Set<WorkspaceTab>(['answer', 'sources', 'timeline'])
 const EMPTY_GRAPH_NODES: BrainGraphNode[] = []
-
-type WorkspaceButtonProps = Omit<ComponentProps<typeof Button>, 'variant' | 'size'> & {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'icon' | 'compact'
-}
-
-function WorkspaceButton(props: WorkspaceButtonProps) {
-  const [local, rest] = splitProps(props, ['variant'])
-  const variant = () => local.variant ?? 'secondary'
-  return (
-    <Button
-      {...rest}
-      variant={
-        variant() === 'primary'
-          ? 'default'
-          : variant() === 'danger'
-            ? 'destructive'
-            : variant() === 'ghost' || variant() === 'icon'
-              ? 'ghost'
-              : 'secondary'
-      }
-      size={variant() === 'icon' ? 'icon' : variant() === 'compact' ? 'sm' : 'default'}
-    />
-  )
-}
 
 function WorkspaceInteractive(props: ComponentProps<'button'>) {
   return <Button variant="ghost" {...props} />
@@ -159,13 +135,13 @@ export function Workspace(props: {
     }
   }
 
-  createEffect(() => {
+  createComputed(() => {
     if (props.document) props.onTabChange('document')
   })
-  createEffect(() => {
+  createComputed(() => {
     if (props.answer || props.reflection) props.onTabChange('answer')
   })
-  createEffect(() => {
+  createComputed(() => {
     // Keep an explicitly submitted search visible while retrieval is in
     // flight. The result tab is hidden from the tab strip until evidence
     // arrives, but redirecting it immediately would replace the loading
@@ -306,7 +282,7 @@ function BrainDocumentView(props: {
   const [sourceOpenError, setSourceOpenError] = createSignal(false)
   const [copyStatus, setCopyStatus] = createSignal('')
 
-  createEffect(() => {
+  createComputed(() => {
     const id = props.document.id
     setFavorite(isFavoriteDocument(id))
     setSourceOpenError(false)
@@ -505,7 +481,7 @@ function DocumentView(props: {
   const [favorite, setFavorite] = createSignal(isFavoriteDocument(props.active.chunk_id))
   const [sourceOpenError, setSourceOpenError] = createSignal(false)
 
-  createEffect(() => {
+  createComputed(() => {
     const id = props.active.chunk_id
     setFavorite(isFavoriteDocument(id))
     setSourceOpenError(false)
@@ -837,7 +813,7 @@ function GraphView(props: {
   )
   const graphResetKey = () =>
     `${props.graph?.nodes[0]?.id ?? ''} ${kindFilter()} ${normalizedFilter()}`
-  createEffect(() => {
+  createComputed(() => {
     graphResetKey()
     setVisibleCount(12)
     setSelectedNodeId(null)

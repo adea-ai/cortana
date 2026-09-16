@@ -147,7 +147,7 @@ function initialSourceWorkspace(settings: DesktopSettings): string {
   )
 }
 export function SourcesSection(
-  _props: SettingsSectionProps & {
+  incoming: SettingsSectionProps & {
     canValidate: boolean
     secretValues: Record<string, string>
     onSecret: (values: Record<string, string>) => void
@@ -158,7 +158,7 @@ export function SourcesSection(
     onPersistSources?: (sources: SourceSettings[]) => Promise<DesktopSettings>
   }
 ) {
-  const props = _props
+  const props = incoming
   const confirm = useSettingsConfirm()
   const [job, setJob] = createSignal<DesktopSourceJob | null>(null)
   const applyJob = (next: DesktopSourceJob) => {
@@ -231,15 +231,9 @@ export function SourcesSection(
     planning: boolean
     flowError: string
   } | null>(null)
-  const validationPlanKey = {
-    current: '',
-  }
-  const sharedJobIds = {
-    current: new Set<string>(),
-  }
-  const cancelInFlight = {
-    current: new Set<string>(),
-  }
+  let validationPlanKey = ''
+  const sharedJobIds = new Set<string>()
+  const cancelInFlight = new Set<string>()
   const foreground = useDesktopForeground()
   const workspaceIds = () => new Set(props.settings.workspaces.map((workspace) => workspace.id))
   const unassignedSourceCount = () =>
@@ -285,9 +279,9 @@ export function SourcesSection(
   createEffect(() => {
     if (!props.sourceJobs) return
     const currentIds = new Set(props.sourceJobs.map((candidate) => candidate.id))
-    props.sourceJobs.forEach((candidate) => sharedJobIds.current.add(candidate.id))
-    for (const id of sharedJobIds.current) {
-      if (!currentIds.has(id) && id !== job()?.id) sharedJobIds.current.delete(id)
+    props.sourceJobs.forEach((candidate) => sharedJobIds.add(candidate.id))
+    for (const id of sharedJobIds) {
+      if (!currentIds.has(id) && id !== job()?.id) sharedJobIds.delete(id)
     }
     // A job may have started while Settings was unmounted. Adopt the newest
     // recovered snapshot so this section can show and cancel it immediately,
@@ -301,8 +295,8 @@ export function SourcesSection(
     if (next && next !== job()) {
       // reconcile with the shared job registry snapshot
       setJob(next)
-    } else if (!next && sharedJobIds.current.has(job()!.id)) {
-      sharedJobIds.current.delete(job()!.id)
+    } else if (!next && sharedJobIds.has(job()!.id)) {
+      sharedJobIds.delete(job()!.id)
       setJob(null)
     }
   })
@@ -389,8 +383,8 @@ export function SourcesSection(
       return
     }
     const key = `${observedJob()!.id}:${initialSync()!.budget}`
-    if (validationPlanKey.current === key) return
-    validationPlanKey.current = key
+    if (validationPlanKey === key) return
+    validationPlanKey = key
     void requestPlan(observedJob()!.source, initialSync()!.budget)
   })
   const openInitialSync = (source: SourceSettings, budget: InitialSyncBudget = 'small') => {
@@ -858,8 +852,8 @@ export function SourcesSection(
   }
   const cancel = async () => {
     const current = observedJob()
-    if (!current || current.status !== 'running' || cancelInFlight.current.has(current.id)) return
-    cancelInFlight.current.add(current.id)
+    if (!current || current.status !== 'running' || cancelInFlight.has(current.id)) return
+    cancelInFlight.add(current.id)
     const previous = current
     applyJob({
       ...current,
@@ -873,7 +867,7 @@ export function SourcesSection(
       applyJob(previous)
       setError(caught instanceof Error ? caught.message : 'Source job cancellation failed')
     } finally {
-      cancelInFlight.current.delete(current.id)
+      cancelInFlight.delete(current.id)
     }
   }
   return (
@@ -2493,7 +2487,7 @@ function mebibytes(bytes: number) {
 function minutes(seconds: number) {
   return Math.round(seconds / 60)
 }
-function InitialSyncFlow(_props2: {
+function InitialSyncFlow(incoming: {
   source: SourceSettings
   flow: {
     source: string
@@ -2507,7 +2501,7 @@ function InitialSyncFlow(_props2: {
   onValidate: () => void
   onStart: () => void
 }) {
-  const props = _props2
+  const props = incoming
   const plan = () => props.flow.plan
   return (
     <section class="initial-sync-flow" aria-label={`Initial sync plan for ${props.source.name}`}>

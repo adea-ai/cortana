@@ -8,7 +8,7 @@ import {
   RefreshCw,
   Settings,
 } from 'lucide-solid'
-import { Index, Show } from 'solid-js'
+import { For, Show } from 'solid-js'
 
 import { describeSyncRunProgress } from '@/operations'
 import { describeSourceJobProgress, recentCompletedJobs } from '@/sourceJobs'
@@ -297,7 +297,7 @@ export function M7ActivityInbox(props: M7ActivityInboxProps) {
                   Sync attention
                 </h2>
                 <div class="activity-card-grid">
-                  <Index each={attention()}>{(run) => <SyncActivityCard run={run()} />}</Index>
+                  <For each={attention()}>{(run) => <SyncActivityCard run={run} />}</For>
                 </div>
               </section>
             </Show>
@@ -307,9 +307,9 @@ export function M7ActivityInbox(props: M7ActivityInboxProps) {
                   Active source jobs
                 </h2>
                 <div class="activity-card-grid">
-                  <Index each={activeJobs()}>
-                    {(job) => <SourceJobCard job={job()} onCancel={props.onCancelSourceJob} />}
-                  </Index>
+                  <For each={activeJobs()}>
+                    {(job) => <SourceJobCard job={job} onCancel={props.onCancelSourceJob} />}
+                  </For>
                 </div>
               </section>
             </Show>
@@ -319,7 +319,7 @@ export function M7ActivityInbox(props: M7ActivityInboxProps) {
                   Recent source jobs
                 </h2>
                 <div class="activity-card-grid">
-                  <Index each={completedJobs()}>{(job) => <SourceJobCard job={job()} />}</Index>
+                  <For each={completedJobs()}>{(job) => <SourceJobCard job={job} />}</For>
                 </div>
               </section>
             </Show>

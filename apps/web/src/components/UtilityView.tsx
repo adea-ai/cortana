@@ -17,7 +17,7 @@ import {
   Sparkles,
   TerminalSquare,
 } from 'lucide-solid'
-import { createSignal, For, Show, splitProps, type ComponentProps, type JSX } from 'solid-js'
+import { createSignal, For, Show, type ComponentProps, type JSX } from 'solid-js'
 
 import { openDesktopUrl } from '../api'
 import { codeRevisionLabel } from '../codeEvidence'
@@ -32,7 +32,7 @@ import { describeSourceJobProgress, recentCompletedJobs } from '../sourceJobs'
 import { describeSyncRunProgress } from '../operations'
 import { shortcutLabel } from '../shortcuts'
 import { useClipboardCopy } from '../useClipboardCopy'
-import { Button as ShadcnButton } from './shadcn/button'
+import { VariantButton as Button } from './cortana/VariantButton'
 import { Card } from './shadcn/card'
 
 const EMPTY_ACTIONS: Array<{ label: string; icon: JSX.Element; onClick: () => void }> = []
@@ -65,30 +65,6 @@ const TITLES: Record<UtilityKind, { eyebrow: string; title: string; description:
     title: 'Help',
     description: 'Keyboard shortcuts and links to the project documentation.',
   },
-}
-
-type ButtonProps = Omit<ComponentProps<typeof ShadcnButton>, 'variant' | 'size'> & {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'icon' | 'compact'
-}
-
-function Button(props: ButtonProps) {
-  const [local, rest] = splitProps(props, ['variant'])
-  const variant = () => local.variant ?? 'secondary'
-  return (
-    <ShadcnButton
-      {...rest}
-      variant={
-        variant() === 'primary'
-          ? 'default'
-          : variant() === 'danger'
-            ? 'destructive'
-            : variant() === 'ghost' || variant() === 'icon'
-              ? 'ghost'
-              : 'secondary'
-      }
-      size={variant() === 'icon' ? 'icon' : variant() === 'compact' ? 'sm' : 'default'}
-    />
-  )
 }
 
 function UtilityCard(props: ComponentProps<'div'>) {

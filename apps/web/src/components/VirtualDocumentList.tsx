@@ -1,5 +1,14 @@
 import { FileText } from 'lucide-solid'
-import { createEffect, createMemo, createSignal, For, onCleanup, onMount, type JSX } from 'solid-js'
+import {
+  createComputed,
+  createEffect,
+  createMemo,
+  createSignal,
+  For,
+  onCleanup,
+  onMount,
+  type JSX,
+} from 'solid-js'
 
 import { cn } from '@/lib/utils'
 
@@ -15,6 +24,7 @@ export function VirtualDocumentList(props: {
   loading: boolean
   hasMore: boolean
   onSelect: (id: string) => void
+  onPrefetch?: (id: string) => void
   onLoadMore: () => void
 }) {
   let viewportRef: HTMLDivElement | undefined
@@ -35,7 +45,7 @@ export function VirtualDocumentList(props: {
   )
 
   // Keep the keyboard cursor aligned with the external selection.
-  createEffect(() => setActiveIndex(selectedIndex()))
+  createComputed(() => setActiveIndex(selectedIndex()))
 
   onMount(() => {
     const observer = new ResizeObserver(([entry]) => setViewportHeight(entry.contentRect.height))
@@ -133,7 +143,10 @@ export function VirtualDocumentList(props: {
                     activeIndex() === index() && 'keyboard-active'
                   )}
                   style={{ '--virtual-row-height': `${ROW_HEIGHT}px` } as JSX.CSSProperties}
-                  onMouseEnter={() => setActiveIndex(index())}
+                  onMouseEnter={() => {
+                    setActiveIndex(index())
+                    props.onPrefetch?.(document.id)
+                  }}
                   onFocus={() => setActiveIndex(index())}
                   onClick={() => props.onSelect(document.id)}
                   title={`${document.title} · ${document.source}`}

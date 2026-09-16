@@ -12,7 +12,6 @@ import { cn } from '../../lib/utils'
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../shadcn/accordion'
 import { Alert } from '../shadcn/alert'
-import { TooltipButton as Button } from '../cortana/TooltipButton'
 import { Card } from '../shadcn/card'
 import { Checkbox } from '../shadcn/checkbox'
 import {
@@ -32,6 +31,8 @@ import { Switch } from '../shadcn/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../shadcn/tabs'
 import { Textarea } from '../shadcn/textarea'
 
+export { VariantButton as SettingsButton } from '../cortana/VariantButton'
+
 export function SettingsSurfaceProvider(props: { children: JSX.Element }) {
   return props.children as JSX.Element
 }
@@ -50,32 +51,6 @@ function claimFieldControl() {
   const field = useContext(FieldControlContext)
   if (!field) return null
   return field.claim() ? field : null
-}
-
-type SettingsButtonProps = Omit<ComponentProps<typeof Button>, 'variant' | 'size'> & {
-  variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost' | 'icon' | 'compact'
-}
-
-export function SettingsButton(props: SettingsButtonProps) {
-  const [local, rest] = splitProps(props, ['variant'])
-  const variant = () => local.variant ?? 'secondary'
-  return (
-    <Button
-      {...rest}
-      variant={
-        variant() === 'primary'
-          ? 'default'
-          : variant() === 'outline'
-            ? 'outline'
-            : variant() === 'danger'
-              ? 'destructive'
-              : variant() === 'ghost' || variant() === 'icon'
-                ? 'ghost'
-                : 'secondary'
-      }
-      size={variant() === 'icon' ? 'icon' : variant() === 'compact' ? 'sm' : 'default'}
-    />
-  )
 }
 
 export function SettingsInput(props: ComponentProps<'input'>) {

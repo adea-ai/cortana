@@ -272,7 +272,7 @@ test('the hook polls only active ids and keeps the latest snapshot', async () =>
     result.remember(running)
     result.remember(jobOf('job-2', 'succeeded'))
   })
-  expect(result.jobs()).toHaveLength(2)
+  expect(result.jobs).toHaveLength(2)
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 1200))
   })
@@ -288,9 +288,9 @@ test('the hook polls only active ids and keeps the latest snapshot', async () =>
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 1200))
   })
-  expect(result.jobs()[0]?.status).toBe('cancelling')
-  expect(result.jobs()[0]?.summary).toBe('cancelling now')
-  expect(result.jobs()).toHaveLength(2)
+  expect(result.jobs[0]?.status).toBe('cancelling')
+  expect(result.jobs[0]?.summary).toBe('cancelling now')
+  expect(result.jobs).toHaveLength(2)
 })
 test('the hook pauses renderer polling in the background and recovers on focus', async () => {
   const running = jobOf('background-job', 'running')
@@ -317,7 +317,7 @@ test('the hook pauses renderer polling in the background and recovers on focus',
     await new Promise((resolve) => setTimeout(resolve, 1_100))
   })
   expect(state.statusCalls).toContain(running.id)
-  expect(result.jobs()[0]?.id).toBe(running.id)
+  expect(result.jobs[0]?.id).toBe(running.id)
   cleanup()
 })
 test('an in-flight poll cannot update the renderer after the window backgrounds', async () => {
@@ -344,7 +344,7 @@ test('an in-flight poll cannot update the renderer after the window backgrounds'
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 20))
   })
-  expect(result.jobs()[0]?.status).toBe('running')
+  expect(result.jobs[0]?.status).toBe('running')
   cleanup()
 })
 test('the hook recovers native source-job snapshots on mount', async () => {
@@ -353,7 +353,7 @@ test('the hook recovers native source-job snapshots on mount', async () => {
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 20))
   })
-  expect(result.jobs().map((job) => job.id)).toEqual(['recovered-running', 'recovered-done'])
+  expect(result.jobs.map((job) => job.id)).toEqual(['recovered-running', 'recovered-done'])
   cleanup()
 })
 test('the hook lets recovery refresh a job remembered during mount', async () => {
@@ -368,8 +368,8 @@ test('the hook lets recovery refresh a job remembered during mount', async () =>
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 20))
   })
-  expect(result.jobs()[0]?.status).toBe('succeeded')
-  expect(result.jobs()[0]?.summary).toBe('recovered completion')
+  expect(result.jobs[0]?.status).toBe('succeeded')
+  expect(result.jobs[0]?.summary).toBe('recovered completion')
   cleanup()
 })
 test('the hook drops an id on a missing-job error and retains snapshots on transient errors', async () => {
@@ -384,14 +384,14 @@ test('the hook drops an id on a missing-job error and retains snapshots on trans
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 1200))
   })
-  expect(result.jobs().map((job) => job.id)).toEqual(['job-1'])
+  expect(result.jobs.map((job) => job.id)).toEqual(['job-1'])
 
   // The native missing-job error drops the id entirely.
   state.polled.set('job-1', new Error('source job was not found'))
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 1200))
   })
-  expect(result.jobs()).toEqual([])
+  expect(result.jobs).toEqual([])
   // After the drop there are no active ids left, so polling stops.
   expect(state.statusCalls).toEqual(['job-1', 'job-1'])
 })
@@ -406,7 +406,7 @@ test('polling failure for an active source job surfaces a transient snapshot err
     await new Promise((resolve) => setTimeout(resolve, 1200))
   })
   expect(result.error()).toBe('source job status transport failed')
-  expect(result.jobs().map((job) => job.id)).toEqual(['job-1'])
+  expect(result.jobs.map((job) => job.id)).toEqual(['job-1'])
   state.polled.set(
     'job-1',
     jobOf('job-1', 'succeeded', {
@@ -419,7 +419,7 @@ test('polling failure for an active source job surfaces a transient snapshot err
     await new Promise((resolve) => setTimeout(resolve, 1200))
   })
   expect(result.error()).toBe('')
-  expect(result.jobs()[0]?.status).toBe('succeeded')
+  expect(result.jobs[0]?.status).toBe('succeeded')
 })
 test('source job status errors expose a recovery action', async () => {
   const running = jobOf('job-1', 'running')
@@ -443,7 +443,7 @@ test('source job status errors expose a recovery action', async () => {
     await new Promise((resolve) => setTimeout(resolve, 40))
   })
   expect(result.error()).toBe('')
-  expect(result.jobs()[0]?.status).toBe('succeeded')
+  expect(result.jobs[0]?.status).toBe('succeeded')
   cleanup()
 })
 test('source job history recovery failures stay visible and retryable', async () => {
@@ -464,7 +464,7 @@ test('source job history recovery failures stay visible and retryable', async ()
     await new Promise((resolve) => setTimeout(resolve, 40))
   })
   expect(result.error()).toBe('')
-  expect(result.jobs()[0]?.id).toBe('recovered-after-retry')
+  expect(result.jobs[0]?.id).toBe('recovered-after-retry')
   cleanup()
 })
 test('the hook does not overlap source status polls while one batch is pending', async () => {

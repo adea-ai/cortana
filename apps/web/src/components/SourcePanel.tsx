@@ -9,15 +9,16 @@ import {
   Settings,
   X,
 } from 'lucide-solid'
-import { createMemo, createSignal, For, Show, splitProps, type ComponentProps } from 'solid-js'
+import { createMemo, createSignal, For, Show } from 'solid-js'
 
 import { activeJobs, describeSourceJobProgress } from '../sourceJobs'
-import { operationalSources, sourceHealth, type OperationalSource } from '../operations'
+import { operationalSources, sourceHealth } from '../operations'
 import { SourceIcon } from './sourceIcons'
 import { cn } from '@/lib/utils'
 
 import { sourceDisplayName } from './sourceIconData'
 import { TooltipButton as Button } from './cortana/TooltipButton'
+import { VariantButton as ActionButton } from './cortana/VariantButton'
 import { Input } from './shadcn/input'
 import { Progress } from './shadcn/progress'
 import { Skeleton } from './shadcn/skeleton'
@@ -32,30 +33,6 @@ import type {
 import { VirtualDocumentList } from './VirtualDocumentList'
 
 const EMPTY_JOBS: DesktopSourceJob[] = []
-
-type ActionButtonProps = Omit<ComponentProps<typeof Button>, 'variant' | 'size'> & {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'icon' | 'compact'
-}
-
-function ActionButton(props: ActionButtonProps) {
-  const [local, rest] = splitProps(props, ['variant'])
-  const variant = () => local.variant ?? 'secondary'
-  return (
-    <Button
-      {...rest}
-      variant={
-        variant() === 'primary'
-          ? 'default'
-          : variant() === 'danger'
-            ? 'destructive'
-            : variant() === 'ghost' || variant() === 'icon'
-              ? 'ghost'
-              : 'secondary'
-      }
-      size={variant() === 'icon' ? 'icon' : variant() === 'compact' ? 'sm' : 'default'}
-    />
-  )
-}
 
 export function SourcePanel(props: {
   open: boolean
@@ -76,6 +53,7 @@ export function SourcePanel(props: {
   onSelect: (source: string, project: string) => void
   onDocumentQueryChange: (query: string) => void
   onSelectDocument: (id: string) => void
+  onPrefetchDocument?: (id: string) => void
   onLoadMoreDocuments: () => void
   onRetryDocuments?: () => void
   onOpenSourcesSettings: () => void
@@ -101,15 +79,9 @@ export function SourcePanel(props: {
   const sources = createMemo(() =>
     operationalSources(props.status).filter((item) => item.project === selectedWorkspaceId())
   )
-  const projects = createMemo(() =>
-    Object.entries(
-      sources().reduce<Record<string, OperationalSource[]>>((groups, source) => {
-        ;(groups[source.project] ??= []).push(source)
-        return groups
-      }, {})
-    )
-  )
-  const active = () => activeJobs(jobs())
+  // The job snapshot store reconciles by id, so this only re-runs when a job
+  // actually changed instead of on every poll tick.
+  const active = createMemo(() => activeJobs(jobs()))
   const selectedWorkspace = () =>
     props.workspaces.find((item) => item.id === props.workspace) ?? props.workspaces[0]
   const selectedSource = () => sources().find((item) => item.source === props.selected)
@@ -272,7 +244,7 @@ export function SourcePanel(props: {
           }
         >
           <Show
-            when={projects().length}
+            when={sources().length}
             fallback={
               <div class="source-empty">
                 <Database size={20} />
@@ -282,161 +254,153 @@ export function SourcePanel(props: {
             }
           >
             <div class="source-tree">
-              <For each={projects()}>
-                {([, items]) => (
-                  <section>
-                    <For each={items}>
-                      {(item) => {
-                        const health = () => sourceHealth(item)
-                        const key = `${item.project}:${item.source}`
-                        const isCollapsed = () => collapsed().has(key)
-                        // Source names are only unique inside a workspace. When the
-                        // panel shows all workspaces, matching by name alone would
-                        // highlight every same-named connector and make a click
-                        // appear to select the wrong account.
-                        const isSelected = () =>
-                          props.selected === item.source && selectedWorkspaceId() === item.project
-                        const auth = () => item.authorization
-                        const needsProviderSetup = () => Boolean(auth()?.setup_required)
-                        const needsBrowserAuthorization = () =>
-                          (auth()?.method === 'google_oauth' ||
-                            auth()?.method === 'github_oauth' ||
-                            auth()?.method === 'discord_rpc') &&
-                          !auth()?.authorized &&
-                          !needsProviderSetup()
-                        const sourceJobActive = () =>
-                          active().some(
-                            (job) =>
-                              job.project === item.project &&
-                              (job.source === item.source || job.source === item.name)
-                          )
-                        return (
-                          <div class="source-node">
-                            <div class="source-row">
-                              <ActionButton
-                                variant="icon"
-                                type="button"
-                                class="tree-toggle "
-                                aria-label={`${isCollapsed() ? 'Expand' : 'Collapse'} ${item.name}`}
-                                tooltip={`${isCollapsed() ? 'Expand' : 'Collapse'} ${item.name}`}
-                                aria-expanded={!isCollapsed()}
-                                onClick={() => {
-                                  setCollapsed((current) => {
-                                    const next = new Set(current)
-                                    if (next.has(key)) next.delete(key)
-                                    else next.add(key)
-                                    return next
-                                  })
-                                }}
-                              >
-                                {isCollapsed() ? (
-                                  <ChevronRight size={13} />
-                                ) : (
-                                  <ChevronDown size={13} />
-                                )}
-                              </ActionButton>
-                              <Button
-                                variant="ghost"
-                                type="button"
-                                class={cn('source-select', isSelected() && 'selected')}
-                                aria-pressed={isSelected()}
-                                aria-label={`${item.source} ${item.documents.toLocaleString()}`}
-                                onClick={() => props.onSelect(item.source, item.project)}
-                                title={health().label}
-                              >
-                                <SourceIcon kind={item.kind} size={17} />
-                                <span>{sourceDisplayName(item.kind, item.name)}</span>
-                                <i class={`source-health ${health().state}`} />
-                                <small>{item.documents.toLocaleString()}</small>
-                              </Button>
-                              <Show when={props.onOpenSourceSetup && needsProviderSetup()}>
-                                <ActionButton
-                                  variant="icon"
-                                  type="button"
-                                  class="source-action "
-                                  aria-label={`Open ${item.name} setup`}
-                                  tooltip={
-                                    sourceJobActive()
-                                      ? 'Wait for the active source job to finish'
-                                      : auth()?.method === 'google_oauth'
-                                        ? 'Open Google source settings'
-                                        : auth()?.method === 'github_oauth'
-                                          ? 'Open GitHub source settings'
-                                          : auth()?.method === 'discord_rpc'
-                                            ? 'Open Discord source settings'
-                                            : 'Open the provider setup page'
-                                  }
-                                  disabled={
-                                    sourceToggleBusy() !== null ||
-                                    sourceToggleDisabled() ||
-                                    sourceJobActive()
-                                  }
-                                  onClick={(event: MouseEvent) => {
-                                    event.stopPropagation()
-                                    props.onOpenSourceSetup?.(item.source, item.project)
-                                  }}
-                                >
-                                  <ExternalLink size={13} />
-                                </ActionButton>
-                              </Show>
-                              <Show when={props.onAuthorizeSource && needsBrowserAuthorization()}>
-                                <ActionButton
-                                  variant="icon"
-                                  type="button"
-                                  class="source-action "
-                                  aria-label={`Authorize ${item.name}`}
-                                  tooltip={
-                                    sourceJobActive()
-                                      ? 'Wait for the active source job to finish'
-                                      : auth()?.method === 'github_oauth'
-                                        ? 'Authorize this GitHub source in your browser'
-                                        : auth()?.method === 'discord_rpc'
-                                          ? 'Approve this Discord source in the running Discord Desktop client'
-                                          : 'Authorize this Google source in your browser'
-                                  }
-                                  disabled={
-                                    sourceToggleBusy() !== null ||
-                                    sourceToggleDisabled() ||
-                                    sourceJobActive()
-                                  }
-                                  onClick={(event: MouseEvent) => {
-                                    event.stopPropagation()
-                                    props.onAuthorizeSource?.(item.source, item.project)
-                                  }}
-                                >
-                                  <KeyRound size={13} />
-                                </ActionButton>
-                              </Show>
-                              <Show when={props.onToggleSource && item.kind !== 'indexed'}>
-                                <Switch
-                                  size="sm"
-                                  checked={item.enabled}
-                                  aria-busy={sourceToggleBusy() === key}
-                                  aria-label={`${item.enabled ? 'Disable' : 'Enable'} ${item.name}`}
-                                  disabled={
-                                    sourceToggleDisabled() ||
-                                    sourceToggleBusy() !== null ||
-                                    sourceJobActive()
-                                  }
-                                  onClick={(event: MouseEvent) => event.stopPropagation()}
-                                  onChange={(checked) =>
-                                    props.onToggleSource?.(item.source, item.project, checked)
-                                  }
-                                />
-                              </Show>
-                            </div>
-                            <Show when={!isCollapsed()}>
-                              <span class="source-node-hint">
-                                {item.chunks.toLocaleString()} chunks · {health().label}
-                              </span>
-                            </Show>
-                          </div>
-                        )
-                      }}
-                    </For>
-                  </section>
-                )}
-              </For>
+              <section>
+                <For each={sources()}>
+                  {(item) => {
+                    const health = () => sourceHealth(item)
+                    const key = `${item.project}:${item.source}`
+                    const isCollapsed = () => collapsed().has(key)
+                    // Source names are only unique inside a workspace. When the
+                    // panel shows all workspaces, matching by name alone would
+                    // highlight every same-named connector and make a click
+                    // appear to select the wrong account.
+                    const isSelected = () =>
+                      props.selected === item.source && selectedWorkspaceId() === item.project
+                    const auth = () => item.authorization
+                    const needsProviderSetup = () => Boolean(auth()?.setup_required)
+                    const needsBrowserAuthorization = () =>
+                      (auth()?.method === 'google_oauth' ||
+                        auth()?.method === 'github_oauth' ||
+                        auth()?.method === 'discord_rpc') &&
+                      !auth()?.authorized &&
+                      !needsProviderSetup()
+                    const sourceJobActive = () =>
+                      active().some(
+                        (job) =>
+                          job.project === item.project &&
+                          (job.source === item.source || job.source === item.name)
+                      )
+                    return (
+                      <div class="source-node">
+                        <div class="source-row">
+                          <ActionButton
+                            variant="icon"
+                            type="button"
+                            class="tree-toggle "
+                            aria-label={`${isCollapsed() ? 'Expand' : 'Collapse'} ${item.name}`}
+                            tooltip={`${isCollapsed() ? 'Expand' : 'Collapse'} ${item.name}`}
+                            aria-expanded={!isCollapsed()}
+                            onClick={() => {
+                              setCollapsed((current) => {
+                                const next = new Set(current)
+                                if (next.has(key)) next.delete(key)
+                                else next.add(key)
+                                return next
+                              })
+                            }}
+                          >
+                            {isCollapsed() ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+                          </ActionButton>
+                          <Button
+                            variant="ghost"
+                            type="button"
+                            class={cn('source-select', isSelected() && 'selected')}
+                            aria-pressed={isSelected()}
+                            aria-label={`${item.source} ${item.documents.toLocaleString()}`}
+                            onClick={() => props.onSelect(item.source, item.project)}
+                            title={health().label}
+                          >
+                            <SourceIcon kind={item.kind} size={17} />
+                            <span>{sourceDisplayName(item.kind, item.name)}</span>
+                            <i class={`source-health ${health().state}`} />
+                            <small>{item.documents.toLocaleString()}</small>
+                          </Button>
+                          <Show when={props.onOpenSourceSetup && needsProviderSetup()}>
+                            <ActionButton
+                              variant="icon"
+                              type="button"
+                              class="source-action "
+                              aria-label={`Open ${item.name} setup`}
+                              tooltip={
+                                sourceJobActive()
+                                  ? 'Wait for the active source job to finish'
+                                  : auth()?.method === 'google_oauth'
+                                    ? 'Open Google source settings'
+                                    : auth()?.method === 'github_oauth'
+                                      ? 'Open GitHub source settings'
+                                      : auth()?.method === 'discord_rpc'
+                                        ? 'Open Discord source settings'
+                                        : 'Open the provider setup page'
+                              }
+                              disabled={
+                                sourceToggleBusy() !== null ||
+                                sourceToggleDisabled() ||
+                                sourceJobActive()
+                              }
+                              onClick={(event: MouseEvent) => {
+                                event.stopPropagation()
+                                props.onOpenSourceSetup?.(item.source, item.project)
+                              }}
+                            >
+                              <ExternalLink size={13} />
+                            </ActionButton>
+                          </Show>
+                          <Show when={props.onAuthorizeSource && needsBrowserAuthorization()}>
+                            <ActionButton
+                              variant="icon"
+                              type="button"
+                              class="source-action "
+                              aria-label={`Authorize ${item.name}`}
+                              tooltip={
+                                sourceJobActive()
+                                  ? 'Wait for the active source job to finish'
+                                  : auth()?.method === 'github_oauth'
+                                    ? 'Authorize this GitHub source in your browser'
+                                    : auth()?.method === 'discord_rpc'
+                                      ? 'Approve this Discord source in the running Discord Desktop client'
+                                      : 'Authorize this Google source in your browser'
+                              }
+                              disabled={
+                                sourceToggleBusy() !== null ||
+                                sourceToggleDisabled() ||
+                                sourceJobActive()
+                              }
+                              onClick={(event: MouseEvent) => {
+                                event.stopPropagation()
+                                props.onAuthorizeSource?.(item.source, item.project)
+                              }}
+                            >
+                              <KeyRound size={13} />
+                            </ActionButton>
+                          </Show>
+                          <Show when={props.onToggleSource && item.kind !== 'indexed'}>
+                            <Switch
+                              size="sm"
+                              checked={item.enabled}
+                              aria-busy={sourceToggleBusy() === key}
+                              aria-label={`${item.enabled ? 'Disable' : 'Enable'} ${item.name}`}
+                              disabled={
+                                sourceToggleDisabled() ||
+                                sourceToggleBusy() !== null ||
+                                sourceJobActive()
+                              }
+                              onClick={(event: MouseEvent) => event.stopPropagation()}
+                              onChange={(checked) =>
+                                props.onToggleSource?.(item.source, item.project, checked)
+                              }
+                            />
+                          </Show>
+                        </div>
+                        <Show when={!isCollapsed()}>
+                          <span class="source-node-hint">
+                            {item.chunks.toLocaleString()} chunks · {health().label}
+                          </span>
+                        </Show>
+                      </div>
+                    )
+                  }}
+                </For>
+              </section>
             </div>
           </Show>
         </Show>
@@ -519,6 +483,7 @@ export function SourcePanel(props: {
               loading={props.documentsLoading}
               hasMore={props.hasMoreDocuments}
               onSelect={props.onSelectDocument}
+              onPrefetch={props.onPrefetchDocument}
               onLoadMore={props.onLoadMoreDocuments}
             />
           </Show>

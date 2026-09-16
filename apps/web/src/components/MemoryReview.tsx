@@ -1,11 +1,11 @@
 import { Pause, Play, RefreshCw, Search, ShieldCheck } from 'lucide-solid'
 import {
+  createComputed,
   createEffect,
   createSignal,
   For,
   onCleanup,
   Show,
-  splitProps,
   type ComponentProps,
   type JSX,
 } from 'solid-js'
@@ -31,7 +31,7 @@ import type {
 import { virtualRange } from '../virtualization'
 import { Alert, AlertDescription } from './shadcn/alert'
 import { Badge } from './shadcn/badge'
-import { Button } from './shadcn/button'
+import { VariantButton as MemoryButton } from './cortana/VariantButton'
 import { Card } from './shadcn/card'
 import { cn } from '@/lib/utils'
 
@@ -51,30 +51,6 @@ type QueueView =
   | 'expired'
   | 'failed'
   | 'dead-letter'
-
-type MemoryButtonProps = Omit<ComponentProps<typeof Button>, 'variant' | 'size'> & {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'icon' | 'compact'
-}
-
-function MemoryButton(props: MemoryButtonProps) {
-  const [local, rest] = splitProps(props, ['variant'])
-  const variant = () => local.variant ?? 'secondary'
-  return (
-    <Button
-      {...rest}
-      variant={
-        variant() === 'primary'
-          ? 'default'
-          : variant() === 'danger'
-            ? 'destructive'
-            : variant() === 'ghost' || variant() === 'icon'
-              ? 'ghost'
-              : 'secondary'
-      }
-      size={variant() === 'icon' ? 'icon' : variant() === 'compact' ? 'sm' : 'default'}
-    />
-  )
-}
 
 function MemoryInput(props: ComponentProps<'input'>) {
   return <Input {...props} />
@@ -362,14 +338,14 @@ export function MemoryReview(props: {
     onCleanup(() => window.clearTimeout(timer))
   })
 
-  createEffect(() => {
+  createComputed(() => {
     const maxActive = props.maxActive ?? DEFAULT_POLICY.maxActive
     setPolicy((current) => ({ ...current, maxActive }))
   })
 
   const selected = () => candidates().find((candidate) => candidate.id === selectedId())
 
-  createEffect(() => {
+  createComputed(() => {
     const current = selected()
     setEditTitle(current?.title ?? '')
     setEditContent(current?.content ?? '')

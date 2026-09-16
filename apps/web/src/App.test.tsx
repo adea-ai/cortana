@@ -996,3 +996,94 @@ test('scope-changed context request does not overwrite newer state', async () =>
   expect(screen.queryByText('Stale context evidence')).toBeNull()
   await flushAppBootstrap()
 }, 10_000)
+
+test('document retry issues a fresh scoped request after a failure', async () => {
+  let failing = true
+  state.documents = () =>
+    failing
+      ? Promise.reject(new Error('Documents unavailable'))
+      : Promise.resolve(firstDocumentsPage)
+  render(() => <App />)
+  await flushAppBootstrap()
+  await waitFor(() => expect(screen.getByText(/Documents unavailable/)).toBeTruthy())
+  const callsBefore = state.documentsCalls.length
+  failing = false
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Retry documents',
+    })
+  )
+  // The retry nonce must reach the fetch effect; before the merged effect the
+  // click only cleared state and no new request was issued.
+  await waitFor(() => expect(state.documentsCalls.length).toBeGreaterThan(callsBefore))
+  await waitFor(() =>
+    expect(
+      screen.getByRole('option', {
+        name: /How do releases work/,
+      })
+    ).toBeTruthy()
+  )
+})
+test('returning to a document scope restores the cached page while revalidating', async () => {
+  render(() => <App />)
+  await waitFor(() =>
+    expect(
+      screen.getByRole('option', {
+        name: /How do releases work/,
+      })
+    ).toBeTruthy()
+  )
+  // Wait for the initial workspace-scope refresh to settle so the scope is
+  // stable before exercising the round trip.
+  await waitFor(() => expect(screen.queryByText('Loading documents…')).toBeNull())
+
+  const filter = screen.getByRole('textbox', {
+    name: 'Filter documents',
+  })
+  const emptyPage: BrainDocumentPage = {
+    documents: [],
+    next_cursor: null,
+  }
+  state.documents = (_project, _source, query) =>
+    Promise.resolve(query ? emptyPage : firstDocumentsPage)
+  fireEvent.change(filter, {
+    target: {
+      value: 'zzzz',
+    },
+  })
+  await waitFor(() => expect(state.documentsCalls.at(-1)?.query).toBe('zzzz'))
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('option', {
+        name: /How do releases work/,
+      })
+    ).toBeNull()
+  )
+
+  // Returning to the original scope paints the remembered page immediately
+  // while the revalidation request is still in flight.
+  const revalidation = deferred<BrainDocumentPage>()
+  state.documents = (_project, _source, query) =>
+    query ? Promise.resolve(emptyPage) : revalidation.promise
+  fireEvent.change(filter, {
+    target: {
+      value: '',
+    },
+  })
+  await waitFor(() => expect(state.documentsCalls.at(-1)?.query).toBeUndefined())
+  await waitFor(() =>
+    expect(
+      screen.getByRole('option', {
+        name: /How do releases work/,
+      })
+    ).toBeTruthy()
+  )
+  revalidation.resolve(firstDocumentsPage)
+  await waitFor(() =>
+    expect(
+      screen.getByRole('option', {
+        name: /How do releases work/,
+      })
+    ).toBeTruthy()
+  )
+})
