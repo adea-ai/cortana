@@ -143,30 +143,32 @@ fn release_merge_policy_matches_runtime_contract() {
     assert_eq!(config_value("release_merge_strategy"), "squash");
 }
 
-/// Pull-request Rust CodeQL reports the complete workspace scan (matching the
-/// default-branch lane for differential parity) alongside the three standalone
-/// manifest shards. GitHub code scanning tracks every analysis category it has
-/// seen and blocks the merge gate until each tracked category reports, so a
-/// shard cannot simply be dropped. Two CodeQL threads per shard and three
-/// shards in parallel cut wall-clock time while capping total runner cost.
+/// Rust CodeQL is sharded by source root rather than running a
+/// whole-workspace "all" pass: src, tests, the Tauri crate, and the vendored
+/// glib build cover every tracked .rs file, and the three manifest shards run
+/// concurrently. GitHub code scanning tracks every analysis category it has
+/// seen and blocks the merge gate until each tracked category reports, so
+/// retiring the previous "all" category requires deleting its analyses on the
+/// default branch after this lands. Four CodeQL threads per shard use the
+/// full runner.
 #[test]
 fn rust_codeql_shards_standalone_manifests() {
     assert_eq!(
         config_value("codeql_rust_shards"),
-        "'[\"all\",\"src\",\"apps/desktop/src-tauri\",\"third_party/glib-0.18.5\"]'"
+        "'[\"src\",\"tests\",\"apps/desktop/src-tauri\",\"third_party/glib-0.18.5\"]'"
     );
-    assert_eq!(config_value("codeql_rust_threads"), "2");
-    assert_eq!(config_value("codeql_rust_max_parallel"), "3");
+    assert_eq!(config_value("codeql_rust_threads"), "4");
+    assert_eq!(config_value("codeql_rust_max_parallel"), "4");
 
     let caller = read(".github/workflows/validation.yml");
     assert!(
         caller.contains(
-            "rust-shards: '[\"all\",\"src\",\"apps/desktop/src-tauri\",\"third_party/glib-0.18.5\"]'"
+            "rust-shards: '[\"src\",\"tests\",\"apps/desktop/src-tauri\",\"third_party/glib-0.18.5\"]'"
         ),
         "validation caller must forward the shard list:\n{caller}"
     );
-    assert!(caller.contains("rust-threads: '2'"), "{caller}");
-    assert!(caller.contains("rust-max-parallel: 3"), "{caller}");
+    assert!(caller.contains("rust-threads: '4'"), "{caller}");
+    assert!(caller.contains("rust-max-parallel: 4"), "{caller}");
 }
 
 /// The tiered validation caller is the single canonical validation entry
