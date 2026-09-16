@@ -1,7 +1,6 @@
 import { Pause, Play, RefreshCw, Search, ShieldCheck } from 'lucide-solid'
 import {
   createEffect,
-  createMemo,
   createSignal,
   For,
   onCleanup,
@@ -391,7 +390,7 @@ export function MemoryReview(props: {
     })
   })
 
-  const filtered = createMemo(() => candidates())
+  const filtered = candidates
   const range = () => virtualRange(filtered().length, scrollTop(), 360, ROW_HEIGHT)
 
   async function runAction(

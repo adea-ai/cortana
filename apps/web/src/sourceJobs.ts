@@ -1,6 +1,7 @@
-import { createEffect, createSignal, onCleanup, onMount } from 'solid-js'
+import { createEffect, createSignal, onCleanup } from 'solid-js'
 
 import { getDesktopSourceJobs, getDesktopSourceValidation, isDesktopApp } from './api'
+import { useDesktopForeground } from './lib/foreground'
 import type { DesktopSourceJob } from './types'
 
 /** Bounded snapshot list: the most recent job snapshots, newest first. */
@@ -161,9 +162,7 @@ export function describeSourceJobProgress(
 export function useSourceJobs() {
   const [jobs, setJobs] = createSignal<DesktopSourceJob[]>([])
   const [error, setError] = createSignal('')
-  const [foreground, setForeground] = createSignal(
-    typeof document === 'undefined' || document.visibilityState !== 'hidden'
-  )
+  const foreground = useDesktopForeground()
   const [retryNonce, setRetryNonce] = createSignal(0)
   let pollEpoch = 0
 
@@ -171,72 +170,6 @@ export function useSourceJobs() {
     setError('')
     setJobs((current) => upsertJob(current, job))
   }
-
-  onMount(() => {
-    const visibility = { current: document.visibilityState !== 'hidden' }
-    const focused = { current: true }
-    const syncForeground = () => {
-      setForeground(visibility.current && focused.current)
-    }
-    const markForeground = () => {
-      focused.current = true
-      syncForeground()
-    }
-    const markBackground = () => {
-      focused.current = false
-      syncForeground()
-    }
-    const syncVisibility = () => {
-      visibility.current = document.visibilityState !== 'hidden'
-      syncForeground()
-    }
-    window.addEventListener('focus', markForeground)
-    window.addEventListener('blur', markBackground)
-    document.addEventListener('visibilitychange', syncVisibility)
-    let disposed = false
-    let unlistenFocus: (() => void) | undefined
-    if (isDesktopApp && '__TAURI_INTERNALS__' in window) {
-      void import('@tauri-apps/api/window')
-        .then(({ getCurrentWindow }) => {
-          const currentWindow = getCurrentWindow()
-          void currentWindow
-            .isFocused()
-            .then((payload) => {
-              if (!disposed) {
-                focused.current = payload
-                syncForeground()
-              }
-              return null
-            })
-            .catch(() => {
-              // Browser focus events remain the fallback when the native
-              // startup snapshot is unavailable.
-            })
-          return currentWindow.onFocusChanged(({ payload }) => {
-            if (!disposed) {
-              focused.current = payload
-              syncForeground()
-            }
-          })
-        })
-        .then((unlisten) => {
-          if (disposed) unlisten()
-          else unlistenFocus = unlisten
-          return null
-        })
-        .catch(() => {
-          // Browser focus events remain the fallback when the native focus
-          // listener cannot be registered during startup.
-        })
-    }
-    onCleanup(() => {
-      disposed = true
-      window.removeEventListener('focus', markForeground)
-      window.removeEventListener('blur', markBackground)
-      document.removeEventListener('visibilitychange', syncVisibility)
-      unlistenFocus?.()
-    })
-  })
 
   createEffect(() => {
     // Source jobs continue in the native process while the window is hidden;
