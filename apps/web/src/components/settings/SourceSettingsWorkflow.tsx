@@ -21,6 +21,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from '../shadcn/dialog'
 import { WorkspaceLogo } from '../../workspaceLogos'
 import { SourceIcon } from '../sourceIcons'
@@ -880,22 +881,22 @@ export function SourcesSection(
       title="Ingestion sources"
       description="Configure local and account-backed sources per workspace. Saving never ingests data. Most users only need Check connection followed by Initial sync; budget validation runs inside the initial-sync flow, while Trial sync remains an optional guarded recovery check."
     >
-      <div class="source-settings-toolbar">
-        <span>
-          {props.settings.sources.filter((source) => source.enabled).length} enabled ·{' '}
-          {props.settings.sources.length} configured
-        </span>
-        <Button
-          variant="secondary"
-          type="button"
-          disabled={props.settings.sources.length >= 128}
-          onClick={() => setSourceTypeOpen(true)}
-        >
-          <Plus size={15} /> Add source
-        </Button>
-      </div>
-
       <Dialog open={sourceTypeOpen()} onOpenChange={setSourceTypeOpen}>
+        <div class="source-settings-toolbar">
+          <span>
+            {props.settings.sources.filter((source) => source.enabled).length} enabled ·{' '}
+            {props.settings.sources.length} configured
+          </span>
+          <DialogTrigger
+            as={Button}
+            variant="secondary"
+            type="button"
+            disabled={props.settings.sources.length >= 128}
+          >
+            <Plus size={15} /> Add source
+          </DialogTrigger>
+        </div>
+
         <DialogContent class="source-type-dialog">
           <DialogHeader>
             <DialogTitle>Choose a source type</DialogTitle>

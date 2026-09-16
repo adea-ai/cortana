@@ -240,6 +240,7 @@ async function run() {
     page.on('console', (message) => {
       if (message.type() === 'error') consoleErrors.push(message.text().slice(0, 500))
     })
+    await page.addInitScript(() => performance.setResourceTimingBufferSize(5000))
     const navigationStartedAt = Date.now()
     await page.goto(BASE_URL, { waitUntil: 'networkidle' })
     const navigationMs = Date.now() - navigationStartedAt
@@ -258,7 +259,12 @@ async function run() {
 
     const workspaceSwitcher = page.getByRole('button', { name: 'Switch workspace' })
     await workspaceSwitcher.click()
-    await page.getByRole('menuitemradio', { name: 'Work', exact: true }).click()
+    // Kobalte selects menu items on activation, which closes the menu and can
+    // detach the element mid-gesture before a full click/press protocol
+    // finishes. A single dispatched keydown selects deterministically.
+    await page
+      .getByRole('menuitemradio', { name: 'Work', exact: true })
+      .dispatchEvent('keydown', { key: 'Enter' })
     await page.waitForFunction(() =>
       document.querySelector('.document-explorer-heading strong')?.textContent?.includes('Work')
     )
@@ -440,6 +446,21 @@ async function run() {
     )
     let browserResources = summarizeBrowserResourceSamples(browserResourceSamples)
     progress.resource_metrics = browserResources
+    if (browserResources.status !== 'passed') {
+      const entries = await page.evaluate(() =>
+        performance.getEntriesByType('resource').map((e) => `${e.initiatorType} ${e.name}`)
+      )
+      const counts = {}
+      for (const e of entries)
+        counts[e.split(' ').slice(0, 2).join(' ')] =
+          (counts[e.split(' ').slice(0, 2).join(' ')] || 0) + 1
+      console.log(
+        'RESOURCE DUMP:',
+        Object.entries(counts)
+          .toSorted((a, b) => b[1] - a[1])
+          .slice(0, 20)
+      )
+    }
     ensure(
       browserResources.status === 'passed',
       `browser resource budgets failed: ${browserResources.failures.join('; ')}`

@@ -35,7 +35,12 @@ await mkdir(output, { recursive: true })
 const browser = await chromium.launch({ headless: true })
 
 async function openPage(theme, width, state = 'configured') {
-  const context = await browser.newContext({ viewport: { width, height: 1000 } })
+  // Reduced motion makes enter/exit animations complete instantly so audits
+  // never sample a surface mid-fade and screenshots stay deterministic.
+  const context = await browser.newContext({
+    viewport: { width, height: 1000 },
+    reducedMotion: 'reduce',
+  })
   await context.addInitScript(
     (value) =>
       localStorage.setItem(
@@ -160,7 +165,12 @@ async function auditAccessibility(page, label) {
 
       if (theme === 'blue' && width === 768) {
         await page.getByRole('button', { name: 'Actions' }).click()
-        await page.getByRole('menuitem', { name: 'Open sources' }).click()
+        // Menu items select on activation, which closes the menu and can
+        // detach the element mid-gesture; a single dispatched keydown is
+        // the deterministic activation.
+        await page
+          .getByRole('menuitem', { name: 'Open sources' })
+          .dispatchEvent('keydown', { key: 'Enter' })
         await page.getByRole('dialog', { name: 'Sources and documents' }).waitFor()
         await page.locator('aside.source-panel.mobile-open').waitFor()
         await screenshot(page, 'source-panel-blue-768')
@@ -175,7 +185,9 @@ async function auditAccessibility(page, label) {
 
       if (theme === 'blue' && width === 1024) {
         await page.getByRole('button', { name: 'Actions' }).click()
-        await page.getByRole('menuitem', { name: 'Open agent context' }).click()
+        await page
+          .getByRole('menuitem', { name: 'Open agent context' })
+          .dispatchEvent('keydown', { key: 'Enter' })
         await page.getByRole('dialog', { name: 'Agent context' }).waitFor()
         await page.waitForTimeout(300)
         await auditAccessibility(page, 'tablet agent context boundary')
@@ -277,7 +289,9 @@ async function auditAccessibility(page, label) {
         )
 
         await page.getByRole('button', { name: 'Actions' }).click()
-        await page.getByRole('menuitem', { name: 'Command palette' }).click()
+        await page
+          .getByRole('menuitem', { name: 'Command palette' })
+          .dispatchEvent('keydown', { key: 'Enter' })
         await page.getByRole('dialog', { name: 'Cortana command palette' }).waitFor()
         await page.keyboard.press('Escape')
         await page.waitForFunction(

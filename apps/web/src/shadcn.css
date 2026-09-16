@@ -6291,3 +6291,16 @@ select:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Kobalte positions popper surfaces asynchronously: until the first
+   translate3d transform lands, the content sits at the document origin where
+   a press released on the trigger could land on an item. Keep it inert and
+   hidden until positioned. */
+[data-slot='dropdown-menu-content'] {
+  visibility: hidden;
+  pointer-events: none;
+}
+div[style*='translate3d'] [data-slot='dropdown-menu-content'] {
+  visibility: visible;
+  pointer-events: auto;
+}

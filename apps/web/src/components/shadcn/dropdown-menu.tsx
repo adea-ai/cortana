@@ -25,7 +25,11 @@ function toPlacement(side: Side, align: Align): Placement {
 }
 
 function DropdownMenu(props: ComponentProps<typeof MenuPrimitive>) {
-  return <MenuPrimitive data-slot="dropdown-menu" {...props} />
+  // Menus are non-modal surfaces per the ARIA APG: Kobalte's modal mode would
+  // aria-hide the rest of the document, inject focus guards inside role=menu,
+  // and lock outside pointer events, none of which a dropdown menu needs.
+  const [local, rest] = splitProps(props, ['modal'])
+  return <MenuPrimitive data-slot="dropdown-menu" modal={local.modal ?? false} {...rest} />
 }
 
 function DropdownMenuPortal(props: ComponentProps<typeof MenuPrimitive.Portal>) {

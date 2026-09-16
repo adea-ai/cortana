@@ -47,11 +47,17 @@ function DialogContent(
     'showCloseButton',
     'finalFocus',
     'onCloseAutoFocus',
+    'ref',
   ])
+  // Kobalte restores focus to the DialogTrigger element on close; dialogs
+  // opened programmatically have no trigger, so capture the focused element
+  // when the portaled content actually mounts (before autofocus runs) and
+  // restore to it.
+  let previouslyFocused: HTMLElement | null = null
   const handleCloseAutoFocus = (event: Event) => {
     local.onCloseAutoFocus?.(event)
-    const target = local.finalFocus?.current
-    if (!event.defaultPrevented && target) {
+    const target = local.finalFocus?.current ?? previouslyFocused
+    if (!event.defaultPrevented && target?.isConnected) {
       event.preventDefault()
       target.focus()
     }
@@ -61,6 +67,11 @@ function DialogContent(
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
+        ref={(el) => {
+          previouslyFocused =
+            document.activeElement instanceof HTMLElement ? document.activeElement : null
+          if (typeof local.ref === 'function') local.ref(el)
+        }}
         onCloseAutoFocus={handleCloseAutoFocus}
         class={cn(
           'fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-expanded:animate-in data-expanded:fade-in-0 data-expanded:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',

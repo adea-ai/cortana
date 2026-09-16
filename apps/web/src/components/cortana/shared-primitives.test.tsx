@@ -14,7 +14,9 @@ import {
   PaginationItem,
   PaginationLink,
 } from '@/components/shadcn/pagination'
+import { Input } from '@/components/shadcn/input'
 import { Slider } from '@/components/shadcn/slider'
+import { Textarea } from '@/components/shadcn/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/shadcn/toggle-group'
 import { AsyncButton } from './async-button'
 import { FeedbackState } from './feedback-state'
@@ -208,4 +210,26 @@ test('keeps pagination links exposed as links', () => {
       name: '2',
     })
   ).toBeNull()
+})
+test('text inputs invoke onChange per input event, not only on commit', async () => {
+  const user = userEvent.setup()
+  const inputValues: string[] = []
+  const textareaValues: string[] = []
+  render(() => (
+    <>
+      <Input aria-label="Name" onChange={(event) => inputValues.push(event.currentTarget.value)} />
+      <Textarea
+        aria-label="Notes"
+        onChange={(event) => textareaValues.push(event.currentTarget.value)}
+      />
+    </>
+  ))
+  const input = screen.getByLabelText('Name')
+  const textarea = screen.getByLabelText('Notes')
+  await user.type(input, 'ab')
+  await user.type(textarea, 'xy')
+  // Each keystroke must deliver the latest value; a trailing native change
+  // event may echo the final value again.
+  expect(inputValues.slice(0, 2)).toEqual(['a', 'ab'])
+  expect(textareaValues.slice(0, 2)).toEqual(['x', 'xy'])
 })
