@@ -396,7 +396,7 @@ dependencies = [
 
 [[package]]
 name = "cortana-core"
-version = "0.58.8"
+version = "0.58.9"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -430,7 +430,7 @@ dependencies = [
 
 [[package]]
 name = "cortana-mcp"
-version = "0.58.8"
+version = "0.58.9"
 dependencies = [
  "anyhow",
  "chrono",
@@ -448,7 +448,7 @@ dependencies = [
 
 [[package]]
 name = "cortana-retrieval"
-version = "0.58.8"
+version = "0.58.9"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -471,7 +471,7 @@ dependencies = [
 
 [[package]]
 name = "cortana-server"
-version = "0.58.8"
+version = "0.58.9"
 dependencies = [
  "anyhow",
  "async-trait",
