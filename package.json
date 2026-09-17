@@ -54,8 +54,8 @@
     "minimatch": "10.2.6",
     "qs": "6.16.0"
   },
-  "packageManager": "bun@1.4.0",
   "engines": {
     "node": "24.18.0"
-  }
+  },
+  "packageManager": "bun@1.4.0"
 }
