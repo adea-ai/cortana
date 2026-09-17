@@ -22,6 +22,25 @@ on:
       - bunfig.toml
       - .github/workflows/container.yml
   push:
+    branches:
+      - main
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - deploy/self-hosted/**
+      - src/**
+      - crates/**
+      - eval/**
+      - Cargo.toml
+      - Cargo.lock
+      - pyproject.toml
+      - apps/web/**
+      - scripts/self-hosted-conformance.sh
+      - scripts/check-web-*.mjs
+      - package.json
+      - bun.lock
+      - bunfig.toml
+      - .github/workflows/container.yml
     tags:
       - 'v*'
   workflow_dispatch:
@@ -32,7 +51,9 @@ permissions:
 concurrency:
   group: container-${{ github.event_name }}-${{ github.ref }}
   # Do not interrupt publication halfway through updating release aliases.
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # Superseded main pushes cancel so a burst of merges does not stack priming
+  # builds; the newest push re-warms the same cache scopes.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' }}
 
 env:
   BUILDKIT_PROGRESS: plain
@@ -94,16 +115,21 @@ jobs:
         with:
           context: .
           platforms: linux/${{ matrix.arch }}
+          # Tag builds push by digest; PR and main pushes load the local
+          # image for conformance.
           push: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
-          load: ${{ github.event_name != 'push' }}
+          load: ${{ !(github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) }}
           # Push immutable digests only. Release aliases are promoted after both gates.
           outputs: ${{ github.event_name == 'push' && format('type=image,name={0},push-by-digest=true,name-canonical=true,push=true', steps.prepare.outputs.image) || '' }}
-          tags: ${{ github.event_name == 'push' && steps.prepare.outputs.image || steps.prepare.outputs.local }}
+          tags: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && steps.prepare.outputs.image || steps.prepare.outputs.local }}
           labels: ${{ steps.metadata.outputs.labels }}
           build-args: CORTANA_VERSION=${{ github.ref_name }}
-          # Tags can read default-branch caches, not another tag's cache. The manual
-          # benchmark primes these two scopes on main; PRs/tags never export caches.
+          # Tags and PRs read default-branch caches, not each other's. Merges
+          # to main re-export the scopes so they stay warm between releases
+          # (GitHub evicts idle entries after 7 days); the benchmark workflow
+          # remains the manual cold/warm timing tool.
           cache-from: type=gha,scope=container-native-v1-${{ matrix.arch }}
+          cache-to: ${{ github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && format('type=gha,scope=container-native-v1-{0},mode=max,timeout=10m', matrix.arch) || '' }}
           provenance: ${{ github.event_name == 'push' && 'mode=max' || false }}
           sbom: ${{ github.event_name == 'push' }}
 
@@ -126,7 +152,7 @@ jobs:
 
       - name: Run self-hosted provider conformance
         env:
-          CORTANA_CONFORMANCE_IMAGE: ${{ github.event_name == 'push' && format('{0}@{1}', steps.prepare.outputs.image, steps.build.outputs.digest) || steps.prepare.outputs.local }}
+          CORTANA_CONFORMANCE_IMAGE: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && format('{0}@{1}', steps.prepare.outputs.image, steps.build.outputs.digest) || steps.prepare.outputs.local }}
         run: |
           set -euo pipefail
           bash scripts/self-hosted-conformance.sh 2>&1 | tee reports/conformance.log

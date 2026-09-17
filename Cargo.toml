@@ -63,7 +63,7 @@ libc = "0.2"
 
 [package]
 name = "cortana"
-version = "0.58.8"
+version = "0.58.9"
 edition.workspace = true
 rust-version.workspace = true
 description = "Local-first, agent-native second brain with configurable ingestion and hybrid retrieval"
@@ -112,12 +112,55 @@ lto = "thin"
 codegen-units = 1
 strip = true
 
-# Dev builds keep application code fully debuggable while compiling
-# dependencies optimized: tests, the eval latency gates, and host-launch
-# runs exercise dependency-heavy paths (HTTP, SQLite, crypto) where
-# unoptimized dependency code skewed wall-clock budgets.
+# Dev builds keep application code fully debuggable while optimizing only the
+# dependencies the eval latency gates and host-launch runs actually exercise:
+# HTTP (reqwest/hyper/rustls/tokio), SQLite (rusqlite), and crypto
+# (chacha20poly1305, dalek curves, sha2/hmac/hkdf). Everything else — build
+# scripts, proc macros, and the long tail of transitive crates — compiles at
+# the default dev opt-level, which is what makes a cold `cargo check
+# --all-targets` tractable. `test:eval` is the regression gate for this list:
+# if a budget fails after adding or removing a crate here, adjust the list
+# rather than re-widening it to `"*"`.
 [profile.dev]
 debug = "line-tables-only"
 
-[profile.dev.package."*"]
+[profile.dev.package.aead]
+opt-level = 2
+[profile.dev.package.chacha20]
+opt-level = 2
+[profile.dev.package.chacha20poly1305]
+opt-level = 2
+[profile.dev.package.cipher]
+opt-level = 2
+[profile.dev.package.curve25519-dalek]
+opt-level = 2
+[profile.dev.package.ed25519-dalek]
+opt-level = 2
+[profile.dev.package.hkdf]
+opt-level = 2
+[profile.dev.package.hmac]
+opt-level = 2
+[profile.dev.package.hyper]
+opt-level = 2
+[profile.dev.package.hyper-rustls]
+opt-level = 2
+[profile.dev.package.hyper-util]
+opt-level = 2
+[profile.dev.package.libsqlite3-sys]
+opt-level = 2
+[profile.dev.package.reqwest]
+opt-level = 2
+[profile.dev.package.ring]
+opt-level = 2
+[profile.dev.package.rusqlite]
+opt-level = 2
+[profile.dev.package.rustls]
+opt-level = 2
+[profile.dev.package.sha2]
+opt-level = 2
+[profile.dev.package.tokio]
+opt-level = 2
+[profile.dev.package.tokio-rustls]
+opt-level = 2
+[profile.dev.package.x25519-dalek]
 opt-level = 2

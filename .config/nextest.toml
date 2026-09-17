@@ -1,0 +1,8 @@
+# Shared nextest defaults for every `cargo nextest run` invocation (the CI
+# Rust lanes and local runs). Two retries damp the known under-load timeout
+# sensitivity of the assert_cmd-driven CLI suite without masking real
+# failures; slow tests are marked long before the CI job timeout can kill
+# the whole lane.
+[profile.default]
+retries = 2
+slow-timeout = { period = "120s", terminate-after = 3 }

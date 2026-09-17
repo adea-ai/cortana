@@ -14,7 +14,7 @@
       "id": "store",
       "path": "crates/core/src/store.rs",
       "symbol": "code_relations",
-      "expected_line": 4747,
+      "expected_line": 4745,
       "expected_fragment": "pub fn code_relations"
     },
     {

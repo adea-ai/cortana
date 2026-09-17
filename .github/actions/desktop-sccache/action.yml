@@ -1,0 +1,34 @@
+name: Desktop sccache
+description: >-
+  Install sccache and wrap rustc for desktop Rust jobs. The target-directory
+  caches stay the single owner of build artifacts per job; this content-
+  addressed layer only softens full dependency rebuilds when a manifest or
+  lockfile change busts the target cache key. Compilations using
+  -C linker-plugin-lto are not cacheable, but the workspace release profile
+  uses plain thin-LTO, which is.
+inputs:
+  cache-save:
+    description: Whether this run may save its sccache artifacts.
+    required: false
+    default: 'true'
+runs:
+  using: composite
+  steps:
+    - name: Cache sccache artifacts
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+      with:
+        path: ~/.cache/sccache
+        # The primary key stays per-job so concurrent jobs never fight over
+        # one entry; restore-keys share objects across all desktop jobs.
+        key: ${{ runner.os }}-${{ runner.arch }}-desktop-sccache-v1-${{ github.job }}
+        restore-keys: |
+          ${{ runner.os }}-${{ runner.arch }}-desktop-sccache-v1-
+    - name: Install sccache
+      uses: taiki-e/install-action@cb33e69fad06166ca28a42b2575e4dadabf62ee8 # v2
+      with:
+        tool: sccache
+    - name: Wrap rustc with sccache
+      shell: bash
+      run: |
+        echo 'RUSTC_WRAPPER=sccache' >> "$GITHUB_ENV"
+        echo "SCCACHE_DIR=$HOME/.cache/sccache" >> "$GITHUB_ENV"
