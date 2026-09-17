@@ -50,14 +50,21 @@ library plus the CLI binary; `cargo check -p <crate>` type-checks a single
 crate and its upstreams, and edits that do not change a crate's public
 metadata do not recompile downstream crates or the test binaries.
 
-A cold `cargo check --all-targets` in a fresh worktree measured ~45 minutes
-because each worktree compiles every dependency at the dev profile's
-`opt-level = 2`. `scripts/setup-worktree.sh` symlinks `target/` (and the Tauri
+The dev profile used to set `opt-level = 2` for every dependency, and a cold
+`cargo check --all-targets` in a fresh worktree measured ~45 minutes at that
+setting (build scripts and proc macros must be fully compiled even for
+`check`, and optimization multiplies their cost). The override now covers only
+the HTTP, SQLite, and crypto crates that the eval latency gates exercise (the
+annotated list in the root `Cargo.toml`), and the same cold check measured
+**33.6 s** (sccache disabled, fresh target dir, 0.58.8-era sources, macOS
+arm64). `scripts/setup-worktree.sh` symlinks `target/` (and the Tauri
 crate's separate target dir) into `~/.cache/cortana` — or `$CORTANA_BUILD_CACHE`
 — so dependency artifacts are shared across every worktree while workspace
 crates still incremental-build per worktree. Concurrent builds serialize on
 Cargo's target lock rather than corrupting output; `cargo clean` in one
-worktree clears the shared cache for all.
+worktree clears the shared cache for all. `test:eval` is the regression gate
+for the optimized-dependency list: its latency budgets must stay green
+whenever that list changes.
 
 Two optional local tools:
 
