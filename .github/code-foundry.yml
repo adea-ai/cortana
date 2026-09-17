@@ -6,7 +6,13 @@ codeql: auto
 dependency_review: auto
 package_manager: bun
 runtime_repository: 0xPlayerOne/code-foundry
-runtime_ref: v1.28.15
+runtime_ref: v1.29.0
+rust_sccache: true
+rust_nextest: true
+# Integration tests exercise installer, release-packaging, and sidecar
+# boundaries, so they stay affected by nearly every code path; docs-only or
+# metadata-only diffs are the cases this filter skips.
+filter_integration: 'src/**,crates/**,tests/**,scripts/**,skills/**,apps/**,eval/**,pyproject.toml,uv.lock,Cargo.toml,Cargo.lock,bun.lock,package.json,release-please-config.json,.release-please-manifest.json'
 runner: ubuntu-latest
 unit_runner: ubuntu-latest
 ci_runner: ubuntu-latest
