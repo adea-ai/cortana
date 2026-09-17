@@ -763,7 +763,8 @@ fn cargo_lock_member_versions_carry_release_markers() {
             "lock entry {package} must end with the x-release-please-version marker: {version_line}"
         );
     }
-    let manifest_version = read("Cargo.toml")
+    let manifest_contents = read("Cargo.toml");
+    let manifest_version = manifest_contents
         .lines()
         .find_map(|line| line.strip_prefix("version = \""))
         .map(|value| value.trim_end_matches('"'))
