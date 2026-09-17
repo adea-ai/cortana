@@ -10,8 +10,7 @@ import { spawn, spawnSync } from 'node:child_process'
 // Prefer nextest's process-per-test runner when it is installed: each eval
 // case is an independent `cortana` CLI invocation, so they parallelize safely.
 // CI installs it when `rust_nextest` is enabled in .github/code-foundry.yml.
-const hasNextest =
-  spawnSync('cargo', ['nextest', '--version'], { stdio: 'ignore' }).status === 0
+const hasNextest = spawnSync('cargo', ['nextest', '--version'], { stdio: 'ignore' }).status === 0
 
 const lanes = [
   ['js', ['bun', 'scripts/run-js-tests.mjs']],
