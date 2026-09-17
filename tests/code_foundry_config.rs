@@ -733,3 +733,76 @@ fn release_preflight_metadata_contract_stays_in_runtime() {
         "release caller must delegate the release contract to the pinned runtime"
     );
 }
+
+/// The root Cargo.lock's five `cortana*` package entries carry the
+/// `# x-release-please-version` marker so release-please's generic updater
+/// bumps member versions alongside the manifests. Without the marker every
+/// release regenerates a lock whose members lag the manifests, and every
+/// `--locked` build (the container image, for one) fails until a human
+/// resyncs it. The committed lock is what release-please edits, so the
+/// contract reads HEAD via git: a local `cargo test` rewrite strips inline
+/// comments from the working copy and must not mask a stripped commit.
+#[test]
+fn cargo_lock_member_versions_carry_release_markers() {
+    let lock = committed_file("Cargo.lock");
+    for package in [
+        "cortana",
+        "cortana-core",
+        "cortana-mcp",
+        "cortana-retrieval",
+        "cortana-server",
+    ] {
+        let entry = lock
+            .split(&format!("\nname = \"{package}\"\n"))
+            .nth(1)
+            .unwrap_or_else(|| panic!("Cargo.lock must contain package {package}"));
+        let version_line = entry.lines().next().expect("version line follows the name");
+        assert!(
+            version_line.starts_with("version = \"")
+                && version_line.ends_with("\" # x-release-please-version"),
+            "lock entry {package} must end with the x-release-please-version marker: {version_line}"
+        );
+    }
+    let manifest_version = read("Cargo.toml")
+        .lines()
+        .find_map(|line| line.strip_prefix("version = \""))
+        .map(|value| value.trim_end_matches('"'))
+        .expect("root Cargo.toml must declare a version");
+    for package in [
+        "cortana",
+        "cortana-core",
+        "cortana-mcp",
+        "cortana-retrieval",
+        "cortana-server",
+    ] {
+        let entry = lock
+            .split(&format!("\nname = \"{package}\"\n"))
+            .nth(1)
+            .unwrap();
+        let lock_version = entry
+            .lines()
+            .next()
+            .unwrap()
+            .trim_start_matches("version = \"")
+            .trim_end_matches("\" # x-release-please-version");
+        assert_eq!(
+            lock_version, manifest_version,
+            "lock entry {package} must match the released manifest version"
+        );
+    }
+}
+
+/// Read a file as committed at HEAD, bypassing working-tree rewrites.
+fn committed_file(path: &str) -> String {
+    let output = std::process::Command::new("git")
+        .args(["show", &format!("HEAD:{path}")])
+        .current_dir(repo_root())
+        .output()
+        .expect("git must be available to read the committed lock");
+    assert!(
+        output.status.success(),
+        "failed to read committed {path}: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    String::from_utf8(output.stdout).expect("committed files are valid UTF-8")
+}
