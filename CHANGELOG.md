@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.58.4](https://github.com/adea-ai/cortana/compare/v0.58.3...v0.58.4) (2026-09-16)
+
+
+### Performance
+
+* **web:** SolidJS architecture audit — startup graph, fine-grained reactivity, SWR caching ([#2335](https://github.com/adea-ai/cortana/issues/2335)) ([94bec32](https://github.com/adea-ai/cortana/commit/94bec32c090e93430b48f544b8f0a53b6d6d588f))
+
 ## [0.58.3](https://github.com/adea-ai/cortana/compare/v0.58.2...v0.58.3) (2026-09-16)
 
 
