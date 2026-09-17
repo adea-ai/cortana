@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.58.5](https://github.com/adea-ai/cortana/compare/v0.58.4...v0.58.5) (2026-09-17)
+
+
+### Performance
+
+* **web:** split SettingsView chunk per section and lazy-load secondary panes ([#2339](https://github.com/adea-ai/cortana/issues/2339)) ([2e0f27b](https://github.com/adea-ai/cortana/commit/2e0f27b7ead0184cbab3eab49c25ffd4a05b7bf0))
+
 ## [0.58.4](https://github.com/adea-ai/cortana/compare/v0.58.3...v0.58.4) (2026-09-16)
 
 
