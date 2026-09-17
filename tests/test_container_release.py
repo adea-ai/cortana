@@ -328,7 +328,7 @@ class ConfigurationTests(unittest.TestCase):
         self.assertLess(dockerfile.index("pip install"), dockerfile.index("ARG CORTANA_VERSION"))
         self.assertIn("id=cargo-registry-${TARGETARCH}", dockerfile)
         self.assertIn("mkdir -p cargo-skeleton/src", dockerfile)
-        self.assertIn("[workspace]", dockerfile)
+        self.assertIn("COPY crates/core/Cargo.toml crates/core/Cargo.toml", dockerfile)
         self.assertIn("cargo build --release --locked --bin cortana", dockerfile)
         self.assertEqual(dockerfile.count("CARGO_PROFILE_RELEASE_LTO=false"), 2)
         self.assertEqual(dockerfile.count("CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16"), 2)

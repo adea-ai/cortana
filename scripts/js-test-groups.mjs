@@ -1,9 +1,9 @@
 import { availableParallelism } from 'node:os'
 
-// Two child processes are a safe default for Happy DOM and packaging tests;
-// callers can raise or lower this explicitly when their runner has different
-// CPU/memory characteristics.
-const DEFAULT_MAX_PARALLEL = 2
+// Four child processes are a safe default for Happy DOM and packaging tests;
+// resource-heavy suites are scheduled exclusively regardless. Callers can
+// raise or lower this explicitly for different runner characteristics.
+const DEFAULT_MAX_PARALLEL = 4
 
 /**
  * Keep API-mock suites in their own Bun process while grouping pure tests to

@@ -36,7 +36,7 @@ jobs:
       performance-runner: ubuntu-latest
       security-runner: ubuntu-slim
       codeql-runner: ubuntu-latest
-      rust-shards: '["src","tests","apps/desktop/src-tauri","third_party/glib-0.18.5"]'
+      rust-shards: '["src","crates","tests","apps/desktop/src-tauri","third_party/glib-0.18.5"]'
       rust-threads: '4'
       rust-max-parallel: 4
     secrets:

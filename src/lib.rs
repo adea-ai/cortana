@@ -1,46 +1,8 @@
-pub mod answer;
-pub mod api;
-pub mod auth;
-pub mod buzz_communities;
-pub mod chunking;
-pub mod classification;
-pub mod code_intelligence;
-pub mod config;
-pub mod connectors;
-pub mod consolidation;
-pub mod context;
-pub mod contracts;
-pub mod derived;
-pub mod device_identity;
-pub mod discord_rpc;
-pub mod embed;
-pub mod evaluation;
-pub mod fleet;
-pub mod github_oauth;
-pub mod google_oauth;
-pub mod integration;
-pub mod knowledge_evaluation;
-pub mod knowledge_graph;
-pub mod mcp;
-pub mod memory;
-pub mod memory_evaluation;
-pub mod migration;
-pub mod model;
-pub mod oauth_common;
-pub mod observation;
-pub mod provider;
-pub mod provider_models;
-pub mod readiness;
-pub mod reflection;
-pub mod relay;
-pub mod retrieval;
-pub mod service;
-pub mod slack_oauth;
-pub mod source_status;
-pub mod source_validation;
-pub mod store;
-pub mod supervisor;
-pub mod sync_engine;
-pub mod team;
-pub mod tenant;
-pub mod vault_export;
+// The library surface is split across workspace crates so compile units stay
+// independent: cortana-core holds storage, memory, and ingestion;
+// cortana-retrieval holds the embedding/answer engine; cortana-server holds
+// the HTTP API and relay; cortana-mcp holds the MCP server. This facade
+// re-exports the full module tree so `cortana::api`, `cortana::store`, and
+// friends keep working for the binary and integration tests.
+pub use cortana_mcp::*;
+pub use cortana_server::*;

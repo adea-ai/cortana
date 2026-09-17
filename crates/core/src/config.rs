@@ -418,11 +418,60 @@ impl Default for QueryConfig {
     }
 }
 
+/// The bounded retrieval policy derived from `QueryConfig`. It lives in
+/// `config` rather than `retrieval` so configuration can produce the type
+/// without an upward dependency into the retrieval engine.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+pub struct RetrievalTuning {
+    pub candidate_multiplier: usize,
+    pub semantic_weight: f32,
+    pub lexical_weight: f32,
+    pub idf_weight: f32,
+    pub recency_weight: f32,
+    /// Apply the bounded, deterministic local reranker after hybrid fusion.
+    /// It never calls a provider and remains disabled by default.
+    pub reranker_enabled: bool,
+}
+
+impl Default for RetrievalTuning {
+    fn default() -> Self {
+        Self {
+            candidate_multiplier: 8,
+            semantic_weight: 1.0,
+            lexical_weight: 1.2,
+            idf_weight: 0.08,
+            recency_weight: 0.1,
+            reranker_enabled: false,
+        }
+    }
+}
+
+impl RetrievalTuning {
+    pub fn bounded(self) -> Self {
+        Self {
+            candidate_multiplier: self.candidate_multiplier.clamp(1, 32),
+            semantic_weight: bounded_weight(self.semantic_weight, 1.0, 4.0),
+            lexical_weight: bounded_weight(self.lexical_weight, 1.2, 4.0),
+            idf_weight: bounded_weight(self.idf_weight, 0.08, 1.0),
+            recency_weight: bounded_weight(self.recency_weight, 0.1, 1.0),
+            reranker_enabled: self.reranker_enabled,
+        }
+    }
+}
+
+fn bounded_weight(value: f32, fallback: f32, maximum: f32) -> f32 {
+    if value.is_finite() {
+        value.clamp(0.0, maximum)
+    } else {
+        fallback
+    }
+}
+
 impl QueryConfig {
     /// Return the bounded retrieval policy shared by HTTP, MCP, CLI, and
     /// provider-backed answer paths.
-    pub fn retrieval_tuning(&self) -> crate::retrieval::RetrievalTuning {
-        crate::retrieval::RetrievalTuning {
+    pub fn retrieval_tuning(&self) -> RetrievalTuning {
+        RetrievalTuning {
             candidate_multiplier: self.candidate_multiplier,
             semantic_weight: self.semantic_weight,
             lexical_weight: self.lexical_weight,

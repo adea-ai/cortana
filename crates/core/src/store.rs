@@ -985,7 +985,7 @@ impl Store {
     /// This is intentionally scoped to synthetic evaluation data: production
     /// ingestion keeps the per-document upsert semantics above so a partial
     /// sync can be resumed safely.
-    pub(crate) fn insert_evaluation_corpus(
+    pub fn insert_evaluation_corpus(
         &self,
         documents: &[Document],
         embedding: &[f32],
@@ -4648,7 +4648,7 @@ impl Store {
         principal_acl: &[String],
         limit: usize,
     ) -> Result<Vec<SymbolSearchHit>> {
-        let limit = limit.clamp(1, crate::retrieval::MAX_RESULT_LIMIT);
+        let limit = limit.clamp(1, crate::model::MAX_RESULT_LIMIT);
         let query = query.trim().to_ascii_lowercase();
         anyhow::ensure!(!query.is_empty(), "code symbol query is empty");
         let connection = self.connection.lock().expect("store lock poisoned");
@@ -4754,7 +4754,7 @@ impl Store {
         cursor: usize,
         limit: usize,
     ) -> Result<RelationPage> {
-        let limit = limit.clamp(1, crate::retrieval::MAX_RESULT_LIMIT);
+        let limit = limit.clamp(1, crate::model::MAX_RESULT_LIMIT);
         let connection = self.connection.lock().expect("store lock poisoned");
         let index_count: i64 = connection.query_row(
             "SELECT COUNT(*) FROM code_indexes ci JOIN documents d ON d.id=ci.document_id

@@ -5,63 +5,63 @@
   "documents": [
     {
       "id": "auth",
-      "path": "src/auth.rs",
+      "path": "crates/core/src/auth.rs",
       "symbol": "AuthPolicy",
       "expected_line": 68,
       "expected_fragment": "pub struct AuthPolicy"
     },
     {
       "id": "store",
-      "path": "src/store.rs",
+      "path": "crates/core/src/store.rs",
       "symbol": "code_relations",
       "expected_line": 4747,
       "expected_fragment": "pub fn code_relations"
     },
     {
       "id": "mcp",
-      "path": "src/mcp.rs",
+      "path": "crates/mcp/src/mcp.rs",
       "symbol": "search_code",
       "expected_line": 625,
       "expected_fragment": "async fn search_code"
     },
     {
       "id": "chunks",
-      "path": "src/chunking.rs",
+      "path": "crates/core/src/chunking.rs",
       "symbol": "chunk_document",
       "expected_line": 85,
       "expected_fragment": "pub fn chunk_document"
     },
     {
       "id": "connectors",
-      "path": "src/connectors.rs",
+      "path": "crates/core/src/connectors.rs",
       "symbol": "filesystem_documents",
       "expected_line": 106,
       "expected_fragment": "pub fn filesystem_documents"
     },
     {
       "id": "embed",
-      "path": "src/embed.rs",
+      "path": "crates/retrieval/src/embed.rs",
       "symbol": "DeterministicEmbedder",
       "expected_line": 403,
       "expected_fragment": "pub struct DeterministicEmbedder"
     },
     {
       "id": "context",
-      "path": "src/context.rs",
+      "path": "crates/core/src/context.rs",
       "symbol": "ContextBundle",
       "expected_line": 17,
       "expected_fragment": "pub struct ContextBundle"
     },
     {
       "id": "retrieval",
-      "path": "src/retrieval.rs",
+      "path": "crates/retrieval/src/retrieval.rs",
       "symbol": "retrieve_scoped_with_status",
-      "expected_line": 151,
+      "expected_line": 109,
       "expected_fragment": "pub async fn retrieve_scoped_with_status"
     },
     {
       "id": "parser",
-      "path": "src/code_intelligence.rs",
+      "path": "crates/core/src/code_intelligence.rs",
       "symbol": "parse_document",
       "expected_line": 587,
       "expected_fragment": "pub fn parse_document"
@@ -82,7 +82,7 @@
     },
     {
       "id": "api",
-      "path": "src/api.rs",
+      "path": "crates/server/src/api.rs",
       "symbol": "code_symbols",
       "expected_line": 2585,
       "expected_fragment": "async fn code_symbols"
@@ -93,7 +93,11 @@
     "max_peak_memory_bytes": 16777216
   },
   "queries": [
-    { "class": "exact_identifier", "query": "AuthPolicy", "expected": "auth" },
+    {
+      "class": "exact_identifier",
+      "query": "AuthPolicy",
+      "expected": "auth"
+    },
     {
       "class": "architecture",
       "query": "ContextBundle evidence and token budget",
@@ -104,18 +108,30 @@
       "query": "_get_with_backoff retry rate limited connector",
       "expected": "retry"
     },
-    { "class": "api", "query": "code_symbols exact definition API", "expected": "api" },
+    {
+      "class": "api",
+      "query": "code_symbols exact definition API",
+      "expected": "api"
+    },
     {
       "class": "dependency",
       "query": "filesystem_documents repository traversal",
       "expected": "connectors"
     },
-    { "class": "impact", "query": "code_relations callers impact graph", "expected": "store" },
+    {
+      "class": "impact",
+      "query": "code_relations callers impact graph",
+      "expected": "store"
+    },
     {
       "class": "retrieval",
       "query": "retrieve_scoped_with_status semantic lexical fallback",
       "expected": "retrieval"
     },
-    { "class": "parsing", "query": "parse_document language parser", "expected": "parser" }
+    {
+      "class": "parsing",
+      "query": "parse_document language parser",
+      "expected": "parser"
+    }
   ]
 }

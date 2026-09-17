@@ -1,0 +1,24 @@
+[package]
+name = "cortana-mcp"
+description = "Model Context Protocol server surface for the Cortana second brain"
+version = "0.58.5"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+cortana-core.workspace = true
+cortana-retrieval.workspace = true
+anyhow.workspace = true
+rmcp.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+chrono.workspace = true
+tempfile.workspace = true
+toml.workspace = true

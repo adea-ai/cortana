@@ -443,7 +443,7 @@ pub(crate) fn valid_until_is_active(valid_until: Option<&str>, now: &str) -> boo
 /// Classify store errors that mean the caller is outside the memory's scope.
 /// Interfaces use this to return a stable authorization response without
 /// exposing dedupe keys, memory ids, or internal ACL details.
-pub(crate) fn is_authorization_error(error: &anyhow::Error) -> bool {
+pub fn is_authorization_error(error: &anyhow::Error) -> bool {
     let message = error.to_string();
     message == "memory ACL denied"
         || message == "candidate ACL denied"

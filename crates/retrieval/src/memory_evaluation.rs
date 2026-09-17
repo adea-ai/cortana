@@ -551,9 +551,10 @@ fn validate_private_metrics(metrics: &PrivateGateMetrics) -> Result<()> {
 }
 
 pub async fn run_default() -> Result<MemoryEvaluationReport> {
-    let fixture: MemoryEvaluationFixture =
-        serde_json::from_str(include_str!("../eval/memory-intelligence-fixtures.json"))
-            .context("invalid built-in memory evaluation fixture")?;
+    let fixture: MemoryEvaluationFixture = serde_json::from_str(include_str!(
+        "../../../eval/memory-intelligence-fixtures.json"
+    ))
+    .context("invalid built-in memory evaluation fixture")?;
     run_fixture(fixture).await
 }
 
@@ -1890,17 +1891,20 @@ mod tests {
 
     #[test]
     fn executable_fixture_cannot_self_assert_private_approval() {
-        let mut fixture: MemoryEvaluationFixture =
-            serde_json::from_str(include_str!("../eval/memory-intelligence-fixtures.json"))
-                .expect("built-in fixture");
+        let mut fixture: MemoryEvaluationFixture = serde_json::from_str(include_str!(
+            "../../../eval/memory-intelligence-fixtures.json"
+        ))
+        .expect("built-in fixture");
         fixture.fixture_class = "approved-private".into();
         let error = validate_fixture(&fixture).expect_err("private evidence is external");
         assert!(error.to_string().contains("must be synthetic"));
     }
 
     fn built_in_fixture() -> MemoryEvaluationFixture {
-        serde_json::from_str(include_str!("../eval/memory-intelligence-fixtures.json"))
-            .expect("built-in fixture")
+        serde_json::from_str(include_str!(
+            "../../../eval/memory-intelligence-fixtures.json"
+        ))
+        .expect("built-in fixture")
     }
 
     #[test]
@@ -2021,7 +2025,7 @@ mod tests {
     #[test]
     fn private_evidence_verifier_requires_approved_complete_external_results() {
         let mut template: serde_json::Value = serde_json::from_str(include_str!(
-            "../eval/memory-intelligence-private.example.json"
+            "../../../eval/memory-intelligence-private.example.json"
         ))
         .expect("private template");
         template["approved"] = true.into();

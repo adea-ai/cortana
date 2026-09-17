@@ -94,7 +94,7 @@ jobs:
       security-runner: ubuntu-slim
       eval-runner: ubuntu-latest
       codeql-runner: ubuntu-latest
-      rust-shards: '["src","tests","apps/desktop/src-tauri","third_party/glib-0.18.5"]'
+      rust-shards: '["src","crates","tests","apps/desktop/src-tauri","third_party/glib-0.18.5"]'
       rust-threads: '4'
       rust-max-parallel: 4
     secrets:
@@ -117,6 +117,6 @@ jobs:
       runtime-repository: 0xPlayerOne/code-foundry
       runtime-ref: v1.28.15
       runner: ubuntu-latest
-      rust-shards: '["src","tests","apps/desktop/src-tauri","third_party/glib-0.18.5"]'
+      rust-shards: '["src","crates","tests","apps/desktop/src-tauri","third_party/glib-0.18.5"]'
       rust-threads: '4'
       rust-max-parallel: 4

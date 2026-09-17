@@ -9,6 +9,7 @@ on:
       - .dockerignore
       - deploy/self-hosted/**
       - src/**
+      - crates/**
       - eval/**
       - Cargo.toml
       - Cargo.lock

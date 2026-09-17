@@ -55,6 +55,7 @@ const bunArgs = [
 ]
 const isolatedNames = new Set([
   'App.desktop.test.tsx',
+  'desktop-macos-lifecycle-acceptance.test.mjs',
   'App.test.tsx',
   'App.utility.test.tsx',
   'BuzzCommunities.test.tsx',
@@ -69,6 +70,9 @@ const isolatedNames = new Set([
 ])
 const exclusiveNames = new Set([
   'App.desktop.test.tsx',
+  // Probes the live desktop process through AppleScript; run alone so UI
+  // scripting latency never contends with other suites.
+  'desktop-macos-lifecycle-acceptance.test.mjs',
   'App.utility.test.tsx',
   'SourceInitialSync.test.tsx',
   'sourceJobs.test.ts',

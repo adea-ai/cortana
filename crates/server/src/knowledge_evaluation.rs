@@ -206,7 +206,7 @@ struct ResponseSample {
 
 pub async fn run_default() -> Result<KnowledgeEvaluationReport> {
     let fixture: KnowledgeEvaluationFixture =
-        serde_json::from_str(include_str!("../eval/knowledge-graph-v1.json"))
+        serde_json::from_str(include_str!("../../../eval/knowledge-graph-v1.json"))
             .context("invalid built-in knowledge evaluation fixture")?;
     run_fixture(fixture).await
 }
@@ -1127,7 +1127,7 @@ mod tests {
     #[test]
     fn built_in_fixture_is_bounded_and_complete() {
         let fixture: KnowledgeEvaluationFixture =
-            serde_json::from_str(include_str!("../eval/knowledge-graph-v1.json")).unwrap();
+            serde_json::from_str(include_str!("../../../eval/knowledge-graph-v1.json")).unwrap();
         validate_fixture(&fixture).unwrap();
         assert_eq!(fixture.corpus.workspaces, 25);
         assert_eq!(

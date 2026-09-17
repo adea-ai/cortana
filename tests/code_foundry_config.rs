@@ -25,14 +25,33 @@ fn read(path: &str) -> String {
         .unwrap_or_else(|error| panic!("failed to read {}: {error}", full.display()))
 }
 
-/// Assert the standalone-manifest Cargo layout the shard list is based on.
+/// Assert the workspace Cargo layout the shard list is based on: the root
+/// package plus `crates/*` members, with the Tauri app and vendored glib
+/// excluded so they keep their standalone manifests.
 #[test]
-fn cargo_layout_has_no_workspace_to_shard() {
+fn cargo_layout_shards_the_workspace() {
     let root_cargo = read("Cargo.toml");
     assert!(
-        !root_cargo.lines().any(|line| line.trim() == "[workspace]"),
-        "root Cargo.toml unexpectedly declares a [workspace]; re-evaluate Rust CodeQL sharding"
+        root_cargo.lines().any(|line| line.trim() == "[workspace]"),
+        "root Cargo.toml must declare the [workspace] the shard list covers"
     );
+    assert!(
+        root_cargo.contains("members = [\"crates/*\"]"),
+        "workspace members must stay crates/* so the `crates` shard covers them"
+    );
+    for excluded in ["apps/desktop/src-tauri", "third_party/glib-0.18.5"] {
+        assert!(
+            root_cargo.contains(&format!("\"{excluded}\"")),
+            "{excluded} must stay excluded from the workspace so its own manifest shards"
+        );
+    }
+    for member in ["core", "retrieval", "server", "mcp"] {
+        let manifest = format!("crates/{member}/Cargo.toml");
+        assert!(
+            repo_root().join(&manifest).exists(),
+            "workspace member {manifest} must exist for the `crates` shard"
+        );
+    }
     let desktop_cargo = read("apps/desktop/src-tauri/Cargo.toml");
     assert!(
         !desktop_cargo
@@ -40,7 +59,6 @@ fn cargo_layout_has_no_workspace_to_shard() {
             .any(|line| line.trim() == "[workspace]"),
         "desktop Cargo.toml unexpectedly declares a [workspace]; re-evaluate Rust CodeQL sharding"
     );
-    // Single workspace member at the repository root, mirroring `cargo metadata --no-deps`.
     assert!(
         root_cargo.contains("name = \"cortana\""),
         "root Cargo.toml package name changed; update this assertion"
@@ -112,6 +130,10 @@ fn release_version_files_stay_aligned() {
     for (path, prefix) in [
         ("pyproject.toml", "version = "),
         ("apps/desktop/src-tauri/Cargo.toml", "version = "),
+        ("crates/core/Cargo.toml", "version = "),
+        ("crates/retrieval/Cargo.toml", "version = "),
+        ("crates/server/Cargo.toml", "version = "),
+        ("crates/mcp/Cargo.toml", "version = "),
     ] {
         assert_eq!(assigned_version(path, prefix), expected, "{path}");
     }
@@ -144,10 +166,10 @@ fn release_merge_policy_matches_runtime_contract() {
 }
 
 /// Rust CodeQL is sharded by source root rather than running a
-/// whole-workspace "all" pass: src, tests, the Tauri crate, and the vendored
-/// glib build cover every tracked .rs file, and the three manifest shards run
-/// concurrently. GitHub code scanning tracks every analysis category it has
-/// seen and blocks the merge gate until each tracked category reports, so
+/// whole-workspace "all" pass: src, crates, tests, the Tauri crate, and the
+/// vendored glib build cover every tracked .rs file, and the manifest shards
+/// run concurrently. GitHub code scanning tracks every analysis category it
+/// has seen and blocks the merge gate until each tracked category reports, so
 /// retiring the previous "all" category requires deleting its analyses on the
 /// default branch after this lands. Four CodeQL threads per shard use the
 /// full runner.
@@ -155,7 +177,7 @@ fn release_merge_policy_matches_runtime_contract() {
 fn rust_codeql_shards_standalone_manifests() {
     assert_eq!(
         config_value("codeql_rust_shards"),
-        "'[\"src\",\"tests\",\"apps/desktop/src-tauri\",\"third_party/glib-0.18.5\"]'"
+        "'[\"src\",\"crates\",\"tests\",\"apps/desktop/src-tauri\",\"third_party/glib-0.18.5\"]'"
     );
     assert_eq!(config_value("codeql_rust_threads"), "4");
     assert_eq!(config_value("codeql_rust_max_parallel"), "4");
@@ -163,7 +185,7 @@ fn rust_codeql_shards_standalone_manifests() {
     let caller = read(".github/workflows/validation.yml");
     assert!(
         caller.contains(
-            "rust-shards: '[\"src\",\"tests\",\"apps/desktop/src-tauri\",\"third_party/glib-0.18.5\"]'"
+            "rust-shards: '[\"src\",\"crates\",\"tests\",\"apps/desktop/src-tauri\",\"third_party/glib-0.18.5\"]'"
         ),
         "validation caller must forward the shard list:\n{caller}"
     );
