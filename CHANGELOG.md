@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.58.7](https://github.com/adea-ai/cortana/compare/v0.58.6...v0.58.7) (2026-09-17)
+
+
+### Bug Fixes
+
+* keep Cargo.lock member versions in sync across release bumps ([#2344](https://github.com/adea-ai/cortana/issues/2344)) ([add5026](https://github.com/adea-ai/cortana/commit/add5026570a90853dd92189e4dd31a9cd100f247))
+
 ## [0.58.6](https://github.com/adea-ai/cortana/compare/v0.58.5...v0.58.6) (2026-09-17)
 
 
