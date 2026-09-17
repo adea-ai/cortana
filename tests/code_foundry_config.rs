@@ -477,7 +477,7 @@ fn desktop_linux_release_compile_is_gated() {
         test_tail,
         "- name: Test desktop",
         "desktop_test",
-        &desktop_test,
+        desktop_test,
     );
     assert!(
         test_tail.contains("- name: Test desktop")
@@ -497,7 +497,7 @@ fn desktop_linux_release_compile_is_gated() {
         clippy_tail,
         "- name: Lint desktop",
         "desktop_clippy",
-        &desktop_clippy,
+        desktop_clippy,
     );
     assert!(
         clippy_tail.contains("- name: Lint desktop")
