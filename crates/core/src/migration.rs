@@ -448,14 +448,14 @@ impl MigrationTransaction {
         match result {
             Ok(()) => {
                 for output in &self.outputs {
-                    if let Some(backup) = &output.backup {
-                        if let Err(error) = fs::remove_file(backup) {
-                            tracing::warn!(
-                                path = %backup.display(),
-                                %error,
-                                "failed to remove migration backup after successful publication"
-                            );
-                        }
+                    if let Some(backup) = &output.backup
+                        && let Err(error) = fs::remove_file(backup)
+                    {
+                        tracing::warn!(
+                            path = %backup.display(),
+                            %error,
+                            "failed to remove migration backup after successful publication"
+                        );
                     }
                 }
                 Ok(())
@@ -476,33 +476,33 @@ impl MigrationTransaction {
     fn rollback(&mut self) -> Result<()> {
         let mut first_error = None;
         for output in self.outputs.iter_mut().rev() {
-            if output.published {
-                if let Err(error) = fs::remove_file(&output.path) {
-                    if error.kind() != std::io::ErrorKind::NotFound && first_error.is_none() {
-                        first_error = Some(anyhow::anyhow!(
-                            "failed to remove partially published {}: {error}",
-                            output.path.display()
-                        ));
-                    }
-                }
+            if output.published
+                && let Err(error) = fs::remove_file(&output.path)
+                && error.kind() != std::io::ErrorKind::NotFound
+                && first_error.is_none()
+            {
+                first_error = Some(anyhow::anyhow!(
+                    "failed to remove partially published {}: {error}",
+                    output.path.display()
+                ));
             }
-            if let Some(backup) = output.backup.take() {
-                if let Err(error) = fs::rename(&backup, &output.path) {
-                    if first_error.is_none() {
-                        first_error = Some(anyhow::anyhow!(
-                            "failed to restore {} from backup: {error}",
-                            output.path.display()
-                        ));
-                    }
-                }
+            if let Some(backup) = output.backup.take()
+                && let Err(error) = fs::rename(&backup, &output.path)
+                && first_error.is_none()
+            {
+                first_error = Some(anyhow::anyhow!(
+                    "failed to restore {} from backup: {error}",
+                    output.path.display()
+                ));
             }
-            if let Err(error) = fs::remove_file(&output.temporary) {
-                if error.kind() != std::io::ErrorKind::NotFound && first_error.is_none() {
-                    first_error = Some(anyhow::anyhow!(
-                        "failed to remove staged {}: {error}",
-                        output.path.display()
-                    ));
-                }
+            if let Err(error) = fs::remove_file(&output.temporary)
+                && error.kind() != std::io::ErrorKind::NotFound
+                && first_error.is_none()
+            {
+                first_error = Some(anyhow::anyhow!(
+                    "failed to remove staged {}: {error}",
+                    output.path.display()
+                ));
             }
         }
         match first_error {

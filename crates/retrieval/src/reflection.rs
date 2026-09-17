@@ -779,10 +779,11 @@ fn authorize_and_select_memories(
     if request.project.is_none() && projects.len() > 1 {
         bail!("reflection requires a project filter for cross-workspace memory");
     }
-    if let Some(scope) = request.memory.scope.as_deref() {
-        if scope == "owner-global" && !inputs.owner {
-            bail!("owner-global reflection requires owner authorization");
-        }
+    if let Some(scope) = request.memory.scope.as_deref()
+        && scope == "owner-global"
+        && !inputs.owner
+    {
+        bail!("owner-global reflection requires owner authorization");
     }
     Ok(selected)
 }

@@ -84,7 +84,7 @@ jobs:
       # Pull requests validate the proposed runtime commit. Scheduled and
       # manually dispatched audits use a separate default-branch-pinned caller,
       # so this caller-selected ref never runs with default-branch cache access.
-      runtime-ref: v1.29.0
+      runtime-ref: v1.29.1
       ci-runner: ubuntu-latest
       test-runner: ubuntu-latest
       unit-runner: ubuntu-latest
@@ -113,7 +113,7 @@ jobs:
     uses: 0xPlayerOne/code-foundry/.github/workflows/codeql.yml@v1.29.0
     with:
       runtime-repository: 0xPlayerOne/code-foundry
-      runtime-ref: v1.29.0
+      runtime-ref: v1.29.1
       runner: ubuntu-latest
       rust-shards: '["src","crates","tests","apps/desktop/src-tauri","third_party/glib-0.18.5"]'
       rust-threads: '4'

@@ -205,14 +205,14 @@ impl AppState {
         // becoming an unbounded memory consumer. The oldest entry is not
         // required for correctness; any entry is safe to evict because a
         // cache miss still fails closed when a fresh probe is unavailable.
-        if cache.len() >= 32 && !cache.contains_key(&key) {
-            if let Some(oldest_key) = cache
+        if cache.len() >= 32
+            && !cache.contains_key(&key)
+            && let Some(oldest_key) = cache
                 .iter()
                 .min_by_key(|(_, value)| value.captured_at)
                 .map(|(key, _)| key.clone())
-            {
-                cache.remove(&oldest_key);
-            }
+        {
+            cache.remove(&oldest_key);
         }
         cache.insert(
             key,
