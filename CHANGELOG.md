@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.58.6](https://github.com/adea-ai/cortana/compare/v0.58.5...v0.58.6) (2026-09-17)
+
+
+### Maintenance
+
+* split Rust binary into workspace crates and parallelize dev lanes ([#2341](https://github.com/adea-ai/cortana/issues/2341)) ([e8dbbc6](https://github.com/adea-ai/cortana/commit/e8dbbc6bc4ae838aba4820380be68aff11aa5ff1))
+
 ## [0.58.5](https://github.com/adea-ai/cortana/compare/v0.58.4...v0.58.5) (2026-09-17)
 
 
