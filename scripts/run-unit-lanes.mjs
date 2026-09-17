@@ -5,13 +5,24 @@
 // no state, so running them together makes wall time the slowest lane.
 // The bundle-budget check already runs inside `apps/web`'s build script, so the
 // web lane covers the trailing budget gate from the old serial chain.
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
+
+// Prefer nextest's process-per-test runner when it is installed: each eval
+// case is an independent `cortana` CLI invocation, so they parallelize safely.
+// CI installs it when `rust_nextest` is enabled in .github/code-foundry.yml.
+const hasNextest =
+  spawnSync('cargo', ['nextest', '--version'], { stdio: 'ignore' }).status === 0
 
 const lanes = [
   ['js', ['bun', 'scripts/run-js-tests.mjs']],
   ['pytest', ['uv', 'run', 'pytest', '-m', 'not integration and not smoke']],
   ['docs', ['uv', 'run', 'python', 'scripts/check-docs-consistency.py']],
-  ['eval', ['cargo', 'test', '--test', 'evaluation', '--', '--nocapture']],
+  [
+    'eval',
+    hasNextest
+      ? ['cargo', 'nextest', 'run', '--test', 'evaluation', '--no-capture']
+      : ['cargo', 'test', '--test', 'evaluation', '--', '--nocapture'],
+  ],
   ['web', ['bun', 'run', '--cwd', 'apps/web', 'build']],
 ]
 
