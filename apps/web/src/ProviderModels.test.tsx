@@ -119,7 +119,7 @@ mock.module('./api', () => ({
   },
 }))
 const { SettingsView } = await import('./components/SettingsView')
-function renderEmbeddingSettings() {
+async function renderEmbeddingSettings() {
   render(() => (
     <SettingsView
       initialSection="embedding"
@@ -129,6 +129,10 @@ function renderEmbeddingSettings() {
       }}
     />
   ))
+  // The embedding section is a lazy chunk; wait for it before querying.
+  await screen.findByRole('combobox', {
+    name: 'Model catalog',
+  })
 }
 function modelCatalog(): HTMLElement {
   return screen.getByRole('combobox', {
@@ -145,7 +149,7 @@ async function openEmbeddingCatalog() {
 test('refresh exposes provider-advertised models without stale cloud presets', async () => {
   // The current model is one the provider advertises, so the select stays.
   state.settings.embedding.model = 'text-embedding-3-small'
-  renderEmbeddingSettings()
+  await renderEmbeddingSettings()
 
   // Cloud models are not maintained as a stale static list; discovery is the
   // source of truth and the current value is preserved as custom until then.
@@ -171,7 +175,7 @@ test('refresh exposes provider-advertised models without stale cloud presets', a
 })
 test('a current model that is not advertised falls back to the custom field unchanged', async () => {
   state.settings.embedding.model = 'provider-custom-embedding'
-  renderEmbeddingSettings()
+  await renderEmbeddingSettings()
   fireEvent.click(
     screen.getByRole('button', {
       name: /Refresh Embedding model models/,
@@ -187,7 +191,7 @@ test('a current model that is not advertised falls back to the custom field unch
 test('selecting an advertised model updates the provider settings', async () => {
   const user = userEvent.setup()
   state.settings.embedding.model = 'text-embedding-3-small'
-  renderEmbeddingSettings()
+  await renderEmbeddingSettings()
   fireEvent.click(
     screen.getByRole('button', {
       name: /Refresh Embedding model models/,
@@ -211,7 +215,7 @@ test('selecting an advertised model updates the provider settings', async () => 
 })
 test('failed discovery keeps the explicit model and reports the error', async () => {
   state.refreshError = new Error('provider /models request failed with status 404')
-  renderEmbeddingSettings()
+  await renderEmbeddingSettings()
   fireEvent.click(
     screen.getByRole('button', {
       name: /Refresh Embedding model models/,
@@ -225,7 +229,7 @@ test('failed discovery keeps the explicit model and reports the error', async ()
 test('changing the endpoint invalidates the advertised catalog', async () => {
   const user = userEvent.setup()
   state.settings.embedding.model = 'text-embedding-3-small'
-  renderEmbeddingSettings()
+  await renderEmbeddingSettings()
   fireEvent.click(
     screen.getByRole('button', {
       name: /Refresh Embedding model models/,
@@ -294,7 +298,7 @@ test('query section refreshes the query provider separately', async () => {
     />
   ))
   fireEvent.click(
-    screen.getByRole('button', {
+    await screen.findByRole('button', {
       name: /Refresh Query and answer model models/,
     })
   )

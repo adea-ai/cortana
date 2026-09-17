@@ -730,7 +730,7 @@ test('shadcn settings compose generated source controls', async () => {
     })
   ).toBeTruthy()
 })
-test('shadcn settings keep configured secrets write-only', () => {
+test('shadcn settings keep configured secrets write-only', async () => {
   const tokenEnv = 'CORTANA_AGENT_TOKEN'
   const accessSettings: DesktopSettings = {
     ...desktopSettings,
@@ -757,6 +757,8 @@ test('shadcn settings keep configured secrets write-only', () => {
       onSaved={() => undefined}
     />
   ))
+  // The access section is a lazy chunk; wait for it before querying.
+  await screen.findByLabelText('Principal name')
   const secretInputs = Array.from(
     document.querySelectorAll<HTMLInputElement>('input[type="password"]')
   )
@@ -852,7 +854,7 @@ test('secret replacement after a confirmed clear submits the replacement instead
       />
     ))
     fireEvent.click(
-      screen.getByRole('button', {
+      await screen.findByRole('button', {
         name: 'Clear stored token',
       })
     )
@@ -878,7 +880,7 @@ test('secret replacement after a confirmed clear submits the replacement instead
     window.confirm = originalConfirm
   }
 })
-test('cancelling principal removal leaves the access draft unchanged', () => {
+test('cancelling principal removal leaves the access draft unchanged', async () => {
   const originalConfirm = window.confirm
   window.confirm = () => false
   try {
@@ -900,7 +902,7 @@ test('cancelling principal removal leaves the access draft unchanged', () => {
       />
     ))
     fireEvent.click(
-      screen.getByRole('button', {
+      await screen.findByRole('button', {
         name: 'Remove desktop-agent',
       })
     )
@@ -1915,7 +1917,7 @@ test('query number fields expose deterministic errors and recover to the saved b
       name: 'Query',
     })
   )
-  const retrieval = screen.getByLabelText('Retrieval candidates') as HTMLInputElement
+  const retrieval = (await screen.findByLabelText('Retrieval candidates')) as HTMLInputElement
   fireEvent.change(retrieval, {
     target: {
       value: '999',
@@ -1980,7 +1982,7 @@ test('embedding settings explain local service command ownership', async () => {
       })
     )
     expect(
-      screen.getByText(/\/opt\/text-embeddings-router \(managed in config\.toml\)/)
+      await screen.findByText(/\/opt\/text-embeddings-router \(managed in config\.toml\)/)
     ).toBeTruthy()
     expect(screen.getByText(/does not edit shell command arrays/i)).toBeTruthy()
   } finally {
@@ -2445,9 +2447,11 @@ test('workspace controls protect scopes assigned to sources', async () => {
       })
     )
     fireEvent.click(
-      screen.getAllByRole('button', {
-        name: 'Advanced workspace details',
-      })[0]
+      (
+        await screen.findAllByRole('button', {
+          name: 'Advanced workspace details',
+        })
+      )[0]
     )
     expect(
       (
@@ -2498,7 +2502,7 @@ test('workspace cards show display name and advanced details', async () => {
         name: 'Workspaces',
       })
     )
-    fireEvent.click(screen.getByText('Advanced workspace details'))
+    fireEvent.click(await screen.findByText('Advanced workspace details'))
     expect(screen.getByText('ID is internal; account labels are optional metadata.')).toBeTruthy()
     expect(screen.getByLabelText(/Scope ID/i)).toBeTruthy()
     const accountLabel = screen.getByLabelText(/Account label/i)
@@ -2533,11 +2537,11 @@ test('new workspace display names keep focus while typing', async () => {
     })
   )
   fireEvent.click(
-    screen.getByRole('button', {
+    await screen.findByRole('button', {
       name: 'Add workspace (2/128)',
     })
   )
-  const displayName = screen.getAllByLabelText('Display name').at(-1) as HTMLInputElement
+  const displayName = (await screen.findAllByLabelText('Display name')).at(-1) as HTMLInputElement
   displayName.focus()
   fireEvent.change(displayName, {
     target: {
@@ -2589,7 +2593,7 @@ test('workspace settings keep 25 workspaces searchable and keyboard-operable', a
         name: 'Workspaces',
       })
     )
-    const add = screen.getByRole('button', {
+    const add = await screen.findByRole('button', {
       name: 'Add workspace (25/128)',
     })
     expect(add.hasAttribute('disabled')).toBe(false)
@@ -2599,8 +2603,10 @@ test('workspace settings keep 25 workspaces searchable and keyboard-operable', a
         value: 'needle@example.test',
       },
     })
-    expect(screen.getAllByLabelText('Display name')).toHaveLength(1)
-    expect((screen.getByLabelText('Display name') as HTMLInputElement).value).toBe('Workspace 25')
+    expect(await screen.findAllByLabelText('Display name')).toHaveLength(1)
+    expect(((await screen.findByLabelText('Display name')) as HTMLInputElement).value).toBe(
+      'Workspace 25'
+    )
     const moveUp = screen.getByRole('button', {
       name: 'Move Workspace 25 up',
     })
@@ -2615,7 +2621,7 @@ test('workspace settings keep 25 workspaces searchable and keyboard-operable', a
         value: '',
       },
     })
-    const names = screen.getAllByLabelText('Display name') as HTMLInputElement[]
+    const names = (await screen.findAllByLabelText('Display name')) as HTMLInputElement[]
     expect(names).toHaveLength(25)
     expect(names[23]?.value).toBe('Workspace 25')
     expect(names[24]?.value).toBe('Workspace 24')
@@ -2648,7 +2654,7 @@ test('settings warns before discarding dirty changes', async () => {
         name: 'Workspaces',
       })
     )
-    fireEvent.change(screen.getAllByLabelText('Display name')[0], {
+    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Draft work',
       },
@@ -2705,7 +2711,7 @@ test('settings can discard a draft without leaving the control plane', async () 
         name: 'Workspaces',
       })
     )
-    const displayName = screen.getAllByLabelText('Display name')[0] as HTMLInputElement
+    const displayName = (await screen.findAllByLabelText('Display name'))[0] as HTMLInputElement
     fireEvent.change(displayName, {
       target: {
         value: 'Draft work',
@@ -2945,7 +2951,7 @@ test('the footer updates shortcut respects unsaved settings changes', async () =
         name: 'Workspaces',
       })
     )
-    fireEvent.change(screen.getAllByLabelText('Display name')[0], {
+    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Unsaved workspace',
       },
@@ -3233,7 +3239,7 @@ test('source settings quarantine legacy scopes and offer workspace assignment', 
         name: 'Initial sync',
       })
     ).toBeNull()
-    const workspace = screen.getByRole('combobox', {
+    const workspace = await screen.findByRole('combobox', {
       name: 'Workspace for community-discord',
     })
     expect(workspace.textContent).toContain('Unassigned: community')
@@ -3361,7 +3367,7 @@ test('settings refuses duplicate canonical source labels in one workspace', asyn
         name: 'Workspaces',
       })
     )
-    fireEvent.change(screen.getAllByLabelText('Display name')[0], {
+    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Draft workspace',
       },
@@ -3471,7 +3477,7 @@ test('settings uses graphite as the fixed default and exposes theme controls per
       name: 'Workspaces',
     })
   )
-  const workspaceTheme = screen.getByRole('combobox', {
+  const workspaceTheme = await screen.findByRole('combobox', {
     name: 'Theme for Work',
   })
   await user.click(workspaceTheme)
@@ -3524,7 +3530,7 @@ test('workspace theme controls persist and apply per workspace', async () => {
     })
   )
   await user.click(
-    screen.getByRole('combobox', {
+    await screen.findByRole('combobox', {
       name: 'Theme for Work',
     })
   )
@@ -3534,7 +3540,7 @@ test('workspace theme controls persist and apply per workspace', async () => {
     })
   )
   await user.click(
-    screen.getByRole('combobox', {
+    await screen.findByRole('combobox', {
       name: 'Theme for Personal',
     })
   )
@@ -3592,7 +3598,7 @@ test('settings refuses padded or control-character source labels before save', a
         name: 'Workspaces',
       })
     )
-    fireEvent.change(screen.getAllByLabelText('Display name')[0], {
+    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Draft workspace',
       },
@@ -3946,7 +3952,7 @@ test('services settings refuses recurring sync while settings changes are unsave
         name: 'Workspaces',
       })
     )
-    fireEvent.change(screen.getAllByLabelText('Display name')[0], {
+    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Unsaved workspace',
       },
@@ -4190,7 +4196,7 @@ test('settings save refreshes shell service metadata immediately', async () => {
       name: 'Workspaces',
     })
   )
-  fireEvent.change(screen.getAllByLabelText('Display name')[0], {
+  fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
     target: {
       value: 'Work settings',
     },
@@ -4317,7 +4323,7 @@ test('saving settings clears stale local service errors', async () => {
       ).toBeTruthy()
     )
     state.serviceStatusError = null
-    fireEvent.change(screen.getAllByLabelText('Display name')[0], {
+    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Work settings',
       },
@@ -5068,7 +5074,7 @@ test('saving settings with restart_required triggers a background restart and cl
         name: 'Workspaces',
       })
     )
-    fireEvent.change(screen.getAllByLabelText('Display name')[0], {
+    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Alpha',
       },
@@ -5181,7 +5187,7 @@ test('a failed background restart after saving names the failure and offers reco
         name: 'Workspaces',
       })
     )
-    fireEvent.change(screen.getAllByLabelText('Display name')[0], {
+    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Alpha',
       },

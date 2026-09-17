@@ -389,8 +389,16 @@ fn audit(event: &str, version: Option<&str>, restart: bool) {
     let _ = settings::append_audit_event(&settings::default_config_path(), &value);
 }
 
-fn bounded(value: &str, max_chars: usize) -> String {
-    value.chars().take(max_chars).collect()
+fn bounded(value: &str, max_bytes: usize) -> String {
+    if value.len() <= max_bytes {
+        return value.to_string();
+    }
+    // Floor at a UTF-8 boundary so multi-byte characters are never split.
+    let mut end = max_bytes;
+    while !value.is_char_boundary(end) {
+        end -= 1;
+    }
+    value[..end].to_string()
 }
 
 fn is_target_unavailable(error: &UpdaterError) -> bool {

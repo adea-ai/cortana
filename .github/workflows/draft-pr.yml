@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 10
     name: Draft PR
     if: vars.CI_BILLING_PAUSED != 'true'
-    uses: 0xPlayerOne/code-foundry/.github/workflows/draft-pr.yml@v1.28.14
+    uses: 0xPlayerOne/code-foundry/.github/workflows/draft-pr.yml@v1.28.15
     with:
       runner: ubuntu-slim
       base: main

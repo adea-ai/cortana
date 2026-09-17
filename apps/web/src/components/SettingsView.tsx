@@ -1,20 +1,13 @@
 import {
   AlertTriangle,
-  ArrowDown,
-  ArrowUp,
   Check,
   CircleStop,
   Download,
-  ExternalLink,
-  KeyRound,
   LoaderCircle,
   Play,
-  Plus,
   RefreshCw,
   Save,
-  Search,
   Settings2,
-  Trash2,
   Upload,
   X,
 } from 'lucide-solid'
@@ -24,75 +17,42 @@ import {
   Switch,
   Match,
   createEffect,
-  createUniqueId,
   createSignal,
   mergeProps,
   onCleanup,
   For,
-  Index,
-  type JSX,
 } from 'solid-js'
 import { cn } from '../lib/utils'
-import { DEFAULT_THEME, SUPPORTED_THEMES, type ThemeMode } from '../theme'
-import { WorkspaceLogo } from '../workspaceLogos'
-import { readWorkspaceLogoFile, writeWorkspaceLogo } from '../workspaceLogoStore'
-import {
-  moveWorkspaceThemePreference,
-  readWorkspaceThemePreferences,
-  writeWorkspaceThemePreference,
-} from '../workspaceThemePreference'
-import { MemoryReview } from './MemoryReview'
 import { Toaster } from './shadcn/sonner'
+import { normalizeProviderUrl, type ProviderModelsState } from './settings/providerUtils'
 import { SettingsConfirmProvider, useSettingsConfirm } from './settings/SettingsConfirm'
 import {
-  deriveWorkspaceIdentifier,
-  ensureWorkspaceIdentifierUnique,
-  isWorkspaceIdDerivedFromName,
   referencedSecretNames,
   validateSourceIdentityScopes,
 } from './settings/SettingsSourceIdentity'
 import { StatusGlyph } from './settings/SettingsWorkflowShared'
-import { applyConfirmed, useDesktopForeground } from './settings/SettingsWorkflowUtils'
+import { useDesktopForeground } from './settings/SettingsWorkflowUtils'
+import { NumberField, SettingsSection } from './settings/SettingsLayout'
 import {
-  Field,
-  NumberField,
-  SettingsSection,
-  type SettingsSectionProps,
-} from './settings/SettingsLayout'
-import {
-  SettingsAccordion,
-  SettingsAccordionContent,
-  SettingsAccordionItem,
-  SettingsAccordionTrigger,
   SettingsAlert,
   SettingsButton as Button,
   SettingsCard,
-  SettingsCheckbox,
   SettingsFieldGroup,
-  SettingsInput as Input,
-  SettingsSelect as Select,
   SettingsSwitch,
   SettingsSurfaceProvider,
 } from './settings/SettingsSurface'
 import {
   cancelDesktopInstaller,
-  cancelDesktopUpdate,
-  checkDesktopUpdate,
-  getDesktopAudit,
   getDesktopInstaller,
   getDesktopInfo,
   listDesktopProviderModels,
   getDesktopSchedule,
   getDesktopServices,
   getDesktopSettings,
-  getDesktopUpdate,
-  getRuntimeAudit,
-  installDesktopUpdate,
   installDesktopServices,
   installDesktopSyncService,
   migrateDesktopEmbeddingGeneration,
   isDesktopApp,
-  openDesktopProject,
   saveDesktopSettings,
   saveDesktopSchedule,
   scanDesktopReadiness,
@@ -104,8 +64,7 @@ import {
   restoreDesktopDatabase,
 } from '../api'
 import { buildSetupSteps } from '../setup'
-import { type ProviderModelKind, type ProviderModelEntry } from '../types'
-import { isLoopbackUrl } from '../operations'
+import { type ProviderModelKind } from '../types'
 import type {
   DesktopInstallJob,
   DesktopInfo,
@@ -120,9 +79,6 @@ import type {
   DesktopSourceJob,
   DesktopUpdate,
   SourceSettings,
-  AuditEvent,
-  AuthPrincipalSettings,
-  WorkspaceSettings,
 } from '../types'
 const AdvancedSettingsSection = lazy(() =>
   import('./settings/AdvancedSettingsSection').then((module) => ({
@@ -134,15 +90,31 @@ const SourcesSection = lazy(() =>
     default: module.SourcesSection,
   }))
 )
-const SettingsCombobox = lazy(() =>
-  import('./settings/SettingsModelCombobox').then((module) => ({
-    default: module.SettingsModelCombobox,
+const UpdatesSection = lazy(() =>
+  import('./settings/UpdatesSection').then((module) => ({ default: module.UpdatesSection }))
+)
+const AccessSection = lazy(() =>
+  import('./settings/AccessSection').then((module) => ({ default: module.AccessSection }))
+)
+const AuditSection = lazy(() =>
+  import('./settings/AuditSection').then((module) => ({ default: module.AuditSection }))
+)
+const WorkspaceSection = lazy(() =>
+  import('./settings/WorkspaceSection').then((module) => ({ default: module.WorkspaceSection }))
+)
+const NativeMemorySection = lazy(() =>
+  import('./settings/NativeMemorySection').then((module) => ({
+    default: module.NativeMemorySection,
   }))
 )
-const SettingsSecretInputGroup = lazy(() =>
-  import('./settings/SettingsSecretInputGroup').then((module) => ({
-    default: module.SettingsSecretInputGroup,
-  }))
+const EmbeddingSection = lazy(() =>
+  import('./settings/ProviderSections').then((module) => ({ default: module.EmbeddingSection }))
+)
+const QuerySection = lazy(() =>
+  import('./settings/ProviderSections').then((module) => ({ default: module.QuerySection }))
+)
+const IngestionSection = lazy(() =>
+  import('./settings/IngestionSection').then((module) => ({ default: module.IngestionSection }))
 )
 type Section =
   | 'readiness'
@@ -727,32 +699,42 @@ function SettingsViewContent(incoming: {
                   />
                 )}
                 {section() === 'updates' && (
-                  <UpdatesSection
-                    desktopUpdate={props.desktopUpdate}
-                    onDesktopUpdate={props.onDesktopUpdate}
-                  />
+                  <Suspense fallback={<p role="status">Loading update settings…</p>}>
+                    <UpdatesSection
+                      desktopUpdate={props.desktopUpdate}
+                      onDesktopUpdate={props.onDesktopUpdate}
+                    />
+                  </Suspense>
                 )}
                 {section() === 'access' && (
-                  <AccessSection
-                    settings={settings()!}
-                    update={update}
-                    secretValues={secretValues()}
-                    onSecret={stageSecrets}
-                    clearedSecrets={clearedSecrets()}
-                    onClearSecret={(name) => {
-                      setClearedSecrets((current) => new Set(current).add(name))
-                      setSecretValues((current) => ({
-                        ...current,
-                        [name]: '',
-                      }))
-                      setDirty(true)
-                      setSaved(false)
-                    }}
-                  />
+                  <Suspense fallback={<p role="status">Loading access settings…</p>}>
+                    <AccessSection
+                      settings={settings()!}
+                      update={update}
+                      secretValues={secretValues()}
+                      onSecret={stageSecrets}
+                      clearedSecrets={clearedSecrets()}
+                      onClearSecret={(name) => {
+                        setClearedSecrets((current) => new Set(current).add(name))
+                        setSecretValues((current) => ({
+                          ...current,
+                          [name]: '',
+                        }))
+                        setDirty(true)
+                        setSaved(false)
+                      }}
+                    />
+                  </Suspense>
                 )}
-                {section() === 'audit' && <AuditSection />}
+                {section() === 'audit' && (
+                  <Suspense fallback={<p role="status">Loading audit trail…</p>}>
+                    <AuditSection />
+                  </Suspense>
+                )}
                 {section() === 'workspaces' && (
-                  <WorkspaceSection settings={settings()!} update={update} />
+                  <Suspense fallback={<p role="status">Loading workspace settings…</p>}>
+                    <WorkspaceSection settings={settings()!} update={update} />
+                  </Suspense>
                 )}
                 {section() === 'sources' && (
                   <Suspense
@@ -788,67 +770,75 @@ function SettingsViewContent(incoming: {
                   </Suspense>
                 )}
                 {section() === 'embedding' && (
-                  <EmbeddingSection
-                    settings={settings()!}
-                    secretValues={secretValues()}
-                    onSecret={stageSecrets}
-                    clearedSecrets={clearedSecrets()}
-                    onClearSecret={(name) => {
-                      setClearedSecrets((current) => new Set(current).add(name))
-                      setSecretValues((current) => ({
-                        ...current,
-                        [name]: '',
-                      }))
-                      setDirty(true)
-                      setSaved(false)
-                    }}
-                    update={update}
-                    advertisedModels={
-                      advertisedModelsFor('embedding')?.models.map((model) => ({
-                        value: model.id,
-                        label: model.id,
-                      })) ?? null
-                    }
-                    modelsLoading={modelsLoading() === 'embedding'}
-                    modelsError={modelsError().embedding}
-                    modelsTruncated={advertisedModelsFor('embedding')?.truncated ?? false}
-                    onRefreshModels={() => void refreshProviderModels('embedding')}
-                  />
+                  <Suspense fallback={<p role="status">Loading embedding settings…</p>}>
+                    <EmbeddingSection
+                      settings={settings()!}
+                      secretValues={secretValues()}
+                      onSecret={stageSecrets}
+                      clearedSecrets={clearedSecrets()}
+                      onClearSecret={(name) => {
+                        setClearedSecrets((current) => new Set(current).add(name))
+                        setSecretValues((current) => ({
+                          ...current,
+                          [name]: '',
+                        }))
+                        setDirty(true)
+                        setSaved(false)
+                      }}
+                      update={update}
+                      advertisedModels={
+                        advertisedModelsFor('embedding')?.models.map((model) => ({
+                          value: model.id,
+                          label: model.id,
+                        })) ?? null
+                      }
+                      modelsLoading={modelsLoading() === 'embedding'}
+                      modelsError={modelsError().embedding}
+                      modelsTruncated={advertisedModelsFor('embedding')?.truncated ?? false}
+                      onRefreshModels={() => void refreshProviderModels('embedding')}
+                    />
+                  </Suspense>
                 )}
                 {section() === 'query' && (
-                  <QuerySection
-                    settings={settings()!}
-                    secrets={settings()!.secrets}
-                    secretValues={secretValues()}
-                    onSecret={stageSecrets}
-                    clearedSecrets={clearedSecrets()}
-                    onClearSecret={(name) => {
-                      setClearedSecrets((current) => new Set(current).add(name))
-                      setSecretValues((current) => ({
-                        ...current,
-                        [name]: '',
-                      }))
-                      setDirty(true)
-                      setSaved(false)
-                    }}
-                    update={update}
-                    advertisedModels={
-                      advertisedModelsFor('query')?.models.map((model) => ({
-                        value: model.id,
-                        label: model.id,
-                      })) ?? null
-                    }
-                    modelsLoading={modelsLoading() === 'query'}
-                    modelsError={modelsError().query}
-                    modelsTruncated={advertisedModelsFor('query')?.truncated ?? false}
-                    onRefreshModels={() => void refreshProviderModels('query')}
-                  />
+                  <Suspense fallback={<p role="status">Loading query settings…</p>}>
+                    <QuerySection
+                      settings={settings()!}
+                      secrets={settings()!.secrets}
+                      secretValues={secretValues()}
+                      onSecret={stageSecrets}
+                      clearedSecrets={clearedSecrets()}
+                      onClearSecret={(name) => {
+                        setClearedSecrets((current) => new Set(current).add(name))
+                        setSecretValues((current) => ({
+                          ...current,
+                          [name]: '',
+                        }))
+                        setDirty(true)
+                        setSaved(false)
+                      }}
+                      update={update}
+                      advertisedModels={
+                        advertisedModelsFor('query')?.models.map((model) => ({
+                          value: model.id,
+                          label: model.id,
+                        })) ?? null
+                      }
+                      modelsLoading={modelsLoading() === 'query'}
+                      modelsError={modelsError().query}
+                      modelsTruncated={advertisedModelsFor('query')?.truncated ?? false}
+                      onRefreshModels={() => void refreshProviderModels('query')}
+                    />
+                  </Suspense>
                 )}
                 {section() === 'memory' && (
-                  <NativeMemorySection settings={settings()!} update={update} />
+                  <Suspense fallback={<p role="status">Loading memory settings…</p>}>
+                    <NativeMemorySection settings={settings()!} update={update} />
+                  </Suspense>
                 )}
                 {section() === 'ingestion' && (
-                  <IngestionSection settings={settings()!} update={update} />
+                  <Suspense fallback={<p role="status">Loading ingestion settings…</p>}>
+                    <IngestionSection settings={settings()!} update={update} />
+                  </Suspense>
                 )}
                 {section() === 'advanced' && (
                   <Suspense
@@ -1677,614 +1667,6 @@ function ServicesSection(incoming: {
     </SettingsSection>
   )
 }
-function UpdatesSection(incoming: {
-  desktopUpdate?: DesktopUpdate | null
-  onDesktopUpdate?: (update: DesktopUpdate) => void
-}) {
-  const props = incoming
-  const confirm = useSettingsConfirm()
-  const foreground = useDesktopForeground()
-  const [localUpdate, setLocalUpdate] = createSignal<DesktopUpdate | null>(null)
-  const update = () => (props.desktopUpdate === undefined ? localUpdate() : props.desktopUpdate)
-  const setUpdate = props.onDesktopUpdate ?? setLocalUpdate
-  const [busy, setBusy] = createSignal('')
-  const [error, setError] = createSignal('')
-  createEffect(() => {
-    if ((props.desktopUpdate !== undefined && props.desktopUpdate !== null) || !foreground()) {
-      return
-    }
-    void getDesktopUpdate()
-      .then((result) => {
-        setUpdate(result)
-        if (!result.error) setError('')
-        return null
-      })
-      .catch((caught: unknown) => {
-        setError(caught instanceof Error ? caught.message : 'Updater status unavailable')
-      })
-  })
-  createEffect(() => {
-    if (props.desktopUpdate !== undefined || busy() !== 'install' || !foreground()) return
-    let requestInFlight = false
-    const poll = () => {
-      if (requestInFlight) return
-      requestInFlight = true
-      void getDesktopUpdate()
-        .then((result) => {
-          setUpdate(result)
-          if (!result.error) setError('')
-          return null
-        })
-        .catch((caught: unknown) => {
-          setError(caught instanceof Error ? caught.message : 'Updater status unavailable')
-        })
-        .finally(() => {
-          requestInFlight = false
-        })
-    }
-    const timer = window.setInterval(poll, 400)
-    return onCleanup(() => window.clearInterval(timer))
-  })
-  const check = async () => {
-    setBusy('check')
-    setError('')
-    try {
-      setUpdate(await checkDesktopUpdate())
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Update check failed')
-      try {
-        setUpdate(await getDesktopUpdate())
-      } catch {
-        // Keep the existing snapshot when both the check and status fallback
-        // are unavailable; the visible error already explains the failure.
-      }
-    } finally {
-      setBusy('')
-    }
-  }
-  const install = async () => {
-    if (!update()?.available_version) return
-    if (
-      !(await confirm(
-        `Install signed Cortana ${update()!.available_version} and restart the Desktop app?\n\nThe native updater will verify the release signature before installation.`
-      ))
-    ) {
-      return
-    }
-    setBusy('install')
-    setError('')
-    setUpdate({
-      ...update()!,
-      phase: 'downloading',
-      downloaded_bytes: 0,
-      total_bytes: null,
-      error: null,
-    })
-    try {
-      setUpdate(await installDesktopUpdate(update()!.available_version!, true))
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Update installation failed')
-      try {
-        setUpdate(await getDesktopUpdate())
-      } catch {
-        // Keep the last known update state when the updater is unreachable.
-      }
-    } finally {
-      setBusy('')
-    }
-  }
-  const cancel = async () => {
-    setError('')
-    try {
-      setUpdate(await cancelDesktopUpdate())
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Update cancellation failed')
-    }
-  }
-  const openProject = async () => {
-    setError('')
-    try {
-      await openDesktopProject()
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Unable to open the Cortana project page')
-    }
-  }
-  const percent = () =>
-    update()?.total_bytes && update()!.total_bytes! > 0
-      ? Math.min(100, Math.round((update()!.downloaded_bytes! / update()!.total_bytes!) * 100))
-      : null
-  const updateInFlight = () =>
-    busy() === 'install' ||
-    update()?.phase === 'downloading' ||
-    update()?.phase === 'installing' ||
-    update()?.phase === 'cancelling'
-  const canInstall = () =>
-    Boolean(update()?.available_version) &&
-    !update()?.restart_required &&
-    update()?.phase !== 'installed'
-  return (
-    <SettingsSection
-      title="Updates"
-      description="Cortana checks the fixed GitHub release feed and verifies signed Tauri artifacts in the native process before installation."
-    >
-      <SettingsCard class="update-card">
-        <div>
-          <span class="eyebrow">Installed version</span>
-          <strong>{update()?.current_version || 'Checking…'}</strong>
-          <small>
-            {update()?.phase === 'cancelled'
-              ? 'Update cancelled; you can retry when ready'
-              : update()?.available_version
-                ? `Version ${update()!.available_version} is available`
-                : update()?.phase === 'current'
-                  ? 'You are up to date'
-                  : update()?.phase === 'unavailable'
-                    ? 'No signed package is published for this platform'
-                    : `Updater status: ${update()?.phase || 'idle'}`}
-          </small>
-        </div>
-        <div class="service-actions">
-          {updateInFlight() && (
-            <Button
-              variant="secondary"
-              type="button"
-              disabled={update()?.phase === 'cancelling'}
-              onClick={() => void cancel()}
-            >
-              <CircleStop size={14} />
-              {update()?.phase === 'cancelling' ? 'Cancelling…' : 'Cancel update'}
-            </Button>
-          )}
-          <Button
-            variant="secondary"
-            type="button"
-            disabled={Boolean(busy()) || updateInFlight()}
-            onClick={() => void check()}
-          >
-            {busy() === 'check' ? <LoaderCircle class="spin" size={14} /> : <RefreshCw size={14} />}
-            Check now
-          </Button>
-          <Button
-            variant="primary"
-            type="button"
-            disabled={!canInstall() || Boolean(busy()) || updateInFlight()}
-            onClick={() => void install()}
-          >
-            {updateInFlight() ? <LoaderCircle class="spin" size={14} /> : <Play size={14} />}
-            {update()?.restart_required || update()?.phase === 'installed'
-              ? 'Restart required'
-              : 'Install and restart'}
-          </Button>
-        </div>
-      </SettingsCard>
-      {percent() !== null && (
-        <div class="update-progress" role="progressbar" aria-valuenow={percent()!}>
-          <i
-            style={
-              {
-                '--update-progress': `${percent()}%`,
-              } as JSX.CSSProperties
-            }
-          />
-          <span>{percent()}% downloaded</span>
-        </div>
-      )}
-      {(error() || update()?.error) && (
-        <SettingsAlert class="safety-note error" variant="destructive" role="alert">
-          <AlertTriangle size={16} /> <span>{error() || update()?.error}</span>
-        </SettingsAlert>
-      )}
-      {update()?.release_notes && (
-        <div class="release-notes">
-          <h3>Version {update()!.available_version}</h3>
-          <SafeMarkdown text={update()!.release_notes!} />
-        </div>
-      )}
-      <div class="release-notes">
-        <h3>Installed changelog</h3>
-        <SafeMarkdown text={update()?.changelog || 'Loading changelog…'} />
-      </div>
-      {update() && (
-        <Button
-          variant="ghost"
-          type="button"
-          class="link-button"
-          onClick={() => void openProject()}
-        >
-          View Cortana source on GitHub <ExternalLink size={13} />
-        </Button>
-      )}
-    </SettingsSection>
-  )
-}
-function NativeMemorySection(
-  incoming: SettingsSectionProps & {
-    settings: DesktopSettings
-  }
-) {
-  const props = incoming
-  const change = (patch: Partial<DesktopSettings['memory']>) =>
-    props.update((current) => ({
-      ...current,
-      memory: {
-        ...current.memory,
-        ...patch,
-      },
-    }))
-  return (
-    <SettingsSection
-      title="Native agentic memory"
-      description="Cortana keeps operational memory in its own private local store. Memory is explicit, scoped, auditable, and protected by the local data-directory permissions."
-    >
-      <SettingsAlert class="safety-note" role="status">
-        Knowledge documents remain source-backed. Agents may explicitly remember, recall, and redact
-        bounded records through the native MCP, HTTP, or CLI interfaces.
-      </SettingsAlert>
-      <SettingsFieldGroup class="form-grid">
-        <Field label="Maximum active memories" hint="bounded local record count">
-          <Input
-            type="number"
-            min={1}
-            max={1000000}
-            value={props.settings.memory.max_active}
-            onChange={(event) =>
-              change({
-                max_active: Number(event.target.value) || 1,
-              })
-            }
-          />
-        </Field>
-        <Field label="Default confidence" hint="0 to 1; agents can override per record">
-          <Input
-            type="number"
-            min={0}
-            max={1}
-            step={0.05}
-            value={props.settings.memory.default_confidence}
-            onChange={(event) =>
-              change({
-                default_confidence: Number(event.target.value) || 0,
-              })
-            }
-          />
-        </Field>
-        <Field label="Default importance" hint="0 to 1; used for review and ranking">
-          <Input
-            type="number"
-            min={0}
-            max={1}
-            step={0.05}
-            value={props.settings.memory.default_importance}
-            onChange={(event) =>
-              change({
-                default_importance: Number(event.target.value) || 0,
-              })
-            }
-          />
-        </Field>
-      </SettingsFieldGroup>
-      <MemoryReview maxActive={props.settings.memory.max_active} />
-    </SettingsSection>
-  )
-}
-function AccessSection(
-  incoming: SettingsSectionProps & {
-    secretValues: Record<string, string>
-    onSecret: (values: Record<string, string>) => void
-    clearedSecrets: Set<string>
-    onClearSecret: (name: string) => void
-  }
-) {
-  const props = incoming
-  const confirm = useSettingsConfirm()
-  const change = (index: number, patch: Partial<AuthPrincipalSettings>) =>
-    props.update((current) => ({
-      ...current,
-      auth_principals: current.auth_principals.map((principal, position) =>
-        position === index
-          ? {
-              ...principal,
-              ...patch,
-            }
-          : principal
-      ),
-    }))
-  const add = () =>
-    props.update((current) => {
-      const usedPrincipals = new Set(
-        current.auth_principals.map((principal) => principal.principal)
-      )
-      const usedTokens = new Set(current.auth_principals.map((principal) => principal.token_env))
-      let number = 1
-      while (
-        usedPrincipals.has(`agent-${number}`) ||
-        usedTokens.has(`CORTANA_AGENT_${number}_TOKEN`)
-      ) {
-        number += 1
-      }
-      return {
-        ...current,
-        auth_principals: [
-          ...current.auth_principals,
-          {
-            principal: `agent-${number}`,
-            token_env: `CORTANA_AGENT_${number}_TOKEN`,
-            scopes: ['query', 'status'],
-            acl: current.workspaces.map((workspace) => workspace.id),
-          },
-        ],
-      }
-    })
-  return (
-    <SettingsSection
-      title="Agent access"
-      description="Create named bearer principals with least-privilege scopes and workspace ACL labels. Token values are write-only and never return to the renderer."
-    >
-      <div class="principal-list">
-        <For each={props.settings.auth_principals}>
-          {(principal, index) => {
-            const secret = props.settings.secrets.find((item) => item.name === principal.token_env)
-            return (
-              // principals render in settings order
-              <SettingsCard class="principal-card">
-                <header>
-                  <KeyRound size={16} />
-                  <strong>{principal.principal || `Principal ${index() + 1}`}</strong>
-                  <Button
-                    variant="danger"
-                    type="button"
-                    class=""
-                    aria-label={`Remove ${principal.principal}`}
-                    tooltip={`Remove ${principal.principal}`}
-                    onClick={() =>
-                      applyConfirmed(
-                        confirm(
-                          `Remove ${principal.principal} from agent access? Its stored credential will be removed only after you save these changes.`
-                        ),
-                        () =>
-                          props.update((current) => ({
-                            ...current,
-                            auth_principals: current.auth_principals.filter(
-                              (_, position) => position !== index()
-                            ),
-                          }))
-                      )
-                    }
-                  >
-                    <Trash2 size={15} />
-                  </Button>
-                </header>
-                <SettingsFieldGroup class="form-grid">
-                  <Field label="Principal name">
-                    <Input
-                      value={principal.principal}
-                      maxLength={128}
-                      required
-                      onChange={(event) =>
-                        change(index(), {
-                          principal: event.target.value,
-                        })
-                      }
-                    />
-                  </Field>
-                  <Field label="Token environment name">
-                    <Input
-                      value={principal.token_env}
-                      maxLength={128}
-                      pattern="[A-Za-z_][A-Za-z0-9_]*"
-                      required
-                      onChange={(event) =>
-                        change(index(), {
-                          token_env: event.target.value,
-                        })
-                      }
-                    />
-                  </Field>
-                  <Field label="New bearer token" hint="write-only; leave blank to retain">
-                    <Input
-                      type="password"
-                      autocomplete="new-password"
-                      value={props.secretValues[principal.token_env] || ''}
-                      onChange={(event) =>
-                        props.onSecret({
-                          ...props.secretValues,
-                          [principal.token_env]: event.target.value,
-                        })
-                      }
-                    />
-                    {secret?.configured && !props.clearedSecrets.has(principal.token_env) && (
-                      <Button
-                        variant="danger"
-                        onClick={() =>
-                          applyConfirmed(
-                            confirm(
-                              `Clear the stored bearer token for ${principal.principal}? The change remains a draft until you save settings.`
-                            ),
-                            () => props.onClearSecret(principal.token_env)
-                          )
-                        }
-                      >
-                        Clear stored token
-                      </Button>
-                    )}
-                  </Field>
-                  <Field label="ACL labels" hint="comma-separated workspace IDs; * grants all">
-                    <Input
-                      value={principal.acl.join(', ')}
-                      onChange={(event) =>
-                        change(index(), {
-                          acl: event.target.value
-                            .split(',')
-                            .map((value) => value.trim())
-                            .filter(Boolean),
-                        })
-                      }
-                    />
-                  </Field>
-                </SettingsFieldGroup>
-                <div class="scope-options">
-                  <For each={['query', 'status', 'admin'] as const}>
-                    {(scope) => (
-                      <label>
-                        <SettingsCheckbox
-                          aria-label={`${scope} scope for ${principal.principal}`}
-                          checked={principal.scopes.includes(scope)}
-                          onChange={(event) =>
-                            change(index(), {
-                              scopes: event.target.checked
-                                ? [...principal.scopes, scope]
-                                : principal.scopes.filter((value) => value !== scope),
-                            })
-                          }
-                        />
-                        {scope}
-                      </label>
-                    )}
-                  </For>
-                </div>
-              </SettingsCard>
-            )
-          }}
-        </For>
-      </div>
-      <Button variant="secondary" onClick={add}>
-        <Plus size={15} /> Add principal
-      </Button>
-      <p class="settings-note">
-        Settings take effect after the server restarts. Desktop requests select a matching private
-        native credential by scope without exposing it to web content.
-      </p>
-    </SettingsSection>
-  )
-}
-function AuditSection() {
-  const [runtime, setRuntime] = createSignal<AuditEvent[]>([])
-  const [desktop, setDesktop] = createSignal<AuditEvent[]>([])
-  const [loading, setLoading] = createSignal(true)
-  const [error, setError] = createSignal('')
-  let refreshRequestId = 0
-  const refresh = async () => {
-    const requestId = ++refreshRequestId
-    const [runtimeResult, desktopResult] = await Promise.allSettled([
-      getRuntimeAudit(100),
-      getDesktopAudit(100),
-    ])
-    // A manual refresh can overlap the initial request. Never let a slower
-    // response replace a newer audit snapshot or clear its error state.
-    if (refreshRequestId !== requestId) return
-    if (runtimeResult.status === 'fulfilled') setRuntime(runtimeResult.value)
-    if (desktopResult.status === 'fulfilled') setDesktop(desktopResult.value)
-    const errors = [runtimeResult, desktopResult]
-      .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
-      .map((result) =>
-        result.reason instanceof Error ? result.reason.message : 'Audit source unavailable'
-      )
-    setError(errors.join(' · '))
-    setLoading(false)
-  }
-  createEffect(() => {
-    queueMicrotask(() => void refresh())
-    return onCleanup(() => {
-      refreshRequestId += 1
-    })
-  })
-
-  // The events already shown here are the redacted, bounded metadata snapshots
-  // returned by the runtime and Desktop audit endpoints; this export writes
-  // exactly those loaded events to a JSON file and adds nothing else.
-  const exportAudit = () => {
-    const payload = {
-      exported_at: new Date().toISOString(),
-      runtime: runtime(),
-      desktop: desktop(),
-    }
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
-      type: 'application/json',
-    })
-    const url = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = `cortana-audit-${new Date().toISOString().slice(0, 10)}.json`
-    document.body.appendChild(anchor)
-    anchor.click()
-    anchor.remove()
-    // Defer the revoke one tick so the browser can initiate the download
-    // before the object URL is torn down.
-    window.setTimeout(() => URL.revokeObjectURL(url), 0)
-  }
-  return (
-    <SettingsSection
-      title="Audit trail"
-      description="Bounded metadata-only runtime and Desktop events. Queries, document contents, bearer tokens, and secret values are excluded."
-    >
-      <div class="source-settings-toolbar">
-        <span>
-          {runtime().length} runtime · {desktop().length} Desktop events
-        </span>
-        <div class="service-actions">
-          <Button
-            variant="compact"
-            disabled={loading()}
-            onClick={() => {
-              setLoading(true)
-              setError('')
-              void refresh()
-            }}
-          >
-            {loading() ? <LoaderCircle class="spin" size={14} /> : <RefreshCw size={14} />}
-            Refresh
-          </Button>
-          <Button variant="secondary" type="button" disabled={loading()} onClick={exportAudit}>
-            <Download size={14} /> Export
-          </Button>
-        </div>
-      </div>
-      {error() && (
-        <SettingsAlert class="safety-note error" variant="destructive" role="alert">
-          {error()}
-        </SettingsAlert>
-      )}
-      <AuditList title="Runtime retrieval" events={runtime()} />
-      <AuditList title="Desktop actions" events={desktop()} />
-    </SettingsSection>
-  )
-}
-function AuditList(incoming: { title: string; events: AuditEvent[] }) {
-  const props = incoming
-  return (
-    <div class="audit-list">
-      <h3>{props.title}</h3>
-      {props.events.length === 0 ? (
-        <p>No events available.</p>
-      ) : (
-        props.events.map((event) => (
-          // audit events render in fetch order
-          <article>
-            <strong class={`audit-event-title ${auditOutcome(event)}`}>
-              {String(event['event'] || event['action'] || 'event')}
-            </strong>
-            <time>
-              {event['timestamp']
-                ? new Date(String(event['timestamp'])).toLocaleString()
-                : event['at_unix_seconds']
-                  ? new Date(Number(event['at_unix_seconds']) * 1000).toLocaleString()
-                  : ''}
-            </time>
-            <pre>{JSON.stringify(event, null, 2)}</pre>
-          </article>
-        ))
-      )}
-    </div>
-  )
-}
-function auditOutcome(event: AuditEvent): 'success' | 'failure' | 'neutral' {
-  if (event['success'] === true || event['passed'] === true) return 'success'
-  if (event['success'] === false || event['passed'] === false) return 'failure'
-  const value = String(event['status'] || event['outcome'] || event['result'] || '').toLowerCase()
-  if (/^(success|succeeded|completed|passed|ok)$/.test(value)) return 'success'
-  if (/^(failure|failed|error|cancelled|canceled|budget_exceeded)$/.test(value)) return 'failure'
-  return 'neutral'
-}
 function ReadinessSection(incoming: {
   autoScan?: boolean
   readiness: DesktopReadiness | null
@@ -2647,1193 +2029,6 @@ function ReadinessSection(incoming: {
           {props.job!.log && <pre>{props.job!.log}</pre>}
         </div>
       )}
-    </SettingsSection>
-  )
-}
-function WorkspaceSection(incoming: {
-  settings: DesktopSettings
-  update: (change: (draft: DesktopSettings) => DesktopSettings) => void
-}) {
-  const props = incoming
-  const confirm = useSettingsConfirm()
-  const [logoError, setLogoError] = createSignal('')
-  const [logoLoading, setLogoLoading] = createSignal<string | null>(null)
-  const [workspaceThemes, setWorkspaceThemes] = createSignal(readWorkspaceThemePreferences())
-  const [workspaceQuery, setWorkspaceQuery] = createSignal('')
-  const hasWorkspaceSources = (workspaceId: string) =>
-    props.settings.sources.some((source) => source.project === workspaceId)
-  const updateLogo = async (workspaceId: string, file: File | undefined) => {
-    if (!file) return
-    setLogoLoading(workspaceId)
-    try {
-      writeWorkspaceLogo(workspaceId, await readWorkspaceLogoFile(file))
-      setLogoError('')
-    } catch (caught) {
-      setLogoError(caught instanceof Error ? caught.message : 'Workspace logo could not be saved.')
-    } finally {
-      setLogoLoading(null)
-    }
-  }
-  const addWorkspace = () =>
-    props.update((current) => {
-      const nextName = 'New workspace'
-      const nextId = ensureWorkspaceIdentifierUnique(
-        deriveWorkspaceIdentifier(nextName),
-        current.workspaces.map((workspace) => workspace.id)
-      )
-      return {
-        ...current,
-        workspaces: [
-          ...current.workspaces,
-          {
-            id: nextId,
-            name: nextName,
-            account_label: null,
-            color: null,
-          },
-        ],
-      }
-    })
-  const changeWorkspace = (index: number, patch: Partial<WorkspaceSettings>) => {
-    const currentWorkspace = props.settings.workspaces[index]
-    if (!currentWorkspace) return
-    const remainingIds = props.settings.workspaces
-      .map((workspace) => workspace.id)
-      .filter((candidate) => candidate !== currentWorkspace.id)
-    const nextName = patch.name ?? currentWorkspace.name
-    const shouldDeriveId =
-      patch.id === undefined &&
-      patch.name !== undefined &&
-      !hasWorkspaceSources(currentWorkspace.id) &&
-      isWorkspaceIdDerivedFromName(currentWorkspace)
-    const nextId = patch.id
-      ? patch.id
-      : shouldDeriveId
-        ? ensureWorkspaceIdentifierUnique(deriveWorkspaceIdentifier(nextName), remainingIds)
-        : currentWorkspace.id
-    if (nextId !== currentWorkspace.id) {
-      moveWorkspaceThemePreference(currentWorkspace.id, nextId)
-      setWorkspaceThemes((previous) => {
-        const theme = previous[currentWorkspace.id]
-        if (!theme) return previous
-        const next = {
-          ...previous,
-        }
-        delete next[currentWorkspace.id]
-        next[nextId] = theme
-        return next
-      })
-    }
-    props.update((current) => {
-      const workspaceToUpdate = current.workspaces[index]
-      if (!workspaceToUpdate) return current
-      return {
-        ...current,
-        workspaces: current.workspaces.map((workspace, position) =>
-          position === index
-            ? {
-                ...workspace,
-                ...patch,
-                id: nextId,
-              }
-            : workspace
-        ),
-      }
-    })
-  }
-  const visibleWorkspaces = () =>
-    props.settings.workspaces
-      .map((workspace, index) => ({
-        workspace,
-        index,
-      }))
-      .filter(({ workspace }) => {
-        const query = workspaceQuery().trim().toLocaleLowerCase()
-        return (
-          !query ||
-          workspace.name.toLocaleLowerCase().includes(query) ||
-          workspace.id.toLocaleLowerCase().includes(query) ||
-          workspace.account_label?.toLocaleLowerCase().includes(query)
-        )
-      })
-  const moveWorkspace = (index: number, offset: -1 | 1) =>
-    props.update((current) => {
-      const destination = index + offset
-      if (destination < 0 || destination >= current.workspaces.length) return current
-      const workspaces = [...current.workspaces]
-      const [workspace] = workspaces.splice(index, 1)
-      if (!workspace) return current
-      workspaces.splice(destination, 0, workspace)
-      return {
-        ...current,
-        workspaces,
-      }
-    })
-  return (
-    <SettingsSection
-      title="Workspaces"
-      description="Create isolated query scopes and assign each source or account to one workspace. Workspace logos stay local to this Desktop profile and never enter the index or portable settings export."
-    >
-      {props.settings.workspaces.length > 6 && (
-        <Field
-          label="Find workspace"
-          hint={`${visibleWorkspaces().length} of ${props.settings.workspaces.length} shown`}
-          wide
-        >
-          <div class="settings-search-input">
-            <Search size={14} aria-hidden="true" />
-            <Input
-              type="search"
-              value={workspaceQuery()}
-              onChange={(event) => setWorkspaceQuery(event.target.value)}
-              placeholder="Search name, ID, or account label"
-              autocomplete="off"
-            />
-          </div>
-        </Field>
-      )}
-      <div class={`workspace-settings-grid workspace-settings-grid--${visibleWorkspaces().length}`}>
-        <Index each={visibleWorkspaces()}>
-          {(entry) => {
-            // Index keys rows by position so typing (which rebuilds the workspace
-            // object) does not remount the card and drop input focus.
-            const workspace = () => entry().workspace
-            const index = () => entry().index
-            return (
-              <SettingsCard class="workspace-card">
-                <div class="workspace-card-heading">
-                  <WorkspaceLogo workspace={workspace()} size="large" />
-                  <div class="workspace-card-title">
-                    <strong>{workspace().name || 'New workspace'}</strong>
-                    <small>Workspace identity</small>
-                  </div>
-                  <label
-                    class={cn(
-                      'workspace-logo-upload',
-                      logoLoading() === workspace().id && 'is-loading'
-                    )}
-                    title={
-                      logoLoading() === workspace().id
-                        ? 'Saving workspace logo'
-                        : 'Upload workspace logo'
-                    }
-                    aria-busy={logoLoading() === workspace().id}
-                  >
-                    {logoLoading() === workspace().id ? (
-                      <LoaderCircle class="spin" size={14} aria-label="Saving workspace logo" />
-                    ) : (
-                      <Upload size={14} />
-                    )}
-                    <span class="visually-hidden">Upload logo for {workspace().name}</span>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      disabled={logoLoading() === workspace().id}
-                      onChange={(event) => {
-                        void updateLogo(workspace().id, event.target.files?.[0])
-                        event.currentTarget.value = ''
-                      }}
-                    />
-                  </label>
-                  {props.settings.workspaces.length > 1 && (
-                    <div class="workspace-order-actions">
-                      <Button
-                        variant="ghost"
-                        type="button"
-                        aria-label={`Move ${workspace().name} up`}
-                        disabled={index() === 0}
-                        tooltip="Move workspace up"
-                        onClick={() => moveWorkspace(index(), -1)}
-                      >
-                        <ArrowUp size={15} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        type="button"
-                        aria-label={`Move ${workspace().name} down`}
-                        disabled={index() === props.settings.workspaces.length - 1}
-                        tooltip="Move workspace down"
-                        onClick={() => moveWorkspace(index(), 1)}
-                      >
-                        <ArrowDown size={15} />
-                      </Button>
-                      <Button
-                        variant="danger"
-                        type="button"
-                        class=""
-                        aria-label={`Remove ${workspace().name}`}
-                        disabled={hasWorkspaceSources(workspace().id)}
-                        tooltip={
-                          hasWorkspaceSources(workspace().id)
-                            ? 'Move assigned sources before removing this workspace'
-                            : 'Remove workspace'
-                        }
-                        onClick={() =>
-                          applyConfirmed(
-                            confirm(
-                              `Remove the ${workspace().name} workspace? This changes only the settings draft and does not delete indexed data.`
-                            ),
-                            () =>
-                              props.update((current) => ({
-                                ...current,
-                                workspaces: current.workspaces.filter(
-                                  (_, position) => position !== index()
-                                ),
-                              }))
-                          )
-                        }
-                      >
-                        <Trash2 size={15} />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                <div class="workspace-identity-row">
-                  <Field label="Display name">
-                    <Input
-                      value={workspace().name}
-                      onChange={(event) =>
-                        changeWorkspace(index(), {
-                          name: event.target.value,
-                        })
-                      }
-                      required
-                      maxLength={80}
-                    />
-                  </Field>
-                  <Field label="Workspace theme">
-                    <Select
-                      aria-label={`Theme for ${workspace().name || 'new workspace'}`}
-                      value={workspaceThemes()[workspace().id] ?? DEFAULT_THEME}
-                      onChange={(event) => {
-                        const next = (event.target as HTMLSelectElement).value as ThemeMode
-                        setWorkspaceThemes((current) => ({
-                          ...current,
-                          [workspace().id]: next,
-                        }))
-                        writeWorkspaceThemePreference(workspace().id, next)
-                      }}
-                    >
-                      <For each={SUPPORTED_THEMES}>
-                        {(item) => <option value={item.id}>{item.label}</option>}
-                      </For>
-                    </Select>
-                  </Field>
-                </div>
-                <SettingsAccordion class="workspace-advanced-details">
-                  <SettingsAccordionItem value={`workspace-${workspace().id}`}>
-                    <SettingsAccordionTrigger>Advanced workspace details</SettingsAccordionTrigger>
-                    <SettingsAccordionContent class="workspace-advanced-fields">
-                      <small class="workspace-advanced-note">
-                        ID is internal; account labels are optional metadata.
-                      </small>
-                      <Field
-                        label="Scope ID"
-                        hint="generated from the display name; used internally"
-                      >
-                        <Input
-                          value={workspace().id}
-                          readOnly
-                          disabled={hasWorkspaceSources(workspace().id)}
-                          aria-disabled={hasWorkspaceSources(workspace().id)}
-                          title="Generated from the display name and used internally"
-                          required
-                          maxLength={32}
-                          pattern="[a-z0-9][a-z0-9_-]*"
-                        />
-                      </Field>
-                      <Field
-                        label="Account label"
-                        hint="optional display note; OAuth credentials belong to each source"
-                      >
-                        <Input
-                          value={workspace().account_label || ''}
-                          onChange={(event) =>
-                            changeWorkspace(index(), {
-                              account_label: event.target.value || null,
-                            })
-                          }
-                          maxLength={128}
-                          placeholder="e.g. Nifty League"
-                        />
-                      </Field>
-                    </SettingsAccordionContent>
-                  </SettingsAccordionItem>
-                </SettingsAccordion>
-              </SettingsCard>
-            )
-          }}
-        </Index>
-      </div>
-      {logoError() && (
-        <p class="settings-inline-error" role="alert">
-          {logoError()}
-        </p>
-      )}
-      <Button
-        variant="secondary"
-        type="button"
-        disabled={props.settings.workspaces.length >= 128}
-        onClick={addWorkspace}
-      >
-        <Plus size={15} /> Add workspace ({props.settings.workspaces.length}/128)
-      </Button>
-    </SettingsSection>
-  )
-}
-function SafeMarkdown(incoming: { text: string }) {
-  const props = incoming
-  return <div class="safe-markdown">{renderMarkdownToNodes(props.text)}</div>
-}
-function renderMarkdownToNodes(text: string): JSX.Element[] {
-  const nodes: JSX.Element[] = []
-  const lines = text.replace(/\r\n/g, '\n').split('\n')
-  let currentList: {
-    ordered: boolean
-    items: string[]
-  } | null = null
-  const closeList = () => {
-    if (!currentList) return
-    if (currentList.ordered) {
-      nodes.push(
-        <ol>
-          <For each={currentList.items}>
-            {(item) => (
-              // markdown list items are positional
-              <li>{parseInlineMarkdown(item)}</li>
-            )}
-          </For>
-        </ol>
-      )
-    } else {
-      nodes.push(
-        <ul>
-          <For each={currentList.items}>
-            {(item) => (
-              // markdown list items are positional
-              <li>{parseInlineMarkdown(item)}</li>
-            )}
-          </For>
-        </ul>
-      )
-    }
-    currentList = null
-  }
-  for (const line of lines) {
-    const trimmed = line.trimEnd()
-    const heading = trimmed.match(/^(#{1,6})\s+(.+)$/)
-    const bullet = trimmed.match(/^[-*]\s+(.+)$/)
-    const ordered = trimmed.match(/^\d+\.\s+(.+)$/)
-    if (!trimmed) {
-      closeList()
-      continue
-    }
-    if (heading) {
-      closeList()
-      const level = heading[1].length
-      const title = parseInlineMarkdown(heading[2])
-      if (level === 1) nodes.push(<h1>{title}</h1>)
-      else if (level === 2) nodes.push(<h2>{title}</h2>)
-      else nodes.push(<h3>{title}</h3>)
-      continue
-    }
-    if (bullet) {
-      if (!currentList || currentList.ordered) {
-        closeList()
-        currentList = {
-          ordered: false,
-          items: [],
-        }
-      }
-      currentList.items.push(bullet[1])
-      continue
-    }
-    if (ordered) {
-      if (!currentList || !currentList.ordered) {
-        closeList()
-        currentList = {
-          ordered: true,
-          items: [],
-        }
-      }
-      currentList.items.push(ordered[1])
-      continue
-    }
-    closeList()
-    nodes.push(<p>{parseInlineMarkdown(trimmed)}</p>)
-  }
-  closeList()
-  return nodes
-}
-function parseInlineMarkdown(value: string): JSX.Element[] {
-  const parts = value.split(/(`[^`]*`|\[[^\]]+\]\([^)]+\))/g)
-  const nodes: JSX.Element[] = []
-  for (const part of parts) {
-    if (!part) continue
-    if (part.startsWith('`') && part.endsWith('`')) {
-      nodes.push(<code>{part.slice(1, -1)}</code>)
-      continue
-    }
-    const link = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
-    if (link) {
-      const url = safeMarkdownUrl(link[2])
-      if (url) {
-        nodes.push(
-          <a href={url} target="_blank" rel="noreferrer">
-            {link[1]}
-          </a>
-        )
-      } else {
-        nodes.push(<span>{part}</span>)
-      }
-      continue
-    }
-    nodes.push(<span>{part}</span>)
-  }
-  return nodes
-}
-function safeMarkdownUrl(value: string): string | null {
-  try {
-    const candidate = new URL(value)
-    if (candidate.protocol === 'http:' || candidate.protocol === 'https:') return candidate.href
-    return null
-  } catch {
-    return null
-  }
-}
-type ProviderValue = DesktopSettings['embedding'] | DesktopSettings['query']
-type ModelChoice = {
-  value: string
-  label: string
-}
-
-/** Provider-advertised catalog captured for one provider kind. */
-type ProviderModelsState = {
-  kind: ProviderModelKind
-  /** Normalized base URL the catalog was fetched from. */
-  provider: string
-  mode: 'local' | 'cloud'
-  key_env: string | null
-  models: ProviderModelEntry[]
-  truncated: boolean
-}
-function normalizeProviderUrl(value: string): string {
-  return value.trim().replace(/\/+$/, '')
-}
-function EmbeddingSection(incoming: {
-  settings: DesktopSettings
-  secretValues: Record<string, string>
-  onSecret: (values: Record<string, string>) => void
-  clearedSecrets: Set<string>
-  onClearSecret: (name: string) => void
-  update: (change: (draft: DesktopSettings) => DesktopSettings) => void
-  advertisedModels: readonly ModelChoice[] | null
-  modelsLoading: boolean
-  modelsError: string
-  modelsTruncated: boolean
-  onRefreshModels: () => void
-}) {
-  const props = incoming
-  const setEmbedding = (embedding: DesktopSettings['embedding']) =>
-    props.update((current) => ({
-      ...current,
-      embedding,
-    }))
-  return (
-    <ProviderSection
-      title="Embedding model"
-      description="Local Qwen maximizes privacy and cache reuse. Cloud endpoints must use HTTPS."
-      provider={props.settings.embedding}
-      secrets={props.settings.secrets}
-      secretValues={props.secretValues}
-      onSecret={props.onSecret}
-      clearedSecrets={props.clearedSecrets}
-      onClearSecret={props.onClearSecret}
-      update={setEmbedding}
-      advertisedModels={props.advertisedModels}
-      modelsLoading={props.modelsLoading}
-      modelsError={props.modelsError}
-      modelsTruncated={props.modelsTruncated}
-      onRefreshModels={props.onRefreshModels}
-      modelControl="select"
-      modelCatalog={
-        props.settings.embedding.provider === 'local'
-          ? [
-              {
-                value: 'Qwen/Qwen3-Embedding-0.6B',
-                label: 'Qwen/Qwen3-Embedding-0.6B',
-              },
-              {
-                value: 'Qwen/Qwen3-Embedding-4B',
-                label: 'Qwen/Qwen3-Embedding-4B',
-              },
-            ]
-          : []
-      }
-    >
-      <div class="settings-note">
-        <strong>Local service command:</strong>{' '}
-        {props.settings.embedding_service_program
-          ? `${props.settings.embedding_service_program} (managed in config.toml)`
-          : 'automatic command derived from the model and loopback endpoint'}
-        . Desktop preserves explicit executable commands but does not edit shell command arrays.
-      </div>
-      <SettingsFieldGroup class="form-grid compact">
-        <NumberField
-          label="Vector dimension"
-          value={props.settings.embedding.dimension}
-          min={1}
-          max={65536}
-          onChange={(dimension) =>
-            setEmbedding({
-              ...props.settings.embedding,
-              dimension,
-            })
-          }
-        />
-        <NumberField
-          label="Cache entries"
-          hint="0 disables new embedding-cache writes"
-          value={props.settings.embedding.cache_max_entries}
-          min={0}
-          max={5000000}
-          onChange={(cache_max_entries) =>
-            setEmbedding({
-              ...props.settings.embedding,
-              cache_max_entries,
-            })
-          }
-        />
-        <NumberField
-          label="Request timeout"
-          value={props.settings.embedding.request_timeout_seconds}
-          min={1}
-          max={3600}
-          onChange={(request_timeout_seconds) =>
-            setEmbedding({
-              ...props.settings.embedding,
-              request_timeout_seconds,
-            })
-          }
-        />
-        <NumberField
-          label="Request concurrency"
-          value={props.settings.embedding.request_concurrency}
-          min={1}
-          max={64}
-          onChange={(request_concurrency) =>
-            setEmbedding({
-              ...props.settings.embedding,
-              request_concurrency,
-            })
-          }
-        />
-        <NumberField
-          label="Startup timeout"
-          value={props.settings.embedding.startup_timeout_seconds}
-          min={1}
-          max={3600}
-          onChange={(startup_timeout_seconds) =>
-            setEmbedding({
-              ...props.settings.embedding,
-              startup_timeout_seconds,
-            })
-          }
-        />
-        <NumberField
-          label="Memory limit (MB)"
-          value={props.settings.embedding.memory_limit_mb}
-          min={256}
-          max={262144}
-          onChange={(memory_limit_mb) =>
-            setEmbedding({
-              ...props.settings.embedding,
-              memory_limit_mb,
-            })
-          }
-        />
-      </SettingsFieldGroup>
-    </ProviderSection>
-  )
-}
-function ProviderSection<T extends ProviderValue>(incoming: {
-  title: string
-  description: string
-  provider: T
-  secrets: DesktopSettings['secrets']
-  secretValues: Record<string, string>
-  onSecret: (values: Record<string, string>) => void
-  clearedSecrets: Set<string>
-  onClearSecret: (name: string) => void
-  modelCatalog: readonly ModelChoice[]
-  /** Provider-advertised models; null when unavailable or stale. */
-  advertisedModels: readonly ModelChoice[] | null
-  modelsLoading: boolean
-  modelsError: string
-  modelsTruncated: boolean
-  onRefreshModels: () => void
-  modelControl?: 'combobox' | 'select'
-  update: (provider: T) => void
-  children?: JSX.Element
-}) {
-  const props = mergeProps(
-    {
-      modelControl: 'combobox',
-    },
-    incoming
-  )
-  const confirm = useSettingsConfirm()
-  const modelFieldId = createUniqueId()
-  const secretFieldId = createUniqueId()
-  const secret = () =>
-    props.provider.api_key_env
-      ? props.secrets.find((item) => item.name === props.provider.api_key_env)
-      : undefined
-  // Provider-advertised models take precedence while available. Local Qwen
-  // presets are the only static catalog because they are Cortana's supported
-  // bundled path; cloud and local query model ids must come from the provider
-  // or remain explicit custom values rather than aging silently in the UI.
-  const activeCatalog = () =>
-    props.advertisedModels && props.advertisedModels.length > 0
-      ? props.advertisedModels
-      : props.modelCatalog
-  const catalogValues = () => activeCatalog().map((candidate) => candidate.value)
-  // The select mode is derived from the active catalog so a provider refresh
-  // can never leave a stale select visible: when the current model is not in
-  // the active catalog the custom input is shown with the value preserved.
-  // The explicit override remembers only a user's own catalog/custom choice
-  // and is cleared whenever the available catalog changes.
-  const [explicitModelMode, setExplicitModelMode] = createSignal<'catalog' | 'custom' | null>(null)
-  const modelMode = (): 'catalog' | 'custom' =>
-    explicitModelMode() ?? (catalogValues().includes(props.provider.model) ? 'catalog' : 'custom')
-  const catalogKey = () => catalogValues().join('\u0000')
-  const [previousCatalogKey, setPreviousCatalogKey] = createSignal(catalogKey())
-  createEffect(() => {
-    const key = catalogKey()
-    if (key !== previousCatalogKey()) {
-      setPreviousCatalogKey(key)
-      setExplicitModelMode(null)
-    }
-  })
-  const modelInput = () => (
-    <Field label="Model" controlId={modelFieldId}>
-      <Input
-        id={modelFieldId}
-        aria-label="Model"
-        value={props.provider.model}
-        onChange={(event) =>
-          props.update({
-            ...props.provider,
-            model: event.target.value,
-          })
-        }
-        required
-        maxLength={256}
-      />
-    </Field>
-  )
-  const modelSelect = () => (
-    <Field label="Model" controlId={modelFieldId}>
-      <Suspense
-        fallback={
-          <Input
-            id={modelFieldId}
-            aria-label="Model catalog"
-            value={props.provider.model}
-            readOnly
-          />
-        }
-      >
-        <SettingsCombobox
-          id={modelFieldId}
-          aria-label="Model catalog"
-          class="settings-model-control"
-          value={modelMode() === 'catalog' ? props.provider.model : 'custom'}
-          choices={[
-            ...activeCatalog(),
-            {
-              value: 'custom',
-              label: 'Custom',
-            },
-          ]}
-          onValueChange={(selected) => {
-            if (selected === 'custom') {
-              setExplicitModelMode('custom')
-              return
-            }
-            if (catalogValues().includes(selected)) {
-              setExplicitModelMode('catalog')
-              props.update({
-                ...props.provider,
-                model: selected,
-              })
-            } else {
-              // Unmatched selections (programmatic or label-based) open the
-              // custom field with the current model preserved.
-              setExplicitModelMode('custom')
-            }
-          }}
-        />
-      </Suspense>
-    </Field>
-  )
-  const dropdownCatalog = () =>
-    catalogValues().includes(props.provider.model)
-      ? activeCatalog()
-      : [
-          {
-            value: props.provider.model,
-            label: props.provider.model,
-          },
-          ...activeCatalog(),
-        ]
-  const modelDropdown = () => (
-    <Field label="Model" controlId={modelFieldId}>
-      <Select
-        id={modelFieldId}
-        aria-label="Model catalog"
-        class="settings-model-control"
-        value={props.provider.model}
-        required
-        onChange={(event) =>
-          props.update({
-            ...props.provider,
-            model: event.target.value,
-          })
-        }
-      >
-        <For each={dropdownCatalog()}>
-          {(candidate) => <option value={candidate.value}>{candidate.label}</option>}
-        </For>
-      </Select>
-    </Field>
-  )
-  const modelControls = (
-    <div class="model-field">
-      {props.modelControl === 'select'
-        ? modelDropdown()
-        : modelMode() === 'custom'
-          ? modelInput()
-          : modelSelect()}
-      <div class="model-refresh">
-        <Button
-          variant="secondary"
-          type="button"
-          aria-label={`Refresh ${props.title} models from provider`}
-          disabled={props.modelsLoading}
-          onClick={props.onRefreshModels}
-        >
-          {props.modelsLoading ? <LoaderCircle class="spin" size={14} /> : <RefreshCw size={14} />}{' '}
-          Refresh models
-        </Button>
-      </div>
-      {props.modelsError && (
-        <p class="settings-inline-error" role="alert">
-          {props.modelsError}
-        </p>
-      )}
-      {props.advertisedModels && props.advertisedModels.length > 0 && (
-        <small class="model-note">
-          {props.advertisedModels.length} model{props.advertisedModels.length === 1 ? '' : 's'}{' '}
-          advertised by the provider{props.modelsTruncated ? ' (first 512 shown)' : ''}. A current
-          model that is not advertised stays selected in the custom field.
-        </small>
-      )}
-    </div>
-  )
-  return (
-    <SettingsSection title={props.title} description={props.description}>
-      <SettingsFieldGroup class="form-grid">
-        <Field label="Provider">
-          <Select
-            class="settings-provider-control"
-            value={props.provider.provider}
-            onChange={(event) => {
-              const nextProvider = event.target.value as 'local' | 'cloud'
-              const loopback = isLoopbackUrl(props.provider.base_url)
-              const base_url =
-                nextProvider === 'cloud' && loopback
-                  ? 'https://api.openai.com/v1'
-                  : nextProvider === 'local' && !loopback
-                    ? props.title.startsWith('Embedding')
-                      ? 'http://127.0.0.1:6999/v1'
-                      : 'http://127.0.0.1:8008/v1'
-                    : props.provider.base_url
-              props.update({
-                ...props.provider,
-                provider: nextProvider,
-                base_url,
-              })
-            }}
-          >
-            <option value="local">Local</option>
-            <option value="cloud">Cloud</option>
-          </Select>
-        </Field>
-        {modelControls}
-        <Field label="OpenAI-compatible endpoint" wide>
-          <Input
-            type="url"
-            value={props.provider.base_url}
-            onChange={(event) =>
-              props.update({
-                ...props.provider,
-                base_url: event.target.value,
-              })
-            }
-            required
-          />
-        </Field>
-        <Field
-          label="API key variable"
-          hint={
-            secret()?.configured && !props.clearedSecrets.has(secret()!.name)
-              ? `Configured via ${secret()!.source}`
-              : 'Optional for local providers'
-          }
-        >
-          <Input
-            value={props.provider.api_key_env || ''}
-            onChange={(event) =>
-              props.update({
-                ...props.provider,
-                api_key_env: event.target.value || null,
-              })
-            }
-            pattern="[A-Z_][A-Z0-9_]*"
-            placeholder="CORTANA_PROVIDER_API_KEY"
-          />
-        </Field>
-        <Field
-          label="New API key"
-          hint="write-only; leave blank to keep existing"
-          controlId={secretFieldId}
-        >
-          <Suspense
-            fallback={
-              <Input
-                id={secretFieldId}
-                aria-label="New API key"
-                aria-describedby={`${secretFieldId}-description`}
-                type="password"
-                autocomplete="new-password"
-                value=""
-                disabled
-              />
-            }
-          >
-            <SettingsSecretInputGroup
-              id={secretFieldId}
-              aria-describedby={`${secretFieldId}-description`}
-              value={
-                props.provider.api_key_env
-                  ? props.secretValues[props.provider.api_key_env] || ''
-                  : ''
-              }
-              disabled={!props.provider.api_key_env}
-              onChange={(event) => {
-                if (!props.provider.api_key_env) return
-                props.onSecret({
-                  ...props.secretValues,
-                  [props.provider.api_key_env]: (event.target as HTMLInputElement).value,
-                })
-              }}
-              onClear={
-                props.provider.api_key_env &&
-                secret()?.configured &&
-                !props.clearedSecrets.has(secret()!.name)
-                  ? () =>
-                      applyConfirmed(
-                        confirm(
-                          'Clear the stored provider API key? The change remains a draft until you save settings.'
-                        ),
-                        () => props.onClearSecret(props.provider.api_key_env!)
-                      )
-                  : undefined
-              }
-            />
-          </Suspense>
-        </Field>
-      </SettingsFieldGroup>
-      {props.children}
-    </SettingsSection>
-  )
-}
-function QuerySection(incoming: {
-  settings: DesktopSettings
-  secrets: DesktopSettings['secrets']
-  secretValues: Record<string, string>
-  onSecret: (values: Record<string, string>) => void
-  clearedSecrets: Set<string>
-  onClearSecret: (name: string) => void
-  update: (change: (draft: DesktopSettings) => DesktopSettings) => void
-  advertisedModels: readonly ModelChoice[] | null
-  modelsLoading: boolean
-  modelsError: string
-  modelsTruncated: boolean
-  onRefreshModels: () => void
-}) {
-  const props = incoming
-  const setQuery = (query: DesktopSettings['query']) =>
-    props.update((current) => ({
-      ...current,
-      query,
-    }))
-  return (
-    <ProviderSection
-      title="Query and answer model"
-      description="Retrieval always works locally. Enable synthesis to create grounded answers with citations."
-      provider={props.settings.query}
-      secrets={props.secrets}
-      secretValues={props.secretValues}
-      onSecret={props.onSecret}
-      clearedSecrets={props.clearedSecrets}
-      onClearSecret={props.onClearSecret}
-      update={setQuery}
-      advertisedModels={props.advertisedModels}
-      modelsLoading={props.modelsLoading}
-      modelsError={props.modelsError}
-      modelsTruncated={props.modelsTruncated}
-      onRefreshModels={props.onRefreshModels}
-      modelControl="select"
-      modelCatalog={[]}
-    >
-      <label class="toggle-row">
-        <SettingsSwitch
-          aria-label="Enable answer synthesis"
-          checked={props.settings.query.synthesis_enabled}
-          onChange={(event) =>
-            setQuery({
-              ...props.settings.query,
-              synthesis_enabled: event.target.checked,
-            })
-          }
-        />
-        <span>
-          <strong>Grounded answer synthesis</strong>
-          <small>
-            Uses retrieved evidence and validates citation indices before returning an answer.
-          </small>
-        </span>
-      </label>
-      <SettingsFieldGroup class="form-grid compact">
-        <NumberField
-          label="Planned queries"
-          value={props.settings.query.max_planned_queries}
-          min={1}
-          max={8}
-          onChange={(max_planned_queries) =>
-            setQuery({
-              ...props.settings.query,
-              max_planned_queries,
-            })
-          }
-        />
-        <NumberField
-          label="Retrieval candidates"
-          value={props.settings.query.retrieval_limit}
-          min={1}
-          max={100}
-          onChange={(retrieval_limit) =>
-            setQuery({
-              ...props.settings.query,
-              retrieval_limit,
-            })
-          }
-        />
-        <NumberField
-          label="Evidence results"
-          value={props.settings.query.result_limit}
-          min={1}
-          max={50}
-          onChange={(result_limit) =>
-            setQuery({
-              ...props.settings.query,
-              result_limit,
-            })
-          }
-        />
-        <NumberField
-          label="Context tokens"
-          value={props.settings.query.context_tokens}
-          min={256}
-          max={131072}
-          onChange={(context_tokens) =>
-            setQuery({
-              ...props.settings.query,
-              context_tokens,
-            })
-          }
-        />
-        <NumberField
-          label="Output tokens"
-          value={props.settings.query.output_tokens}
-          min={64}
-          max={32768}
-          onChange={(output_tokens) =>
-            setQuery({
-              ...props.settings.query,
-              output_tokens,
-            })
-          }
-        />
-        <NumberField
-          label="Request timeout"
-          value={props.settings.query.request_timeout_seconds}
-          min={1}
-          max={600}
-          onChange={(request_timeout_seconds) =>
-            setQuery({
-              ...props.settings.query,
-              request_timeout_seconds,
-            })
-          }
-        />
-        <NumberField
-          label="Answer timeout"
-          value={props.settings.query.answer_timeout_seconds}
-          min={1}
-          max={600}
-          onChange={(answer_timeout_seconds) =>
-            setQuery({
-              ...props.settings.query,
-              answer_timeout_seconds,
-            })
-          }
-        />
-        <NumberField
-          label="Request concurrency"
-          value={props.settings.query.request_concurrency}
-          min={1}
-          max={32}
-          onChange={(request_concurrency) =>
-            setQuery({
-              ...props.settings.query,
-              request_concurrency,
-            })
-          }
-        />
-        <NumberField
-          label="Cache entries"
-          hint="0 disables new answer-cache writes"
-          value={props.settings.query.cache_max_entries}
-          min={0}
-          max={1000000}
-          onChange={(cache_max_entries) =>
-            setQuery({
-              ...props.settings.query,
-              cache_max_entries,
-            })
-          }
-        />
-        <NumberField
-          label="Cache lifetime (seconds)"
-          hint="0 disables answer-cache reads"
-          value={props.settings.query.cache_ttl_seconds}
-          min={0}
-          max={604800}
-          onChange={(cache_ttl_seconds) =>
-            setQuery({
-              ...props.settings.query,
-              cache_ttl_seconds,
-            })
-          }
-        />
-      </SettingsFieldGroup>
-    </ProviderSection>
-  )
-}
-function IngestionSection(incoming: SettingsSectionProps) {
-  const props = incoming
-  const setIngestion = (patch: Partial<DesktopSettings['ingestion']>) =>
-    props.update((current) => ({
-      ...current,
-      ingestion: {
-        ...current.ingestion,
-        ...patch,
-      },
-    }))
-  return (
-    <SettingsSection
-      title="Ingestion safety budgets"
-      description="These hard limits protect the machine even when a connector returns more data than expected. Scheduled sync remains opt-in."
-    >
-      <SettingsFieldGroup class="form-grid compact">
-        <NumberField
-          label="Documents per source"
-          value={props.settings.ingestion.max_documents_per_source}
-          min={1}
-          max={1000000}
-          onChange={(max_documents_per_source) =>
-            setIngestion({
-              max_documents_per_source,
-            })
-          }
-        />
-        <NumberField
-          label="Bytes per source"
-          value={props.settings.ingestion.max_bytes_per_source}
-          min={1024}
-          max={1099511627776}
-          onChange={(max_bytes_per_source) =>
-            setIngestion({
-              max_bytes_per_source,
-            })
-          }
-        />
-        <NumberField
-          label="Duration seconds"
-          value={props.settings.ingestion.max_duration_seconds}
-          min={1}
-          max={86400}
-          onChange={(max_duration_seconds) =>
-            setIngestion({
-              max_duration_seconds,
-            })
-          }
-        />
-        <NumberField
-          label="Document batch size"
-          value={props.settings.ingestion.document_batch_size}
-          min={1}
-          max={2048}
-          onChange={(document_batch_size) =>
-            setIngestion({
-              document_batch_size,
-            })
-          }
-        />
-        <NumberField
-          label="Request concurrency"
-          value={props.settings.ingestion.request_concurrency}
-          min={1}
-          max={32}
-          onChange={(request_concurrency) =>
-            setIngestion({
-              request_concurrency,
-            })
-          }
-        />
-        <NumberField
-          label="Sync freshness (hours)"
-          hint="0 disables stale-sync warnings in the source health view"
-          value={props.settings.ingestion.sync_freshness_hours}
-          min={0}
-          max={8760}
-          onChange={(sync_freshness_hours) =>
-            setIngestion({
-              sync_freshness_hours,
-            })
-          }
-        />
-      </SettingsFieldGroup>
-      <SettingsAlert class="safety-note">
-        <AlertTriangle size={16} />
-        <span>
-          Saving these values does not start a sync. Source authorization and bounded sync controls
-          are managed separately.
-        </span>
-      </SettingsAlert>
     </SettingsSection>
   )
 }
