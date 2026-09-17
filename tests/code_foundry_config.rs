@@ -473,10 +473,11 @@ fn desktop_linux_release_compile_is_gated() {
         .find("\n      - name: ")
         .map_or(desktop_test.len(), |next| test_cache_start + 1 + next);
     let test_tail = &desktop_test[test_tail_start..];
-    assert_eq!(
-        test_tail.matches("- name: ").count(),
-        1,
-        "desktop_test job must run only the desktop test check after setup:\n{desktop_test}"
+    assert_tail_has_sccache_wrap_then_one_check(
+        test_tail,
+        "- name: Test desktop",
+        "desktop_test",
+        &desktop_test,
     );
     assert!(
         test_tail.contains("- name: Test desktop")
@@ -492,15 +493,46 @@ fn desktop_linux_release_compile_is_gated() {
         .find("\n      - name: ")
         .map_or(desktop_clippy.len(), |next| clippy_cache_start + 1 + next);
     let clippy_tail = &desktop_clippy[clippy_tail_start..];
-    assert_eq!(
-        clippy_tail.matches("- name: ").count(),
-        1,
-        "desktop_clippy job must run only the desktop clippy check after setup:\n{desktop_clippy}"
+    assert_tail_has_sccache_wrap_then_one_check(
+        clippy_tail,
+        "- name: Lint desktop",
+        "desktop_clippy",
+        &desktop_clippy,
     );
     assert!(
         clippy_tail.contains("- name: Lint desktop")
             && clippy_tail.contains("run: bun run --cwd apps/desktop clippy"),
         "desktop_clippy job must keep the desktop clippy step:\n{desktop_clippy}"
+    );
+}
+
+/// After the per-job target cache step, a compiling desktop job must run the
+/// shared sccache wrap (setup, not a work check) and then exactly its own
+/// desktop-specific check — no duplicated or unrelated work.
+fn assert_tail_has_sccache_wrap_then_one_check(
+    tail: &str,
+    check_name: &str,
+    job: &str,
+    job_block: &str,
+) {
+    let wrap_prefix = "\n      - name: Wrap rustc with sccache\n";
+    assert!(
+        tail.starts_with(wrap_prefix),
+        "{job} job must wrap rustc with sccache right after its rust cache step:\n{job_block}"
+    );
+    let after_wrap = &tail[wrap_prefix.len()..];
+    let check_start = after_wrap
+        .find("\n      - name: ")
+        .map_or(after_wrap.len(), |next| next + 1);
+    let check_tail = &after_wrap[check_start..];
+    assert_eq!(
+        check_tail.matches("- name: ").count(),
+        1,
+        "{job} job must run only its own desktop check after setup:\n{job_block}"
+    );
+    assert!(
+        check_tail.contains(check_name),
+        "{job} job must keep the {check_name} step:\n{job_block}"
     );
 }
 
