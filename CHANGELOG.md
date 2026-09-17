@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.58.8](https://github.com/adea-ai/cortana/compare/v0.58.7...v0.58.8) (2026-09-17)
+
+
+### Maintenance
+
+* standardize lint and format toolchain ([#2343](https://github.com/adea-ai/cortana/issues/2343)) ([8806933](https://github.com/adea-ai/cortana/commit/8806933629c16c3c8157879f1b2ad926d3b687a3))
+
 ## [0.58.7](https://github.com/adea-ai/cortana/compare/v0.58.6...v0.58.7) (2026-09-17)
 
 
