@@ -32,6 +32,10 @@ COPY crates/mcp/Cargo.toml crates/mcp/Cargo.toml
 # and binary sources so this stage compiles every dependency before the real
 # sources arrive. Source changes then rebuild only the workspace crates
 # instead of recompiling every dependency.
+# The stub artifacts must be deleted afterwards: Cargo fingerprints dep-info by
+# package-relative path, so an identical `cortana` package built from
+# cargo-skeleton/ makes the real build consider the empty stub bin and lib
+# rlibs fresh and ship them instead of the application.
 # Container builds favor iteration speed; keep the desktop release profile's
 # ThinLTO/single-codegen-unit settings unchanged outside this image.
 RUN --mount=type=cache,id=cargo-registry-${TARGETARCH},target=/usr/local/cargo/registry \
@@ -54,6 +58,9 @@ RUN --mount=type=cache,id=cargo-registry-${TARGETARCH},target=/usr/local/cargo/r
     && CARGO_PROFILE_RELEASE_LTO=false CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16 \
       cargo build --manifest-path cargo-skeleton/Cargo.toml --target-dir /src/target \
       --release --locked --bin cortana \
+    && rm -f /src/target/release/cortana* \
+    && rm -f /src/target/release/deps/cortana* /src/target/release/deps/libcortana* \
+    && rm -rf /src/target/release/.fingerprint/cortana-* \
     && rm -rf cargo-skeleton
 COPY src src
 COPY crates crates
