@@ -289,6 +289,33 @@ class ConfigurationTests(unittest.TestCase):
             publish.index('Path("release-image.json")'),
         )
 
+    def test_main_pushes_prime_the_shared_cache_scopes(self):
+        workflow = (ROOT / ".github/workflows/container.yml").read_text()
+        push_block = workflow.split("\n  push:\n", 1)[1].split("\n  workflow_dispatch:\n", 1)[0]
+        self.assertIn("branches:\n      - main", push_block)
+        # The main-push trigger mirrors the pull-request path filter so only
+        # image-relevant merges pay for priming.
+        self.assertIn("- Dockerfile", push_block)
+        self.assertIn("- crates/**", push_block)
+        build, _ = workflow.split("  publish:\n")
+        cache_to = build.split("          cache-to: ", 1)[1].split("\n", 1)[0]
+        self.assertIn("github.event_name == \'push\'", cache_to)
+        self.assertIn("refs/heads/{0}\', github.event.repository.default_branch", cache_to)
+        self.assertIn("scope=container-native-v1-{0},mode=max", cache_to)
+        # Tag builds still never export: they must consume the main-primed scope.
+        self.assertNotIn("cache-to", build.split("cache-to: ", 1)[1].split("      - name: Record")[0])
+
+    def test_conformance_uses_the_local_image_outside_tag_publication(self):
+        workflow = (ROOT / ".github/workflows/container.yml").read_text()
+        build, _ = workflow.split("  publish:\n")
+        conformance = build.split("      - name: Run self-hosted provider conformance\n")[1].split(
+            "      - name:"
+        )[0]
+        self.assertIn(
+            "startsWith(github.ref, \'refs/tags/v\') && format(\'{0}@{1}\'", conformance
+        )
+        self.assertIn("|| steps.prepare.outputs.local", conformance)
+
     def test_container_trigger_only_covers_image_inputs(self):
         workflow = (ROOT / ".github/workflows/container.yml").read_text()
         pull_request_paths = workflow.split("    paths:\n", 1)[1].split("  push:\n", 1)[0]
@@ -302,7 +329,12 @@ class ConfigurationTests(unittest.TestCase):
     def test_caches_and_benchmark_do_not_publish_or_grow_per_ref(self):
         workflow = (ROOT / ".github/workflows/container.yml").read_text()
         benchmark = (ROOT / ".github/workflows/container-benchmark.yml").read_text()
-        self.assertNotIn("cache-to:", workflow)
+        # Main pushes are the only exporter in the Container workflow, through
+        # the single conditional cache-to line pinned by
+        # test_main_pushes_prime_the_shared_cache_scopes; PRs and tags only
+        # read. The benchmark keeps its manual warm/cold timing export.
+        cache_to_lines = [line for line in workflow.splitlines() if "cache-to:" in line]
+        self.assertEqual(len(cache_to_lines), 1, cache_to_lines)
         self.assertIn("scope=container-native-v1-${{ matrix.arch }}", workflow)
         self.assertIn("inputs.cache == 'cold'", benchmark)
         self.assertIn("github.event.repository.default_branch", benchmark)
