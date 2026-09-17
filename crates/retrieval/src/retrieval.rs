@@ -14,57 +14,15 @@ const INTERACTIVE_EMBEDDING_TIMEOUT: Duration = Duration::from_secs(5);
 const NEIGHBOR_RADIUS: usize = 1;
 const MAX_EXPANDED_CONTENT_BYTES: usize = 16 * 1024;
 pub const MAX_QUERY_BYTES: usize = 16 * 1024;
-/// The public retrieval result cap shared by MCP, HTTP, and the CLI.
-pub const MAX_RESULT_LIMIT: usize = 50;
 /// Bump this when ranking inputs or weights change. It is included in query
 /// cache keys so a new ranking policy cannot reuse an old answer.
 pub const RETRIEVAL_RANKING_VERSION: &str = "cortana.retrieval.ranking.v2";
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
-pub struct RetrievalTuning {
-    pub candidate_multiplier: usize,
-    pub semantic_weight: f32,
-    pub lexical_weight: f32,
-    pub idf_weight: f32,
-    pub recency_weight: f32,
-    /// Apply the bounded, deterministic local reranker after hybrid fusion.
-    /// It never calls a provider and remains disabled by default.
-    pub reranker_enabled: bool,
-}
-
-impl Default for RetrievalTuning {
-    fn default() -> Self {
-        Self {
-            candidate_multiplier: 8,
-            semantic_weight: 1.0,
-            lexical_weight: 1.2,
-            idf_weight: 0.08,
-            recency_weight: 0.1,
-            reranker_enabled: false,
-        }
-    }
-}
-
-impl RetrievalTuning {
-    pub fn bounded(self) -> Self {
-        Self {
-            candidate_multiplier: self.candidate_multiplier.clamp(1, 32),
-            semantic_weight: bounded_weight(self.semantic_weight, 1.0, 4.0),
-            lexical_weight: bounded_weight(self.lexical_weight, 1.2, 4.0),
-            idf_weight: bounded_weight(self.idf_weight, 0.08, 1.0),
-            recency_weight: bounded_weight(self.recency_weight, 0.1, 1.0),
-            reranker_enabled: self.reranker_enabled,
-        }
-    }
-}
-
-fn bounded_weight(value: f32, fallback: f32, maximum: f32) -> f32 {
-    if value.is_finite() {
-        value.clamp(0.0, maximum)
-    } else {
-        fallback
-    }
-}
+// The tuning type and shared result cap live in cortana-core so `config` and
+// `store` can reach them without an upward edge into this crate. The re-export
+// keeps the historical `retrieval::` paths stable for every caller.
+pub use crate::config::RetrievalTuning;
+pub use crate::model::MAX_RESULT_LIMIT;
 
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct RetrievalDiagnostics {
@@ -849,7 +807,7 @@ const MAX_EVIDENCE_METADATA_DEPTH: usize = 8;
 const MAX_EVIDENCE_METADATA_ITEMS: usize = 64;
 const MAX_EVIDENCE_METADATA_STRING_BYTES: usize = 4 * 1024;
 
-pub(crate) fn sanitize_evidence_metadata(value: &serde_json::Value) -> serde_json::Value {
+pub fn sanitize_evidence_metadata(value: &serde_json::Value) -> serde_json::Value {
     fn sensitive(key: &str) -> bool {
         let key = key
             .chars()

@@ -328,7 +328,11 @@ class ConfigurationTests(unittest.TestCase):
         self.assertLess(dockerfile.index("pip install"), dockerfile.index("ARG CORTANA_VERSION"))
         self.assertIn("id=cargo-registry-${TARGETARCH}", dockerfile)
         self.assertIn("mkdir -p cargo-skeleton/src", dockerfile)
-        self.assertIn("[workspace]", dockerfile)
+        # The skeleton shares the release target dir, so its stub artifacts
+        # must be purged or Cargo ships the empty binary instead of the app.
+        self.assertIn("rm -f /src/target/release/cortana*", dockerfile)
+        self.assertIn("rm -rf /src/target/release/.fingerprint/cortana-*", dockerfile)
+        self.assertIn("COPY crates/core/Cargo.toml crates/core/Cargo.toml", dockerfile)
         self.assertIn("cargo build --release --locked --bin cortana", dockerfile)
         self.assertEqual(dockerfile.count("CARGO_PROFILE_RELEASE_LTO=false"), 2)
         self.assertEqual(dockerfile.count("CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16"), 2)

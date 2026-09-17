@@ -24,20 +24,46 @@ FROM rust:1.88-bookworm AS rust-builder
 ARG TARGETARCH
 WORKDIR /src
 COPY Cargo.toml Cargo.lock ./
-# Keep the dependency graph in a reusable layer. Source changes then rebuild
-# only the application crate instead of recompiling every dependency.
+COPY crates/core/Cargo.toml crates/core/Cargo.toml
+COPY crates/retrieval/Cargo.toml crates/retrieval/Cargo.toml
+COPY crates/server/Cargo.toml crates/server/Cargo.toml
+COPY crates/mcp/Cargo.toml crates/mcp/Cargo.toml
+# Keep the dependency graph in a reusable layer: stub out the workspace member
+# and binary sources so this stage compiles every dependency before the real
+# sources arrive. Source changes then rebuild only the workspace crates
+# instead of recompiling every dependency.
+# The stub artifacts must be deleted afterwards: Cargo fingerprints dep-info by
+# package-relative path, so an identical `cortana` package built from
+# cargo-skeleton/ makes the real build consider the empty stub bin and lib
+# rlibs fresh and ship them instead of the application.
 # Container builds favor iteration speed; keep the desktop release profile's
 # ThinLTO/single-codegen-unit settings unchanged outside this image.
 RUN --mount=type=cache,id=cargo-registry-${TARGETARCH},target=/usr/local/cargo/registry \
     mkdir -p cargo-skeleton/src \
+      cargo-skeleton/crates/core/src \
+      cargo-skeleton/crates/retrieval/src \
+      cargo-skeleton/crates/server/src \
+      cargo-skeleton/crates/mcp/src \
     && cp Cargo.toml Cargo.lock cargo-skeleton/ \
-    && printf '\n[workspace]\n' >> cargo-skeleton/Cargo.toml \
+    && cp crates/core/Cargo.toml cargo-skeleton/crates/core/ \
+    && cp crates/retrieval/Cargo.toml cargo-skeleton/crates/retrieval/ \
+    && cp crates/server/Cargo.toml cargo-skeleton/crates/server/ \
+    && cp crates/mcp/Cargo.toml cargo-skeleton/crates/mcp/ \
+    && printf '' > cargo-skeleton/src/lib.rs \
     && printf 'fn main() {}\n' > cargo-skeleton/src/main.rs \
+    && printf '' > cargo-skeleton/crates/core/src/lib.rs \
+    && printf '' > cargo-skeleton/crates/retrieval/src/lib.rs \
+    && printf '' > cargo-skeleton/crates/server/src/lib.rs \
+    && printf '' > cargo-skeleton/crates/mcp/src/lib.rs \
     && CARGO_PROFILE_RELEASE_LTO=false CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16 \
       cargo build --manifest-path cargo-skeleton/Cargo.toml --target-dir /src/target \
       --release --locked --bin cortana \
+    && rm -f /src/target/release/cortana* \
+    && rm -f /src/target/release/deps/cortana* /src/target/release/deps/libcortana* \
+    && rm -rf /src/target/release/.fingerprint/cortana-* \
     && rm -rf cargo-skeleton
 COPY src src
+COPY crates crates
 COPY eval eval
 RUN --mount=type=cache,id=cargo-registry-${TARGETARCH},target=/usr/local/cargo/registry \
     CARGO_PROFILE_RELEASE_LTO=false CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16 \

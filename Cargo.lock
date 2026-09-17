@@ -369,10 +369,41 @@ dependencies = [
  "assert_cmd",
  "async-trait",
  "axum",
+ "chrono",
+ "clap",
+ "cortana-core",
+ "cortana-mcp",
+ "cortana-retrieval",
+ "cortana-server",
+ "dirs",
+ "fs2",
+ "futures-util",
+ "libc",
+ "open",
+ "predicates",
+ "rmcp",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "toml",
+ "tower",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
+name = "cortana-core"
+version = "0.58.5"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
  "base64 0.23.1",
  "chacha20poly1305",
  "chrono",
- "clap",
  "dirs",
  "ed25519-dalek",
  "fs2",
@@ -382,11 +413,77 @@ dependencies = [
  "ignore",
  "libc",
  "open",
- "predicates",
  "reqwest",
- "rmcp",
  "rusqlite",
  "schemars",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "tokio",
+ "toml",
+ "tracing",
+ "uuid",
+ "x25519-dalek",
+ "zeroize",
+]
+
+[[package]]
+name = "cortana-mcp"
+version = "0.58.5"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "cortana-core",
+ "cortana-retrieval",
+ "rmcp",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "toml",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "cortana-retrieval"
+version = "0.58.5"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
+ "chrono",
+ "cortana-core",
+ "futures-util",
+ "reqwest",
+ "rusqlite",
+ "schemars",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "tokio",
+ "toml",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "cortana-server"
+version = "0.58.5"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
+ "base64 0.23.1",
+ "chrono",
+ "cortana-core",
+ "cortana-retrieval",
+ "dirs",
+ "libc",
+ "reqwest",
+ "rusqlite",
  "serde",
  "serde_json",
  "sha2",
@@ -398,8 +495,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
- "x25519-dalek",
- "zeroize",
 ]
 
 [[package]]

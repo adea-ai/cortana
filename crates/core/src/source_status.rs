@@ -16,7 +16,7 @@ use crate::source_validation::{self, SourceValidationStatus};
 
 /// Cap on how large an OAuth token file may be before it is treated as
 /// unreadable (defense against pathological files).
-pub(crate) const MAX_TOKEN_FILE_BYTES: usize = 64 * 1024;
+pub const MAX_TOKEN_FILE_BYTES: usize = 64 * 1024;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]

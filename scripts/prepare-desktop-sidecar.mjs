@@ -20,14 +20,24 @@ import { restoreReleasePleaseAnnotation } from './desktop-lockfile.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const release = process.argv.includes('--release')
-const target = process.env.CORTANA_DESKTOP_TARGET || capture('rustc', ['--print', 'host-tuple'])
+// `--ensure` reuses an existing sidecar binary. Check-only lanes (cargo check,
+// clippy) need the externalBin path to exist for tauri-build, not a fresh
+// build of it, so they skip the compile entirely once a binary is present.
+const ensureOnly = process.argv.includes('--ensure')
+const hostTarget = capture('rustc', ['--print', 'host-tuple'])
+const target = process.env.CORTANA_DESKTOP_TARGET || hostTarget
 if (!/^[a-z0-9_]+-[a-z0-9_.-]+$/i.test(target)) {
   throw new Error(`invalid desktop target triple: ${target}`)
 }
 const windows = target.includes('windows')
 const extension = windows ? '.exe' : ''
 const profile = release ? 'release' : 'debug'
-const args = ['build', '--locked', '--target', target]
+// An explicit --target writes artifacts under target/<triple>/, which shares
+// nothing with the default target/ dir. Host builds omit it so the sidecar
+// binary reuses the same incremental artifacts as `cargo build`/`cargo test`.
+const hostBuild = target === hostTarget
+const args = ['build', '--locked']
+if (!hostBuild) args.push('--target', target)
 if (release) args.push('--release')
 const desktopLockfile = resolve(root, 'apps/desktop/src-tauri/Cargo.lock')
 const sidecarDirectory = resolve(root, 'apps/desktop/src-tauri/binaries')
@@ -86,24 +96,30 @@ function sleep(milliseconds) {
 const releaseLock = acquireLock()
 let stagingDirectory = null
 try {
-  run('cargo', args)
-  // Cargo may rewrite a lockfile while preserving its semantic contents but
-  // dropping the Release Please marker comment. Keep the generated lockfile
-  // authoritative while restoring that repository-owned release annotation so
-  // local desktop tests and builds do not leave a false dirty diff.
-  restoreReleasePleaseAnnotation(desktopLockfile)
-  const source = resolve(root, 'target', target, profile, `cortana${extension}`)
   const destination = resolve(
     root,
     'apps/desktop/src-tauri/binaries',
     `cortana-${target}${extension}`
   )
-  stagingDirectory = mkdtempSync(join(sidecarDirectory, '.cortana-sidecar-staging-'))
-  const stagedDestination = resolve(stagingDirectory, `cortana-${target}${extension}`)
-  copyFileSync(source, stagedDestination)
-  if (!windows) chmodSync(stagedDestination, 0o755)
-  renameSync(stagedDestination, destination)
-  console.log(`Prepared desktop runtime sidecar: ${destination}`)
+  if (ensureOnly && existsSync(destination)) {
+    console.log(`Reusing existing desktop runtime sidecar: ${destination}`)
+  } else {
+    run('cargo', args)
+    // Cargo may rewrite a lockfile while preserving its semantic contents but
+    // dropping the Release Please marker comment. Keep the generated lockfile
+    // authoritative while restoring that repository-owned release annotation so
+    // local desktop tests and builds do not leave a false dirty diff.
+    restoreReleasePleaseAnnotation(desktopLockfile)
+    const source = hostBuild
+      ? resolve(root, 'target', profile, `cortana${extension}`)
+      : resolve(root, 'target', target, profile, `cortana${extension}`)
+    stagingDirectory = mkdtempSync(join(sidecarDirectory, '.cortana-sidecar-staging-'))
+    const stagedDestination = resolve(stagingDirectory, `cortana-${target}${extension}`)
+    copyFileSync(source, stagedDestination)
+    if (!windows) chmodSync(stagedDestination, 0o755)
+    renameSync(stagedDestination, destination)
+    console.log(`Prepared desktop runtime sidecar: ${destination}`)
+  }
 } finally {
   if (stagingDirectory) rmSync(stagingDirectory, { recursive: true, force: true })
   // Cargo failure or a copy error must not leave the shared lock behind.

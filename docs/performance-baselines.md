@@ -39,6 +39,46 @@ pattern).
 | Release desktop binary (`target/release/cortana-desktop`) | 24,523,456 bytes                      |
 | Packaged `Cortana.app` (`desktop:bundle:mac`, unsigned)   | 51,236,864 bytes                      |
 
+## Workspace layout and local build caching
+
+The Rust binary is split into workspace crates so compile units stay
+independent: `crates/core` (storage, memory, ingestion, connectors, sync),
+`crates/retrieval` (embedding, retrieval, answer, evaluation), `crates/server`
+(HTTP API, service, readiness, supervisor, relay, knowledge evaluation), and
+`crates/mcp` (the rmcp server surface). The root `cortana` package is a facade
+library plus the CLI binary; `cargo check -p <crate>` type-checks a single
+crate and its upstreams, and edits that do not change a crate's public
+metadata do not recompile downstream crates or the test binaries.
+
+A cold `cargo check --all-targets` in a fresh worktree measured ~45 minutes
+because each worktree compiles every dependency at the dev profile's
+`opt-level = 2`. `scripts/setup-worktree.sh` symlinks `target/` (and the Tauri
+crate's separate target dir) into `~/.cache/cortana` — or `$CORTANA_BUILD_CACHE`
+— so dependency artifacts are shared across every worktree while workspace
+crates still incremental-build per worktree. Concurrent builds serialize on
+Cargo's target lock rather than corrupting output; `cargo clean` in one
+worktree clears the shared cache for all.
+
+Two optional local tools:
+
+- `sccache` as `rustc-wrapper` (`brew install sccache`, then add
+  `rustc-wrapper = "sccache"` under `[build]` in `~/.cargo/config.toml`) —
+  note it only caches non-incremental compiles, so it helps release and
+  desktop builds, not the dev-profile loop covered by the shared target dir.
+- `cargo nextest run` (`brew install cargo-nextest`) executes Rust tests as
+  parallel processes instead of per-binary batches; especially effective for
+  the `assert_cmd`-driven `tests/cli.rs` suite (604 tests in ~21s locally).
+
+`test:unit` runs its five independent lanes (JS tests, pytest, docs
+consistency, the evaluation gate, and the web build plus bundle budget)
+concurrently via `scripts/run-unit-lanes.mjs`;
+`node scripts/run-unit-lanes.mjs <lane>` runs a single lane while iterating.
+
+`desktop:check` and `desktop:clippy` reuse an existing sidecar binary
+(`prepare:sidecar --ensure`) instead of rebuilding it, and host builds no
+longer pass an explicit `--target` triple so the sidecar shares `target/debug`
+artifacts with normal `cargo build` output.
+
 ## Build-path failure modes (do not reintroduce)
 
 - **Stale `node_modules` vs `bun.lock`**: the lockfile pinned TypeScript 6.0.3 while the

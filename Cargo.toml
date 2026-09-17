@@ -1,13 +1,23 @@
-[package]
-name = "cortana"
-version = "0.58.5"
+[workspace]
+members = ["crates/*"]
+# Without this, cargo commands at the root build only the root package and the
+# member crates' unit tests would silently never run.
+default-members = [".", "crates/core", "crates/retrieval", "crates/server", "crates/mcp"]
+exclude = ["apps/desktop/src-tauri", "third_party/glib-0.18.5"]
+
+[workspace.package]
 edition = "2024"
 rust-version = "1.88"
-description = "Local-first, agent-native second brain with configurable ingestion and hybrid retrieval"
 license = "Apache-2.0"
 repository = "https://github.com/adea-ai/cortana"
 
-[dependencies]
+[workspace.dependencies]
+# Workspace member crates.
+cortana-core = { path = "crates/core" }
+cortana-retrieval = { path = "crates/retrieval" }
+cortana-server = { path = "crates/server" }
+cortana-mcp = { path = "crates/mcp" }
+
 anyhow = "1.0"
 async-trait = "0.1"
 axum = "0.8"
@@ -49,13 +59,53 @@ tower-http = { version = "0.7", features = ["fs", "timeout", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 uuid = { version = "1.18", features = ["serde", "v4", "v5"] }
+libc = "0.2"
+
+[package]
+name = "cortana"
+version = "0.58.5"
+edition.workspace = true
+rust-version.workspace = true
+description = "Local-first, agent-native second brain with configurable ingestion and hybrid retrieval"
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+cortana-core.workspace = true
+cortana-retrieval.workspace = true
+cortana-server.workspace = true
+cortana-mcp.workspace = true
+anyhow.workspace = true
+chrono.workspace = true
+clap.workspace = true
+dirs.workspace = true
+fs2.workspace = true
+futures-util.workspace = true
+open.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+toml.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+uuid.workspace = true
 
 [target.'cfg(unix)'.dependencies]
-libc = "0.2"
+libc.workspace = true
 
 [dev-dependencies]
 assert_cmd = "2.0"
+async-trait.workspace = true
+axum.workspace = true
+chrono.workspace = true
+fs2.workspace = true
 predicates = "3.1"
+rmcp.workspace = true
+rusqlite.workspace = true
+serde_json.workspace = true
+tempfile.workspace = true
+tokio.workspace = true
+tower.workspace = true
 
 [profile.release]
 lto = "thin"

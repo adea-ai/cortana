@@ -168,8 +168,9 @@ pub async fn run(path: &Path) -> Result<EvaluationReport> {
 }
 
 pub async fn run_default() -> Result<EvaluationReport> {
-    let fixture: EvaluationFixture = serde_json::from_str(include_str!("../eval/fixtures.json"))
-        .context("invalid built-in evaluation fixture")?;
+    let fixture: EvaluationFixture =
+        serde_json::from_str(include_str!("../../../eval/fixtures.json"))
+            .context("invalid built-in evaluation fixture")?;
     run_fixture(fixture, None).await
 }
 
@@ -214,8 +215,9 @@ pub async fn run_with_model_default(
     query: &QueryConfig,
     api_key: Option<String>,
 ) -> Result<EvaluationReport> {
-    let fixture: EvaluationFixture = serde_json::from_str(include_str!("../eval/fixtures.json"))
-        .context("invalid built-in evaluation fixture")?;
+    let fixture: EvaluationFixture =
+        serde_json::from_str(include_str!("../../../eval/fixtures.json"))
+            .context("invalid built-in evaluation fixture")?;
     run_model_fixture(fixture, Some((bounded_model_config(query), api_key))).await
 }
 
@@ -804,7 +806,7 @@ mod tests {
     fn fixture_path() -> (tempfile::TempDir, std::path::PathBuf) {
         let directory = tempdir().expect("fixture temp dir");
         let path = directory.path().join("fixtures.json");
-        std::fs::write(&path, include_str!("../eval/fixtures.json")).expect("write fixture");
+        std::fs::write(&path, include_str!("../../../eval/fixtures.json")).expect("write fixture");
         (directory, path)
     }
 

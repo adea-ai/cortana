@@ -140,6 +140,26 @@
       "type": "json",
       "path": "eval/relationship-quality-private.example.json",
       "jsonpath": "$.release_version"
+    },
+    {
+      "type": "toml",
+      "path": "crates/core/Cargo.toml",
+      "jsonpath": "$.package.version"
+    },
+    {
+      "type": "toml",
+      "path": "crates/retrieval/Cargo.toml",
+      "jsonpath": "$.package.version"
+    },
+    {
+      "type": "toml",
+      "path": "crates/server/Cargo.toml",
+      "jsonpath": "$.package.version"
+    },
+    {
+      "type": "toml",
+      "path": "crates/mcp/Cargo.toml",
+      "jsonpath": "$.package.version"
     }
   ]
 }

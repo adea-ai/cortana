@@ -13,12 +13,10 @@ on:
 # only the scopes their own validation path consumes.
 permissions: {}
 
-# Superseded PR updates cancel the previous run. Post-merge runs on main are
-# never cancelled: a cancelled run attaches to the merged pull request and
-# marks it failed even though its content was superseded by a newer main push.
+# Superseded PR updates cancel the previous run.
 concurrency:
   group: code-foundry-validation-${{ github.event_name }}-${{ github.event.pull_request.head.repo.full_name || github.repository }}-${{ github.event.pull_request.head.ref || github.ref_name }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: true
 
 jobs:
   mode:
@@ -45,7 +43,7 @@ jobs:
         with:
           persist-credentials: false
           repository: 0xPlayerOne/code-foundry
-          ref: v1.28.15
+          ref: v1.29.0
           path: .github/.code-foundry
           sparse-checkout: |
             src/lib
@@ -79,14 +77,14 @@ jobs:
       contents: read
       packages: read
       security-events: write
-    uses: 0xPlayerOne/code-foundry/.github/workflows/validation.yml@v1.28.15
+    uses: 0xPlayerOne/code-foundry/.github/workflows/validation.yml@v1.29.0
     with:
       mode: ${{ needs.mode.outputs.mode }}
       runtime-repository: 0xPlayerOne/code-foundry
       # Pull requests validate the proposed runtime commit. Scheduled and
       # manually dispatched audits use a separate default-branch-pinned caller,
       # so this caller-selected ref never runs with default-branch cache access.
-      runtime-ref: v1.28.15
+      runtime-ref: v1.29.0
       ci-runner: ubuntu-latest
       test-runner: ubuntu-latest
       unit-runner: ubuntu-latest
@@ -94,7 +92,7 @@ jobs:
       security-runner: ubuntu-slim
       eval-runner: ubuntu-latest
       codeql-runner: ubuntu-latest
-      rust-shards: '["src","tests","apps/desktop/src-tauri","third_party/glib-0.18.5"]'
+      rust-shards: '["src","crates","tests","apps/desktop/src-tauri","third_party/glib-0.18.5"]'
       rust-threads: '4'
       rust-max-parallel: 4
     secrets:
@@ -112,11 +110,11 @@ jobs:
       contents: read
       packages: read
       security-events: write
-    uses: 0xPlayerOne/code-foundry/.github/workflows/codeql.yml@v1.28.15
+    uses: 0xPlayerOne/code-foundry/.github/workflows/codeql.yml@v1.29.0
     with:
       runtime-repository: 0xPlayerOne/code-foundry
-      runtime-ref: v1.28.15
+      runtime-ref: v1.29.0
       runner: ubuntu-latest
-      rust-shards: '["src","tests","apps/desktop/src-tauri","third_party/glib-0.18.5"]'
+      rust-shards: '["src","crates","tests","apps/desktop/src-tauri","third_party/glib-0.18.5"]'
       rust-threads: '4'
       rust-max-parallel: 4

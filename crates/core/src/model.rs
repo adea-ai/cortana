@@ -55,3 +55,6 @@ pub struct StoredChunk {
     pub previous_key: Option<String>,
     pub next_key: Option<String>,
 }
+
+/// The public retrieval result cap shared by MCP, HTTP, and the CLI.
+pub const MAX_RESULT_LIMIT: usize = 50;

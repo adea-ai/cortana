@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).parents[1]
 RUNTIME_PATHS = (
     ROOT / "src",
+    ROOT / "crates",
     ROOT / "apps",
     ROOT / "scripts",
     ROOT / "Cargo.toml",

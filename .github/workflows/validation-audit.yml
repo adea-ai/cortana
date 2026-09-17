@@ -18,25 +18,24 @@ jobs:
   # the protected default-branch cache.
   validation:
     name: Validation
-    timeout-minutes: 15
     if: vars.CI_BILLING_PAUSED != 'true'
     permissions:
       actions: read
       contents: read
       packages: read
       security-events: write
-    uses: 0xPlayerOne/code-foundry/.github/workflows/validation.yml@v1.28.15
+    uses: 0xPlayerOne/code-foundry/.github/workflows/validation.yml@v1.29.0
     with:
       mode: audit
       runtime-repository: 0xPlayerOne/code-foundry
-      runtime-ref: v1.28.15
+      runtime-ref: v1.29.0
       ci-runner: ubuntu-latest
       test-runner: ubuntu-latest
       unit-runner: ubuntu-latest
       performance-runner: ubuntu-latest
       security-runner: ubuntu-slim
       codeql-runner: ubuntu-latest
-      rust-shards: '["src","tests","apps/desktop/src-tauri","third_party/glib-0.18.5"]'
+      rust-shards: '["src","crates","tests","apps/desktop/src-tauri","third_party/glib-0.18.5"]'
       rust-threads: '4'
       rust-max-parallel: 4
     secrets:
