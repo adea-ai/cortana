@@ -149,3 +149,45 @@ test('pinned cargo-audit binary reuse stays separate from compiler caches', () =
   assert.match(source, /if: steps.cache-cargo-audit.outputs.cache-hit != 'true'/)
   assert.match(source, /cargo install cargo-audit --version 0.22.2 --locked/)
 })
+
+const sccacheJobs = ['gtk_iterator', 'desktop_test', 'desktop_clippy', 'release']
+
+test('every compiling desktop job wraps rustc with the shared sccache action', () => {
+  for (const id of sccacheJobs) {
+    const source = job(id)
+    assert.match(source, /uses: \.\/\.github\/actions\/desktop-sccache\n/, id)
+    // The wrap must come after the target cache step so restore happens first.
+    assert.ok(
+      source.indexOf('- name: Cache Rust build artifacts') < source.indexOf('desktop-sccache'),
+      `${id} must wrap rustc after its target cache step`
+    )
+  }
+})
+
+test('non-compiling desktop jobs never initialize sccache', () => {
+  assert.doesNotMatch(job('gtk_provenance'), /desktop-sccache/)
+  assert.doesNotMatch(job('security_audit'), /desktop-sccache/)
+})
+
+test('the sccache action caches only its content-addressed store', () => {
+  const action = readFileSync(
+    new URL('../.github/actions/desktop-sccache/action.yml', import.meta.url),
+    'utf8'
+  )
+  assert.match(action, /actions\/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9/)
+  assert.match(action, /taiki-e\/install-action@cb33e69fad06166ca28a42b2575e4dadabf62ee8/)
+  assert.match(action, /path: ~\/\.cache\/sccache\n/)
+  assert.match(action, /RUSTC_WRAPPER=sccache/)
+  // Primary key stays per-job; restore shares objects across desktop jobs.
+  assert.match(action, /desktop-sccache-v1-\$\{\{ github\.job \}\}/)
+  assert.match(action, /desktop-sccache-v1-\n/)
+  assert.doesNotMatch(action, /github\.(sha|run_id|run_attempt)/)
+})
+
+test('desktop change detection covers the sccache action', () => {
+  const detector = workflow.slice(
+    workflow.indexOf('is_desktop_path()'),
+    workflow.indexOf('changed=false')
+  )
+  assert.match(detector, /\.github\/actions\/desktop-sccache\//)
+})
