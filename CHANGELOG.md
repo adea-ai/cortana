@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.58.9](https://github.com/adea-ai/cortana/compare/v0.58.8...v0.58.9) (2026-09-17)
+
+
+### Performance
+
+* build-DX follow-ups from the optimization audit ([#2349](https://github.com/adea-ai/cortana/issues/2349)) ([56c5c07](https://github.com/adea-ai/cortana/commit/56c5c07ef8dc3f4474144bbb51da72ce01ccf736))
+
 ## [0.58.8](https://github.com/adea-ai/cortana/compare/v0.58.7...v0.58.8) (2026-09-17)
 
 
