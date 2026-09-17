@@ -61,7 +61,7 @@ jobs:
             # covers nested Rust/Python/UI files (for example src/cortana/main.rs)
             # while keeping unrelated repository paths out of the final audit.
             local prefix
-            for prefix in apps/desktop/ apps/web/ src/ eval/ third_party/glib-0.18.5/; do
+            for prefix in apps/desktop/ apps/web/ src/ crates/ eval/ third_party/glib-0.18.5/; do
               if [[ "$1" == "$prefix"* ]]; then
                 return 0
               fi
