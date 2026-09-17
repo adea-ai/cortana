@@ -6,13 +6,17 @@ codeql: auto
 dependency_review: auto
 package_manager: bun
 runtime_repository: 0xPlayerOne/code-foundry
-runtime_ref: v1.29.0
+runtime_ref: v1.30.0
 rust_sccache: true
 rust_nextest: true
-# Integration tests exercise installer, release-packaging, and sidecar
-# boundaries, so they stay affected by nearly every code path; docs-only or
-# metadata-only diffs are the cases this filter skips.
+# These lanes exercise nearly every code path (installer, release-packaging,
+# sidecar, browser, and budget boundaries), so they stay affected by almost
+# any source change; docs-only or metadata-only diffs are the cases these
+# filters skip. `.github/**` is deliberately included: workflow changes can
+# alter what the lanes run.
 filter_integration: '.github/**,src/**,crates/**,tests/**,scripts/**,skills/**,apps/**,eval/**,pyproject.toml,uv.lock,Cargo.toml,Cargo.lock,bun.lock,package.json,release-please-config.json,.release-please-manifest.json'
+filter_e2e: '.github/**,src/**,crates/**,tests/**,scripts/**,skills/**,apps/**,eval/**,pyproject.toml,uv.lock,Cargo.toml,Cargo.lock,bun.lock,package.json'
+filter_performance: '.github/**,src/**,crates/**,tests/**,scripts/**,skills/**,apps/**,eval/**,pyproject.toml,uv.lock,Cargo.toml,Cargo.lock,bun.lock,package.json,performance-package-budgets.json'
 runner: ubuntu-latest
 unit_runner: ubuntu-latest
 ci_runner: ubuntu-latest
