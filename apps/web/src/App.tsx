@@ -1140,12 +1140,7 @@ function CortanaApplication() {
       const next = await saveDesktopSettings({
         workspaces: desktopSettings()!.workspaces,
         sources: desktopSettings()!.sources.map((candidate) =>
-          candidate === current
-            ? {
-                ...candidate,
-                enabled,
-              }
-            : candidate
+          candidate === current ? Object.assign({}, candidate, { enabled }) : candidate
         ),
         auth_principals: desktopSettings()!.auth_principals,
         embedding: desktopSettings()!.embedding,
