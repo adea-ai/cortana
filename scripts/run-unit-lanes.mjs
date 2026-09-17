@@ -14,6 +14,9 @@ const hasNextest = spawnSync('cargo', ['nextest', '--version'], { stdio: 'ignore
 
 const lanes = [
   ['js', ['bun', 'scripts/run-js-tests.mjs']],
+  // Fails fast when Cargo.lock member versions drift from the manifests —
+  // release branches hit this only inside the container build otherwise.
+  ['lockfile', ['sh', '-c', 'cargo metadata --format-version 1 --locked --offline >/dev/null']],
   ['pytest', ['uv', 'run', 'pytest', '-m', 'not integration and not smoke']],
   ['docs', ['uv', 'run', 'python', 'scripts/check-docs-consistency.py']],
   [
