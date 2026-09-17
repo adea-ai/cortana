@@ -63,6 +63,10 @@
       "path": "uv.lock"
     },
     {
+      "type": "generic",
+      "path": "Cargo.lock"
+    },
+    {
       "type": "json",
       "path": "apps/web/package.json",
       "jsonpath": "$.version"
