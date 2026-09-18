@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.58.10](https://github.com/adea-ai/cortana/compare/v0.58.9...v0.58.10) (2026-09-18)
+
+
+### Bug Fixes
+
+* container-main-push-attestations ([#2351](https://github.com/adea-ai/cortana/issues/2351)) ([0cf7212](https://github.com/adea-ai/cortana/commit/0cf721240d5088d06b1c8d9a5354985d05270680))
+* make main-push container builds pure cache priming ([#2353](https://github.com/adea-ai/cortana/issues/2353)) ([f711b83](https://github.com/adea-ai/cortana/commit/f711b8349fa9085770b933404b295489b2d98d37))
+
 ## [0.58.9](https://github.com/adea-ai/cortana/compare/v0.58.8...v0.58.9) (2026-09-17)
 
 
