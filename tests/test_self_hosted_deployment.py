@@ -48,8 +48,14 @@ def test_container_release_workflow_is_tag_scoped_and_publishes_ghcr() -> None:
     assert "packages: write" in workflow
     assert "ghcr.io/${{ github.repository }}" in workflow
     assert "github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')" in workflow
-    assert "provenance: ${{ github.event_name == 'push' && 'mode=max' || false }}" in workflow
-    assert "sbom: ${{ github.event_name == 'push' }}" in workflow
+    assert (
+        "provenance: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && 'mode=max' || false }}"
+        in workflow
+    )
+    assert (
+        "sbom: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}"
+        in workflow
+    )
     assert "docker/setup-qemu-action" not in workflow
     assert "runner: ubuntu-24.04-arm" in workflow
     assert "platforms: linux/${{ matrix.arch }}" in workflow
