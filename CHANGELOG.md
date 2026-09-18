@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.58.11](https://github.com/adea-ai/cortana/compare/v0.58.10...v0.58.11) (2026-09-18)
+
+
+### Maintenance
+
+* toolchain-alignment ([#2348](https://github.com/adea-ai/cortana/issues/2348)) ([830acb9](https://github.com/adea-ai/cortana/commit/830acb9dfed8dc6a0669c997b45ffe36cf54b36f))
+
 ## [0.58.10](https://github.com/adea-ai/cortana/compare/v0.58.9...v0.58.10) (2026-09-18)
 
 
