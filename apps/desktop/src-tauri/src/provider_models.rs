@@ -101,10 +101,10 @@ fn validate_provider_models_payload(value: &Value, kind: &str) -> Result<(), Str
     if object.get("kind").and_then(Value::as_str) != Some(kind) {
         return Err("provider model discovery returned an unexpected kind".into());
     }
-    if let Some(truncated) = object.get("truncated") {
-        if !truncated.is_boolean() {
-            return Err("provider model discovery returned an invalid truncation flag".into());
-        }
+    if let Some(truncated) = object.get("truncated")
+        && !truncated.is_boolean()
+    {
+        return Err("provider model discovery returned an invalid truncation flag".into());
     }
     let provider = object
         .get("provider")
@@ -133,26 +133,25 @@ fn validate_provider_models_payload(value: &Value, kind: &str) -> Result<(), Str
             return Err("provider model discovery returned an unsafe model id".into());
         }
         for key in ["object", "owned_by"] {
-            if let Some(value) = model.get(key) {
-                if !value.is_null() {
-                    let text = value.as_str().ok_or_else(|| {
-                        "provider model discovery returned invalid model metadata".to_string()
-                    })?;
-                    if text.is_empty()
-                        || text.chars().count() > MAX_METADATA_CHARS
-                        || text.chars().any(char::is_control)
-                    {
-                        return Err(
-                            "provider model discovery returned unsafe model metadata".into()
-                        );
-                    }
+            if let Some(value) = model.get(key)
+                && !value.is_null()
+            {
+                let text = value.as_str().ok_or_else(|| {
+                    "provider model discovery returned invalid model metadata".to_string()
+                })?;
+                if text.is_empty()
+                    || text.chars().count() > MAX_METADATA_CHARS
+                    || text.chars().any(char::is_control)
+                {
+                    return Err("provider model discovery returned unsafe model metadata".into());
                 }
             }
         }
-        if let Some(created) = model.get("created") {
-            if !created.is_null() && !created.is_u64() {
-                return Err("provider model discovery returned invalid model metadata".into());
-            }
+        if let Some(created) = model.get("created")
+            && !created.is_null()
+            && !created.is_u64()
+        {
+            return Err("provider model discovery returned invalid model metadata".into());
         }
         if let Some(capabilities) = model.get("capabilities") {
             validate_capabilities(capabilities, 0)?;

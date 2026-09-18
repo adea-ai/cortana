@@ -525,10 +525,10 @@ fn connector_candidates() -> Vec<PathBuf> {
 
 fn connector_candidates_from(prefix: Option<PathBuf>, home: Option<PathBuf>) -> Vec<PathBuf> {
     let mut candidates = Vec::new();
-    if let Some(prefix) = prefix {
-        if prefix.is_absolute() {
-            candidates.push(prefix.join("share/cortana").join(connector_relative_path()));
-        }
+    if let Some(prefix) = prefix
+        && prefix.is_absolute()
+    {
+        candidates.push(prefix.join("share/cortana").join(connector_relative_path()));
     }
     if let Some(home) = home {
         candidates.push(

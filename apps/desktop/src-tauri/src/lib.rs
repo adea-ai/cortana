@@ -217,16 +217,16 @@ mod backend_tests {
 /// Fall back to the requested scope when no shared-scope owner credential is
 /// configured.
 fn desktop_bearer_for_scope(scope: &str) -> Result<Option<String>, String> {
-    if scope != "admin" {
-        if let Ok(snapshot) = settings::load() {
-            for principal in snapshot
-                .auth_principals
-                .iter()
-                .filter(|principal| principal_supports_owner_scope(principal, scope))
-            {
-                if let Ok(Some(token)) = settings::secret_value_for_env(&principal.token_env) {
-                    return Ok(Some(token));
-                }
+    if scope != "admin"
+        && let Ok(snapshot) = settings::load()
+    {
+        for principal in snapshot
+            .auth_principals
+            .iter()
+            .filter(|principal| principal_supports_owner_scope(principal, scope))
+        {
+            if let Ok(Some(token)) = settings::secret_value_for_env(&principal.token_env) {
+                return Ok(Some(token));
             }
         }
     }

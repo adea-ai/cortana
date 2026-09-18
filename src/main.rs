@@ -5496,10 +5496,10 @@ fn connector_arguments(command: &mut Vec<String>, source: &SourceConfig) -> Resu
     for repository in &source.repositories {
         command.extend(["--repo".into(), repository.clone()]);
     }
-    if source.kind != "discord" {
-        if let Some(token_env) = &source.token_env {
-            command.extend(["--token-env".into(), token_env.clone()]);
-        }
+    if source.kind != "discord"
+        && let Some(token_env) = &source.token_env
+    {
+        command.extend(["--token-env".into(), token_env.clone()]);
     }
     if let Some(token) = &source.token {
         command.extend(["--token".into(), token.display().to_string()]);

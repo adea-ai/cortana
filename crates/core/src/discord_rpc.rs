@@ -740,10 +740,10 @@ impl RpcClient {
 fn socket_paths() -> Vec<PathBuf> {
     let mut roots = Vec::new();
     for name in ["XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP"] {
-        if let Some(value) = std::env::var_os(name) {
-            if !value.is_empty() {
-                roots.push(PathBuf::from(value));
-            }
+        if let Some(value) = std::env::var_os(name)
+            && !value.is_empty()
+        {
+            roots.push(PathBuf::from(value));
         }
     }
     roots.push(PathBuf::from("/tmp"));

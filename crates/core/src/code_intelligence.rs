@@ -733,15 +733,15 @@ pub fn parse_document(
         if let Some(target) = import_target(trimmed, language) {
             imports.push((target, span.clone()));
         }
-        if trimmed.starts_with("export ") || trimmed.starts_with("pub use ") {
-            if let Some(name) = exported_name(trimmed, language) {
-                exports.push((name, span.clone()));
-            }
+        if (trimmed.starts_with("export ") || trimmed.starts_with("pub use "))
+            && let Some(name) = exported_name(trimmed, language)
+        {
+            exports.push((name, span.clone()));
         }
-        if trimmed.split_whitespace().any(|value| value == "override") {
-            if let Some((name, _, _, _)) = declaration(trimmed, language) {
-                overrides.push((name, span.clone()));
-            }
+        if trimmed.split_whitespace().any(|value| value == "override")
+            && let Some((name, _, _, _)) = declaration(trimmed, language)
+        {
+            overrides.push((name, span.clone()));
         }
         if let Some((name, kind, signature, visibility)) = declaration(trimmed, language) {
             if output.symbols.len() >= max_symbols {
@@ -1159,14 +1159,13 @@ fn import_target(line: &str, language: Language) -> Option<String> {
     target
         .trim_matches([';', '\'', '"'])
         .split(|character: char| !(character.is_alphanumeric() || character == '_'))
-        .filter(|part| {
+        .rfind(|part| {
             !part.is_empty()
                 && !matches!(
                     *part,
                     "as" | "crate" | "from" | "import" | "mod" | "pub" | "self" | "super" | "use"
                 )
         })
-        .next_back()
         .map(str::to_string)
 }
 

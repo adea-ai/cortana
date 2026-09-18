@@ -278,10 +278,10 @@ fn job_block<'a>(workflow: &'a str, job_id: &str) -> &'a str {
         "release",
         "aggregate",
     ] {
-        if other != job_id {
-            if let Some(pos) = tail.find(&format!("\n  {other}:")) {
-                end = end.min(start + 1 + pos);
-            }
+        if other != job_id
+            && let Some(pos) = tail.find(&format!("\n  {other}:"))
+        {
+            end = end.min(start + 1 + pos);
         }
     }
     &workflow[start..end]

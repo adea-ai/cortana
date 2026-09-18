@@ -1794,26 +1794,25 @@ impl Store {
         // A retry with the same dedupe key and identical normalized payload is
         // a true no-op. Avoiding a write keeps memory_revision stable, which in
         // turn preserves answer-cache hits for idempotent agent retries.
-        if let Some(existing) = &existing {
-            if existing.status == "active"
-                && existing.kind == axes.legacy_kind()
-                && existing.content_type == axes.content_type.as_str()
-                && existing.retention_tier == axes.retention_tier.as_str()
-                && existing.scope == axes.scope.as_str()
-                && existing.project == input.project
-                && existing.title == input.title
-                && existing.content == input.content
-                && existing.source == input.source
-                && existing.source_id == source_id
-                && existing.confidence == f64::from(input.confidence)
-                && existing.importance == f64::from(input.importance)
-                && existing.acl == acl
-                && existing.provenance_json == provenance_json
-                && existing.valid_until == valid_until
-                && existing.supersedes_id == input.supersedes_id
-            {
-                return Ok(existing.id.clone());
-            }
+        if let Some(existing) = &existing
+            && existing.status == "active"
+            && existing.kind == axes.legacy_kind()
+            && existing.content_type == axes.content_type.as_str()
+            && existing.retention_tier == axes.retention_tier.as_str()
+            && existing.scope == axes.scope.as_str()
+            && existing.project == input.project
+            && existing.title == input.title
+            && existing.content == input.content
+            && existing.source == input.source
+            && existing.source_id == source_id
+            && existing.confidence == f64::from(input.confidence)
+            && existing.importance == f64::from(input.importance)
+            && existing.acl == acl
+            && existing.provenance_json == provenance_json
+            && existing.valid_until == valid_until
+            && existing.supersedes_id == input.supersedes_id
+        {
+            return Ok(existing.id.clone());
         }
         let active_count: i64 = transaction.query_row(
             "SELECT COUNT(*) FROM memories
@@ -2197,8 +2196,8 @@ impl Store {
         let now = memory::now();
         let mut connection = self.connection.lock().expect("store lock poisoned");
         let transaction = connection.transaction()?;
-        if let Some(dedupe_key) = input.dedupe_key.as_deref() {
-            if let Some(existing) = transaction
+        if let Some(dedupe_key) = input.dedupe_key.as_deref()
+            && let Some(existing) = transaction
                 .query_row(
                     "SELECT id,observation_kind,content_type,retention_tier,scope,created_by,project,title,content,
                             source,source_id,dedupe_key,confidence,importance,sensitivity,status,acl_json,
@@ -2209,28 +2208,27 @@ impl Store {
                     observation_candidate_from_row,
                 )
                 .optional()?
-            {
-                anyhow::ensure!(
-                    existing.status == "pending"
-                        && existing.observation_kind == observation_kind.as_str()
-                        && existing.content_type == content_type.as_str()
-                        && existing.retention_tier == retention_tier.as_str()
-                        && existing.scope == scope.as_str()
-                        && existing.title == input.title
-                        && existing.content == input.content
-                        && existing.source == input.source
-                        && existing.source_id == input.source_id
-                        && existing.confidence == input.confidence
-                        && existing.importance == input.importance
-                        && existing.sensitivity == sensitivity.as_str()
-                        && existing.acl == acl
-                        && existing.provenance == provenance
-                        && existing.expires_at == expires_at,
-                    "candidate dedupe key already belongs to a different proposal"
-                );
-                transaction.commit()?;
-                return Ok(existing);
-            }
+        {
+            anyhow::ensure!(
+                existing.status == "pending"
+                    && existing.observation_kind == observation_kind.as_str()
+                    && existing.content_type == content_type.as_str()
+                    && existing.retention_tier == retention_tier.as_str()
+                    && existing.scope == scope.as_str()
+                    && existing.title == input.title
+                    && existing.content == input.content
+                    && existing.source == input.source
+                    && existing.source_id == input.source_id
+                    && existing.confidence == input.confidence
+                    && existing.importance == input.importance
+                    && existing.sensitivity == sensitivity.as_str()
+                    && existing.acl == acl
+                    && existing.provenance == provenance
+                    && existing.expires_at == expires_at,
+                "candidate dedupe key already belongs to a different proposal"
+            );
+            transaction.commit()?;
+            return Ok(existing);
         }
         let active_count: i64 = transaction.query_row(
             "SELECT COUNT(*) FROM memory_candidates
@@ -6986,7 +6984,7 @@ mod tests {
         assert_eq!(expanded[&seed], "alpha beta gamma delta");
 
         let bounded = store
-            .neighboring_content_scoped(&[seed.clone()], 1, 12, &["work".into()])
+            .neighboring_content_scoped(std::slice::from_ref(&seed), 1, 12, &["work".into()])
             .expect("bounded context");
         assert_eq!(bounded[&seed], "alpha beta g");
     }

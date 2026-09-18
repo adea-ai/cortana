@@ -136,7 +136,7 @@ async fn model_evaluation_synthesizes_even_when_production_config_disables_synth
                 let calls = Arc::clone(&calls);
                 async move {
                     let index = calls.fetch_add(1, Ordering::SeqCst) as usize;
-                    let content = if index % 2 == 0 {
+                    let content = if index.is_multiple_of(2) {
                         r#"{"queries":["release"]}"#.to_string()
                     } else {
                         "The release process is bounded by safe checks. [1]".to_string()

@@ -408,7 +408,7 @@ fn backup_check_blocking(directory: &Path, max_age_hours: u64) -> ReadinessCheck
             metadata.modified().ok().map(|modified| (path, modified))
         })
         .collect::<Vec<_>>();
-    candidates.sort_by(|left, right| right.1.cmp(&left.1));
+    candidates.sort_by_key(|candidate| std::cmp::Reverse(candidate.1));
     let mut invalid = Vec::new();
     let Some((path, modified)) = candidates.into_iter().find(|(path, _)| {
         if Store::verify(path).is_ok() {

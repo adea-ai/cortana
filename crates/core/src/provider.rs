@@ -470,10 +470,10 @@ impl ReplayGuard {
             ensure!(*previous == operation, "replay operation does not match");
             return Ok(false);
         }
-        if self.order.len() == self.capacity {
-            if let Some(oldest) = self.order.pop_front() {
-                self.operations.remove(&oldest);
-            }
+        if self.order.len() == self.capacity
+            && let Some(oldest) = self.order.pop_front()
+        {
+            self.operations.remove(&oldest);
         }
         self.order.push_back(key.into());
         self.operations.insert(key.into(), operation);
