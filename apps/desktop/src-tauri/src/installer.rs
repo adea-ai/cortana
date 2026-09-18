@@ -440,10 +440,10 @@ fn connector_venv_dir_from(
     prefix: Option<PathBuf>,
     home: Option<PathBuf>,
 ) -> Result<PathBuf, String> {
-    if let Some(prefix) = prefix {
-        if prefix.is_absolute() {
-            return Ok(prefix.join("share/cortana/venv"));
-        }
+    if let Some(prefix) = prefix
+        && prefix.is_absolute()
+    {
+        return Ok(prefix.join("share/cortana/venv"));
     }
     home.map(|home| home.join(".local/share/cortana/venv"))
         .ok_or_else(|| "cannot locate the current user's home directory".into())

@@ -1261,15 +1261,15 @@ impl SourceJobState {
         }
         job.snapshot.status = "cancelling";
         job.snapshot.summary = format!("Cancelling source {}…", job.snapshot.operation);
-        if let Some(child) = job.child.take() {
-            if let Err(error) = terminate_source_process(child) {
-                job.snapshot.status = "failed";
-                job.snapshot.summary =
-                    format!("Source {} could not be cancelled.", job.snapshot.operation);
-                job.snapshot.log = sanitize_log(&error.to_string());
-                job.snapshot.completed_at_unix_seconds = Some(now());
-                job.snapshot.retryable = true;
-            }
+        if let Some(child) = job.child.take()
+            && let Err(error) = terminate_source_process(child)
+        {
+            job.snapshot.status = "failed";
+            job.snapshot.summary =
+                format!("Source {} could not be cancelled.", job.snapshot.operation);
+            job.snapshot.log = sanitize_log(&error.to_string());
+            job.snapshot.completed_at_unix_seconds = Some(now());
+            job.snapshot.retryable = true;
         }
         Ok(job.snapshot.clone())
     }

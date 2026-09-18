@@ -636,10 +636,8 @@ impl SettingsStore {
             set_owner_only(&backup)?;
         }
         if let Err(error) = atomic_write(&self.config_path, rendered.as_bytes()) {
-            if native_backend {
-                if let Some(previous) = native_undo.as_ref() {
-                    let _ = restore_native_values(previous);
-                }
+            if native_backend && let Some(previous) = native_undo.as_ref() {
+                let _ = restore_native_values(previous);
             }
             return Err(error);
         }
@@ -1544,16 +1542,15 @@ fn validate_update_with_legacy_scopes(
                 secret.name
             ));
         }
-        if let Some(value) = &secret.value {
-            if value.is_empty()
+        if let Some(value) = &secret.value
+            && (value.is_empty()
                 || value.len() > MAX_SECRET_BYTES
                 || value.contains(['\n', '\r', '\0'])
                 || value.trim() != value
                 || value.starts_with(['"', '\''])
-                || value.ends_with(['"', '\''])
-            {
-                return Err(format!("secret `{}` has an invalid value", secret.name));
-            }
+                || value.ends_with(['"', '\'']))
+        {
+            return Err(format!("secret `{}` has an invalid value", secret.name));
         }
     }
     Ok(())

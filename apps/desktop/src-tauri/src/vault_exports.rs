@@ -330,7 +330,7 @@ fn request_cancellation(job: &mut VaultExportJob) -> Result<(), String> {
 }
 
 fn valid_report(snapshot: &VaultExportSnapshot, report: &VaultExportReport) -> bool {
-    report.output == PathBuf::from(&snapshot.output)
+    report.output == std::path::Path::new(&snapshot.output)
         && report.workspaces == snapshot.workspaces
         && report.dry_run == snapshot.dry_run
         && report.files.len() <= 100
