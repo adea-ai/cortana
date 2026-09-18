@@ -115,13 +115,16 @@ jobs:
         with:
           context: .
           platforms: linux/${{ matrix.arch }}
-          # Tag builds push by digest; PR and main pushes load the local
-          # image for conformance.
+          # Tag builds push by digest and PRs load the local image for
+          # conformance. Main pushes are cache-priming only: with cache-to
+          # mode=max buildx must push the final manifest by digest, so a
+          # local tag (docker.io ref, unauthenticated) breaks the export,
+          # and the merged PR already conformance-tested this same SHA.
           push: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
-          load: ${{ !(github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) }}
+          load: ${{ github.event_name != 'push' }}
           # Push immutable digests only. Release aliases are promoted after both gates.
-          outputs: ${{ github.event_name == 'push' && format('type=image,name={0},push-by-digest=true,name-canonical=true,push=true', steps.prepare.outputs.image) || '' }}
-          tags: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && steps.prepare.outputs.image || steps.prepare.outputs.local }}
+          outputs: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && format('type=image,name={0},push-by-digest=true,name-canonical=true,push=true', steps.prepare.outputs.image) || (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/') && 'type=cacheonly' || '') }}
+          tags: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && steps.prepare.outputs.image || (github.event_name != 'push' && steps.prepare.outputs.local || '') }}
           labels: ${{ steps.metadata.outputs.labels }}
           build-args: CORTANA_VERSION=${{ github.ref_name }}
           # Tags and PRs read default-branch caches, not each other's. Merges
@@ -154,6 +157,9 @@ jobs:
         run: python scripts/container_release.py verify --image "$IMAGE" --platforms linux/${{ matrix.arch }}
 
       - name: Run self-hosted provider conformance
+        # Main pushes prime caches only: the merged PR already conformance-
+        # tested this exact SHA, and cacheonly builds load no local image.
+        if: github.event_name != 'push' || startsWith(github.ref, 'refs/tags/v')
         env:
           CORTANA_CONFORMANCE_IMAGE: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && format('{0}@{1}', steps.prepare.outputs.image, steps.build.outputs.digest) || steps.prepare.outputs.local }}
         run: |
