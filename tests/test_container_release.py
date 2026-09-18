@@ -276,11 +276,20 @@ class ConfigurationTests(unittest.TestCase):
         self.assertIn("runner: ubuntu-24.04\n", build)
         self.assertNotIn("setup-qemu", build)
         self.assertIn("push-by-digest=true", build)
+        # Main pushes prime caches only: cacheonly output, no local tag, and
+        # no conformance (the merged PR already tested the same SHA).
+        self.assertIn("&& 'type=cacheonly' || '') }}", build)
+        conformance_if = build.split("      - name: Run self-hosted provider conformance\n")[
+            1
+        ].split("        env:")[0]
+        self.assertIn(
+            "github.event_name != 'push' || startsWith(github.ref, 'refs/tags/v')", conformance_if
+        )
         self.assertIn("needs: image", publish)
         conformance = build.split("      - name: Run self-hosted provider conformance\n")[1].split(
             "      - name:"
         )[0]
-        self.assertNotIn("if:", conformance)
+        self.assertNotIn("continue-on-error", conformance)
         self.assertNotIn("continue-on-error", conformance)
         self.assertIn("CORTANA_CONFORMANCE_IMAGE:", conformance)
         self.assertLess(publish.index("verify --index"), publish.index('--tag "$IMAGE:latest"'))
