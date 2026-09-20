@@ -1837,4 +1837,31 @@ mod tests {
             .expect_err("symlinked environment files must fail");
         assert!(error.to_string().contains("must not be a symlink"));
     }
+    #[test]
+    fn workspace_configuration_has_no_count_cap() {
+        // Issue #2097: the three-workspace UX cap was removed after the
+        // 25-workspace scale/isolation proof. The configuration layer must
+        // accept any bounded workspace count without dropping entries.
+        let mut config = Config::default();
+        for index in 0..12 {
+            config.workspaces.push(crate::config::WorkspaceConfig {
+                id: format!("workspace-{index}"),
+                name: format!("Workspace {index}"),
+                account_label: None,
+                color: None,
+            });
+        }
+        let document = toml::to_string(&config).expect("serialize configuration");
+        let parsed: Config = toml::from_str(&document).expect("parse configuration");
+        assert_eq!(parsed.workspaces.len(), 12);
+        for index in 0..12 {
+            assert!(
+                parsed
+                    .workspaces
+                    .iter()
+                    .any(|workspace| workspace.id == format!("workspace-{index}")),
+                "workspace-{index} was dropped"
+            );
+        }
+    }
 }
