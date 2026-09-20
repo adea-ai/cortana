@@ -205,7 +205,9 @@ pub struct ConsolidationOutcome {
     pub status: String,
     pub decision: ConsolidationDecisionReport,
     pub memory_id: Option<String>,
-    pub attempts: u8,
+    /// Retry count as recorded by the durable job, widened beyond u8 so the
+    /// report no longer saturates at 255 for pathological retry loops.
+    pub attempts: u32,
 }
 
 /// Evaluate a candidate without mutating a store.  Sensitive, contradictory,
@@ -371,7 +373,7 @@ pub struct QueueItem {
     pub candidate_id: String,
     pub policy_version: String,
     pub priority: u8,
-    pub attempts: u8,
+    pub attempts: u32,
     pub status: QueueStatus,
 }
 
@@ -493,7 +495,7 @@ impl ConsolidationQueue {
         None
     }
     pub fn retry(&mut self, mut item: QueueItem) {
-        item.status = if item.attempts > self.max_retries {
+        item.status = if item.attempts > u32::from(self.max_retries) {
             QueueStatus::DeadLetter
         } else {
             QueueStatus::Retry

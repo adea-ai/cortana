@@ -935,7 +935,7 @@ impl BrainServer {
                     return code_error("invalid_cursor", &error.to_string(), false);
                 }
             },
-            None => 0,
+            None => None,
         };
         match self.store.code_relations(
             &params.symbol_id,
@@ -943,17 +943,13 @@ impl BrainServer {
             &acl,
             query,
             depth,
-            cursor,
+            cursor.as_deref(),
             params.limit.unwrap_or(20).min(retrieval::MAX_RESULT_LIMIT),
         ) {
             Ok(mut page) => {
-                if let Some(offset) = page
-                    .next_cursor
-                    .take()
-                    .and_then(|cursor| cursor.parse::<usize>().ok())
-                {
+                if let Some(after_id) = page.next_cursor.take() {
                     page.next_cursor = match encode_relation_cursor(
-                        offset,
+                        Some(after_id),
                         corpus_revision,
                         &params.symbol_id,
                         params.project.as_deref(),

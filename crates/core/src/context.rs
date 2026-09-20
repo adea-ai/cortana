@@ -257,11 +257,14 @@ pub fn build_with_retrieval_and_memory(
         }),
         ..ContextMetadata::default()
     };
+    // with_metadata finalizes every contract field below (created_at,
+    // budget, degradation, digests) from `metadata`, so the literal carries
+    // only the values this function computes itself.
     ContextBundle {
-        contract_version: CONTEXT_CONTRACT_VERSION.into(),
+        contract_version: String::new(),
         context_bundle_id: String::new(),
         canonical_digest: String::new(),
-        created_at: metadata.created_at.clone(),
+        created_at: String::new(),
         token_budget: max_tokens,
         query: query.to_string(),
         context,
@@ -281,13 +284,13 @@ pub fn build_with_retrieval_and_memory(
         evidence: included,
         memories: included_memories,
         retrieval_mode: retrieval_mode.to_string(),
-        degradation: metadata.degradation.clone(),
+        degradation: None,
         retrieval_warning: retrieval_warning.map(str::to_string),
         corpus_revision: 0,
         memory_revision: None,
         embedding_fingerprint: None,
-        retrieval_contract_version: RETRIEVAL_CONTRACT_VERSION.into(),
-        privacy_scope_digest: metadata.privacy_scope_digest.clone(),
+        retrieval_contract_version: String::new(),
+        privacy_scope_digest: String::new(),
     }
     .with_metadata(metadata)
 }
