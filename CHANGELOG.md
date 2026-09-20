@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.58.12](https://github.com/adea-ai/cortana/compare/v0.58.11...v0.58.12) (2026-09-20)
+
+
+### Bug Fixes
+
+* codeql-path-injection ([#2358](https://github.com/adea-ai/cortana/issues/2358)) ([794450a](https://github.com/adea-ai/cortana/commit/794450a4613be5d667663bbb991b14123a7fbfdb))
+
+
+### Maintenance
+
+* **deps:** bump the cargo-dependencies group with 2 updates ([#2356](https://github.com/adea-ai/cortana/issues/2356)) ([81fcc4c](https://github.com/adea-ai/cortana/commit/81fcc4cdfffae039b27b61e418a9f5f561e0a2fc))
+* **deps:** bump the github-actions group with 3 updates ([#2357](https://github.com/adea-ai/cortana/issues/2357)) ([3aa6ae9](https://github.com/adea-ai/cortana/commit/3aa6ae94ac7212a252068726c73da220a262762d))
+
 ## [0.58.11](https://github.com/adea-ai/cortana/compare/v0.58.10...v0.58.11) (2026-09-18)
 
 
