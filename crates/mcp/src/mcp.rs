@@ -8,7 +8,7 @@ use std::time::Instant;
 use rmcp::{
     ServerHandler, ServiceExt,
     handler::server::{router::tool::ToolRouter, wrapper::Parameters},
-    model::{ServerCapabilities, ServerInfo},
+    model::{ServerCapabilities, ServerConfig},
     schemars, tool, tool_handler, tool_router,
     transport::stdio,
 };
@@ -2238,8 +2238,8 @@ impl BrainServer {
 
 #[tool_handler(router = self.tool_router)]
 impl ServerHandler for BrainServer {
-    fn get_info(&self) -> ServerInfo {
-        ServerInfo::new(ServerCapabilities::builder().enable_tools().build()).with_instructions(
+    fn get_info(&self) -> ServerConfig {
+        ServerConfig::new(ServerCapabilities::builder().enable_tools().build()).with_instructions(
             "Call context before answering questions about the user or their work. Use recall for durable agent memory, remember only explicit conclusions with provenance, and forget when a memory is withdrawn. Prefer search_code, search_messages, or who_knows for narrow discovery.",
         )
     }
