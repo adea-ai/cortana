@@ -47,7 +47,7 @@ struct ValidationState {
 }
 
 pub fn load(data_dir: &Path) -> Result<BTreeMap<String, SourceValidationStatus>> {
-    if !data_dir.is_dir() {
+    if !matches!(data_dir.try_exists(), Ok(true)) {
         return Ok(BTreeMap::new());
     }
     let resolved = resolve_data_dir(data_dir, false)?;
@@ -257,27 +257,64 @@ fn reject_symlink(path: &Path) -> Result<()> {
 ///
 /// `canonicalize()` followed by a `starts_with()` containment check is the
 /// traversal guard for every filesystem call in this module: operator-supplied
-/// configuration is resolved to a real directory (symlinks and `..` included)
-/// and each derived path is verified to stay inside it before use. Paths that
-/// have not passed both steps never reach a filesystem sink.
+/// configuration is resolved to its real location (symlinks and `..`
+/// included) and each derived path is verified to stay inside it before use.
+/// Paths that have not passed both steps never reach a filesystem call — not
+/// even a directory probe, which would leak the shape of untrusted paths and
+/// races any later check.
 fn resolve_data_dir(data_dir: &Path, create: bool) -> Result<PathBuf> {
-    if data_dir.is_symlink() {
+    match data_dir.canonicalize() {
+        Ok(resolved) => contained_directory(resolved),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            if !create {
+                anyhow::bail!(
+                    "validation data directory does not exist: {}",
+                    data_dir.display()
+                );
+            }
+            create_data_dir(data_dir)
+        }
+        Err(error) => Err(error.into()),
+    }
+}
+
+/// Validate an already-canonicalized directory: contained under its resolved
+/// parent, a regular directory, and owned by the current user.
+fn contained_directory(resolved: PathBuf) -> Result<PathBuf> {
+    let parent = resolved.parent().ok_or_else(|| {
+        anyhow::anyhow!(
+            "validation data path has no parent directory: {}",
+            resolved.display()
+        )
+    })?;
+    if !resolved.starts_with(parent) {
         anyhow::bail!(
-            "refusing to use symlinked validation path {}",
-            data_dir.display()
+            "validation data path escapes its parent: {}",
+            resolved.display()
         );
     }
-    if data_dir.is_dir() {
-        return canonical_directory(data_dir);
-    }
-    if !create {
-        anyhow::bail!(
-            "validation data directory does not exist: {}",
-            data_dir.display()
+    let metadata = std::fs::metadata(&resolved)?;
+    anyhow::ensure!(
+        metadata.is_dir(),
+        "validation data path is not a directory: {}",
+        resolved.display()
+    );
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        anyhow::ensure!(
+            metadata.uid() == unsafe { libc::geteuid() },
+            "validation data directory is not owned by the current user: {}",
+            resolved.display()
         );
     }
-    // Walk from the deepest existing ancestor so every directory created is a
-    // single checked component under a canonical, contained parent.
+    Ok(resolved)
+}
+
+/// Create the missing tail of `data_dir` one component at a time, each under
+/// a canonical, contained parent, starting from the deepest ancestor that
+/// already resolves.
+fn create_data_dir(data_dir: &Path) -> Result<PathBuf> {
     if data_dir
         .components()
         .any(|component| component == std::path::Component::ParentDir)
@@ -287,37 +324,43 @@ fn resolve_data_dir(data_dir: &Path, create: bool) -> Result<PathBuf> {
             data_dir.display()
         );
     }
-    let mut existing = data_dir.to_path_buf();
+    let mut ancestor = data_dir.to_path_buf();
     let mut missing: Vec<OsString> = Vec::new();
-    while !existing.is_dir() {
-        let name = existing
-            .file_name()
-            .ok_or_else(|| {
-                anyhow::anyhow!(
-                    "validation data path has no parent directory: {}",
-                    data_dir.display()
-                )
-            })?
-            .to_os_string();
-        missing.push(name);
-        let parent = existing
-            .parent()
-            .ok_or_else(|| {
-                anyhow::anyhow!(
-                    "validation data path has no parent directory: {}",
-                    data_dir.display()
-                )
-            })?
-            .to_path_buf();
-        if parent.as_os_str().is_empty() {
-            anyhow::bail!(
-                "validation data path has no parent directory: {}",
-                data_dir.display()
-            );
+    let base = loop {
+        match ancestor.canonicalize() {
+            Ok(dir) => break dir,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                let name = ancestor
+                    .file_name()
+                    .ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "validation data path has no parent directory: {}",
+                            data_dir.display()
+                        )
+                    })?
+                    .to_os_string();
+                missing.push(name);
+                let parent = ancestor
+                    .parent()
+                    .ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "validation data path has no parent directory: {}",
+                            data_dir.display()
+                        )
+                    })?
+                    .to_path_buf();
+                if parent.as_os_str().is_empty() {
+                    anyhow::bail!(
+                        "validation data path has no parent directory: {}",
+                        data_dir.display()
+                    );
+                }
+                ancestor = parent;
+            }
+            Err(error) => return Err(error.into()),
         }
-        existing = parent;
-    }
-    let mut resolved = canonical_directory(&existing)?;
+    };
+    let mut resolved = contained_directory(base)?;
     for name in missing.iter().rev() {
         let target = resolved.join(name);
         if !target.starts_with(&resolved) {
@@ -350,43 +393,6 @@ fn resolve_data_dir(data_dir: &Path, create: bool) -> Result<PathBuf> {
     {
         use std::os::unix::fs::PermissionsExt;
         std::fs::set_permissions(&resolved, std::fs::Permissions::from_mode(0o700))?;
-    }
-    Ok(resolved)
-}
-
-fn canonical_directory(data_dir: &Path) -> Result<PathBuf> {
-    let resolved = data_dir.canonicalize().with_context(|| {
-        format!(
-            "failed to resolve validation data directory {}",
-            data_dir.display()
-        )
-    })?;
-    anyhow::ensure!(
-        resolved.is_dir(),
-        "validation data path is not a directory: {}",
-        resolved.display()
-    );
-    let parent = resolved.parent().ok_or_else(|| {
-        anyhow::anyhow!(
-            "validation data path has no parent directory: {}",
-            resolved.display()
-        )
-    })?;
-    if !resolved.starts_with(parent) {
-        anyhow::bail!(
-            "validation data path escapes its parent: {}",
-            resolved.display()
-        );
-    }
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::MetadataExt;
-        let metadata = std::fs::metadata(&resolved)?;
-        anyhow::ensure!(
-            metadata.uid() == unsafe { libc::geteuid() },
-            "validation data directory is not owned by the current user: {}",
-            resolved.display()
-        );
     }
     Ok(resolved)
 }
@@ -910,7 +916,7 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn rejects_symlinked_data_directory() {
+    fn resolves_symlinked_data_directory_to_its_target() {
         use std::os::unix::fs::symlink;
 
         let directory = tempfile::tempdir().expect("temporary directory");
@@ -919,10 +925,13 @@ mod tests {
         let link = directory.path().join("link");
         symlink(&target, &link).expect("create symlink");
 
-        let error = record(&link, recorded_status("drive"))
-            .expect_err("symlinked data directory must be rejected");
-        assert!(error.to_string().contains("symlinked validation path"));
-        assert!(!target.join(STATE_FILE).exists());
+        // A symlinked root is resolved to its real, ownership-checked
+        // location rather than operated on through the link.
+        record(&link, recorded_status("drive"))
+            .expect("symlinked root canonicalizes to its target");
+        assert!(target.join(STATE_FILE).is_file());
+        let state = load(&link).expect("state readable through the symlinked root");
+        assert_eq!(state.len(), 1);
     }
 
     #[test]
