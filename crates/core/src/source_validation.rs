@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::ffi::OsString;
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -46,7 +47,11 @@ struct ValidationState {
 }
 
 pub fn load(data_dir: &Path) -> Result<BTreeMap<String, SourceValidationStatus>> {
-    let path = data_dir.join(STATE_FILE);
+    if !matches!(data_dir.try_exists(), Ok(true)) {
+        return Ok(BTreeMap::new());
+    }
+    let resolved = resolve_data_dir(data_dir, false)?;
+    let path = checked_join(&resolved, STATE_FILE)?;
     match std::fs::symlink_metadata(&path) {
         Ok(_) => {}
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
@@ -54,7 +59,6 @@ pub fn load(data_dir: &Path) -> Result<BTreeMap<String, SourceValidationStatus>>
         }
         Err(error) => return Err(error.into()),
     }
-    validate_data_directory(data_dir, false)?;
     let input = open_existing_file(&path)
         .with_context(|| format!("failed to open source validation state {}", path.display()))?;
     let mut bytes = Vec::new();
@@ -72,9 +76,9 @@ pub fn load(data_dir: &Path) -> Result<BTreeMap<String, SourceValidationStatus>>
 }
 
 pub fn record(data_dir: &Path, mut status: SourceValidationStatus) -> Result<()> {
-    validate_data_directory(data_dir, true)?;
+    let resolved = resolve_data_dir(data_dir, true)?;
     status.error = status.error.map(sanitize_error);
-    let lock_path = data_dir.join(LOCK_FILE);
+    let lock_path = checked_join(&resolved, LOCK_FILE)?;
     let lock = owner_only_file(&lock_path)?;
     lock.lock_exclusive()?;
 
@@ -82,7 +86,7 @@ pub fn record(data_dir: &Path, mut status: SourceValidationStatus) -> Result<()>
         sources: load(data_dir)?,
     };
     state.sources.insert(status.source.clone(), status);
-    let path = data_dir.join(STATE_FILE);
+    let path = checked_join(&resolved, STATE_FILE)?;
     let temporary = temporary_path(&path);
     let result = (|| -> Result<()> {
         let mut output = create_owner_only_file(&temporary)?;
@@ -248,31 +252,160 @@ fn reject_symlink(path: &Path) -> Result<()> {
     Ok(())
 }
 
-fn validate_data_directory(path: &Path, create: bool) -> Result<()> {
-    reject_symlink(path)?;
-    if create {
-        std::fs::create_dir_all(path)?;
-        reject_symlink(path)?;
+/// Resolve `data_dir` to its canonical location before any validation state
+/// under it is touched.
+///
+/// `canonicalize()` followed by a `starts_with()` containment check is the
+/// traversal guard for every filesystem call in this module: operator-supplied
+/// configuration is resolved to its real location (symlinks and `..`
+/// included) and each derived path is verified to stay inside it before use.
+/// Paths that have not passed both steps never reach a filesystem call — not
+/// even a directory probe, which would leak the shape of untrusted paths and
+/// races any later check.
+fn resolve_data_dir(data_dir: &Path, create: bool) -> Result<PathBuf> {
+    match data_dir.canonicalize() {
+        Ok(resolved) => contained_directory(resolved),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            if !create {
+                anyhow::bail!(
+                    "validation data directory does not exist: {}",
+                    data_dir.display()
+                );
+            }
+            create_data_dir(data_dir)
+        }
+        Err(error) => Err(error.into()),
     }
-    let metadata = std::fs::metadata(path)?;
+}
+
+/// Validate an already-canonicalized directory: contained under its resolved
+/// parent, a regular directory, and owned by the current user.
+fn contained_directory(resolved: PathBuf) -> Result<PathBuf> {
+    let parent = resolved.parent().ok_or_else(|| {
+        anyhow::anyhow!(
+            "validation data path has no parent directory: {}",
+            resolved.display()
+        )
+    })?;
+    if !resolved.starts_with(parent) {
+        anyhow::bail!(
+            "validation data path escapes its parent: {}",
+            resolved.display()
+        );
+    }
+    let metadata = std::fs::metadata(&resolved)?;
     anyhow::ensure!(
         metadata.is_dir(),
         "validation data path is not a directory: {}",
-        path.display()
+        resolved.display()
     );
     #[cfg(unix)]
     {
-        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+        use std::os::unix::fs::MetadataExt;
         anyhow::ensure!(
             metadata.uid() == unsafe { libc::geteuid() },
             "validation data directory is not owned by the current user: {}",
+            resolved.display()
+        );
+    }
+    Ok(resolved)
+}
+
+/// Create the missing tail of `data_dir` one component at a time, each under
+/// a canonical, contained parent, starting from the deepest ancestor that
+/// already resolves.
+fn create_data_dir(data_dir: &Path) -> Result<PathBuf> {
+    if data_dir
+        .components()
+        .any(|component| component == std::path::Component::ParentDir)
+    {
+        anyhow::bail!(
+            "refusing to create validation data path containing '..': {}",
+            data_dir.display()
+        );
+    }
+    let mut ancestor = data_dir.to_path_buf();
+    let mut missing: Vec<OsString> = Vec::new();
+    let base = loop {
+        match ancestor.canonicalize() {
+            Ok(dir) => break dir,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                let name = ancestor
+                    .file_name()
+                    .ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "validation data path has no parent directory: {}",
+                            data_dir.display()
+                        )
+                    })?
+                    .to_os_string();
+                missing.push(name);
+                let parent = ancestor
+                    .parent()
+                    .ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "validation data path has no parent directory: {}",
+                            data_dir.display()
+                        )
+                    })?
+                    .to_path_buf();
+                if parent.as_os_str().is_empty() {
+                    anyhow::bail!(
+                        "validation data path has no parent directory: {}",
+                        data_dir.display()
+                    );
+                }
+                ancestor = parent;
+            }
+            Err(error) => return Err(error.into()),
+        }
+    };
+    let mut resolved = contained_directory(base)?;
+    for name in missing.iter().rev() {
+        let target = resolved.join(name);
+        if !target.starts_with(&resolved) {
+            anyhow::bail!(
+                "validation data path escapes the data directory: {}",
+                target.display()
+            );
+        }
+        std::fs::create_dir(&target).with_context(|| {
+            format!(
+                "failed to create validation data directory {}",
+                target.display()
+            )
+        })?;
+        let created = target.canonicalize().with_context(|| {
+            format!(
+                "failed to resolve validation data directory {}",
+                target.display()
+            )
+        })?;
+        if !created.starts_with(&resolved) {
+            anyhow::bail!(
+                "validation data path escapes the data directory: {}",
+                created.display()
+            );
+        }
+        resolved = created;
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&resolved, std::fs::Permissions::from_mode(0o700))?;
+    }
+    Ok(resolved)
+}
+
+fn checked_join(resolved: &Path, file_name: &str) -> Result<PathBuf> {
+    let path = resolved.join(file_name);
+    if !path.starts_with(resolved) {
+        anyhow::bail!(
+            "validation path escapes the data directory: {}",
             path.display()
         );
-        if create {
-            std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o700))?;
-        }
     }
-    Ok(())
+    Ok(path)
 }
 
 fn validate_open_file(file: &File, path: &Path) -> Result<()> {
@@ -761,5 +894,105 @@ mod tests {
             std::fs::read_to_string(target).expect("read target"),
             "unchanged"
         );
+    }
+
+    fn recorded_status(source: &str) -> SourceValidationStatus {
+        SourceValidationStatus {
+            source: source.into(),
+            project: "work".into(),
+            kind: "google-drive".into(),
+            status: "succeeded".into(),
+            validated_at: Utc::now(),
+            documents: Some(1),
+            bytes: Some(8),
+            max_documents: 25,
+            max_bytes: 1024,
+            max_seconds: 30,
+            configuration_fingerprint: None,
+            complete: None,
+            error: None,
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn resolves_symlinked_data_directory_to_its_target() {
+        use std::os::unix::fs::symlink;
+
+        let directory = tempfile::tempdir().expect("temporary directory");
+        let target = directory.path().join("real-data");
+        std::fs::create_dir(&target).expect("create target directory");
+        let link = directory.path().join("link");
+        symlink(&target, &link).expect("create symlink");
+
+        // A symlinked root is resolved to its real, ownership-checked
+        // location rather than operated on through the link.
+        record(&link, recorded_status("drive"))
+            .expect("symlinked root canonicalizes to its target");
+        assert!(target.join(STATE_FILE).is_file());
+        let state = load(&link).expect("state readable through the symlinked root");
+        assert_eq!(state.len(), 1);
+    }
+
+    #[test]
+    fn missing_data_directory_loads_as_empty() {
+        let directory = tempfile::tempdir().expect("temporary directory");
+        let data_dir = directory.path().join("missing");
+        let state = load(&data_dir).expect("a missing directory loads as empty");
+        assert!(state.is_empty());
+    }
+
+    #[test]
+    fn record_creates_missing_directories_contained() {
+        let directory = tempfile::tempdir().expect("temporary directory");
+        let data_dir = directory.path().join("one").join("two");
+
+        record(&data_dir, recorded_status("drive")).expect("nested creation");
+
+        assert!(data_dir.is_dir());
+        let state = load(&data_dir).expect("state readable after creation");
+        assert_eq!(state.len(), 1);
+        assert_eq!(state["drive"].source, "drive");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mode = std::fs::metadata(&data_dir)
+                .expect("metadata")
+                .permissions()
+                .mode()
+                & 0o777;
+            assert_eq!(mode, 0o700);
+        }
+    }
+
+    #[test]
+    fn traversal_components_are_canonicalized_before_use() {
+        let directory = tempfile::tempdir().expect("temporary directory");
+        let nested = directory.path().join("data");
+        std::fs::create_dir(&nested).expect("create data directory");
+        let with_traversal = nested.join("..").join("data");
+
+        record(&with_traversal, recorded_status("drive"))
+            .expect("an existing path with '..' canonicalizes to the same directory");
+
+        let state = load(&with_traversal).expect("state readable through traversal path");
+        assert_eq!(state.len(), 1);
+        assert!(nested.join(STATE_FILE).is_file());
+    }
+
+    #[test]
+    fn creation_refuses_traversal_components() {
+        let directory = tempfile::tempdir().expect("temporary directory");
+        let escape = directory
+            .path()
+            .join("one")
+            .join("two")
+            .join("..")
+            .join("three");
+
+        let error = record(&escape, recorded_status("drive"))
+            .expect_err("'..' above a created component must be refused");
+        assert!(error.to_string().contains("containing '..'"));
+        assert!(!directory.path().join("three").exists());
     }
 }
