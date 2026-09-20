@@ -383,6 +383,9 @@ pub enum ValidationCode {
     ScopeMismatch,
     StaleRevision,
     OverBudget,
+    /// The bundle carries no citation evidence and no memories: contractually
+    /// below the usefulness floor for any consumer answer.
+    Insufficient,
     Degraded,
     Malformed,
 }
@@ -411,6 +414,9 @@ pub fn validate_context_bundle(
         || bundle.metrics.estimated_tokens > bundle.token_budget
     {
         return Err(ValidationCode::OverBudget);
+    }
+    if bundle.metrics.included == 0 && bundle.metrics.memories_included == 0 {
+        return Err(ValidationCode::Insufficient);
     }
     if bundle.degradation.is_some() && !approved.allow_degraded {
         return Err(ValidationCode::Degraded);
