@@ -63,7 +63,7 @@
       "id": "parser",
       "path": "crates/core/src/code_intelligence.rs",
       "symbol": "parse_document",
-      "expected_line": 587,
+      "expected_line": 590,
       "expected_fragment": "pub fn parse_document"
     },
     {
@@ -84,7 +84,7 @@
       "id": "api",
       "path": "crates/server/src/api.rs",
       "symbol": "code_symbols",
-      "expected_line": 2585,
+      "expected_line": 2671,
       "expected_fragment": "async fn code_symbols"
     }
   ],
