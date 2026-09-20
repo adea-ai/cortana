@@ -59,10 +59,10 @@ def test_container_release_workflow_is_tag_scoped_and_publishes_ghcr() -> None:
     assert "docker/setup-qemu-action" not in workflow
     assert "runner: ubuntu-24.04-arm" in workflow
     assert "platforms: linux/${{ matrix.arch }}" in workflow
-    assert "docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e" in workflow
+    assert "docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069" in workflow
     assert "docker/login-action@dbcb813823bdd20940b903addbd779551569679f" in workflow
     assert "docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302" in workflow
-    assert "docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a" in workflow
+    assert "docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc" in workflow
     assert "push-by-digest=true" in workflow
     assert "needs: image" in workflow
     assert "CORTANA_CONFORMANCE_IMAGE:" in workflow
