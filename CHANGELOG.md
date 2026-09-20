@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.58.13](https://github.com/adea-ai/cortana/compare/v0.58.12...v0.58.13) (2026-09-20)
+
+
+### Bug Fixes
+
+* **web:** styling sweep — unify status palette, fix focus contrast, drop dead CSS ([#2360](https://github.com/adea-ai/cortana/issues/2360)) ([93d3869](https://github.com/adea-ai/cortana/commit/93d3869178c1869960c0f656ef772c2737b44567))
+
 ## [0.58.12](https://github.com/adea-ai/cortana/compare/v0.58.11...v0.58.12) (2026-09-20)
 
 
