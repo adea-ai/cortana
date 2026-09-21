@@ -78,11 +78,21 @@ jobs:
         env:
           CORTANA_KNOWLEDGE_SERVER: preview
         run: bun run test:knowledge-accessibility
+      - name: Run user journey E2E
+        run: node scripts/e2e-journeys.mjs
       - name: Upload non-secret evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: knowledge-accessibility-${{ github.sha }}
           path: artifacts/knowledge-accessibility
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload user journey evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: e2e-journeys-${{ github.sha }}
+          path: artifacts/e2e-journeys
           if-no-files-found: error
           retention-days: 30
