@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.58.16](https://github.com/adea-ai/cortana/compare/v0.58.15...v0.58.16) (2026-09-21)
+
+
+### Bug Fixes
+
+* web-type-safety ([#2370](https://github.com/adea-ai/cortana/issues/2370)) ([02c4bc2](https://github.com/adea-ai/cortana/commit/02c4bc2464f13284334ef5227f15859ec87486fa))
+
+
+### Tests
+
+* e2e-journeys ([#2371](https://github.com/adea-ai/cortana/issues/2371)) ([78dc3aa](https://github.com/adea-ai/cortana/commit/78dc3aa98d6dd3b462a1bd6a42e73159ab57f3e1))
+
+
+### Maintenance
+
+* rust-quality-pass ([#2369](https://github.com/adea-ai/cortana/issues/2369)) ([0c552ab](https://github.com/adea-ai/cortana/commit/0c552abae4f0d06933dab56d738eb6491c16fded))
+
 ## [0.58.15](https://github.com/adea-ai/cortana/compare/v0.58.14...v0.58.15) (2026-09-21)
 
 

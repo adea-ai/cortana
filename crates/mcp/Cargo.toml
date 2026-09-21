@@ -1,7 +1,7 @@
 [package]
 name = "cortana-mcp"
 description = "Model Context Protocol server surface for the Cortana second brain"
-version = "0.58.15"
+version = "0.58.16"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
