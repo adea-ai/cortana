@@ -19,7 +19,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Mutex;
 
 pub const RELAY_CONTRACT: &str = "cortana.relay.v1";
@@ -29,13 +29,6 @@ const MAILBOX_BUNDLE_LIMIT: usize = 64;
 const BUNDLE_BYTE_LIMIT: usize = 8 * 1024 * 1024;
 /// Bundles older than this are swept on access; the operator owns the disk.
 const RETENTION_DAYS: i64 = 14;
-
-#[derive(Debug, Clone)]
-pub struct RelayConfig {
-    pub data_dir: PathBuf,
-    /// Required for every request when set; mandatory for non-loopback binds.
-    pub token: Option<String>,
-}
 
 struct RelayState {
     connection: Mutex<rusqlite::Connection>,

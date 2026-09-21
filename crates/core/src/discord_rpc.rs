@@ -151,8 +151,13 @@ pub async fn authorize(config: &Config, selected: &str) -> Result<AuthorizationO
     let source = configured_source(config, selected)?;
     let token_path = configured_token_path(source)?;
     let client_path = required_secure_path(source, source.oauth_client.as_ref(), "OAuth client")?;
-    ensure_outside_filesystem_roots(config, &token_path, "token")?;
-    ensure_outside_filesystem_roots(config, client_path, "OAuth client")?;
+    crate::oauth_common::ensure_outside_filesystem_roots("Discord", config, &token_path, "token")?;
+    crate::oauth_common::ensure_outside_filesystem_roots(
+        "Discord",
+        config,
+        client_path,
+        "OAuth client",
+    )?;
     anyhow::ensure!(
         token_path != client_path,
         "Discord token and OAuth client paths must differ"
@@ -341,7 +346,7 @@ async fn read_authorized_token(
     client: &ClientFile,
     token_path: &Path,
 ) -> Result<StoredToken> {
-    ensure_outside_filesystem_roots(config, token_path, "token")?;
+    crate::oauth_common::ensure_outside_filesystem_roots("Discord", config, token_path, "token")?;
     let mut token = read_token(token_path)?;
     if !token_expired(&token) {
         return Ok(token);
@@ -523,21 +528,6 @@ fn required_secure_path<'a>(
         source.name
     );
     Ok(path)
-}
-
-fn ensure_outside_filesystem_roots(config: &Config, path: &Path, label: &str) -> Result<()> {
-    for source in config.sources.iter().filter(|source| {
-        source.kind == "filesystem" && source.root.as_deref().is_some_and(Path::is_absolute)
-    }) {
-        if let Some(root) = source.root.as_deref() {
-            anyhow::ensure!(
-                !path.starts_with(root),
-                "Discord {label} path must be outside filesystem source {}",
-                source.name
-            );
-        }
-    }
-    Ok(())
 }
 
 fn validate_snowflake(value: &str, label: &str) -> Result<String> {

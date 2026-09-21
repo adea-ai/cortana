@@ -144,17 +144,6 @@ pub struct PublicAclSummary {
     pub documents: usize,
 }
 
-/// A bounded proposal that is intentionally excluded from canonical memory
-/// recall until an explicit review/promotion step accepts it.
-#[derive(Clone, Debug, Serialize)]
-pub struct CandidateStats {
-    pub pending: i64,
-    pub expired: i64,
-    pub cancelled: i64,
-    pub redacted: i64,
-    pub total: i64,
-}
-
 #[derive(Clone, Debug, Serialize)]
 pub struct SourceStats {
     pub source: String,
@@ -3433,28 +3422,6 @@ impl Store {
         Ok(changed)
     }
 
-    /// Cancel queued or paused jobs; canonical memories are never removed by
-    /// queue cancellation.
-    pub fn cancel_memory_consolidation(&self, candidate_id: &str) -> Result<bool> {
-        let connection = self.connection.lock().expect("store lock poisoned");
-        let changed = connection.execute(
-            "UPDATE memory_consolidation_jobs SET status='cancelled',updated_at=?2 WHERE candidate_id=?1 AND status IN ('queued','retry','paused')",
-            params![candidate_id, memory::now()],
-        )? == 1;
-        drop(connection);
-        self.record_audit(
-            "system",
-            "memory.consolidation.cancel",
-            None,
-            Some("candidate"),
-            if changed { "cancelled" } else { "unchanged" },
-            Some(usize::from(changed)),
-            0,
-            10_000,
-        )?;
-        Ok(changed)
-    }
-
     pub fn cancel_memory_candidate_scoped(
         &self,
         id: &str,
@@ -3944,24 +3911,6 @@ impl Store {
             limit,
             principal_acl,
             false,
-        )
-    }
-
-    pub fn export_memories_as_owner(
-        &self,
-        project: Option<&str>,
-        kind: Option<&str>,
-        limit: usize,
-    ) -> Result<Vec<MemoryRecord>> {
-        self.export_memories_with_axes_authorized(
-            project,
-            kind,
-            None,
-            None,
-            None,
-            limit,
-            &["*".into()],
-            true,
         )
     }
 
