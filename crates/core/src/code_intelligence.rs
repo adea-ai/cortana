@@ -472,7 +472,10 @@ pub enum RelationQuery {
 
 #[derive(Debug, Deserialize, Serialize)]
 struct RelationCursor {
-    offset: usize,
+    /// Keyset anchor: pagination resumes after this relation id, so a
+    /// concurrent re-derivation between pages shifts positions without
+    /// skipping or repeating entries.
+    after_id: Option<String>,
     corpus_revision: u64,
     scope: String,
 }
@@ -495,7 +498,7 @@ fn relation_cursor_scope(
 }
 
 pub fn encode_relation_cursor(
-    offset: usize,
+    after_id: Option<String>,
     corpus_revision: u64,
     symbol_id: &str,
     project: Option<&str>,
@@ -504,7 +507,7 @@ pub fn encode_relation_cursor(
     depth: usize,
 ) -> Result<String> {
     let cursor = RelationCursor {
-        offset,
+        after_id,
         corpus_revision,
         scope: relation_cursor_scope(symbol_id, project, acl, query, depth),
     };
@@ -519,7 +522,7 @@ pub fn decode_relation_cursor(
     acl: &[String],
     query: RelationQuery,
     depth: usize,
-) -> Result<usize> {
+) -> Result<Option<String>> {
     anyhow::ensure!(cursor.len() <= 2_048, "relation cursor is too large");
     let decoded = URL_SAFE_NO_PAD
         .decode(cursor)
@@ -534,7 +537,7 @@ pub fn decode_relation_cursor(
         decoded.scope == relation_cursor_scope(symbol_id, project, acl, query, depth),
         "relation cursor scope does not match"
     );
-    Ok(decoded.offset)
+    Ok(decoded.after_id)
 }
 
 /// Replaceable parser boundary. Implementations return derived data and never mutate Documents.
@@ -1456,7 +1459,7 @@ mod tests {
     #[test]
     fn relation_cursors_bind_scope_and_corpus_revision() {
         let cursor = encode_relation_cursor(
-            50,
+            Some("relation-50".into()),
             7,
             "symbol",
             Some("work"),
@@ -1476,7 +1479,7 @@ mod tests {
                 3,
             )
             .expect("decode"),
-            50
+            Some("relation-50".into())
         );
         assert!(
             decode_relation_cursor(

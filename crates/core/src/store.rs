@@ -2872,7 +2872,7 @@ impl Store {
                     status,
                     decision: report,
                     memory_id,
-                    attempts: u8::try_from(attempts).unwrap_or(u8::MAX),
+                    attempts: u32::try_from(attempts).unwrap_or(u32::MAX),
                 });
             }
             let reconciled = transaction.execute(
@@ -2936,7 +2936,7 @@ impl Store {
                     status,
                     decision: report,
                     memory_id,
-                    attempts: u8::try_from(attempts).unwrap_or(u8::MAX),
+                    attempts: u32::try_from(attempts).unwrap_or(u32::MAX),
                 });
             }
             transaction.execute(
@@ -3028,7 +3028,7 @@ impl Store {
                         status,
                         decision: report,
                         memory_id,
-                        attempts: u8::try_from(attempts).unwrap_or(u8::MAX),
+                        attempts: u32::try_from(attempts).unwrap_or(u32::MAX),
                     });
                 }
             }
@@ -3059,7 +3059,7 @@ impl Store {
                     status,
                     decision: report,
                     memory_id,
-                    attempts: u8::try_from(attempts).unwrap_or(u8::MAX),
+                    attempts: u32::try_from(attempts).unwrap_or(u32::MAX),
                 });
             }
         } else {
@@ -3247,7 +3247,7 @@ impl Store {
                             status: retry_status.into(),
                             decision: report,
                             memory_id: None,
-                            attempts: u8::try_from(next_attempt).unwrap_or(u8::MAX),
+                            attempts: u32::try_from(next_attempt).unwrap_or(u32::MAX),
                         });
                     }
                 };
@@ -3300,7 +3300,7 @@ impl Store {
             status: status.into(),
             decision: report,
             memory_id,
-            attempts: u8::try_from(next_attempt).unwrap_or(u8::MAX),
+            attempts: u32::try_from(next_attempt).unwrap_or(u32::MAX),
         })
     }
 
@@ -4749,7 +4749,7 @@ impl Store {
         principal_acl: &[String],
         query: RelationQuery,
         depth: usize,
-        cursor: usize,
+        after_id: Option<&str>,
         limit: usize,
     ) -> Result<RelationPage> {
         let limit = limit.clamp(1, crate::model::MAX_RESULT_LIMIT);
@@ -4873,16 +4873,25 @@ impl Store {
         }
         selected.sort_by(|left, right| left.id.cmp(&right.id));
         let total = selected.len();
+        let start = after_id
+            .and_then(|after| {
+                selected
+                    .iter()
+                    .position(|relation| relation.id.as_str() > after)
+            })
+            .unwrap_or(0);
         let page = selected
-            .into_iter()
-            .skip(cursor)
+            .iter()
+            .skip(start)
             .take(limit)
+            .cloned()
             .collect::<Vec<_>>();
-        let next = cursor.saturating_add(page.len());
+        let next_anchor = page.last().map(|relation| relation.id.clone());
+        let truncated = start + page.len() < total;
         Ok(RelationPage {
             relations: page,
-            next_cursor: (next < total).then(|| next.to_string()),
-            truncated: next < total,
+            next_cursor: truncated.then_some(next_anchor).flatten(),
+            truncated,
         })
     }
 
@@ -6820,7 +6829,7 @@ mod tests {
                 &["work".into()],
                 RelationQuery::Callers,
                 1,
-                0,
+                None,
                 10,
             )
             .expect("callers");
@@ -6834,7 +6843,7 @@ mod tests {
                 &["work".into()],
                 RelationQuery::Impact,
                 99,
-                0,
+                None,
                 50,
             )
             .expect("impact graph");

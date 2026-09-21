@@ -59,6 +59,9 @@ const MAX_DOCUMENT_ID_LENGTH: usize = 128;
 const MAX_VISIBLE_WORKSPACES: usize = 128;
 const MAX_GRAPH_LABEL_BYTES: usize = 512;
 const MAX_GRAPH_RESPONSE_BYTES: usize = 2 * 1024 * 1024;
+/// Backfill bound for per-page document graph links; sized to keep a full
+/// list page's link payload well inside MAX_GRAPH_RESPONSE_BYTES.
+const DOCUMENT_PAGE_LINK_LIMIT: usize = 200;
 const READY_EMBEDDING_PROBE_TIMEOUT: Duration = Duration::from_secs(5);
 const READY_STORE_STATS_TIMEOUT: Duration = Duration::from_secs(2);
 
@@ -961,7 +964,7 @@ async fn authorize(
                 started,
             );
         }
-        return StatusCode::FORBIDDEN.into_response();
+        return ApiError::new(StatusCode::FORBIDDEN, "query scope required".into()).into_response();
     }
     let audit_principal = principal.clone();
     let code_action = code_audit_action(path);
@@ -1024,6 +1027,68 @@ fn code_http_error(status: StatusCode) -> Response {
     response
 }
 
+/// Structured error for every handler-return lane: renders the public-api
+/// contract envelope (`code`, `message`, `retryable`, `contract_version`,
+/// `correlation_id`) instead of a bare text body, so external consumers get
+/// one error shape regardless of route.
+#[derive(Debug, Clone)]
+struct ApiError {
+    status: StatusCode,
+    message: String,
+}
+
+impl ApiError {
+    fn new(status: StatusCode, message: String) -> Self {
+        Self { status, message }
+    }
+
+    fn code(&self) -> &'static str {
+        match self.status {
+            StatusCode::UNAUTHORIZED => "unauthorized",
+            StatusCode::FORBIDDEN => "forbidden",
+            StatusCode::NOT_FOUND => "not_found",
+            StatusCode::CONFLICT => "conflict",
+            StatusCode::UNPROCESSABLE_ENTITY => "validation_failed",
+            StatusCode::TOO_MANY_REQUESTS => "rate_limited",
+            StatusCode::BAD_REQUEST => "invalid_request",
+            _ if self.status.is_server_error() => "internal_error",
+            _ => "invalid_request",
+        }
+    }
+
+    fn retryable(&self) -> bool {
+        self.status.is_server_error()
+            || self.status == StatusCode::TOO_MANY_REQUESTS
+            || self.status == StatusCode::CONFLICT
+    }
+}
+
+impl From<(StatusCode, String)> for ApiError {
+    fn from((status, message): (StatusCode, String)) -> Self {
+        Self::new(status, message)
+    }
+}
+
+impl IntoResponse for ApiError {
+    fn into_response(self) -> Response {
+        let correlation_id = Uuid::new_v4().to_string();
+        let mut response = Json(serde_json::json!({
+            "code": self.code(),
+            "message": self.message,
+            "retryable": self.retryable(),
+            "contract_version": API_CONTRACT_VERSION,
+            "correlation_id": correlation_id,
+        }))
+        .into_response();
+        *response.status_mut() = self.status;
+        response.headers_mut().insert(
+            "x-cortana-correlation-id",
+            HeaderValue::from_str(&correlation_id).expect("UUID is a valid header value"),
+        );
+        response
+    }
+}
+
 async fn provider_capabilities() -> Json<crate::provider::CapabilityDescriptor> {
     Json(crate::provider::CapabilityDescriptor::current())
 }
@@ -1032,7 +1097,7 @@ async fn list_documents(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
     AxumQuery(params): AxumQuery<DocumentListParams>,
-) -> Result<Json<DocumentListResponse>, (StatusCode, String)> {
+) -> Result<Json<DocumentListResponse>, ApiError> {
     validate_document_scope("project", params.project.as_deref())?;
     validate_document_scope("source", params.source.as_deref())?;
     validate_document_query(params.query.as_deref())?;
@@ -1088,7 +1153,7 @@ async fn list_documents(
                 started,
             );
             state.metrics.record(&principal, PrincipalMetric::Error);
-            Err(internal_error(error))
+            Err(internal_error(error).into())
         }
     }
 }
@@ -1102,7 +1167,7 @@ struct AuthReloadResponse {
 async fn reload_auth(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
-) -> Result<Json<AuthReloadResponse>, (StatusCode, String)> {
+) -> Result<Json<AuthReloadResponse>, ApiError> {
     let started = Instant::now();
     let Some(path) = state.auth_config_path.as_ref() else {
         record_audit(
@@ -1115,7 +1180,7 @@ async fn reload_auth(
             None,
             started,
         );
-        return Err((
+        return Err(ApiError::new(
             StatusCode::NOT_IMPLEMENTED,
             "auth reload requires a file-backed configuration".into(),
         ));
@@ -1138,7 +1203,7 @@ async fn reload_auth(
                 None,
                 started,
             );
-            return Err((
+            return Err(ApiError::new(
                 StatusCode::UNPROCESSABLE_ENTITY,
                 "auth policy reload failed validation".into(),
             ));
@@ -1156,7 +1221,7 @@ async fn reload_auth(
             None,
             started,
         );
-        return Err((StatusCode::CONFLICT, error.to_string()));
+        return Err(ApiError::new(StatusCode::CONFLICT, error.to_string()));
     }
     record_audit(
         &state,
@@ -1178,7 +1243,7 @@ async fn document(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
     AxumPath(id): AxumPath<String>,
-) -> Result<Json<crate::store::DocumentDetail>, (StatusCode, String)> {
+) -> Result<Json<crate::store::DocumentDetail>, ApiError> {
     validate_document_id(&id)?;
     let started = Instant::now();
     let acl = principal.visible_acl();
@@ -1211,7 +1276,10 @@ async fn document(
                 Some(0),
                 started,
             );
-            Err((StatusCode::NOT_FOUND, "document not found".into()))
+            Err(ApiError::new(
+                StatusCode::NOT_FOUND,
+                "document not found".into(),
+            ))
         }
         Err(error) => {
             record_audit(
@@ -1225,7 +1293,7 @@ async fn document(
                 started,
             );
             state.metrics.record(&principal, PrincipalMetric::Error);
-            Err(internal_error(error))
+            Err(internal_error(error).into())
         }
     }
 }
@@ -1234,9 +1302,9 @@ async fn graph(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
     AxumQuery(params): AxumQuery<GraphParams>,
-) -> Result<Json<GraphResponse>, (StatusCode, String)> {
+) -> Result<Json<GraphResponse>, ApiError> {
     if params.include_derived && !principal.has_scope(MEMORY_SCOPE) {
-        return Err((
+        return Err(ApiError::new(
             StatusCode::FORBIDDEN,
             "memory scope required for derived graph projections".into(),
         ));
@@ -1247,7 +1315,7 @@ async fn graph(
     if let Some(id) = params.focus_document_id.as_deref() {
         validate_document_id(id)?;
         if params.cursor.is_some() || params.query.is_some() {
-            return Err((
+            return Err(ApiError::new(
                 StatusCode::BAD_REQUEST,
                 "graph focus cannot be combined with cursor or query".into(),
             ));
@@ -1257,7 +1325,7 @@ async fn graph(
         .min_confidence
         .is_some_and(|confidence| !confidence.is_finite() || !(0.0..=1.0).contains(&confidence))
     {
-        return Err((
+        return Err(ApiError::new(
             StatusCode::BAD_REQUEST,
             "minimum confidence must be between zero and one".into(),
         ));
@@ -1424,7 +1492,7 @@ async fn graph(
                 .collect::<Vec<_>>();
             let document_links = state
                 .store
-                .graph_document_links_scoped(&page_document_ids, &acl, 200)
+                .graph_document_links_scoped(&page_document_ids, &acl, DOCUMENT_PAGE_LINK_LIMIT)
                 .map_err(internal_error)?;
             let mut graph_documents = page
                 .documents
@@ -1985,7 +2053,7 @@ async fn graph(
                     continue;
                 }
                 if response.nodes.pop().is_none() {
-                    return Err((
+                    return Err(ApiError::new(
                         StatusCode::INSUFFICIENT_STORAGE,
                         "graph response cannot fit the configured byte budget".into(),
                     ));
@@ -2005,18 +2073,18 @@ async fn graph(
                 started,
             );
             state.metrics.record(&principal, PrincipalMetric::Error);
-            Err(internal_error(error))
+            Err(internal_error(error).into())
         }
     }
 }
 
-fn validate_document_scope(name: &str, value: Option<&str>) -> Result<(), (StatusCode, String)> {
+fn validate_document_scope(name: &str, value: Option<&str>) -> Result<(), ApiError> {
     if value.is_some_and(|value| {
         value.is_empty()
             || value.len() > MAX_DOCUMENT_SCOPE_LENGTH
             || value.chars().any(|character| character.is_control())
     }) {
-        return Err((
+        return Err(ApiError::new(
             StatusCode::BAD_REQUEST,
             format!("{name} must contain 1 to {MAX_DOCUMENT_SCOPE_LENGTH} bytes"),
         ));
@@ -2024,13 +2092,13 @@ fn validate_document_scope(name: &str, value: Option<&str>) -> Result<(), (Statu
     Ok(())
 }
 
-fn validate_document_query(value: Option<&str>) -> Result<(), (StatusCode, String)> {
+fn validate_document_query(value: Option<&str>) -> Result<(), ApiError> {
     if value.is_some_and(|value| {
         value.len() > MAX_DOCUMENT_QUERY_LENGTH
             || value.trim().is_empty()
             || value.chars().any(|character| character.is_control())
     }) {
-        return Err((
+        return Err(ApiError::new(
             StatusCode::BAD_REQUEST,
             format!("query must contain 1 to {MAX_DOCUMENT_QUERY_LENGTH} bytes"),
         ));
@@ -2038,12 +2106,15 @@ fn validate_document_query(value: Option<&str>) -> Result<(), (StatusCode, Strin
     Ok(())
 }
 
-fn validate_document_id(id: &str) -> Result<(), (StatusCode, String)> {
+fn validate_document_id(id: &str) -> Result<(), ApiError> {
     if id.is_empty()
         || id.len() > MAX_DOCUMENT_ID_LENGTH
         || !id.bytes().all(|byte| byte.is_ascii_hexdigit())
     {
-        return Err((StatusCode::BAD_REQUEST, "invalid document id".into()));
+        return Err(ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid document id".into(),
+        ));
     }
     Ok(())
 }
@@ -2070,12 +2141,15 @@ fn graph_response_bytes(response: &mut GraphResponse) -> Result<usize> {
     Ok(serde_json::to_vec(response)?.len())
 }
 
-fn decode_document_cursor(value: &str) -> Result<DocumentCursor, (StatusCode, String)> {
+fn decode_document_cursor(value: &str) -> Result<DocumentCursor, ApiError> {
     let bytes = URL_SAFE_NO_PAD
         .decode(value)
         .map_err(|_| (StatusCode::BAD_REQUEST, "invalid document cursor".into()))?;
     if bytes.len() > 512 {
-        return Err((StatusCode::BAD_REQUEST, "invalid document cursor".into()));
+        return Err(ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid document cursor".into(),
+        ));
     }
     let cursor: EncodedDocumentCursor = serde_json::from_slice(&bytes)
         .map_err(|_| (StatusCode::BAD_REQUEST, "invalid document cursor".into()))?;
@@ -2085,7 +2159,10 @@ fn decode_document_cursor(value: &str) -> Result<DocumentCursor, (StatusCode, St
         || cursor.updated_at.len() > 64
         || chrono::DateTime::parse_from_rfc3339(&cursor.updated_at).is_err()
     {
-        return Err((StatusCode::BAD_REQUEST, "invalid document cursor".into()));
+        return Err(ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid document cursor".into(),
+        ));
     }
     Ok(DocumentCursor {
         updated_at: cursor.updated_at,
@@ -2093,13 +2170,13 @@ fn decode_document_cursor(value: &str) -> Result<DocumentCursor, (StatusCode, St
     })
 }
 
-fn encode_document_cursor(document: &DocumentSummary) -> Result<String, (StatusCode, String)> {
+fn encode_document_cursor(document: &DocumentSummary) -> Result<String, ApiError> {
     serde_json::to_vec(&EncodedDocumentCursor {
         updated_at: document.updated_at.clone(),
         id: document.id.clone(),
     })
     .map(|value| URL_SAFE_NO_PAD.encode(value))
-    .map_err(|error| internal_error(error.into()))
+    .map_err(|error| ApiError::from(internal_error(error.into())))
 }
 
 fn graph_cursor_scope(params: &GraphParams, acl: &[String]) -> String {
@@ -2124,12 +2201,15 @@ fn decode_graph_cursor(
     value: &str,
     corpus_revision: u64,
     scope_hash: &str,
-) -> Result<DocumentCursor, (StatusCode, String)> {
+) -> Result<DocumentCursor, ApiError> {
     let bytes = URL_SAFE_NO_PAD
         .decode(value)
         .map_err(|_| (StatusCode::BAD_REQUEST, "invalid graph cursor".into()))?;
     if bytes.len() > 1024 {
-        return Err((StatusCode::BAD_REQUEST, "invalid graph cursor".into()));
+        return Err(ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid graph cursor".into(),
+        ));
     }
     let cursor: EncodedGraphCursor = serde_json::from_slice(&bytes)
         .map_err(|_| (StatusCode::BAD_REQUEST, "invalid graph cursor".into()))?;
@@ -2137,14 +2217,20 @@ fn decode_graph_cursor(
         || cursor.scope_hash != scope_hash
         || cursor.corpus_revision != corpus_revision
     {
-        return Err((StatusCode::CONFLICT, "stale graph cursor".into()));
+        return Err(ApiError::new(
+            StatusCode::CONFLICT,
+            "stale graph cursor".into(),
+        ));
     }
     validate_document_id(&cursor.id)
         .map_err(|_| (StatusCode::BAD_REQUEST, "invalid graph cursor".into()))?;
     if cursor.updated_at.len() > 64
         || chrono::DateTime::parse_from_rfc3339(&cursor.updated_at).is_err()
     {
-        return Err((StatusCode::BAD_REQUEST, "invalid graph cursor".into()));
+        return Err(ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid graph cursor".into(),
+        ));
     }
     Ok(DocumentCursor {
         updated_at: cursor.updated_at,
@@ -2156,7 +2242,7 @@ fn encode_graph_cursor(
     document: &DocumentSummary,
     corpus_revision: u64,
     scope_hash: &str,
-) -> Result<String, (StatusCode, String)> {
+) -> Result<String, ApiError> {
     serde_json::to_vec(&EncodedGraphCursor {
         contract_version: GraphContract::VERSION.into(),
         corpus_revision,
@@ -2165,7 +2251,7 @@ fn encode_graph_cursor(
         id: document.id.clone(),
     })
     .map(|value| URL_SAFE_NO_PAD.encode(value))
-    .map_err(|error| internal_error(error.into()))
+    .map_err(|error| ApiError::from(internal_error(error.into())))
 }
 
 fn default_document_limit() -> usize {
@@ -2260,7 +2346,7 @@ async fn probe_with_timeout(embedder: &dyn Embedder, timeout: Duration) -> Resul
 async fn status(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
-) -> Result<Json<Status>, (StatusCode, String)> {
+) -> Result<Json<Status>, ApiError> {
     let acl = principal.acl_labels();
     let owner = principal.is_owner();
     let ingestion = state.ingestion.refreshed().visible_to(&principal);
@@ -2298,7 +2384,7 @@ async fn status(
                     "database statistics are temporarily stale; showing the last successful snapshot",
                 ),
             ),
-            None => return Err(status_stats_error(error)),
+            None => return Err(status_stats_error(error).into()),
         },
     };
     let source_projects = if owner {
@@ -2425,7 +2511,7 @@ async fn answer(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
     Json(request): Json<AnswerRequest>,
-) -> Result<Json<AnswerResponse>, (StatusCode, String)> {
+) -> Result<Json<AnswerResponse>, ApiError> {
     validate_retrieval_scope(request.project.as_deref(), request.source.as_deref())?;
     validate_query(&request.query)?;
     let started = Instant::now();
@@ -2482,7 +2568,7 @@ async fn answer(
     );
     result.map(Json).map_err(|error| {
         state.metrics.record(&principal, PrincipalMetric::Error);
-        internal_error(error)
+        ApiError::from(internal_error(error))
     })
 }
 
@@ -2490,7 +2576,7 @@ async fn search(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
     Json(request): Json<SearchRequest>,
-) -> Result<Response, (StatusCode, String)> {
+) -> Result<Response, ApiError> {
     validate_retrieval_scope(request.project.as_deref(), request.source.as_deref())?;
     validate_query(&request.query)?;
     let started = Instant::now();
@@ -2577,7 +2663,7 @@ async fn search(
                 started,
             );
             state.metrics.record(&principal, PrincipalMetric::Error);
-            Err(internal_error(error))
+            Err(internal_error(error).into())
         }
     }
 }
@@ -2586,7 +2672,7 @@ async fn code_symbols(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
     body: Bytes,
-) -> Result<Response, (StatusCode, String)> {
+) -> Result<Response, ApiError> {
     let started = Instant::now();
     let request: CodeSymbolRequest = match serde_json::from_slice(&body) {
         Ok(request) => request,
@@ -2601,7 +2687,7 @@ async fn code_symbols(
                 None,
                 started,
             );
-            return Err((
+            return Err(ApiError::new(
                 StatusCode::BAD_REQUEST,
                 "invalid code symbol request JSON".into(),
             ));
@@ -2667,7 +2753,10 @@ async fn code_symbols(
             None,
             started,
         );
-        return Err((StatusCode::BAD_REQUEST, "language is unsupported".into()));
+        return Err(ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "language is unsupported".into(),
+        ));
     }
     let filters = CodeSymbolFilters {
         repository_id: request.repository_id.clone(),
@@ -2699,7 +2788,7 @@ async fn code_symbols(
                         None,
                         started,
                     );
-                    return Err(internal_error(error));
+                    return Err(internal_error(error).into());
                 }
             };
             let response = CodeSymbolResponse {
@@ -2752,7 +2841,7 @@ async fn code_symbols(
                 None,
                 started,
             );
-            Err(internal_error(error))
+            Err(internal_error(error).into())
         }
     }
 }
@@ -2761,7 +2850,7 @@ async fn code_relations(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
     uri: Uri,
-) -> Result<Response, (StatusCode, String)> {
+) -> Result<Response, ApiError> {
     let started = Instant::now();
     let request = match AxumQuery::<CodeRelationQuery>::try_from_uri(&uri) {
         Ok(AxumQuery(request)) => request,
@@ -2776,7 +2865,7 @@ async fn code_relations(
                 None,
                 started,
             );
-            return Err((
+            return Err(ApiError::new(
                 StatusCode::BAD_REQUEST,
                 "invalid code relation query".into(),
             ));
@@ -2806,7 +2895,7 @@ async fn code_relations(
             None,
             started,
         );
-        return Err((
+        return Err(ApiError::new(
             StatusCode::BAD_REQUEST,
             "symbol_id must contain 1 to 256 bytes".into(),
         ));
@@ -2824,7 +2913,7 @@ async fn code_relations(
                 None,
                 started,
             );
-            return Err(internal_error(error));
+            return Err(internal_error(error).into());
         }
     };
     let acl = principal.visible_acl();
@@ -2850,10 +2939,10 @@ async fn code_relations(
                     None,
                     started,
                 );
-                return Err((StatusCode::BAD_REQUEST, error.to_string()));
+                return Err(ApiError::new(StatusCode::BAD_REQUEST, error.to_string()));
             }
         },
-        None => 0,
+        None => None,
     };
     match state.store.code_relations(
         &request.symbol_id,
@@ -2861,17 +2950,13 @@ async fn code_relations(
         &acl,
         request.query,
         request.depth,
-        cursor,
+        cursor.as_deref(),
         request.limit.min(retrieval::MAX_RESULT_LIMIT),
     ) {
         Ok(mut page) => {
-            if let Some(offset) = page
-                .next_cursor
-                .take()
-                .and_then(|cursor| cursor.parse::<usize>().ok())
-            {
+            if let Some(after_id) = page.next_cursor.take() {
                 page.next_cursor = match encode_relation_cursor(
-                    offset,
+                    Some(after_id),
                     corpus_revision,
                     &request.symbol_id,
                     request.project.as_deref(),
@@ -2891,7 +2976,7 @@ async fn code_relations(
                             None,
                             started,
                         );
-                        return Err(internal_error(error));
+                        return Err(internal_error(error).into());
                     }
                 };
             }
@@ -2946,20 +3031,16 @@ async fn code_relations(
                 None,
                 started,
             );
-            Err(internal_error(error))
+            Err(internal_error(error).into())
         }
     }
 }
 
-fn validate_code_filter(
-    name: &str,
-    value: Option<&str>,
-    max: usize,
-) -> Result<(), (StatusCode, String)> {
+fn validate_code_filter(name: &str, value: Option<&str>, max: usize) -> Result<(), ApiError> {
     if value.is_some_and(|value| {
         value.is_empty() || value.len() > max || value.chars().any(char::is_control)
     }) {
-        return Err((
+        return Err(ApiError::new(
             StatusCode::BAD_REQUEST,
             format!("{name} must contain 1 to {max} bytes"),
         ));
@@ -2969,10 +3050,11 @@ fn validate_code_filter(
 
 const MAX_CODE_RESPONSE_BYTES: usize = 2 * 1024 * 1024;
 
-fn ensure_code_response_size(value: &impl Serialize) -> Result<(), (StatusCode, String)> {
-    let encoded = serde_json::to_vec(value).map_err(|error| internal_error(error.into()))?;
+fn ensure_code_response_size(value: &impl Serialize) -> Result<(), ApiError> {
+    let encoded =
+        serde_json::to_vec(value).map_err(|error| ApiError::from(internal_error(error.into())))?;
     if encoded.len() > MAX_CODE_RESPONSE_BYTES {
-        return Err((
+        return Err(ApiError::new(
             StatusCode::INTERNAL_SERVER_ERROR,
             "Cortana could not complete the request".into(),
         ));
@@ -2984,7 +3066,7 @@ async fn context(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
     Json(request): Json<ContextRequest>,
-) -> Result<Json<ContextBundle>, (StatusCode, String)> {
+) -> Result<Json<ContextBundle>, ApiError> {
     validate_retrieval_scope(request.project.as_deref(), request.source.as_deref())?;
     validate_query(&request.query)?;
     let started = Instant::now();
@@ -3015,7 +3097,7 @@ async fn context(
                 started,
             );
             state.metrics.record(&principal, PrincipalMetric::Error);
-            return Err(internal_error(error));
+            return Err(internal_error(error).into());
         }
     };
     if retrieval.degraded() {
@@ -3093,10 +3175,13 @@ async fn remember_memory(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
     Json(request): Json<MemoryRememberRequest>,
-) -> Result<Json<crate::memory::MemoryRecord>, (StatusCode, String)> {
+) -> Result<Json<crate::memory::MemoryRecord>, ApiError> {
     let started = Instant::now();
     if request.project.trim().is_empty() {
-        return Err((StatusCode::BAD_REQUEST, "project must not be empty".into()));
+        return Err(ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "project must not be empty".into(),
+        ));
     }
     let requested_acl = request.acl.unwrap_or_default();
     let visible_acl = principal.visible_acl();
@@ -3120,7 +3205,7 @@ async fn remember_memory(
             None,
             started,
         );
-        return Err((
+        return Err(ApiError::new(
             StatusCode::FORBIDDEN,
             "memory ACL exceeds principal visibility".into(),
         ));
@@ -3184,7 +3269,10 @@ async fn remember_memory(
                 None,
                 started,
             );
-            Err((StatusCode::FORBIDDEN, "memory ACL denied".into()))
+            Err(ApiError::new(
+                StatusCode::FORBIDDEN,
+                "memory ACL denied".into(),
+            ))
         }
         Err(error) => {
             record_audit(
@@ -3197,7 +3285,10 @@ async fn remember_memory(
                 None,
                 started,
             );
-            Err((StatusCode::UNPROCESSABLE_ENTITY, error.to_string()))
+            Err(ApiError::new(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                error.to_string(),
+            ))
         }
     }
 }
@@ -3206,7 +3297,7 @@ async fn recall_memories(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
     Json(request): Json<MemoryRecallRequest>,
-) -> Result<Json<Vec<crate::memory::MemorySearchResult>>, (StatusCode, String)> {
+) -> Result<Json<Vec<crate::memory::MemorySearchResult>>, ApiError> {
     if !principal.has_scope(MEMORY_SCOPE) {
         record_audit(
             &state,
@@ -3218,7 +3309,10 @@ async fn recall_memories(
             None,
             Instant::now(),
         );
-        return Err((StatusCode::FORBIDDEN, "memory scope required".into()));
+        return Err(ApiError::new(
+            StatusCode::FORBIDDEN,
+            "memory scope required".into(),
+        ));
     }
     validate_query(&request.query)?;
     validate_retrieval_scope(request.project.as_deref(), None)?;
@@ -3274,7 +3368,7 @@ async fn recall_memories(
                 None,
                 started,
             );
-            Err(internal_error(error))
+            Err(internal_error(error).into())
         }
     }
 }
@@ -3283,7 +3377,7 @@ async fn propose_memory_candidate(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
     Json(request): Json<MemoryCandidateRequest>,
-) -> Result<Json<crate::observation::ObservationCandidate>, (StatusCode, String)> {
+) -> Result<Json<crate::observation::ObservationCandidate>, ApiError> {
     let started = Instant::now();
     let requested_acl = request.acl.unwrap_or_default();
     let visible_acl = principal.visible_acl();
@@ -3307,7 +3401,7 @@ async fn propose_memory_candidate(
             None,
             started,
         );
-        return Err((
+        return Err(ApiError::new(
             StatusCode::FORBIDDEN,
             "candidate ACL exceeds principal visibility".into(),
         ));
@@ -3361,7 +3455,10 @@ async fn propose_memory_candidate(
                 None,
                 started,
             );
-            Err((StatusCode::UNPROCESSABLE_ENTITY, error.to_string()))
+            Err(ApiError::new(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                error.to_string(),
+            ))
         }
     }
 }
@@ -3372,7 +3469,7 @@ async fn list_memory_candidates(
     AxumQuery(params): AxumQuery<MemoryCandidateListParams>,
 ) -> Result<
     Json<crate::store::BoundedMemoryCandidates<crate::store::MemoryCandidateReview>>,
-    (StatusCode, String),
+    ApiError,
 > {
     let started = Instant::now();
     match state.store.list_memory_candidate_reviews(
@@ -3410,7 +3507,10 @@ async fn list_memory_candidates(
                 None,
                 started,
             );
-            Err((StatusCode::UNPROCESSABLE_ENTITY, error.to_string()))
+            Err(ApiError::new(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                error.to_string(),
+            ))
         }
     }
 }
@@ -3421,7 +3521,7 @@ async fn export_memory_candidates(
     AxumQuery(params): AxumQuery<MemoryCandidateListParams>,
 ) -> Result<
     Json<crate::store::BoundedMemoryCandidates<crate::observation::ObservationCandidate>>,
-    (StatusCode, String),
+    ApiError,
 > {
     let started = Instant::now();
     match state.store.export_memory_candidates_page(
@@ -3446,7 +3546,10 @@ async fn export_memory_candidates(
             );
             Ok(Json(page))
         }
-        Err(error) => Err((StatusCode::UNPROCESSABLE_ENTITY, error.to_string())),
+        Err(error) => Err(ApiError::new(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            error.to_string(),
+        )),
     }
 }
 
@@ -3454,7 +3557,7 @@ async fn reflect_memory(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
     Json(request): Json<crate::reflection::ReflectRequest>,
-) -> Result<Json<crate::reflection::ReflectResponse>, (StatusCode, String)> {
+) -> Result<Json<crate::reflection::ReflectResponse>, ApiError> {
     let started = Instant::now();
     if !principal.has_scope(MEMORY_SCOPE) {
         record_audit(
@@ -3467,7 +3570,10 @@ async fn reflect_memory(
             None,
             started,
         );
-        return Err((StatusCode::FORBIDDEN, "memory scope required".into()));
+        return Err(ApiError::new(
+            StatusCode::FORBIDDEN,
+            "memory scope required".into(),
+        ));
     }
     match crate::reflection::reflect_authorized(
         &state.store,
@@ -3502,7 +3608,10 @@ async fn reflect_memory(
                 None,
                 started,
             );
-            Err((StatusCode::FORBIDDEN, "reflection scope denied".into()))
+            Err(ApiError::new(
+                StatusCode::FORBIDDEN,
+                "reflection scope denied".into(),
+            ))
         }
         Err(error) => {
             record_audit(
@@ -3515,7 +3624,10 @@ async fn reflect_memory(
                 None,
                 started,
             );
-            Err((StatusCode::UNPROCESSABLE_ENTITY, error.to_string()))
+            Err(ApiError::new(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                error.to_string(),
+            ))
         }
     }
 }
@@ -3524,7 +3636,7 @@ async fn cancel_memory_candidate(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
     AxumPath(id): AxumPath<String>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<serde_json::Value>, ApiError> {
     update_memory_candidate(&state, &principal, &id, false).await
 }
 
@@ -3532,7 +3644,7 @@ async fn redact_memory_candidate(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
     AxumPath(id): AxumPath<String>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<serde_json::Value>, ApiError> {
     update_memory_candidate(&state, &principal, &id, true).await
 }
 
@@ -3541,7 +3653,7 @@ async fn edit_memory_candidate(
     Extension(principal): Extension<Principal>,
     AxumPath(id): AxumPath<String>,
     Json(request): Json<MemoryCandidateEditRequest>,
-) -> Result<Json<crate::observation::ObservationCandidate>, (StatusCode, String)> {
+) -> Result<Json<crate::observation::ObservationCandidate>, ApiError> {
     let started = Instant::now();
     match state.store.edit_memory_candidate_scoped(
         &id,
@@ -3575,7 +3687,10 @@ async fn edit_memory_candidate(
                 Some(0),
                 started,
             );
-            Err((StatusCode::NOT_FOUND, "pending candidate not found".into()))
+            Err(ApiError::new(
+                StatusCode::NOT_FOUND,
+                "pending candidate not found".into(),
+            ))
         }
         Err(error)
             if crate::memory::is_authorization_error(&error)
@@ -3591,7 +3706,10 @@ async fn edit_memory_candidate(
                 None,
                 started,
             );
-            Err((StatusCode::FORBIDDEN, "candidate ACL denied".into()))
+            Err(ApiError::new(
+                StatusCode::FORBIDDEN,
+                "candidate ACL denied".into(),
+            ))
         }
         Err(error) => {
             record_audit(
@@ -3604,7 +3722,10 @@ async fn edit_memory_candidate(
                 None,
                 started,
             );
-            Err((StatusCode::UNPROCESSABLE_ENTITY, error.to_string()))
+            Err(ApiError::new(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                error.to_string(),
+            ))
         }
     }
 }
@@ -3613,7 +3734,7 @@ async fn mark_memory_candidate_working(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
     AxumPath(id): AxumPath<String>,
-) -> Result<Json<crate::observation::ObservationCandidate>, (StatusCode, String)> {
+) -> Result<Json<crate::observation::ObservationCandidate>, ApiError> {
     let started = Instant::now();
     match state.store.set_memory_candidate_working_scoped(
         &id,
@@ -3634,14 +3755,23 @@ async fn mark_memory_candidate_working(
             );
             Ok(Json(candidate))
         }
-        Ok(None) => Err((StatusCode::NOT_FOUND, "pending candidate not found".into())),
+        Ok(None) => Err(ApiError::new(
+            StatusCode::NOT_FOUND,
+            "pending candidate not found".into(),
+        )),
         Err(error)
             if crate::memory::is_authorization_error(&error)
                 || error.to_string() == "candidate ACL denied" =>
         {
-            Err((StatusCode::FORBIDDEN, "candidate ACL denied".into()))
+            Err(ApiError::new(
+                StatusCode::FORBIDDEN,
+                "candidate ACL denied".into(),
+            ))
         }
-        Err(error) => Err((StatusCode::UNPROCESSABLE_ENTITY, error.to_string())),
+        Err(error) => Err(ApiError::new(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            error.to_string(),
+        )),
     }
 }
 
@@ -3649,7 +3779,7 @@ async fn retry_memory_candidate(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
     AxumPath(id): AxumPath<String>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<serde_json::Value>, ApiError> {
     let started = Instant::now();
     match state.store.retry_memory_candidate_scoped(
         &id,
@@ -3672,7 +3802,7 @@ async fn retry_memory_candidate(
                 serde_json::json!({ "id": id, "status": "queued", "updated": true }),
             ))
         }
-        Ok(false) => Err((
+        Ok(false) => Err(ApiError::new(
             StatusCode::CONFLICT,
             "candidate has no dead-letter job to retry".into(),
         )),
@@ -3680,23 +3810,29 @@ async fn retry_memory_candidate(
             if crate::memory::is_authorization_error(&error)
                 || error.to_string() == "candidate ACL denied" =>
         {
-            Err((StatusCode::FORBIDDEN, "candidate ACL denied".into()))
+            Err(ApiError::new(
+                StatusCode::FORBIDDEN,
+                "candidate ACL denied".into(),
+            ))
         }
-        Err(error) => Err((StatusCode::UNPROCESSABLE_ENTITY, error.to_string())),
+        Err(error) => Err(ApiError::new(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            error.to_string(),
+        )),
     }
 }
 
 async fn pause_memory_consolidation(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<serde_json::Value>, ApiError> {
     update_memory_consolidation_control(&state, &principal, true)
 }
 
 async fn memory_consolidation_status(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<serde_json::Value>, ApiError> {
     let paused = state
         .store
         .memory_consolidation_paused()
@@ -3710,7 +3846,7 @@ async fn memory_consolidation_status(
 async fn resume_memory_consolidation(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<serde_json::Value>, ApiError> {
     update_memory_consolidation_control(&state, &principal, false)
 }
 
@@ -3718,7 +3854,7 @@ fn update_memory_consolidation_control(
     state: &AppState,
     principal: &Principal,
     pause: bool,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<serde_json::Value>, ApiError> {
     let started = Instant::now();
     if !principal.is_owner() {
         record_audit(
@@ -3735,7 +3871,7 @@ fn update_memory_consolidation_control(
             None,
             started,
         );
-        return Err((
+        return Err(ApiError::new(
             StatusCode::FORBIDDEN,
             "consolidation control requires owner authorization".into(),
         ));
@@ -3770,7 +3906,7 @@ async fn classify_memory_candidate(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
     AxumPath(id): AxumPath<String>,
-) -> Result<Json<crate::classification::CandidateClassification>, (StatusCode, String)> {
+) -> Result<Json<crate::classification::CandidateClassification>, ApiError> {
     let started = Instant::now();
     if !principal.has_scope(MEMORY_SCOPE) {
         record_audit(
@@ -3783,7 +3919,10 @@ async fn classify_memory_candidate(
             None,
             started,
         );
-        return Err((StatusCode::FORBIDDEN, "memory scope required".into()));
+        return Err(ApiError::new(
+            StatusCode::FORBIDDEN,
+            "memory scope required".into(),
+        ));
     }
     match state.store.classify_memory_candidate(
         &id,
@@ -3818,7 +3957,10 @@ async fn classify_memory_candidate(
                 None,
                 started,
             );
-            Err((StatusCode::FORBIDDEN, "candidate ACL denied".into()))
+            Err(ApiError::new(
+                StatusCode::FORBIDDEN,
+                "candidate ACL denied".into(),
+            ))
         }
         Err(error) => {
             record_audit(
@@ -3831,7 +3973,10 @@ async fn classify_memory_candidate(
                 None,
                 started,
             );
-            Err((StatusCode::UNPROCESSABLE_ENTITY, error.to_string()))
+            Err(ApiError::new(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                error.to_string(),
+            ))
         }
     }
 }
@@ -3841,14 +3986,17 @@ async fn consolidate_memory_candidate(
     Extension(principal): Extension<Principal>,
     AxumPath(id): AxumPath<String>,
     Json(request): Json<MemoryConsolidationRequest>,
-) -> Result<Json<crate::consolidation::ConsolidationOutcome>, (StatusCode, String)> {
+) -> Result<Json<crate::consolidation::ConsolidationOutcome>, ApiError> {
     let started = Instant::now();
     if !principal.has_scope(MEMORY_SCOPE) {
-        return Err((StatusCode::FORBIDDEN, "memory scope required".into()));
+        return Err(ApiError::new(
+            StatusCode::FORBIDDEN,
+            "memory scope required".into(),
+        ));
     }
     let result = if request.action.as_deref() == Some("supersede") {
         if !request.explicit_approval {
-            return Err((
+            return Err(ApiError::new(
                 StatusCode::BAD_REQUEST,
                 "explicit approval is required for supersession".into(),
             ));
@@ -3861,7 +4009,7 @@ async fn consolidate_memory_candidate(
             principal.is_owner(),
         )
     } else if request.action.is_some() {
-        return Err((
+        return Err(ApiError::new(
             StatusCode::BAD_REQUEST,
             "unsupported consolidation action".into(),
         ));
@@ -3927,7 +4075,7 @@ async fn consolidate_memory_candidate(
                 None,
                 started,
             );
-            Err((
+            Err(ApiError::new(
                 StatusCode::FORBIDDEN,
                 "candidate consolidation denied".into(),
             ))
@@ -3943,7 +4091,10 @@ async fn consolidate_memory_candidate(
                 None,
                 started,
             );
-            Err((StatusCode::UNPROCESSABLE_ENTITY, error.to_string()))
+            Err(ApiError::new(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                error.to_string(),
+            ))
         }
     }
 }
@@ -3952,7 +4103,7 @@ async fn update_memory_candidate(
     principal: &Principal,
     id: &str,
     redact: bool,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<serde_json::Value>, ApiError> {
     let started = Instant::now();
     let action = if redact {
         "memory.candidate.redact"
@@ -4001,7 +4152,10 @@ async fn update_memory_candidate(
                 Some(0),
                 started,
             );
-            Err((StatusCode::NOT_FOUND, "pending candidate not found".into()))
+            Err(ApiError::new(
+                StatusCode::NOT_FOUND,
+                "pending candidate not found".into(),
+            ))
         }
         Err(error)
             if crate::memory::is_authorization_error(&error)
@@ -4017,13 +4171,19 @@ async fn update_memory_candidate(
                 None,
                 started,
             );
-            Err((StatusCode::FORBIDDEN, "candidate ACL denied".into()))
+            Err(ApiError::new(
+                StatusCode::FORBIDDEN,
+                "candidate ACL denied".into(),
+            ))
         }
         Err(error) => {
             record_audit(
                 state, principal, action, None, None, "failed", None, started,
             );
-            Err((StatusCode::UNPROCESSABLE_ENTITY, error.to_string()))
+            Err(ApiError::new(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                error.to_string(),
+            ))
         }
     }
 }
@@ -4032,7 +4192,7 @@ async fn forget_memory(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
     Json(request): Json<MemoryForgetRequest>,
-) -> Result<Json<MemoryForgetResponse>, (StatusCode, String)> {
+) -> Result<Json<MemoryForgetResponse>, ApiError> {
     let started = Instant::now();
     let memory = state
         .store
@@ -4050,7 +4210,10 @@ async fn forget_memory(
             None,
             started,
         );
-        return Err((StatusCode::FORBIDDEN, "memory ACL denied".into()));
+        return Err(ApiError::new(
+            StatusCode::FORBIDDEN,
+            "memory ACL denied".into(),
+        ));
     }
     let forgotten = match state.store.forget_memory_scoped(
         &request.id,
@@ -4069,9 +4232,12 @@ async fn forget_memory(
                 None,
                 started,
             );
-            return Err((StatusCode::FORBIDDEN, "memory ACL denied".into()));
+            return Err(ApiError::new(
+                StatusCode::FORBIDDEN,
+                "memory ACL denied".into(),
+            ));
         }
-        Err(error) => return Err(internal_error(error)),
+        Err(error) => return Err(internal_error(error).into()),
     };
     record_audit(
         &state,
@@ -4093,7 +4259,7 @@ async fn export_memories(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
     AxumQuery(params): AxumQuery<MemoryExportParams>,
-) -> Result<Json<Vec<crate::memory::MemoryRecord>>, (StatusCode, String)> {
+) -> Result<Json<Vec<crate::memory::MemoryRecord>>, ApiError> {
     validate_retrieval_scope(params.project.as_deref(), None)?;
     let started = Instant::now();
     let exported = if principal.is_owner() {
@@ -4141,7 +4307,7 @@ async fn export_memories(
                 None,
                 started,
             );
-            Err(internal_error(error))
+            Err(internal_error(error).into())
         }
     }
 }
@@ -4165,7 +4331,7 @@ async fn derived_memories(
     State(state): State<AppState>,
     Extension(principal): Extension<Principal>,
     AxumQuery(params): AxumQuery<DerivedMemoryParams>,
-) -> Result<Json<DerivedMemoryResponse>, (StatusCode, String)> {
+) -> Result<Json<DerivedMemoryResponse>, ApiError> {
     validate_retrieval_scope(params.project.as_deref(), None)?;
     let started = Instant::now();
     match derive_authorized_memories(&state, &principal, params.project.as_deref(), params.limit) {
@@ -4193,7 +4359,7 @@ async fn derived_memories(
                 None,
                 started,
             );
-            Err(internal_error(error))
+            Err(internal_error(error).into())
         }
     }
 }
@@ -4207,8 +4373,12 @@ struct AuditParams {
 async fn sync_status(
     State(state): State<AppState>,
     Extension(_principal): Extension<Principal>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    state.store.sync_status().map(Json).map_err(internal_error)
+) -> Result<Json<serde_json::Value>, ApiError> {
+    state
+        .store
+        .sync_status()
+        .map(Json)
+        .map_err(|e| ApiError::from(internal_error(e)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -4220,7 +4390,7 @@ async fn sync_conflicts(
     State(state): State<AppState>,
     Extension(_principal): Extension<Principal>,
     AxumQuery(params): AxumQuery<SyncConflictsParams>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<serde_json::Value>, ApiError> {
     let conflicts = state
         .store
         .sync_list_conflicts(params.limit.unwrap_or(50).clamp(1, 500))
@@ -4241,7 +4411,7 @@ async fn resolve_sync_conflict(
     Extension(principal): Extension<Principal>,
     axum::extract::Path(conflict_id): axum::extract::Path<i64>,
     Json(request): Json<SyncConflictResolveRequest>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<Json<serde_json::Value>, ApiError> {
     let started = Instant::now();
     state
         .store
@@ -4273,12 +4443,12 @@ async fn audit_events(
     State(state): State<AppState>,
     Extension(_principal): Extension<Principal>,
     AxumQuery(params): AxumQuery<AuditParams>,
-) -> Result<Json<Vec<AuditEvent>>, (StatusCode, String)> {
+) -> Result<Json<Vec<AuditEvent>>, ApiError> {
     state
         .store
         .audit_events(params.limit.clamp(1, 500))
         .map(Json)
-        .map_err(internal_error)
+        .map_err(|e| ApiError::from(internal_error(e)))
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -4309,7 +4479,7 @@ fn record_audit(
 async fn metrics(
     State(state): State<AppState>,
     Extension(_principal): Extension<Principal>,
-) -> Result<impl IntoResponse, (StatusCode, String)> {
+) -> Result<impl IntoResponse, ApiError> {
     let stats = store_stats_with_timeout(state.store.clone(), READY_STORE_STATS_TIMEOUT)
         .await
         .map_err(internal_error)?;
@@ -4366,11 +4536,14 @@ async fn metrics(
     Ok(([(header::CONTENT_TYPE, "text/plain; version=0.0.4")], body))
 }
 
-fn validate_query(query: &str) -> Result<(), (StatusCode, String)> {
+fn validate_query(query: &str) -> Result<(), ApiError> {
     if query.trim().is_empty() {
-        Err((StatusCode::BAD_REQUEST, "query must not be empty".into()))
+        Err(ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "query must not be empty".into(),
+        ))
     } else if query.len() > retrieval::MAX_QUERY_BYTES {
-        Err((
+        Err(ApiError::new(
             StatusCode::PAYLOAD_TOO_LARGE,
             format!("query exceeds {} bytes", retrieval::MAX_QUERY_BYTES),
         ))
@@ -4379,10 +4552,7 @@ fn validate_query(query: &str) -> Result<(), (StatusCode, String)> {
     }
 }
 
-fn validate_retrieval_scope(
-    project: Option<&str>,
-    source: Option<&str>,
-) -> Result<(), (StatusCode, String)> {
+fn validate_retrieval_scope(project: Option<&str>, source: Option<&str>) -> Result<(), ApiError> {
     validate_document_scope("project", project)?;
     validate_document_scope("source", source)
 }
@@ -6056,6 +6226,39 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn document_errors_render_the_contract_envelope() {
+        let (_directory, state) = test_state();
+        let response = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/v1/documents/deadbeefdeadbeefdeadbeefdeadbeef")
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("response");
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+        assert!(
+            !response
+                .headers()
+                .get("x-cortana-correlation-id")
+                .expect("correlation id header")
+                .is_empty()
+        );
+        let body = serde_json::from_slice::<serde_json::Value>(
+            &to_bytes(response.into_body(), 64 * 1024)
+                .await
+                .expect("error body"),
+        )
+        .expect("error envelope JSON");
+        assert_eq!(body["code"], "not_found");
+        assert_eq!(body["retryable"], false);
+        assert_eq!(body["contract_version"], API_CONTRACT_VERSION);
+        assert_eq!(body["message"], "document not found");
+        assert!(body["correlation_id"].as_str().is_some());
+    }
+
+    #[tokio::test]
     async fn status_reports_safe_ingestion_mode_and_configured_sources() {
         let (directory, state) = test_state();
         let mut config: Config = toml::from_str(
@@ -7324,13 +7527,8 @@ mod tests {
             .expect("encode invalid id cursor"),
         );
         let non_hex = decode_document_cursor(&non_hex_id).expect_err("invalid ids should fail");
-        assert_eq!(
-            non_hex,
-            (
-                StatusCode::BAD_REQUEST,
-                "invalid document cursor".to_string()
-            )
-        );
+        assert_eq!(non_hex.status, StatusCode::BAD_REQUEST);
+        assert_eq!(non_hex.message, "invalid document cursor");
 
         let invalid_updated_at = URL_SAFE_NO_PAD.encode(
             serde_json::to_vec(&EncodedDocumentCursor {
@@ -7341,13 +7539,8 @@ mod tests {
         );
         let invalid_time = decode_document_cursor(&invalid_updated_at)
             .expect_err("invalid timestamps should fail");
-        assert_eq!(
-            invalid_time,
-            (
-                StatusCode::BAD_REQUEST,
-                "invalid document cursor".to_string()
-            )
-        );
+        assert_eq!(invalid_time.status, StatusCode::BAD_REQUEST);
+        assert_eq!(invalid_time.message, "invalid document cursor");
 
         let valid = URL_SAFE_NO_PAD.encode(
             serde_json::to_vec(&EncodedDocumentCursor {
