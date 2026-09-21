@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.58.14](https://github.com/adea-ai/cortana/compare/v0.58.13...v0.58.14) (2026-09-21)
+
+
+### Bug Fixes
+
+* api-contract-followups ([#2362](https://github.com/adea-ai/cortana/issues/2362)) ([d6a0783](https://github.com/adea-ai/cortana/commit/d6a07830e58171ee8813097e26b3eecf2312c7f3))
+
+
+### Tests
+
+* **provider:** execute the conformance fixture against the engine ([#2363](https://github.com/adea-ai/cortana/issues/2363)) ([dd81000](https://github.com/adea-ai/cortana/commit/dd810003a15e398206960d30b99f83b90adaf46b))
+
+
+### Maintenance
+
+* audit follow-ups — production visual gate, cap regression test, memory ADR ([#2364](https://github.com/adea-ai/cortana/issues/2364)) ([fc2ee3a](https://github.com/adea-ai/cortana/commit/fc2ee3a1ae9a414536dab709658b9d9dfd5d6c08))
+
 ## [0.58.13](https://github.com/adea-ai/cortana/compare/v0.58.12...v0.58.13) (2026-09-20)
 
 
