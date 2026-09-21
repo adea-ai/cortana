@@ -216,12 +216,17 @@ test('the shadcn renderer composes the real application shell and state', async 
       name: 'Inbox',
     })
   )
-  await act(async () => new Promise((resolve) => setTimeout(resolve, 0)))
-  expect(
-    screen.getByRole('heading', {
-      name: 'Inbox',
-    })
-  ).not.toBeNull()
+  // The activity inbox renders through async effects; a single macrotask
+  // flush races it under parallel CI load, so wait for the heading.
+  await waitFor(
+    () =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Inbox',
+        })
+      ).not.toBeNull(),
+    { timeout: 5000 }
+  )
   expect(document.querySelector('[data-m7-activity-inbox]')).not.toBeNull()
   expect(document.querySelector('[data-slot="card"], [data-slot="empty"]')).not.toBeNull()
   expect(
