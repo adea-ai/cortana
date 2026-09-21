@@ -13,13 +13,13 @@ import {
 } from '../shadcn/combobox'
 
 export function SettingsModelCombobox(
-  props: Omit<ComponentProps<'input'>, 'value' | 'onChange'> & {
+  props: Omit<ComponentProps<typeof ComboboxInput>, 'value'> & {
     value: string
     choices: Array<{ value: string; label: JSX.Element }>
     onValueChange: (value: string) => void
   }
 ) {
-  const [local, rest] = splitProps(props, ['value', 'choices', 'onValueChange'])
+  const [local, rest] = splitProps(props, ['value', 'choices', 'onValueChange', 'class'])
   return (
     <Combobox<ComboboxOptionValue>
       options={local.choices}
@@ -29,10 +29,7 @@ export function SettingsModelCombobox(
         <ComboboxItem item={itemProps.item}>{itemProps.item.rawValue.label}</ComboboxItem>
       )}
     >
-      <ComboboxInput
-        {...(rest as any)}
-        class={cn('border-border bg-background shadow-xs', rest.class)}
-      />
+      <ComboboxInput {...rest} class={cn('border-border bg-background shadow-xs', local.class)} />
       <ComboboxContent>
         <ComboboxEmpty>No matching models.</ComboboxEmpty>
         <ComboboxList />

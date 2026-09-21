@@ -52,6 +52,11 @@ export type BrainDocumentPage = {
   next_cursor: string | null
 }
 
+export type CandidatePage = {
+  candidates: MemoryCandidate[]
+  truncated: boolean
+}
+
 export type BrainGraphNodeKind =
   | 'workspace'
   | 'source'
