@@ -212,7 +212,8 @@ async fn request_device_code(client: &Client, client_id: &str) -> Result<DeviceC
         .await
         .context("request GitHub device code")?;
     let status = response.status();
-    let payload: DeviceCodeResponse = bounded_json(response).await?;
+    let payload: DeviceCodeResponse =
+        crate::oauth_common::bounded_json(response, MAX_RESPONSE_BYTES, "GitHub").await?;
     anyhow::ensure!(status.is_success(), "GitHub device-code request failed");
     anyhow::ensure!(
         !payload.device_code.is_empty() && !payload.user_code.is_empty() && payload.expires_in > 0,
@@ -245,7 +246,8 @@ async fn poll_device_token(
             .await
             .context("poll GitHub device authorization")?;
         let status = response.status();
-        let token: AccessTokenResponse = bounded_json(response).await?;
+        let token: AccessTokenResponse =
+            crate::oauth_common::bounded_json(response, MAX_RESPONSE_BYTES, "GitHub").await?;
         anyhow::ensure!(
             status.is_success(),
             "GitHub device authorization returned an invalid response"
@@ -276,22 +278,7 @@ async fn get_json<T: DeserializeOwned>(client: &Client, url: &str, token: &str) 
         response.status().is_success(),
         "GitHub repository request failed"
     );
-    bounded_json(response).await
-}
-
-async fn bounded_json<T: DeserializeOwned>(response: reqwest::Response) -> Result<T> {
-    if response
-        .content_length()
-        .is_some_and(|length| length > MAX_RESPONSE_BYTES as u64)
-    {
-        bail!("GitHub response exceeded the safety limit")
-    }
-    let bytes = response.bytes().await.context("read GitHub response")?;
-    anyhow::ensure!(
-        bytes.len() <= MAX_RESPONSE_BYTES,
-        "GitHub response exceeded the safety limit"
-    );
-    serde_json::from_slice(&bytes).context("GitHub returned invalid JSON")
+    crate::oauth_common::bounded_json(response, MAX_RESPONSE_BYTES, "GitHub").await
 }
 
 fn github_client() -> Result<Client> {
@@ -379,7 +366,7 @@ fn validate_secure_file(path: &Path, label: &str) -> Result<()> {
     reject_symlink_components(path)?;
     let metadata = fs::symlink_metadata(path).with_context(|| format!("inspect {label}"))?;
     anyhow::ensure!(metadata.is_file(), "{label} must be a regular file");
-    ensure_owner_only(&metadata, label)?;
+    crate::oauth_common::ensure_owner_only(&metadata, label)?;
     anyhow::ensure!(
         metadata.len() <= MAX_CLIENT_FILE_BYTES,
         "{label} exceeds 64 KiB"
@@ -480,18 +467,6 @@ fn is_allowed_system_alias(path: &Path) -> bool {
         let _ = path;
         false
     }
-}
-
-fn ensure_owner_only(metadata: &fs::Metadata, label: &str) -> Result<()> {
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        anyhow::ensure!(
-            metadata.permissions().mode() & 0o077 == 0,
-            "{label} must be owner-only"
-        );
-    }
-    Ok(())
 }
 
 fn ensure_outside_filesystem_roots(config: &Config, candidate: &Path, label: &str) -> Result<()> {

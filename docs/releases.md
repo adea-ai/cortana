@@ -9,11 +9,11 @@ single-package flow. The following patch release reconciles the Release Please
 manifest, Rust crate, Python package, web application, and lockfile versions
 under the automated manifest flow.
 
-## Current release: v0.58.14 <!-- x-release-please-version -->
+## Current release: v0.58.15 <!-- x-release-please-version -->
 
 Download the Desktop app or a matching core archive from the
 [latest GitHub release](https://github.com/adea-ai/cortana/releases/latest).
-The current release is `v0.58.14`. <!-- x-release-please-version -->
+The current release is `v0.58.15`. <!-- x-release-please-version -->
 
 This release completes the M11 cross-device and managed-mode architecture and the M13
 build-path and performance work: the device identity and key hierarchy (`cortana identity`),

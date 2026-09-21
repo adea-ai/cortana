@@ -17,9 +17,7 @@ pub struct GraphContract;
 impl GraphContract {
     pub const VERSION: &'static str = "cortana.knowledge-graph.v1";
     pub const DEFAULT_DERIVATION_VERSION: &'static str = "cortana.graph-derivation.v1";
-    pub const DEFAULT_PAGE_SIZE: usize = 50;
     pub const MAX_PAGE_SIZE: usize = 100;
-    pub const MAX_DEPTH: usize = 3;
     pub const MAX_NODES_PER_EXPANSION: usize = 200;
     pub const MAX_EDGES_PER_EXPANSION: usize = 400;
 }
@@ -233,11 +231,6 @@ impl GraphEdge {
         Ok(self)
     }
 
-    pub fn with_citation_authority(mut self, citation_authority: bool) -> Self {
-        self.citation_authority = citation_authority;
-        self
-    }
-
     pub fn validate(&self) -> Result<()> {
         if self.contract_version != GraphContract::VERSION {
             bail!("unsupported graph contract version");
@@ -275,10 +268,6 @@ impl GraphEdge {
             self.derivation_version,
             self.support.record_ids.join(", ")
         )
-    }
-
-    pub fn deduplication_key(&self) -> (&GraphNodeId, &GraphNodeId, EdgeKind, EdgeOrigin) {
-        (&self.source, &self.target, self.kind, self.origin)
     }
 }
 
