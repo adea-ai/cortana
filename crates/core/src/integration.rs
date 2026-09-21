@@ -114,16 +114,6 @@ impl ExternalWorkspaceMapping {
         Ok(())
     }
 
-    pub fn mark_orphaned(&mut self) -> Result<()> {
-        ensure!(
-            self.status == MappingStatus::Active,
-            "only an active mapping can become orphaned"
-        );
-        self.status = MappingStatus::Orphaned;
-        self.advance_revision();
-        Ok(())
-    }
-
     pub fn reconnect(&mut self, capability_ref: &str) -> Result<()> {
         ensure!(
             self.status == MappingStatus::Orphaned,
