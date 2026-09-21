@@ -6,13 +6,19 @@
 //! boundary instead of crashing the render tree with `undefined` reads.
 
 import type {
+  AgentMemory,
   AnswerResponse,
   CandidatePage,
+  ContextBundle,
   BrainDocument,
   BrainDocumentPage,
   BrainDocumentSummary,
   BrainStatus,
+  DerivedMemoryResponse,
   DesktopUpdate,
+  MemoryCandidateActionResult,
+  MemoryCandidateClassification,
+  ReflectResponse,
 } from './types'
 import {
   assertArray,
@@ -112,6 +118,89 @@ export function parseAnswerResponse(value: unknown): AnswerResponse {
   requireNumber(record, 'latency_ms', 'Answer')
   assertArray(record['warnings'], 'Answer', 'warnings')
   return value as AnswerResponse
+}
+
+export function parseContextBundle(value: unknown): ContextBundle {
+  const record = assertRecord(value, 'Context bundle')
+  requireString(record, 'query', 'Context bundle')
+  requireString(record, 'context', 'Context bundle')
+  assertArray(record['evidence'], 'Context bundle', 'evidence')
+  const metrics = assertRecord(record['metrics'], 'Context bundle metrics')
+  requireNumber(metrics, 'included', 'Context bundle')
+  return value as ContextBundle
+}
+
+export function parseReflectResponse(value: unknown): ReflectResponse {
+  const record = assertRecord(value, 'Reflection')
+  requireString(record, 'contract_version', 'Reflection')
+  requireString(record, 'request_digest', 'Reflection')
+  requireLiteral(
+    record,
+    'status',
+    ['completed', 'fallback', 'provider_unavailable', 'provider_failed', 'deadline_exceeded'],
+    'Reflection'
+  )
+  requireString(record, 'objective', 'Reflection')
+  requireNumber(record, 'memory_revision', 'Reflection')
+  const provider = assertRecord(record['provider'], 'Reflection provider')
+  requireLiteral(
+    provider,
+    'policy',
+    ['deterministic-only', 'prefer-provider', 'require-provider'],
+    'Reflection'
+  )
+  assertArray(record['claims'], 'Reflection', 'claims')
+  return value as ReflectResponse
+}
+
+export function parseMemoryCandidateClassification(value: unknown): MemoryCandidateClassification {
+  const record = assertRecord(value, 'Candidate classification')
+  requireString(record, 'candidate_id', 'Candidate classification')
+  requireString(record, 'classification', 'Candidate classification')
+  requireNumber(record, 'confidence', 'Candidate classification')
+  assertArray(record['supporting_memory_ids'], 'Candidate classification', 'supporting_memory_ids')
+  requireString(record, 'explanation', 'Candidate classification')
+  return value as MemoryCandidateClassification
+}
+
+export function parseMemoryCandidateActionResult(value: unknown): MemoryCandidateActionResult {
+  const record = assertRecord(value, 'Candidate action')
+  requireString(record, 'status', 'Candidate action')
+  const decision = record['decision']
+  if (decision !== null && decision !== undefined) {
+    const decisionRecord = assertRecord(decision, 'Candidate action decision')
+    requireString(decisionRecord, 'decision', 'Candidate action')
+    requireString(decisionRecord, 'classification', 'Candidate action')
+  }
+  return value as MemoryCandidateActionResult
+}
+
+export function parseDerivedMemoryResponse(value: unknown): DerivedMemoryResponse {
+  const record = assertRecord(value, 'Derived memory')
+  requireString(record, 'contract_version', 'Derived memory')
+  requireNumber(record, 'memory_revision', 'Derived memory')
+  const representations = assertArray(
+    record['representations'],
+    'Derived memory',
+    'representations'
+  )
+  for (const entry of representations) {
+    const representation = assertRecord(entry, 'Derived representation')
+    requireString(representation, 'id', 'Derived representation')
+    requireNumber(representation, 'confidence', 'Derived representation')
+  }
+  return value as DerivedMemoryResponse
+}
+
+export function parseAgentMemories(value: unknown): AgentMemory[] {
+  const memories = assertArray(value, 'Memories', 'items')
+  for (const entry of memories) {
+    const record = assertRecord(entry, 'Memory entry')
+    requireString(record, 'id', 'Memory entry')
+    requireString(record, 'project', 'Memory entry')
+    requireString(record, 'content', 'Memory entry')
+  }
+  return value as AgentMemory[]
 }
 
 export function parseDesktopUpdate(value: unknown): DesktopUpdate {

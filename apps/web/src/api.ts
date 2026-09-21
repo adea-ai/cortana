@@ -3,12 +3,18 @@ import { invoke, isTauri } from '@tauri-apps/api/core'
 import { buildAgentContext, estimateTokens } from './context'
 import { safeSourceLink } from './sourceLinks'
 import {
+  parseAgentMemories,
   parseAnswerResponse,
   parseBrainDocument,
   parseBrainDocumentPage,
   parseBrainStatus,
   parseCandidatePage,
+  parseContextBundle,
   parseDesktopUpdate,
+  parseDerivedMemoryResponse,
+  parseMemoryCandidateActionResult,
+  parseMemoryCandidateClassification,
+  parseReflectResponse,
 } from './responseParsers'
 import type {
   CandidatePage,
@@ -463,7 +469,7 @@ export async function getContext(
     signal,
   })
   if (!response.ok) throw new Error(`Context retrieval failed (${response.status})`)
-  return (await response.json()) as ContextBundle
+  return parseContextBundle(await response.json())
 }
 
 export async function getReflection(
@@ -492,7 +498,7 @@ export async function getReflection(
     signal,
   })
   if (!response.ok) throw new Error(`Reflection failed (${response.status})`)
-  return (await response.json()) as ReflectResponse
+  return parseReflectResponse(await response.json())
 }
 
 export async function listMemoryCandidates(
@@ -556,7 +562,7 @@ export async function classifyMemoryCandidate(id: string): Promise<MemoryCandida
     { method: 'POST' }
   )
   if (!response.ok) throw new Error(`Memory candidate classification failed (${response.status})`)
-  return (await response.json()) as MemoryCandidateClassification
+  return parseMemoryCandidateClassification(await response.json())
 }
 
 export type MemoryCandidateAction =
@@ -628,7 +634,7 @@ export async function actOnMemoryCandidate(
       : { method: 'POST' }
   )
   if (!response.ok) throw new Error(`Memory candidate ${action} failed (${response.status})`)
-  return (await response.json()) as MemoryCandidateActionResult
+  return parseMemoryCandidateActionResult(await response.json())
 }
 
 export async function setMemoryConsolidationPaused(paused: boolean): Promise<void> {
@@ -676,7 +682,7 @@ export async function listDerivedMemories(project?: string): Promise<DerivedMemo
   if (project) query.set('project', project)
   const response = await authorizedFetch(`/v1/memory/derived?${query}`, {})
   if (!response.ok) throw new Error(`Derived memory review failed (${response.status})`)
-  return (await response.json()) as DerivedMemoryResponse
+  return parseDerivedMemoryResponse(await response.json())
 }
 
 export async function listCanonicalMemories(project?: string): Promise<AgentMemory[]> {
@@ -692,7 +698,7 @@ export async function listCanonicalMemories(project?: string): Promise<AgentMemo
   if (project) query.set('project', project)
   const response = await authorizedFetch(`/v1/memory/export?${query}`, {})
   if (!response.ok) throw new Error(`Canonical memory review failed (${response.status})`)
-  return (await response.json()) as AgentMemory[]
+  return parseAgentMemories(await response.json())
 }
 
 function consolidationPolicy(policy: MemoryReviewPolicy) {
