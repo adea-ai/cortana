@@ -238,8 +238,11 @@ The deterministic Desktop settings fixture in `apps/web/src/demoDesktop.ts` exis
 identities, `example.test` URLs, masked `/example` paths, configuration metadata, and configured
 secret indicators without secret values. It lets the visual evidence job exercise real Settings
 composition in a browser without adding Tauri capabilities, invoking native commands, or exposing
-host state. The issue #2166 evidence set contains 95 screenshots covering the configured matrix and
-explicit setup, busy, success, warning, failure, cancelled, retry, and recovery states.
+host state. The issue #2166 evidence set covered the configured matrix and explicit setup, busy,
+success, warning, failure, cancelled, retry, and recovery states; the current capture gate
+(`scripts/capture-m7-visuals.mjs`) produces more than 120 screenshots per run — 60 shell
+combinations across the theme and viewport matrix plus targeted knowledge, settings,
+navigation, and state captures — each with an axe WCAG audit.
 
 ## shadcn lint enforcement
 

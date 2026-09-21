@@ -428,6 +428,9 @@ async fn run_fixture(fixture: KnowledgeEvaluationFixture) -> Result<KnowledgeEva
         response_byte_limit: fixture.thresholds.max_response_bytes,
     };
     let controls = ControlMetrics {
+        // Deliberate: the fixture measures step *reduction* from OPTIONAL
+        // graph navigation, not a hard requirement — search and exact-document
+        // flows must both succeed without the graph.
         graph_required_for_search: false,
         graph_required_for_exact_document: false,
         search_control_passed,

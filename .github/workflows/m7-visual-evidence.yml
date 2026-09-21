@@ -38,9 +38,11 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Install Chromium
         run: bunx playwright install --with-deps chromium
-      - name: Start deterministic renderer
+      - name: Build production renderer
+        run: bun run --cwd apps/web build
+      - name: Serve production renderer
         run: |
-          bun run dev -- --host 127.0.0.1 --port 4173 > "$RUNNER_TEMP/cortana-vite.log" 2>&1 &
+          bun run --cwd apps/web preview -- --host 127.0.0.1 --port 4173 --strictPort > "$RUNNER_TEMP/cortana-vite.log" 2>&1 &
           echo "VITE_PID=$!" >> "$GITHUB_ENV"
           for _ in {1..30}; do
             curl --fail --silent http://127.0.0.1:4173/ >/dev/null && exit 0
