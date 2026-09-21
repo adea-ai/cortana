@@ -2,7 +2,9 @@ import { invoke, isTauri } from '@tauri-apps/api/core'
 
 import { buildAgentContext, estimateTokens } from './context'
 import { safeSourceLink } from './sourceLinks'
+import { parseAnswerResponse, parseBrainDocument, parseBrainDocumentPage, parseBrainStatus, parseCandidatePage, parseDesktopUpdate } from './responseParsers'
 import type {
+  CandidatePage,
   AnswerResponse,
   BrainDocument,
   BrainDocumentPage,
@@ -184,12 +186,12 @@ export async function restoreDesktopDatabase(): Promise<DesktopDatabaseActionRes
 
 export async function getDesktopUpdate(): Promise<DesktopUpdate> {
   if (!isDesktopApp) throw new Error('Updates are available in Cortana Desktop')
-  return invokeDesktop<DesktopUpdate>('desktop_update_status')
+  return parseDesktopUpdate(await invokeDesktop<DesktopUpdate>('desktop_update_status'))
 }
 
 export async function checkDesktopUpdate(): Promise<DesktopUpdate> {
   if (!isDesktopApp) throw new Error('Updates are available in Cortana Desktop')
-  return invokeDesktop<DesktopUpdate>('desktop_update_check')
+  return parseDesktopUpdate(await invokeDesktop<DesktopUpdate>('desktop_update_check'))
 }
 
 export async function installDesktopUpdate(
@@ -206,7 +208,7 @@ export async function installDesktopUpdate(
 
 export async function cancelDesktopUpdate(): Promise<DesktopUpdate> {
   if (!isDesktopApp) throw new Error('Updates are available in Cortana Desktop')
-  return invokeDesktop<DesktopUpdate>('desktop_update_cancel')
+  return parseDesktopUpdate(await invokeDesktop<DesktopUpdate>('desktop_update_cancel'))
 }
 
 export async function getRuntimeAudit(limit = 100): Promise<AuditEvent[]> {
@@ -399,7 +401,7 @@ export async function getStatus(signal?: AbortSignal): Promise<BrainStatus> {
     }
     throw new Error(`Status request failed (${response.status})`)
   }
-  return (await response.json()) as BrainStatus
+  return parseBrainStatus(await response.json())
 }
 
 export async function getContext(
@@ -504,7 +506,6 @@ export async function listMemoryCandidates(
             .includes(needle))
     )
   }
-  type CandidatePage = { candidates: MemoryCandidate[]; truncated: boolean }
   const request = {
     project: project || null,
     limit: 1000,
@@ -524,7 +525,7 @@ export async function listMemoryCandidates(
   if (status) query.set('status', status)
   const response = await authorizedFetch(`/v1/memory/candidates?${query}`, {})
   if (!response.ok) throw new Error(`Memory candidate review failed (${response.status})`)
-  const page = (await response.json()) as CandidatePage
+  const page = parseCandidatePage(await response.json())
   if (page.truncated) {
     throw new Error('Memory candidate review was truncated; narrow the search or status filter')
   }
@@ -768,7 +769,7 @@ export async function getDocuments(
   if (cursor) params.set('cursor', cursor)
   const response = await authorizedFetch(`/v1/documents?${params}`, { signal })
   if (!response.ok) throw new Error(`Document list failed (${response.status})`)
-  return (await response.json()) as BrainDocumentPage
+  return parseBrainDocumentPage(await response.json())
 }
 
 export async function getDocument(id: string, signal?: AbortSignal): Promise<BrainDocument> {
@@ -805,7 +806,7 @@ export async function getDocument(id: string, signal?: AbortSignal): Promise<Bra
   }
   const response = await authorizedFetch(`/v1/documents/${encodeURIComponent(id)}`, { signal })
   if (!response.ok) throw new Error(`Document read failed (${response.status})`)
-  return (await response.json()) as BrainDocument
+  return parseBrainDocument(await response.json())
 }
 
 export async function getGraph(
@@ -1016,7 +1017,7 @@ export async function getAnswer(
     signal,
   })
   if (!response.ok) throw new Error(`Answer request failed (${response.status})`)
-  return (await response.json()) as AnswerResponse
+  return parseAnswerResponse(await response.json())
 }
 
 async function invokeDesktop<T>(
