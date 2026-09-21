@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.58.17](https://github.com/adea-ai/cortana/compare/v0.58.16...v0.58.17) (2026-09-21)
+
+
+### Bug Fixes
+
+* **web:** validate memory-surface responses and narrow union casts ([#2373](https://github.com/adea-ai/cortana/issues/2373)) ([f4631b9](https://github.com/adea-ai/cortana/commit/f4631b9dced7201ffeb78c95ad4101f88b01ab6b))
+
 ## [0.58.16](https://github.com/adea-ai/cortana/compare/v0.58.15...v0.58.16) (2026-09-21)
 
 
