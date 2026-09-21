@@ -2,7 +2,14 @@ import { invoke, isTauri } from '@tauri-apps/api/core'
 
 import { buildAgentContext, estimateTokens } from './context'
 import { safeSourceLink } from './sourceLinks'
-import { parseAnswerResponse, parseBrainDocument, parseBrainDocumentPage, parseBrainStatus, parseCandidatePage, parseDesktopUpdate } from './responseParsers'
+import {
+  parseAnswerResponse,
+  parseBrainDocument,
+  parseBrainDocumentPage,
+  parseBrainStatus,
+  parseCandidatePage,
+  parseDesktopUpdate,
+} from './responseParsers'
 import type {
   CandidatePage,
   AnswerResponse,
