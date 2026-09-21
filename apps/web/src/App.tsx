@@ -38,6 +38,23 @@ import {
   openDesktopProject,
   startDesktopSourceAuthorization,
 } from './api'
+import { isGraphEdgeKind, isGraphEdgeOrigin } from './graphResponse'
+
+function edgeKindFilter(
+  value: BrainGraphPage['edges'][number]['kind'] | 'all'
+): BrainGraphPage['edges'][number]['kind'] | undefined {
+  return isGraphEdgeKind(value) ? value : undefined
+}
+
+function edgeOriginFilter(
+  value: NonNullable<BrainGraphPage['edges'][number]['origin']> | 'all'
+): NonNullable<BrainGraphPage['edges'][number]['origin']> | undefined {
+  return isGraphEdgeOrigin(value) ? value : undefined
+}
+
+function utilityKindOf(value: AppView): UtilityKind {
+  return isUtilityKind(value) ? value : 'inbox'
+}
 import { ContextPanel } from './components/ContextPanel'
 import { AppErrorBoundary } from './components/AppErrorBoundary'
 import { M7ActivityInbox } from './components/m7/M7ActivityInbox'
@@ -50,7 +67,7 @@ import {
   M7StatusBar,
 } from './components/m7/M7ApplicationShell'
 import { SourcePanel } from './components/SourcePanel'
-import { UtilityView, type UtilityKind } from './components/UtilityView'
+import { UtilityView, isUtilityKind, type UtilityKind } from './components/UtilityView'
 import { Workspace, type WorkspaceTab } from './components/Workspace'
 import { TooltipButton as Button } from './components/cortana/TooltipButton'
 import { buildAgentContext, estimateTokens } from './context'
@@ -602,14 +619,8 @@ function CortanaApplication() {
       controller.signal,
       {
         focusDocumentId: graphFocusDocumentId() || undefined,
-        edgeKind:
-          graphEdgeKind() === 'all'
-            ? undefined
-            : (graphEdgeKind() as BrainGraphPage['edges'][number]['kind']),
-        origin:
-          graphOrigin() === 'all'
-            ? undefined
-            : (graphOrigin() as NonNullable<BrainGraphPage['edges'][number]['origin']>),
+        edgeKind: edgeKindFilter(graphEdgeKind()),
+        origin: edgeOriginFilter(graphOrigin()),
         minConfidence: graphMinConfidence() ?? undefined,
       }
     )
@@ -2041,7 +2052,7 @@ function CortanaApplication() {
           />
         ) : (
           <UtilityView
-            kind={view() as UtilityKind}
+            kind={utilityKindOf(view())}
             status={status()}
             statusError={statusError()}
             onRetryStatus={retryStatus}

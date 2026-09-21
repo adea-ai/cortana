@@ -39,6 +39,10 @@ const EMPTY_ACTIONS: Array<{ label: string; icon: JSX.Element; onClick: () => vo
 
 export type UtilityKind = 'inbox' | 'conversations' | 'agent-tools' | 'index' | 'help'
 
+export function isUtilityKind(value: string): value is UtilityKind {
+  return value in TITLES
+}
+
 const TITLES: Record<UtilityKind, { eyebrow: string; title: string; description: string }> = {
   inbox: {
     eyebrow: 'Attention',

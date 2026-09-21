@@ -50,6 +50,16 @@ function isBoundedStringList(value: unknown, maxItems: number): value is string[
   )
 }
 
+export function isGraphEdgeKind(value: string): value is BrainGraphPage['edges'][number]['kind'] {
+  return graphEdgeKinds.has(value as BrainGraphPage['edges'][number]['kind'])
+}
+
+export function isGraphEdgeOrigin(
+  value: string
+): value is NonNullable<BrainGraphPage['edges'][number]['origin']> {
+  return graphEdgeOrigins.has(value as NonNullable<BrainGraphPage['edges'][number]['origin']>)
+}
+
 export function parseBrainGraphPage(value: unknown): BrainGraphPage {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error('Graph response was malformed')
