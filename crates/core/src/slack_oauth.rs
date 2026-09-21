@@ -145,8 +145,13 @@ pub async fn authorize(config: &Config, selected: &str) -> Result<SlackAuthoriza
     let source = configured_slack_source(config, selected)?;
     let token_path = configured_token_path(config, source)?;
     let client_path = required_secure_path(source, source.oauth_client.as_ref(), "OAuth client")?;
-    ensure_outside_filesystem_roots(config, &token_path, "token")?;
-    ensure_outside_filesystem_roots(config, client_path, "OAuth client")?;
+    crate::oauth_common::ensure_outside_filesystem_roots("Slack", config, &token_path, "token")?;
+    crate::oauth_common::ensure_outside_filesystem_roots(
+        "Slack",
+        config,
+        client_path,
+        "OAuth client",
+    )?;
     anyhow::ensure!(
         token_path.as_path() != client_path,
         "Slack token and OAuth client paths must be different"
@@ -325,7 +330,12 @@ async fn refresh_stored_token(
     stored: &StoredToken,
 ) -> Result<StoredToken> {
     let client_path = required_secure_path(source, source.oauth_client.as_ref(), "OAuth client")?;
-    ensure_outside_filesystem_roots(config, client_path, "OAuth client")?;
+    crate::oauth_common::ensure_outside_filesystem_roots(
+        "Slack",
+        config,
+        client_path,
+        "OAuth client",
+    )?;
     let client_file = read_client_file(client_path)?;
     refresh(client, &client_file, stored).await
 }
@@ -512,22 +522,6 @@ fn configured_token_path(_config: &Config, source: &SourceConfig) -> Result<Path
         )
     })?;
     Ok(required_secure_path(source, Some(path), "token")?.to_path_buf())
-}
-
-fn ensure_outside_filesystem_roots(config: &Config, path: &Path, label: &str) -> Result<()> {
-    for source in config.sources.iter().filter(|source| {
-        source.kind == "filesystem" && source.root.as_deref().is_some_and(Path::is_absolute)
-    }) {
-        let Some(root) = source.root.as_deref() else {
-            continue;
-        };
-        anyhow::ensure!(
-            !path.starts_with(root),
-            "Slack {label} path must be outside filesystem source {}",
-            source.name
-        );
-    }
-    Ok(())
 }
 
 fn authorization_url(

@@ -11,6 +11,7 @@
 //! errors keep naming the provider that failed without embedding any
 //! credential value.
 
+use crate::config::Config;
 use std::{
     fs::{self, OpenOptions},
     io::Write,
@@ -283,6 +284,31 @@ pub fn write_owner_only_file(
         let _ = fs::remove_file(&temporary);
     }
     result
+}
+
+/// Credential and state files must never live inside a configured
+/// filesystem source root, or ingestion could read (and publish) them.
+/// Only absolute roots are considered: a relative root cannot match an
+/// absolute credential path anyway.
+pub fn ensure_outside_filesystem_roots(
+    provider: &str,
+    config: &Config,
+    path: &Path,
+    label: &str,
+) -> Result<()> {
+    for source in config.sources.iter().filter(|source| {
+        source.kind == "filesystem" && source.root.as_deref().is_some_and(Path::is_absolute)
+    }) {
+        let Some(root) = source.root.as_deref() else {
+            continue;
+        };
+        anyhow::ensure!(
+            !path.starts_with(root),
+            "{provider} {label} path must be outside filesystem source {}",
+            source.name
+        );
+    }
+    Ok(())
 }
 
 pub fn reject_symlink(path: &Path) -> Result<()> {

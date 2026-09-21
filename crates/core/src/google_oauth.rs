@@ -86,8 +86,13 @@ pub async fn authorize(config: &Config, selected: &str) -> Result<AuthorizationO
     );
     let token_path = configured_token_path(config, source)?;
     let client_path = required_secure_path(source, source.oauth_client.as_ref(), "OAuth client")?;
-    ensure_outside_filesystem_roots(config, &token_path, "token")?;
-    ensure_outside_filesystem_roots(config, client_path, "OAuth client")?;
+    crate::oauth_common::ensure_outside_filesystem_roots("Google", config, &token_path, "token")?;
+    crate::oauth_common::ensure_outside_filesystem_roots(
+        "Google",
+        config,
+        client_path,
+        "OAuth client",
+    )?;
     anyhow::ensure!(
         token_path.as_path() != client_path,
         "Google token and OAuth client paths must be different"
@@ -249,22 +254,6 @@ fn configured_token_path(config: &Config, source: &SourceConfig) -> Result<PathB
     })?;
     let path = PathBuf::from(value.trim());
     Ok(required_secure_path(source, Some(&path), "token")?.to_path_buf())
-}
-
-fn ensure_outside_filesystem_roots(config: &Config, path: &Path, label: &str) -> Result<()> {
-    for source in config.sources.iter().filter(|source| {
-        source.kind == "filesystem" && source.root.as_deref().is_some_and(Path::is_absolute)
-    }) {
-        let Some(root) = source.root.as_deref() else {
-            continue;
-        };
-        anyhow::ensure!(
-            !path.starts_with(root),
-            "Google {label} path must be outside filesystem source {}",
-            source.name
-        );
-    }
-    Ok(())
 }
 
 fn scopes_for_token(config: &Config, token_path: &Path) -> Result<Vec<String>> {
@@ -709,7 +698,8 @@ mod tests {
             ..Config::default()
         };
         assert!(
-            ensure_outside_filesystem_roots(
+            crate::oauth_common::ensure_outside_filesystem_roots(
+                "Google",
                 &config,
                 Path::new("/tmp/cortana/documents/token.json"),
                 "token"
