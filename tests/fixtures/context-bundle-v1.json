@@ -1,7 +1,7 @@
 {
   "contract_version": "cortana.context.v1",
-  "context_bundle_id": "ctx_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-  "canonical_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "context_bundle_id": "ctx_2521e09d1c7b96138666805c9d4df9143e7d324891c8fed9313857af8efec559",
+  "canonical_digest": "2521e09d1c7b96138666805c9d4df9143e7d324891c8fed9313857af8efec559",
   "created_at": "2026-01-01T00:00:00.000Z",
   "token_budget": 8000,
   "query": "release process",
