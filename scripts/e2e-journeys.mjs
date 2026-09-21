@@ -88,10 +88,7 @@ async function searchProducesAnswerWithEvidence(context) {
 
 async function openDocumentAndCopyCitation(context) {
   const page = await openDemoApp(context)
-  await page
-    .locator('button.document-node')
-    .first()
-    .click()
+  await page.locator('button.document-node').first().click()
   const documentView = page.locator('article.canonical-document')
   await documentView.waitFor({ state: 'visible', timeout: JOURNEY_TIMEOUT_MS })
   const title = ((await documentView.getByRole('heading').first().textContent()) ?? '').trim()
@@ -135,9 +132,7 @@ async function approveMemoryCandidate(context) {
     .getByRole('button', { name: /Release validation preference/ })
     .first()
     .click()
-  const approve = page
-    .getByRole('button', { name: /Approve canonical memory/ })
-    .first()
+  const approve = page.getByRole('button', { name: /Approve canonical memory/ }).first()
   await approve.waitFor({ state: 'visible', timeout: JOURNEY_TIMEOUT_MS })
   await approve.click()
   // Approval routes through the settings confirm dialog ("Continue").
@@ -164,9 +159,7 @@ async function workspaceSelectionSurvivesReload(context) {
   await page.getByRole('button', { name: 'Switch workspace' }).click()
   await page.getByRole('menuitemradio', { name: 'Work', exact: true }).click()
   await waitForPaint(page)
-  const beforeReload = await page
-    .getByRole('button', { name: 'Switch workspace' })
-    .textContent()
+  const beforeReload = await page.getByRole('button', { name: 'Switch workspace' }).textContent()
 
   await page.reload({ waitUntil: 'load' })
   await page.locator('[data-m7-production-shell-ready]').waitFor({ state: 'attached' })
@@ -183,11 +176,26 @@ async function workspaceSelectionSurvivesReload(context) {
 
 const server = process.env.E2E_JOURNEYS_BASE_URL
   ? null
-  : spawn('bun', ['run', '--cwd', 'apps/web', 'preview', '--', '--host', '127.0.0.1', '--port', String(PORT), '--strictPort'], {
-      cwd: ROOT,
-      detached: true,
-      stdio: 'ignore',
-    })
+  : spawn(
+      'bun',
+      [
+        'run',
+        '--cwd',
+        'apps/web',
+        'preview',
+        '--',
+        '--host',
+        '127.0.0.1',
+        '--port',
+        String(PORT),
+        '--strictPort',
+      ],
+      {
+        cwd: ROOT,
+        detached: true,
+        stdio: 'ignore',
+      }
+    )
 
 mkdirSync(dirname(EVIDENCE_DIRECTORY), { recursive: true })
 mkdirSync(EVIDENCE_DIRECTORY, { recursive: true })
@@ -206,8 +214,16 @@ try {
   // journeys; persistence intentionally reloads inside its own journey.
   journeys.push(await searchProducesAnswerWithEvidence(context))
   journeys.push(await openDocumentAndCopyCitation(context))
-  journeys.push(await approveMemoryCandidate(await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' })))
-  journeys.push(await workspaceSelectionSurvivesReload(await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' })))
+  journeys.push(
+    await approveMemoryCandidate(
+      await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' })
+    )
+  )
+  journeys.push(
+    await workspaceSelectionSurvivesReload(
+      await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' })
+    )
+  )
 
   const evidence = {
     generated_at: new Date().toISOString(),
@@ -215,7 +231,10 @@ try {
     journeys,
     passed: journeys.length === 4,
   }
-  writeFileSync(resolve(EVIDENCE_DIRECTORY, 'e2e-journeys.json'), `${JSON.stringify(evidence, null, 2)}\n`)
+  writeFileSync(
+    resolve(EVIDENCE_DIRECTORY, 'e2e-journeys.json'),
+    `${JSON.stringify(evidence, null, 2)}\n`
+  )
   console.log(`e2e journeys passed: ${journeys.map((entry) => entry.journey).join(', ')}`)
 } catch (error) {
   writeFileSync(
