@@ -110,9 +110,12 @@ export const demoMemoryCandidates: MemoryCandidate[] = [
     status: 'pending',
     acl: ['work'],
     provenance: { fixture: true },
-    expires_at: '2026-09-04T12:00:00Z',
-    created_at: '2026-08-28T12:00:00Z',
-    updated_at: '2026-08-28T12:00:00Z',
+    // Demo freshness must be relative to load time: the review queue retires
+    // candidates after candidateExpiryDays, so a hard-coded date eventually
+    // renders the queue empty.
+    expires_at: new Date(Date.now() + 30 * 86_400_000).toISOString(),
+    created_at: new Date(Date.now() - 3_600_000).toISOString(),
+    updated_at: new Date(Date.now() - 1_800_000).toISOString(),
     consolidation: null,
   },
 ]
