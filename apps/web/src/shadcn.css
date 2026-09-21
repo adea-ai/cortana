@@ -85,6 +85,23 @@
   --status-error: #d55b51;
   --status-idle: #7a7b76;
   --status-idle-text: #a5a7a1;
+
+  /* Chrome surface neutrals. The legacy sections hand-mixed a dozen
+     near-identical greys per role; these consolidate them so contrast can be
+     audited and themed from one place. Values are the cluster exemplars, so
+     switching is visually a no-op except where two near-neighbours merge. */
+  --chrome-fg: var(--chrome-fg);
+  --chrome-fg-soft: var(--chrome-fg-soft);
+  --chrome-fg-mute: var(--chrome-fg-mute);
+  --chrome-fg-dim: var(--chrome-fg-dim);
+  --chrome-hover: var(--chrome-hover);
+  --chrome-active: var(--chrome-active);
+  --chrome-sunken: var(--chrome-sunken);
+  --chrome-line: var(--chrome-line);
+  --chrome-line-strong: var(--chrome-line-strong);
+  --chrome-danger-fg: var(--chrome-danger-fg);
+  --chrome-danger-line: var(--chrome-danger-line);
+  --paper-line: var(--paper-line);
 }
 
 :root[data-theme='blue'] {
@@ -920,7 +937,7 @@ select:focus-visible {
 }
 
 .source-tree button {
-  color: #c6c7c2;
+  color: var(--chrome-fg-soft);
   border: 0;
   background: transparent;
   cursor: pointer;
@@ -929,7 +946,7 @@ select:focus-visible {
 
 .source-tree button:hover,
 .source-tree button.selected {
-  background: #30312e;
+  background: var(--chrome-hover);
 }
 
 .source-tree button.selected {
@@ -981,15 +998,15 @@ select:focus-visible {
   margin: 0 2px;
   padding: 0;
   color: #a8b2c5;
-  border: 1px solid #48515a;
+  border: 1px solid var(--chrome-line-strong);
   border-radius: var(--radius-xs);
   background: var(--surface-elevated);
 }
 
 .source-tree .source-row > .source-action:hover:not(:disabled) {
   color: #fff;
-  border-color: #5f6f84;
-  background: #2a374d;
+  border-color: var(--chrome-line-strong);
+  background: var(--chrome-hover);
 }
 
 .source-tree .source-row > .source-action:disabled {
@@ -1067,7 +1084,7 @@ select:focus-visible {
   margin: 0 4px 8px;
   padding: 0 8px;
   gap: 6px;
-  color: #81827d;
+  color: var(--chrome-fg-dim);
   border: 1px solid var(--line);
   background: var(--panel);
 }
@@ -1079,7 +1096,7 @@ select:focus-visible {
 .document-filter input {
   min-width: 0;
   flex: 1;
-  color: #e5e4de;
+  color: var(--chrome-fg);
   border: 0;
   outline: 0;
   background: transparent;
@@ -1100,7 +1117,7 @@ select:focus-visible {
 }
 
 .document-filter-clear:hover {
-  color: #e5e4de;
+  color: var(--chrome-fg);
 }
 
 .virtual-document-list {
@@ -1130,7 +1147,7 @@ select:focus-visible {
   grid-template-columns: 19px minmax(0, 1fr) auto;
   padding: 0 8px;
   gap: 4px;
-  color: #aeb0aa;
+  color: var(--chrome-fg-mute);
   border: 0;
   background: transparent;
   cursor: pointer;
@@ -1154,7 +1171,7 @@ select:focus-visible {
 .virtual-document-space button small {
   max-width: 65px;
   overflow: hidden;
-  color: #6f706b;
+  color: var(--chrome-fg-dim);
   font-size: 9px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1162,12 +1179,12 @@ select:focus-visible {
 
 .virtual-document-space button:hover,
 .virtual-document-space button.keyboard-active {
-  background: #2c2d2a;
+  background: var(--chrome-hover);
 }
 
 .virtual-document-space button.selected-document {
   color: #fff;
-  background: #353630;
+  background: var(--chrome-active);
   box-shadow: inset 2px 0 var(--amber);
 }
 
@@ -1407,7 +1424,7 @@ select:focus-visible {
 }
 
 .sidecar-health.disabled {
-  color: #8d9088;
+  color: var(--chrome-fg-dim);
 }
 
 .sidecar-health.reachable i,
@@ -1666,7 +1683,7 @@ select:focus-visible {
   gap: 4px;
   color: var(--theme-content-text);
   border: 0;
-  border-top: 1px solid #dedbd3;
+  border-top: 1px solid var(--paper-line);
   background: transparent;
   cursor: pointer;
   text-align: left;
@@ -1814,7 +1831,7 @@ select:focus-visible {
   grid-template-columns: 32px 1fr;
   padding: 20px 0;
   color: inherit;
-  border-top: 1px solid #d7d4cb;
+  border-top: 1px solid var(--paper-line);
   border-right: 0;
   border-bottom: 0;
   border-left: 0;
@@ -1883,9 +1900,9 @@ select:focus-visible {
 
 .answer-note {
   padding: 12px 14px;
-  color: #686963;
+  color: var(--theme-content-subtle);
   border-left: 2px solid var(--amber);
-  background: #ebe8df;
+  background: var(--theme-content-surface);
   font-size: 12px;
 }
 
@@ -1894,7 +1911,7 @@ select:focus-visible {
   min-height: clamp(360px, 65vh, 550px);
   flex: 1;
   overflow: hidden;
-  background-image: radial-gradient(#d0cdc4 1px, transparent 1px);
+  background-image: radial-gradient(var(--theme-content-border) 1px, transparent 1px);
   background-size: 22px 22px;
 }
 
@@ -1935,8 +1952,8 @@ select:focus-visible {
   z-index: 1;
   max-width: calc(100% - 36px);
   padding: 6px 9px;
-  color: #686963;
-  border: 1px solid #d7d4cb;
+  color: var(--theme-content-subtle);
+  border: 1px solid var(--paper-line);
   background: rgb(251 250 246 / 88%);
   font-size: 11px;
 }
@@ -2125,9 +2142,9 @@ select:focus-visible {
   align-items: center;
   padding: 8px 10px;
   gap: 8px;
-  color: #33342f;
-  border: 1px solid #cac7be;
-  background: #fbfaf6;
+  color: var(--paper-ink);
+  border: 1px solid var(--paper-line);
+  background: var(--theme-content-surface);
   box-shadow: 0 6px 18px rgb(29 30 26 / 10%);
   cursor: pointer;
   transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--distance))
@@ -2176,7 +2193,7 @@ select:focus-visible {
   align-items: stretch;
   grid-template-columns: 95px 25px 1fr;
   padding: 0;
-  color: #32332f;
+  color: var(--paper-ink);
   border: 0;
   background: transparent;
   cursor: pointer;
@@ -2185,13 +2202,13 @@ select:focus-visible {
 
 .timeline-view time {
   padding-top: 7px;
-  color: #777872;
+  color: var(--theme-content-subtle);
   font-size: 11px;
 }
 
 .timeline-view i {
   position: relative;
-  border-left: 1px solid #c7c4ba;
+  border-left: 1px solid var(--paper-line);
 }
 
 .timeline-view i::before {
@@ -2207,7 +2224,7 @@ select:focus-visible {
 
 .timeline-view button div {
   padding: 5px 0 20px;
-  border-bottom: 1px solid #d8d5cc;
+  border-bottom: 1px solid var(--paper-line);
 }
 
 .timeline-view strong,
@@ -2217,7 +2234,7 @@ select:focus-visible {
 
 .timeline-view span {
   margin-top: 5px;
-  color: #787973;
+  color: var(--theme-content-subtle);
   font-size: 11px;
 }
 
@@ -2251,7 +2268,7 @@ select:focus-visible {
 
 .empty-state p {
   margin: 0;
-  color: #696a65;
+  color: var(--chrome-fg-dim);
   line-height: 1.55;
 }
 
@@ -2281,13 +2298,13 @@ select:focus-visible {
 .query-summary span,
 .section-title,
 .section-label {
-  color: #9d9f99;
+  color: var(--chrome-fg-dim);
   font-size: 12px;
 }
 
 .query-summary p {
   margin: 6px 0 0;
-  color: #e3e2dd;
+  color: var(--chrome-fg);
   font-size: 13px;
 }
 
@@ -2308,7 +2325,7 @@ select:focus-visible {
   grid-template-columns: 20px minmax(0, 1fr) 70px;
   padding: 4px 8px;
   gap: 5px;
-  color: #c8c9c4;
+  color: var(--chrome-fg-soft);
   border: 0;
   background: transparent;
   cursor: pointer;
@@ -2316,12 +2333,12 @@ select:focus-visible {
 }
 
 .evidence-list button:hover {
-  background: #282925;
+  background: var(--chrome-hover);
 }
 
 .evidence-list button.selected {
   color: #fff;
-  background: #4a3a20;
+  background: var(--chrome-active);
 }
 
 .evidence-list button > span,
@@ -2341,7 +2358,7 @@ select:focus-visible {
 .provenance p {
   overflow-wrap: anywhere;
   margin: 8px 0 0;
-  color: #c2c3be;
+  color: var(--chrome-fg-soft);
   font-size: 11px;
 }
 
@@ -2356,12 +2373,12 @@ select:focus-visible {
 .retrieval-diagnostics dl > div,
 .server-context dl > div {
   padding: 7px;
-  background: #252623;
+  background: var(--chrome-sunken);
 }
 
 .retrieval-diagnostics dt,
 .server-context dt {
-  color: #8f918b;
+  color: var(--chrome-fg-dim);
   font-size: 9px;
   text-transform: uppercase;
 }
@@ -2376,12 +2393,12 @@ select:focus-visible {
 .retrieval-diagnostics ol {
   margin: 10px 0 0;
   padding-left: 20px;
-  color: #b6b7b2;
+  color: var(--chrome-fg-mute);
   font-size: 10px;
 }
 
 .server-context p {
-  color: #b6b7b2;
+  color: var(--chrome-fg-mute);
   font-size: 11px;
   line-height: 1.45;
 }
@@ -2405,7 +2422,7 @@ select:focus-visible {
 .copy-area {
   padding: 12px 16px;
   border-top: 1px solid var(--line);
-  background: #1c1d1b;
+  background: var(--chrome-sunken);
 }
 
 .copy-area [data-slot='button'] {
@@ -2777,7 +2794,7 @@ select:focus-visible {
 
 .settings-inline-error {
   margin: 10px 0 0;
-  color: #ffb8ad;
+  color: var(--chrome-danger-fg);
   font-size: 11px;
 }
 
@@ -2945,7 +2962,7 @@ select:focus-visible {
   margin-top: 24px;
   padding: 16px;
   gap: 18px;
-  border: 1px solid #343632;
+  border: 1px solid var(--chrome-line);
   background: var(--theme-background);
 }
 
@@ -2954,7 +2971,7 @@ select:focus-visible {
 }
 
 .portable-settings strong {
-  color: #e4e3dd;
+  color: var(--chrome-fg);
   font-size: 13px;
 }
 
@@ -3301,7 +3318,7 @@ select:focus-visible {
 .source-form-grid {
   margin-top: 17px;
   padding-top: 17px;
-  border-top: 1px solid #363734;
+  border-top: 1px solid var(--chrome-line);
 }
 
 .source-settings-details {
@@ -3546,8 +3563,8 @@ select:focus-visible {
   margin: 12px 0 0;
   padding: 10px;
   overflow: auto;
-  color: #bcbdba;
-  background: #151614;
+  color: var(--chrome-fg-soft);
+  background: var(--chrome-sunken);
   font-size: 10px;
   line-height: 1.45;
   white-space: pre-wrap;
@@ -3627,7 +3644,7 @@ select:focus-visible {
 }
 
 .form-field small {
-  color: #858781;
+  color: var(--chrome-fg-dim);
   font-size: 10px;
   line-height: 1.4;
 }
@@ -3756,7 +3773,7 @@ select:focus-visible {
 
 .readiness-summary {
   padding: 16px;
-  border: 1px solid #3c3d39;
+  border: 1px solid var(--chrome-line);
   background: var(--panel);
 }
 
@@ -3781,13 +3798,13 @@ select:focus-visible {
 
 .readiness-list {
   margin-top: 12px;
-  border: 1px solid #353633;
+  border: 1px solid var(--chrome-line);
 }
 
 .readiness-list article,
 .core-readiness article {
   padding: 13px 15px;
-  border-bottom: 1px solid #353633;
+  border-bottom: 1px solid var(--chrome-line);
 }
 
 .readiness-list article:last-child,
@@ -3803,7 +3820,7 @@ select:focus-visible {
 }
 
 .readiness-list strong small {
-  color: #777973;
+  color: var(--chrome-fg-dim);
   font-size: 9px;
   font-weight: 500;
 }
@@ -3846,8 +3863,8 @@ select:focus-visible {
   margin: 12px 0 0;
   padding: 10px;
   overflow: auto;
-  color: #bcbdba;
-  background: #151614;
+  color: var(--chrome-fg-soft);
+  background: var(--chrome-sunken);
   font-size: 10px;
   line-height: 1.45;
   white-space: pre-wrap;
@@ -3870,8 +3887,8 @@ select:focus-visible {
 }
 
 .status-glyph.optional {
-  color: #babbb6;
-  background: #494a46;
+  color: var(--chrome-fg-mute);
+  background: var(--chrome-line-strong);
 }
 
 .status-glyph.pending {
@@ -3938,7 +3955,7 @@ select:focus-visible {
 
 .settings-unavailable h1 {
   max-width: 680px;
-  color: #eeede7;
+  color: var(--chrome-fg);
   font-size: 20px;
 }
 
@@ -3950,7 +3967,7 @@ select:focus-visible {
 .principal-card,
 .audit-list article {
   padding: 16px;
-  border: 1px solid #343632;
+  border: 1px solid var(--chrome-line);
   background: var(--theme-background);
 }
 
@@ -3994,7 +4011,7 @@ select:focus-visible {
   margin-top: 12px;
   overflow: hidden;
   border: 1px solid #3b4a3c;
-  background: #171916;
+  background: var(--chrome-sunken);
 }
 
 .update-progress i {
@@ -4020,9 +4037,9 @@ select:focus-visible {
   max-height: 300px;
   padding: 12px;
   overflow: auto;
-  color: #c5c7c1;
-  background: #141513;
-  border: 1px solid #343632;
+  color: var(--chrome-fg-soft);
+  background: var(--chrome-sunken);
+  border: 1px solid var(--chrome-line);
   font-size: 11px;
   line-height: 1.5;
   scrollbar-color: var(--primary) transparent;
@@ -4042,7 +4059,7 @@ select:focus-visible {
 .safe-markdown h2,
 .safe-markdown h3 {
   margin: 14px 0 7px;
-  color: #e8e7e0;
+  color: var(--chrome-fg);
   font-size: 13px;
 }
 
@@ -4076,8 +4093,8 @@ select:focus-visible {
   max-height: 300px;
   padding: 12px;
   overflow: auto;
-  color: #c5c7c1;
-  background: #141513;
+  color: var(--chrome-fg-soft);
+  background: var(--chrome-sunken);
   font-size: 11px;
   line-height: 1.5;
   white-space: pre-wrap;
@@ -4254,8 +4271,8 @@ select:focus-visible {
 }
 
 .memory-review-message.error {
-  color: #f2b7b7;
-  border-color: #805c5c;
+  color: var(--chrome-danger-fg);
+  border-color: var(--chrome-danger-line);
   background: rgba(73, 45, 45, 0.38);
 }
 
@@ -4725,7 +4742,7 @@ select:focus-visible {
   align-items: center;
   padding: 11px 14px;
   gap: 11px;
-  color: #a8aaa4;
+  color: var(--chrome-fg-mute);
   border-top: 1px solid var(--line);
   font-size: 12px;
 }
@@ -4766,7 +4783,7 @@ select:focus-visible {
 
 .utility-job-log {
   margin-top: 8px;
-  color: #c4c6bf;
+  color: var(--chrome-fg-soft);
   font-size: 11px;
 }
 
@@ -4782,10 +4799,10 @@ select:focus-visible {
   margin: 7px 0 0;
   overflow: auto;
   padding: 8px;
-  border: 1px solid #3a3b37;
+  border: 1px solid var(--chrome-line);
   border-radius: 5px;
-  background: #171816;
-  color: #bfc2ba;
+  background: var(--chrome-sunken);
+  color: var(--chrome-fg-soft);
   font:
     11px/1.45 ui-monospace,
     SFMono-Regular,
@@ -4801,16 +4818,16 @@ select:focus-visible {
   align-items: center;
   gap: 5px;
   padding: 5px 8px;
-  color: #d8a8a0;
-  border: 1px solid #593937;
+  color: var(--chrome-danger-fg);
+  border: 1px solid var(--chrome-danger-line);
   border-radius: 5px;
   background: transparent;
   font-size: 11px;
 }
 
 .utility-cancel:hover:not(:disabled) {
-  color: #f0c2b8;
-  border-color: #8f514a;
+  color: var(--chrome-danger-fg);
+  border-color: var(--chrome-danger-line);
 }
 
 .utility-cancel:disabled {
@@ -4826,7 +4843,7 @@ select:focus-visible {
   place-items: center;
   color: #a36c13;
   border-radius: 50%;
-  background: #2c2618;
+  background: var(--chrome-sunken);
   font-size: 11px;
   font-weight: 700;
 }
@@ -4871,7 +4888,7 @@ select:focus-visible {
 .utility-metric strong {
   display: block;
   margin-bottom: 3px;
-  color: #e9e8e2;
+  color: var(--chrome-fg);
   font-size: 19px;
   font-weight: 600;
 }
@@ -4916,15 +4933,15 @@ select:focus-visible {
 
 .utility-meta span {
   padding: 4px 9px;
-  color: #b9bab4;
-  border: 1px solid #3e3f3b;
+  color: var(--chrome-fg-mute);
+  border: 1px solid var(--chrome-line);
   border-radius: 12px;
   font-size: 11px;
 }
 
 .utility-answer {
   margin: 0;
-  color: #d9d8d2;
+  color: var(--chrome-fg);
   font-family: Georgia, 'Times New Roman', serif;
   font-size: 16px;
   line-height: 1.65;
@@ -4979,7 +4996,7 @@ select:focus-visible {
 
 .utility-line strong {
   overflow: hidden;
-  color: #d9d8d2;
+  color: var(--chrome-fg);
   font-weight: 550;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -5003,16 +5020,16 @@ select:focus-visible {
   justify-self: start;
   padding: 4px 9px;
   color: var(--theme-text-primary);
-  border: 1px solid #454640;
+  border: 1px solid var(--chrome-line-strong);
   border-bottom-width: 2px;
   border-radius: 6px;
-  background: #262724;
+  background: var(--chrome-sunken);
   font-family: inherit;
   font-size: 12px;
 }
 
 .utility-shortcut span {
-  color: #c4c5bf;
+  color: var(--chrome-fg-soft);
   font-size: 12px;
 }
 
