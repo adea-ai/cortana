@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.58.15](https://github.com/adea-ai/cortana/compare/v0.58.14...v0.58.15) (2026-09-21)
+
+
+### Bug Fixes
+
+* web-css-chrome-tokens ([#2367](https://github.com/adea-ai/cortana/issues/2367)) ([8afbaa8](https://github.com/adea-ai/cortana/commit/8afbaa8ec3f9106f94bb5668a7a55d178c57c459))
+
 ## [0.58.14](https://github.com/adea-ai/cortana/compare/v0.58.13...v0.58.14) (2026-09-21)
 
 
