@@ -13,6 +13,13 @@ use crate::{schedule, services, settings};
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(5 * 60);
 const MAX_OUTPUT_BYTES: usize = 64 * 1024;
 
+
+use crate::job_support::terminate_process_group;
+
+fn append_bounded(buffer: &mut Vec<u8>, bytes: &[u8]) {
+    crate::job_support::append_bounded(buffer, bytes, MAX_OUTPUT_BYTES);
+}
+
 /// Install the core service set while applying the Desktop-owned backup
 /// interval. The default path delegates to the existing implementation so
 /// its command behavior remains identical for untouched installations.
@@ -157,21 +164,7 @@ struct SidecarOutput {
     stderr: Vec<u8>,
 }
 
-fn append_bounded(buffer: &mut Vec<u8>, bytes: &[u8]) {
-    let remaining = MAX_OUTPUT_BYTES.saturating_sub(buffer.len());
-    buffer.extend_from_slice(&bytes[..bytes.len().min(remaining)]);
-}
 
-fn terminate_process_group(child: tauri_plugin_shell::process::CommandChild) {
-    #[cfg(unix)]
-    {
-        let pid = child.pid();
-        if pid > 0 && pid <= i32::MAX as u32 {
-            let _ = unsafe { libc::kill(-(pid as libc::pid_t), libc::SIGKILL) };
-        }
-    }
-    let _ = child.kill();
-}
 
 fn bounded_error(bytes: &[u8]) -> String {
     let end = bytes.len().min(4096);

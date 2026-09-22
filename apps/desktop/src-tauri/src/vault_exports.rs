@@ -5,8 +5,7 @@ use std::{
         Arc, Mutex,
         atomic::{AtomicU64, Ordering},
     },
-    time::{SystemTime, UNIX_EPOCH},
-};
+    };
 
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
@@ -19,6 +18,12 @@ use crate::{paths, settings};
 
 const MAX_JOBS: usize = 12;
 const MAX_OUTPUT_BYTES: usize = 512 * 1024;
+
+
+
+fn append_bounded(buffer: &mut Vec<u8>, bytes: &[u8]) {
+    crate::job_support::append_bounded(buffer, bytes, MAX_OUTPUT_BYTES);
+}
 const MAX_WORKSPACES: usize = 128;
 const MAX_WORKSPACE_CHARS: usize = 256;
 static NEXT_JOB: AtomicU64 = AtomicU64::new(1);
@@ -123,7 +128,7 @@ impl VaultExportState {
         let (mut receiver, child) = command
             .spawn()
             .map_err(|error| format!("start vault export: {error}"))?;
-        let started = now();
+        let started = crate::job_support::unix_now();
         let id = format!(
             "vault-{started}-{}",
             NEXT_JOB.fetch_add(1, Ordering::Relaxed)
@@ -211,7 +216,7 @@ impl VaultExportState {
             }
             CommandEvent::Terminated(payload) => {
                 job.child = None;
-                job.snapshot.completed_at_unix_seconds = Some(now());
+                job.snapshot.completed_at_unix_seconds = Some(crate::job_support::unix_now());
                 if job.snapshot.status == "cancelling" {
                     job.snapshot.status = "cancelled".into();
                     job.snapshot.phase = "cancelled".into();
@@ -257,7 +262,7 @@ impl VaultExportState {
         job.child = None;
         job.snapshot.status = "failed".into();
         job.snapshot.phase = "failed".into();
-        job.snapshot.completed_at_unix_seconds = Some(now());
+        job.snapshot.completed_at_unix_seconds = Some(crate::job_support::unix_now());
         job.snapshot.error = Some("vault export process ended without a result".into());
     }
 }
@@ -337,10 +342,6 @@ fn valid_report(snapshot: &VaultExportSnapshot, report: &VaultExportReport) -> b
         && report.documents >= report.files.len()
 }
 
-fn append_bounded(buffer: &mut Vec<u8>, bytes: &[u8]) {
-    let remaining = MAX_OUTPUT_BYTES.saturating_sub(buffer.len());
-    buffer.extend_from_slice(&bytes[..bytes.len().min(remaining)]);
-}
 
 fn bounded_text(bytes: &[u8]) -> String {
     String::from_utf8_lossy(&bytes[..bytes.len().min(2048)])
@@ -374,12 +375,6 @@ fn prune_jobs(jobs: &mut BTreeMap<String, VaultExportJob>) {
     }
 }
 
-fn now() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
-}
 
 #[cfg(test)]
 mod tests {

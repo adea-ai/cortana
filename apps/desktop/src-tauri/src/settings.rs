@@ -734,7 +734,7 @@ impl SettingsStore {
             return Err(error);
         }
         let event = serde_json::json!({
-            "at_unix_seconds": now(),
+            "at_unix_seconds": crate::job_support::unix_now(),
             "event": "secrets.migrated_to_secure_storage",
             "migrated_secret_count": names.len(),
             "file_values_removed": !names.is_empty(),
@@ -1942,12 +1942,6 @@ pub(crate) fn default_config_path() -> PathBuf {
         })
 }
 
-fn now() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
-}
 
 /// Acquire the per-config lock used by all desktop configuration writers.
 ///

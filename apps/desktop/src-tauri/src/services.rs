@@ -1,7 +1,7 @@
 use std::{
     collections::BTreeSet,
     sync::OnceLock,
-    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
+    time::{Duration, Instant},
 };
 
 use serde::{Deserialize, Serialize};
@@ -17,6 +17,13 @@ use crate::settings;
 // valid cold start is not reported as a Desktop failure at 60 seconds.
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(5 * 60);
 const MAX_OUTPUT_BYTES: usize = 64 * 1024;
+
+
+use crate::job_support::terminate_process_group;
+
+fn append_bounded(buffer: &mut Vec<u8>, bytes: &[u8]) {
+    crate::job_support::append_bounded(buffer, bytes, MAX_OUTPUT_BYTES);
+}
 const SERVICE_NAMES: [&str; 5] = ["embedding", "server", "sync", "backup", "vault"];
 const CORE_SERVICE_NAMES: [&str; 2] = ["embedding", "server"];
 const ACTIONS: [&str; 3] = ["start", "stop", "restart"];
@@ -74,7 +81,7 @@ pub async fn install<R: tauri::Runtime>(
         return Err("service installation requires explicit approval".into());
     }
     let _action_guard = acquire_action_lock().await?;
-    let started_at = now();
+    let started_at = crate::job_support::unix_now();
     let started = Instant::now();
     record_activity(
         "core services",
@@ -170,7 +177,7 @@ pub async fn install_sync<R: tauri::Runtime>(
         return Err("recurring sync installation requires explicit approval".into());
     }
     let _action_guard = acquire_action_lock().await?;
-    let started_at = now();
+    let started_at = crate::job_support::unix_now();
     let started = Instant::now();
     record_activity(
         "recurring sync",
@@ -272,7 +279,7 @@ pub async fn action<R: tauri::Runtime>(
         return Err("unsupported Cortana service action".into());
     }
     let _action_guard = acquire_action_lock().await?;
-    let started_at = now();
+    let started_at = crate::job_support::unix_now();
     let started = Instant::now();
     record_activity(service, action, "running", started_at, None, None, None);
     let output = match sidecar_output(app, &["service", action, service]).await {
@@ -344,7 +351,7 @@ pub async fn action_all<R: tauri::Runtime>(
         return Err("unsupported whole-app service action".into());
     }
     let _action_guard = acquire_action_lock().await?;
-    let started_at = now();
+    let started_at = crate::job_support::unix_now();
     let started = Instant::now();
     record_activity(
         "core services",
@@ -484,23 +491,7 @@ struct SidecarOutput {
     stderr: Vec<u8>,
 }
 
-fn append_bounded(buffer: &mut Vec<u8>, bytes: &[u8]) {
-    let remaining = MAX_OUTPUT_BYTES.saturating_sub(buffer.len());
-    buffer.extend_from_slice(&bytes[..bytes.len().min(remaining)]);
-}
 
-fn terminate_process_group(child: tauri_plugin_shell::process::CommandChild) {
-    #[cfg(unix)]
-    {
-        let pid = child.pid();
-        if pid > 0 && pid <= i32::MAX as u32 {
-            // The bundled CLI opts into this process group so a timeout also
-            // terminates connector/service helpers it may have started.
-            let _ = unsafe { libc::kill(-(pid as libc::pid_t), libc::SIGKILL) };
-        }
-    }
-    let _ = child.kill();
-}
 
 fn parse_report(stdout: &[u8], stderr: &[u8], succeeded: bool) -> Result<ServiceReport, String> {
     if !succeeded {
@@ -525,12 +516,6 @@ fn parse_report(stdout: &[u8], stderr: &[u8], succeeded: bool) -> Result<Service
     Ok(report)
 }
 
-fn now() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
-}
 
 fn bounded_error(bytes: &[u8]) -> String {
     sanitize_activity_text(
@@ -616,7 +601,7 @@ fn record_activity(
     last_output: Option<&str>,
 ) {
     let event = serde_json::json!({
-        "at_unix_seconds": now(),
+        "at_unix_seconds": crate::job_support::unix_now(),
         "event": "service.activity",
         "service_target": target,
         "service_action": action,

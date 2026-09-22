@@ -18,6 +18,7 @@ use tauri_plugin_autostart::ManagerExt;
 
 mod backups;
 mod installer;
+mod job_support;
 mod paths;
 mod provider_models;
 mod readiness;

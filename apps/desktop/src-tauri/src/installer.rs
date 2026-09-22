@@ -6,7 +6,7 @@ use std::{
         Arc, Mutex,
         atomic::{AtomicBool, AtomicU64, Ordering},
     },
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::Duration,
 };
 
 use serde::Serialize;
@@ -82,7 +82,7 @@ impl InstallerState {
                 break;
             }
         }
-        let started_at = now();
+        let started_at = crate::job_support::unix_now();
         let id = format!(
             "install-{started_at}-{}",
             NEXT_JOB.fetch_add(1, Ordering::Relaxed)
@@ -160,7 +160,7 @@ impl InstallerState {
         let Some(job) = jobs.get_mut(id) else {
             return;
         };
-        job.snapshot.completed_at_unix_seconds = Some(now());
+        job.snapshot.completed_at_unix_seconds = Some(crate::job_support::unix_now());
         match result {
             Ok((exit_code, log)) => {
                 job.snapshot.exit_code = exit_code;
@@ -490,16 +490,10 @@ fn sanitize_log(value: &str) -> String {
         .collect()
 }
 
-fn now() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
-}
 
 fn audit(snapshot: &InstallJobSnapshot, phase: &str) {
     let event = serde_json::json!({
-        "at_unix_seconds": now(),
+        "at_unix_seconds": crate::job_support::unix_now(),
         "event": format!("installer.{phase}"),
         "job_id": snapshot.id,
         "tool": snapshot.tool,
