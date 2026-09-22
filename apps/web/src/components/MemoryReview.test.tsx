@@ -163,7 +163,8 @@ test('renders a bounded searchable queue with inspectable policy and provenance'
       },
     }
   )
-  expect(await screen.findByText('No candidates match this view.')).toBeTruthy()
+  // FeedbackState splits the message across title and description elements.
+  expect(await screen.findByText('No candidates match this view')).toBeTruthy()
 })
 test('requires confirmation for canonical approval and keeps queue controls explicit', async () => {
   const api = client()
