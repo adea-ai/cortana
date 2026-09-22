@@ -1,7 +1,7 @@
 [package]
 name = "cortana-core"
 description = "Core storage, memory, and ingestion engine for the Cortana second brain"
-version = "0.58.17"
+version = "0.58.18"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
