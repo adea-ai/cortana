@@ -819,6 +819,15 @@ enum TeamAction {
         #[arg(long, default_value_t = 3600)]
         ttl_seconds: i64,
     },
+    /// Revoke a pending invitation; admin or above.
+    RevokeInvitation {
+        #[arg(long)]
+        registry: PathBuf,
+        #[arg(long)]
+        invitation_id: String,
+        #[arg(long)]
+        actor: String,
+    },
     /// Accept an invitation as the invitee.
     AcceptInvitation {
         #[arg(long)]
@@ -3965,6 +3974,18 @@ fn manage_team(action: &TeamAction) -> Result<()> {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&invitation)
+                    .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
+            );
+        }
+        TeamAction::RevokeInvitation {
+            registry,
+            invitation_id,
+            actor,
+        } => {
+            let revoked = control(registry)?.revoke_invitation(invitation_id, actor)?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&revoked)
                     .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".into())
             );
         }

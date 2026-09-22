@@ -627,6 +627,42 @@ mod tests {
     }
 
     #[test]
+    fn revocation_permanently_blocks_the_invitation() {
+        let fixture = control_plane();
+        let invitation = fixture
+            .control
+            .invite(
+                &fixture.workspace.workspace_id,
+                &fixture.owner,
+                &fixture.member_b,
+                MemberRole::Contributor,
+                3600,
+            )
+            .expect("invite");
+
+        let revoked = fixture
+            .control
+            .revoke_invitation(&invitation.invitation_id, &fixture.owner)
+            .expect("revoke");
+        assert_eq!(revoked.state, "revoked");
+
+        // The invitee can no longer accept a revoked invitation.
+        assert!(
+            fixture
+                .control
+                .accept_invitation(&invitation.invitation_id, &fixture.member_b)
+                .is_err()
+        );
+        // Re-revoking fails: the invitation is no longer pending.
+        assert!(
+            fixture
+                .control
+                .revoke_invitation(&invitation.invitation_id, &fixture.owner)
+                .is_err()
+        );
+    }
+
+    #[test]
     fn membership_lifecycle_enforces_the_role_matrix() {
         let fixture = control_plane();
         let workspace_id = &fixture.workspace.workspace_id;
