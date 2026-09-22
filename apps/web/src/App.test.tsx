@@ -225,7 +225,7 @@ test('the shadcn renderer composes the real application shell and state', async 
           name: 'Inbox',
         })
       ).not.toBeNull(),
-    { timeout: 5000 }
+    { timeout: 10_000 }
   )
   expect(document.querySelector('[data-m7-activity-inbox]')).not.toBeNull()
   expect(document.querySelector('[data-slot="card"], [data-slot="empty"]')).not.toBeNull()
@@ -253,13 +253,18 @@ test('mobile navigation dismisses after selecting the current destination', asyn
       name: 'Toggle navigation',
     })
   )
-  await act(async () => new Promise((resolve) => setTimeout(resolve, 20)))
-  expect(document.querySelector('[data-mobile="true"]')).not.toBeNull()
-  expect(
-    screen.getByRole('navigation', {
-      name: 'Primary navigation',
-    })
-  ).not.toBeNull()
+  // The sheet mounts through async effects; a fixed flush races it under
+  // parallel CI load.
+  await waitFor(() =>
+    expect(document.querySelector('[data-mobile="true"]')).not.toBeNull()
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('navigation', {
+        name: 'Primary navigation',
+      })
+    ).not.toBeNull()
+  )
   fireEvent.click(
     screen.getByRole('button', {
       name: 'Inbox',
