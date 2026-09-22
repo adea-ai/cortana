@@ -7,7 +7,7 @@ use std::{
         Arc, Mutex,
         atomic::{AtomicU64, Ordering},
     },
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::Duration,
 };
 
 use serde::{Deserialize, Serialize};
@@ -938,7 +938,7 @@ impl SourceJobState {
             validation_coverage_at(data_dir, &source.name, budget)?;
         let plan_id = format!(
             "plan-{}-{}",
-            now(),
+            crate::job_support::unix_now(),
             NEXT_JOB.fetch_add(1, Ordering::Relaxed)
         );
         let mut plans = self
@@ -951,12 +951,12 @@ impl SourceJobState {
             PendingPlan {
                 source: source.name.clone(),
                 budget,
-                created_at: now(),
+                created_at: crate::job_support::unix_now(),
             },
         );
         drop(plans);
         let event = serde_json::json!({
-            "at_unix_seconds": now(),
+            "at_unix_seconds": crate::job_support::unix_now(),
             "event": "source.initial-sync-plan.requested",
             "source": &source.name,
             "kind": &source.kind,
@@ -1176,7 +1176,7 @@ impl SourceJobState {
         let (mut receiver, child) = command
             .spawn()
             .map_err(|error| format!("start source {operation}: {error}"))?;
-        let started_at = now();
+        let started_at = crate::job_support::unix_now();
         let id = format!(
             "source-{started_at}-{}",
             NEXT_JOB.fetch_add(1, Ordering::Relaxed)
@@ -1268,7 +1268,7 @@ impl SourceJobState {
             job.snapshot.summary =
                 format!("Source {} could not be cancelled.", job.snapshot.operation);
             job.snapshot.log = sanitize_log(&error.to_string());
-            job.snapshot.completed_at_unix_seconds = Some(now());
+            job.snapshot.completed_at_unix_seconds = Some(crate::job_support::unix_now());
             job.snapshot.retryable = true;
         }
         Ok(job.snapshot.clone())
@@ -1298,7 +1298,7 @@ impl SourceJobState {
                     return;
                 }
                 job.snapshot.exit_code = payload.code;
-                job.snapshot.completed_at_unix_seconds = Some(now());
+                job.snapshot.completed_at_unix_seconds = Some(crate::job_support::unix_now());
                 job.snapshot.status = if job.snapshot.status == "cancelling" {
                     "cancelled"
                 } else if payload.code == Some(0) {
@@ -1330,7 +1330,7 @@ impl SourceJobState {
             return;
         }
         job.child = None;
-        job.snapshot.completed_at_unix_seconds = Some(now());
+        job.snapshot.completed_at_unix_seconds = Some(crate::job_support::unix_now());
         job.snapshot.status = if job.snapshot.status == "cancelling" {
             "cancelled"
         } else {
@@ -1387,7 +1387,7 @@ pub fn open_setup(source_name: &str) -> Result<SetupOpenOutcome, String> {
     let url = setup_url(&source.kind)?;
     open::that_detached(url).map_err(|error| format!("open source setup page: {error}"))?;
     let event = serde_json::json!({
-        "at_unix_seconds": now(),
+        "at_unix_seconds": crate::job_support::unix_now(),
         "event": "source.setup.opened",
         "source": &source.name,
         "kind": &source.kind,
@@ -1540,7 +1540,7 @@ fn initial_sync_summary(budget: InitialSyncBudget) -> String {
 }
 
 fn prune_plans(plans: &mut BTreeMap<String, PendingPlan>) {
-    let cutoff = now().saturating_sub(PLAN_TTL_SECONDS);
+    let cutoff = crate::job_support::unix_now().saturating_sub(PLAN_TTL_SECONDS);
     plans.retain(|_, plan| plan.created_at >= cutoff);
     while plans.len() > MAX_PENDING_PLANS {
         let oldest = plans
@@ -1793,7 +1793,7 @@ fn audit(snapshot: &SourceJobSnapshot, phase: &str) {
 
 fn audit_event_json(snapshot: &SourceJobSnapshot, phase: &str) -> serde_json::Value {
     let mut event = serde_json::json!({
-        "at_unix_seconds": now(),
+        "at_unix_seconds": crate::job_support::unix_now(),
         "event": format!("source.{}.{phase}", snapshot.operation),
         "job_id": snapshot.id,
         "source": snapshot.source,
@@ -1812,12 +1812,6 @@ fn audit_event_json(snapshot: &SourceJobSnapshot, phase: &str) -> serde_json::Va
     event
 }
 
-fn now() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
-}
 
 #[cfg(test)]
 mod tests {

@@ -13,6 +13,12 @@ use crate::{paths, services, settings};
 
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(120);
 const MAX_OUTPUT_BYTES: usize = 64 * 1024;
+
+use crate::job_support::terminate_process_group;
+
+fn append_bounded(buffer: &mut Vec<u8>, bytes: &[u8]) {
+    crate::job_support::append_bounded(buffer, bytes, MAX_OUTPUT_BYTES);
+}
 const MAX_DETAIL_BYTES: usize = 4 * 1024;
 /// The Desktop control plane refuses snapshots larger than this bound before
 /// restore and after backup. This keeps picker-selected paths and sidecar
@@ -377,21 +383,7 @@ struct SidecarOutput {
     stderr: Vec<u8>,
 }
 
-fn append_bounded(buffer: &mut Vec<u8>, bytes: &[u8]) {
-    let remaining = MAX_OUTPUT_BYTES.saturating_sub(buffer.len());
-    buffer.extend_from_slice(&bytes[..bytes.len().min(remaining)]);
-}
 
-fn terminate_process_group(child: tauri_plugin_shell::process::CommandChild) {
-    #[cfg(unix)]
-    {
-        let pid = child.pid();
-        if pid > 0 && pid <= i32::MAX as u32 {
-            let _ = unsafe { libc::kill(-(pid as libc::pid_t), libc::SIGKILL) };
-        }
-    }
-    let _ = child.kill();
-}
 
 fn bounded_output(bytes: &[u8]) -> String {
     bounded_text(bytes, MAX_DETAIL_BYTES)

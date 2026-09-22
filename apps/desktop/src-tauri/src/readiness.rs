@@ -10,7 +10,7 @@ use serde_json::Value;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_shell::{
     ShellExt,
-    process::{CommandChild, CommandEvent},
+    process::CommandEvent,
 };
 use tokio::{process::Command, time::timeout};
 
@@ -224,11 +224,11 @@ async fn migration_sidecar_output<R: tauri::Runtime>(
     match result {
         Ok(Ok(output)) => Ok(output),
         Ok(Err(error)) => {
-            terminate_process(child);
+            crate::job_support::terminate_process_group(child);
             Err(error)
         }
         Err(_) => {
-            terminate_process(child);
+            crate::job_support::terminate_process_group(child);
             Err("embedding generation migration timed out".into())
         }
     }
@@ -239,16 +239,6 @@ fn append_migration_output(buffer: &mut Vec<u8>, bytes: &[u8]) {
     buffer.extend_from_slice(&bytes[..bytes.len().min(remaining)]);
 }
 
-fn terminate_process(child: CommandChild) {
-    #[cfg(unix)]
-    {
-        let pid = child.pid();
-        if pid > 0 && pid <= i32::MAX as u32 {
-            let _ = unsafe { libc::kill(-(pid as libc::pid_t), libc::SIGKILL) };
-        }
-    }
-    let _ = child.kill();
-}
 
 fn validate_embedding_fingerprint(value: &str) -> Result<(), String> {
     if value.is_empty() || value.len() > MAX_EMBEDDING_FINGERPRINT_BYTES {
@@ -305,11 +295,11 @@ async fn sidecar_output<R: tauri::Runtime>(
     match result {
         Ok(Ok(output)) => Ok(output),
         Ok(Err(error)) => {
-            terminate_process(child);
+            crate::job_support::terminate_process_group(child);
             Err(error)
         }
         Err(_) => {
-            terminate_process(child);
+            crate::job_support::terminate_process_group(child);
             Err("bundled Cortana command timed out".into())
         }
     }
