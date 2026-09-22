@@ -15,7 +15,9 @@ import type {
   BrainDocumentSummary,
   BrainStatus,
   DerivedMemoryResponse,
+  DesktopInstallJob,
   DesktopUpdate,
+  DesktopVaultExport,
   AuditEvent,
   MemoryCandidateActionResult,
   MemoryCandidateClassification,
@@ -274,6 +276,25 @@ export function parseAuditEvents(value: unknown): AuditEvent[] {
   const events = assertArray(value, 'Audit', 'events')
   for (const entry of events) assertRecord(entry, 'Audit event')
   return value as AuditEvent[]
+}
+
+const JOB_STATUSES = ['running', 'cancelling', 'succeeded', 'failed', 'cancelled'] as const
+
+export function parseDesktopVaultExport(value: unknown): DesktopVaultExport {
+  const record = assertRecord(value, 'Vault export')
+  requireString(record, 'id', 'Vault export')
+  requireLiteral(record, 'status', JOB_STATUSES, 'Vault export')
+  return value as DesktopVaultExport
+}
+
+export function parseDesktopInstallJob(value: unknown): DesktopInstallJob {
+  const record = assertRecord(value, 'Installer job')
+  requireString(record, 'id', 'Installer job')
+  requireString(record, 'tool', 'Installer job')
+  requireLiteral(record, 'status', JOB_STATUSES, 'Installer job')
+  requireString(record, 'summary', 'Installer job')
+  requireNumber(record, 'started_at_unix_seconds', 'Installer job')
+  return value as DesktopInstallJob
 }
 
 export function parseDesktopUpdate(value: unknown): DesktopUpdate {

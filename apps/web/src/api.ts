@@ -13,7 +13,9 @@ import {
   parseConsolidationState,
   parseContextBundle,
   parseDesktopReadiness,
+  parseDesktopInstallJob,
   parseDesktopSourceJob,
+  parseDesktopVaultExport,
   parseDesktopSchedule,
   parseDesktopServiceReport,
   parseDesktopSettings,
@@ -114,14 +116,28 @@ export async function startDesktopVaultExport(
   })
 }
 
+async function invokeDesktopVaultExport(
+  command: string,
+  args?: Record<string, unknown>
+): Promise<DesktopVaultExport> {
+  return parseDesktopVaultExport(await invokeDesktop<DesktopVaultExport>(command, args))
+}
+
+async function invokeDesktopInstallerJob(
+  command: string,
+  args?: Record<string, unknown>
+): Promise<DesktopInstallJob> {
+  return parseDesktopInstallJob(await invokeDesktop<DesktopInstallJob>(command, args))
+}
+
 export async function getDesktopVaultExport(id: string): Promise<DesktopVaultExport> {
   if (!isDesktopApp) throw new Error('Vault export is available in Cortana Desktop')
-  return invokeDesktop<DesktopVaultExport>('desktop_vault_export_status', { id })
+  return invokeDesktopVaultExport('desktop_vault_export_status', { id })
 }
 
 export async function cancelDesktopVaultExport(id: string): Promise<DesktopVaultExport> {
   if (!isDesktopApp) throw new Error('Vault export is available in Cortana Desktop')
-  return invokeDesktop<DesktopVaultExport>('desktop_vault_export_cancel', { id })
+  return invokeDesktopVaultExport('desktop_vault_export_cancel', { id })
 }
 
 export async function scanDesktopReadiness(): Promise<DesktopReadiness> {
@@ -272,17 +288,17 @@ export async function openDesktopUrl(url: string): Promise<void> {
 
 export async function startDesktopInstaller(tool: string): Promise<DesktopInstallJob> {
   if (!isDesktopApp) throw new Error('Installer is available in Cortana Desktop')
-  return invokeDesktop<DesktopInstallJob>('desktop_installer_start', { tool, approved: true })
+  return invokeDesktopInstallerJob('desktop_installer_start', { tool, approved: true })
 }
 
 export async function getDesktopInstaller(id: string): Promise<DesktopInstallJob> {
   if (!isDesktopApp) throw new Error('Installer is available in Cortana Desktop')
-  return invokeDesktop<DesktopInstallJob>('desktop_installer_status', { id })
+  return invokeDesktopInstallerJob('desktop_installer_status', { id })
 }
 
 export async function cancelDesktopInstaller(id: string): Promise<DesktopInstallJob> {
   if (!isDesktopApp) throw new Error('Installer is available in Cortana Desktop')
-  return invokeDesktop<DesktopInstallJob>('desktop_installer_cancel', { id })
+  return invokeDesktopInstallerJob('desktop_installer_cancel', { id })
 }
 
 async function invokeDesktopSourceJob(
