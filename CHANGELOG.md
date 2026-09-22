@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.58.20](https://github.com/adea-ai/cortana/compare/v0.58.19...v0.58.20) (2026-09-22)
+
+
+### Maintenance
+
+* **desktop:** consolidate duplicated job helpers into job_support ([#2379](https://github.com/adea-ai/cortana/issues/2379)) ([042b06c](https://github.com/adea-ai/cortana/commit/042b06c0683888a94e924643ee7d38cc413d0665))
+
 ## [0.58.19](https://github.com/adea-ai/cortana/compare/v0.58.18...v0.58.19) (2026-09-22)
 
 
