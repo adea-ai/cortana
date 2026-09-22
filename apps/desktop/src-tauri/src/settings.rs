@@ -715,7 +715,7 @@ impl SettingsStore {
             }
             Some(body)
         };
-        set_secret_storage_backend(&mut root, "native");
+        set_secret_storage_backend(&mut root, "native")?;
         let rendered = match toml::to_string_pretty(&root) {
             Ok(rendered) => rendered,
             Err(error) => {
@@ -1880,8 +1880,12 @@ fn secret_storage_backend(root: &Table) -> &'static str {
         .map_or("file", |_| "native")
 }
 
-fn set_secret_storage_backend(root: &mut Table, backend: &str) {
+fn set_secret_storage_backend(root: &mut Table, backend: &str) -> Result<(), String> {
+    if root.get("desktop").is_some_and(|value| !value.is_table()) {
+        return Err("settings section `desktop` must be a TOML table".into());
+    }
     mutable_table(root, "desktop").insert("secret_storage".into(), Value::String(backend.into()));
+    Ok(())
 }
 
 fn apply_native_secret_updates(
@@ -2025,6 +2029,7 @@ fn validate_mutable_sections(root: &Table) -> Result<(), String> {
         "connectors",
         "auth",
         "runtime",
+        "desktop",
     ] {
         if root.get(section).is_some_and(|value| !value.is_table()) {
             return Err(format!("settings section `{section}` must be a TOML table"));
@@ -3544,9 +3549,9 @@ mod tests {
     fn secure_storage_backend_is_opt_in_and_scoped_to_the_desktop_marker() {
         let mut root = Table::new();
         assert_eq!(secret_storage_backend(&root), "file");
-        set_secret_storage_backend(&mut root, "native");
+        set_secret_storage_backend(&mut root, "native").expect("valid section");
         assert_eq!(secret_storage_backend(&root), "native");
-        set_secret_storage_backend(&mut root, "unexpected");
+        let _ = set_secret_storage_backend(&mut root, "unexpected");
         assert_eq!(secret_storage_backend(&root), "file");
     }
 
@@ -4143,5 +4148,14 @@ mod tests {
                     .contains("symlinked")
             );
         }
+    }
+
+    #[test]
+    fn secret_storage_backend_fails_closed_on_non_table_desktop_section() {
+        let mut root = Table::new();
+        root.insert("desktop".into(), Value::String("hand-edited".into()));
+        let error = set_secret_storage_backend(&mut root, "native")
+            .expect_err("a non-table desktop section must fail, not panic");
+        assert!(error.contains("`desktop` must be a TOML table"));
     }
 }
