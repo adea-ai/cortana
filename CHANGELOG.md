@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.58.18](https://github.com/adea-ai/cortana/compare/v0.58.17...v0.58.18) (2026-09-22)
+
+
+### Bug Fixes
+
+* **web:** validate desktop and consolidation responses at the boundary ([#2375](https://github.com/adea-ai/cortana/issues/2375)) ([5fdb35d](https://github.com/adea-ai/cortana/commit/5fdb35d76df4c09c88711582ce282e2b84443659))
+
 ## [0.58.17](https://github.com/adea-ai/cortana/compare/v0.58.16...v0.58.17) (2026-09-21)
 
 
