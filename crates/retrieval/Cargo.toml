@@ -1,7 +1,7 @@
 [package]
 name = "cortana-retrieval"
 description = "Embedding, retrieval, and answer engine for the Cortana second brain"
-version = "0.58.21"
+version = "0.58.22"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
