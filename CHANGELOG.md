@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.59.0](https://github.com/adea-ai/cortana/compare/v0.58.22...v0.59.0) (2026-09-22)
+
+
+### Features
+
+* team-invitation-revoke ([#2386](https://github.com/adea-ai/cortana/issues/2386)) ([a58c252](https://github.com/adea-ai/cortana/commit/a58c252633a900322a8ff542cce2b601351d3a8e))
+
+
+### Bug Fixes
+
+* **web:** adopt shared primitives in the memory review and settings surfaces ([#2387](https://github.com/adea-ai/cortana/issues/2387)) ([96404df](https://github.com/adea-ai/cortana/commit/96404dff1e7ad78df40182a9253ff4106133cf3e))
+
 ## [0.58.22](https://github.com/adea-ai/cortana/compare/v0.58.21...v0.58.22) (2026-09-22)
 
 
