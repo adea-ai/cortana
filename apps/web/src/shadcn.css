@@ -4337,15 +4337,6 @@ select:focus-visible {
   white-space: nowrap;
 }
 
-.memory-status {
-  padding: 3px 6px;
-  color: var(--muted-foreground);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  font-size: 9px;
-  text-transform: uppercase;
-}
-
 .memory-bulk-actions {
   justify-content: flex-end;
   margin-top: 8px;
