@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.58.22](https://github.com/adea-ai/cortana/compare/v0.58.21...v0.58.22) (2026-09-22)
+
+
+### Maintenance
+
+* quality-round cleanup — dead consts, unified log sanitization, constant disambiguation ([#2384](https://github.com/adea-ai/cortana/issues/2384)) ([c276366](https://github.com/adea-ai/cortana/commit/c276366e0c7e06e4ad7f2120dadb1e85226fc33f))
+
 ## [0.58.21](https://github.com/adea-ai/cortana/compare/v0.58.20...v0.58.21) (2026-09-22)
 
 
