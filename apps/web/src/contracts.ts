@@ -1,6 +1,5 @@
 import type { ContextBundle } from './types'
 
-export const API_CONTRACT_VERSION = 'cortana.api.v1'
 export const CONTEXT_CONTRACT_VERSION = 'cortana.context.v1'
 export const RETRIEVAL_CONTRACT_VERSION = 'cortana.retrieval.v1'
 

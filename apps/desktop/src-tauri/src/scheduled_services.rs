@@ -10,7 +10,7 @@ use crate::{schedule, services, settings};
 // server process. Keep the operation bounded by the configured five-minute
 // startup ceiling while allowing the observed index-open/model-warmup window
 // to complete.
-const COMMAND_TIMEOUT: Duration = Duration::from_secs(5 * 60);
+const SCHEDULED_COMMAND_TIMEOUT: Duration = Duration::from_secs(5 * 60);
 const MAX_OUTPUT_BYTES: usize = 64 * 1024;
 
 
@@ -130,7 +130,7 @@ async fn sidecar_output<R: tauri::Runtime>(
     let (mut receiver, child) = command
         .spawn()
         .map_err(|error| format!("run bundled Cortana runtime: {error}"))?;
-    match timeout(COMMAND_TIMEOUT, async {
+    match timeout(SCHEDULED_COMMAND_TIMEOUT, async {
         let mut stderr = Vec::new();
         let mut success = false;
         while let Some(event) = receiver.recv().await {
@@ -292,6 +292,6 @@ mod tests {
 
     #[test]
     fn service_install_budget_covers_cold_core_startup() {
-        assert!(COMMAND_TIMEOUT >= Duration::from_secs(5 * 60));
+        assert!(SCHEDULED_COMMAND_TIMEOUT >= Duration::from_secs(5 * 60));
     }
 }

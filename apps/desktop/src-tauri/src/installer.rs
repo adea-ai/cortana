@@ -174,7 +174,7 @@ impl InstallerState {
                 };
             }
             Err(error) => {
-                job.snapshot.log = sanitize_log(&error);
+                job.snapshot.log = crate::job_support::sanitize_log(&error, MAX_LOG_BYTES as usize);
                 job.snapshot.status = if cancelled { "cancelled" } else { "failed" };
             }
         }
@@ -191,7 +191,7 @@ async fn run_plan(
     let mut log = String::new();
     for command in plan.commands {
         if cancelled.load(Ordering::SeqCst) {
-            return Ok((last_exit_code, sanitize_log(&log)));
+            return Ok((last_exit_code, crate::job_support::sanitize_log(&log, MAX_LOG_BYTES as usize)));
         }
         let (exit_code, command_log) = run_command(&command, &cancelled).await?;
         last_exit_code = exit_code;
@@ -200,7 +200,7 @@ async fn run_plan(
                 log.push('\n');
             }
             log.push_str(&command_log);
-            log = sanitize_log(&log);
+            log = crate::job_support::sanitize_log(&log, MAX_LOG_BYTES as usize);
         }
         if cancelled.load(Ordering::SeqCst) || exit_code != Some(0) {
             break;
@@ -270,16 +270,19 @@ async fn run_command(
     let stderr = stderr_task
         .await
         .map_err(|error| format!("collect installer errors: {error}"))??;
-    let log = sanitize_log(&format!(
-        "{}{}{}",
-        String::from_utf8_lossy(&stdout),
-        if stdout.is_empty() || stderr.is_empty() {
-            ""
-        } else {
-            "\n"
-        },
-        String::from_utf8_lossy(&stderr)
-    ));
+    let log = crate::job_support::sanitize_log(
+        &format!(
+            "{}{}{}",
+            String::from_utf8_lossy(&stdout),
+            if stdout.is_empty() || stderr.is_empty() {
+                ""
+            } else {
+                "\n"
+            },
+            String::from_utf8_lossy(&stderr)
+        ),
+        MAX_LOG_BYTES as usize,
+    );
     Ok((status.code(), log))
 }
 
@@ -482,13 +485,6 @@ fn validate_job_id(id: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn sanitize_log(value: &str) -> String {
-    value
-        .chars()
-        .filter(|character| !matches!(character, '\0' | '\u{1b}'))
-        .take(MAX_LOG_BYTES as usize)
-        .collect()
-}
 
 
 fn audit(snapshot: &InstallJobSnapshot, phase: &str) {
@@ -517,7 +513,10 @@ mod tests {
 
     #[test]
     fn logs_remove_escape_and_nul_sequences() {
-        assert_eq!(sanitize_log("safe\u{1b}[31m\0text"), "safe[31mtext");
+        assert_eq!(
+            crate::job_support::sanitize_log("safe\u{1b}[31m\0text", usize::MAX),
+            "safe[31mtext"
+        );
     }
 
     #[test]
