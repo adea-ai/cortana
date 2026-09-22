@@ -16,8 +16,14 @@ import type {
   BrainStatus,
   DerivedMemoryResponse,
   DesktopUpdate,
+  AuditEvent,
   MemoryCandidateActionResult,
   MemoryCandidateClassification,
+  DesktopReadiness,
+  DesktopSchedule,
+  DesktopServiceReport,
+  DesktopSettings,
+  DesktopSourceJob,
   ReflectResponse,
 } from './types'
 import {
@@ -201,6 +207,73 @@ export function parseAgentMemories(value: unknown): AgentMemory[] {
     requireString(record, 'content', 'Memory entry')
   }
   return value as AgentMemory[]
+}
+
+export function parseConsolidationState(value: unknown): {
+  paused: boolean
+  canControl: boolean
+} {
+  const record = assertRecord(value, 'Consolidation state')
+  return {
+    paused: requireBoolean(record, 'paused', 'Consolidation state'),
+    canControl: requireBoolean(record, 'can_control', 'Consolidation state'),
+  }
+}
+
+export function parseDesktopSettings(value: unknown): DesktopSettings {
+  const record = assertRecord(value, 'Settings')
+  requireString(record, 'config_path', 'Settings')
+  requireString(record, 'secret_file_path', 'Settings')
+  requireBoolean(record, 'needs_setup', 'Settings')
+  assertArray(record['workspaces'], 'Settings', 'workspaces')
+  assertArray(record['sources'], 'Settings', 'sources')
+  return value as DesktopSettings
+}
+
+export function parseDesktopServiceReport(value: unknown): DesktopServiceReport {
+  const record = assertRecord(value, 'Services')
+  requireString(record, 'platform', 'Services')
+  requireBoolean(record, 'supported', 'Services')
+  const services = assertArray(record['services'], 'Services', 'services')
+  for (const entry of services) {
+    const service = assertRecord(entry, 'Service entry')
+    requireString(service, 'name', 'Service entry')
+    requireBoolean(service, 'installed', 'Service entry')
+  }
+  return value as DesktopServiceReport
+}
+
+export function parseDesktopReadiness(value: unknown): DesktopReadiness {
+  const record = assertRecord(value, 'Readiness')
+  requireNumber(record, 'scanned_at_unix_seconds', 'Readiness')
+  requireString(record, 'platform', 'Readiness')
+  requireBoolean(record, 'tools_ready', 'Readiness')
+  const core = assertRecord(record['core'], 'Readiness core')
+  requireBoolean(core, 'passed', 'Readiness')
+  return value as DesktopReadiness
+}
+
+export function parseDesktopSchedule(value: unknown): DesktopSchedule {
+  const record = assertRecord(value, 'Schedule')
+  requireNumber(record, 'sync_interval_seconds', 'Schedule')
+  requireNumber(record, 'backup_interval_seconds', 'Schedule')
+  return value as DesktopSchedule
+}
+
+export function parseDesktopSourceJob(value: unknown): DesktopSourceJob {
+  const record = assertRecord(value, 'Source job')
+  requireString(record, 'id', 'Source job')
+  requireString(record, 'operation', 'Source job')
+  requireString(record, 'status', 'Source job')
+  requireString(record, 'summary', 'Source job')
+  requireNumber(record, 'started_at_unix_seconds', 'Source job')
+  return value as DesktopSourceJob
+}
+
+export function parseAuditEvents(value: unknown): AuditEvent[] {
+  const events = assertArray(value, 'Audit', 'events')
+  for (const entry of events) assertRecord(entry, 'Audit event')
+  return value as AuditEvent[]
 }
 
 export function parseDesktopUpdate(value: unknown): DesktopUpdate {
