@@ -84,19 +84,6 @@ export function requireBoolean(
   return value
 }
 
-export function optionalBoolean(
-  record: Record<string, unknown>,
-  key: string,
-  label: string
-): boolean | null {
-  const value = record[key]
-  if (value === null || value === undefined) return null
-  if (typeof value !== 'boolean') {
-    throw new ResponseShapeError(label, `${key} must be a boolean when present`)
-  }
-  return value
-}
-
 export function requireLiteral<T extends string>(
   record: Record<string, unknown>,
   key: string,

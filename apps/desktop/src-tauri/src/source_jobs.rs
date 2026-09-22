@@ -270,7 +270,7 @@ pub async fn list_discord_channels<R: tauri::Runtime>(
         }
     };
     if !success {
-        let detail = sanitize_log(&String::from_utf8_lossy(&stderr));
+        let detail = crate::job_support::sanitize_log(&String::from_utf8_lossy(&stderr), usize::MAX);
         let detail = detail.chars().take(2048).collect::<String>();
         return Err(if detail.is_empty() {
             "Discord channel discovery failed; check Discord Desktop is running and the RPC authorization is complete".into()
@@ -349,7 +349,7 @@ pub async fn list_discord_servers<R: tauri::Runtime>(
         }
     };
     if !success {
-        let detail = sanitize_log(&String::from_utf8_lossy(&stderr));
+        let detail = crate::job_support::sanitize_log(&String::from_utf8_lossy(&stderr), usize::MAX);
         let detail = detail.chars().take(2048).collect::<String>();
         return Err(if detail.is_empty() {
             "Discord server discovery failed; check Discord Desktop is running and RPC authorization is complete".into()
@@ -429,7 +429,7 @@ pub async fn list_slack_workspaces<R: tauri::Runtime>(
         }
     };
     if !success {
-        let detail = sanitize_log(&String::from_utf8_lossy(&stderr));
+        let detail = crate::job_support::sanitize_log(&String::from_utf8_lossy(&stderr), usize::MAX);
         let detail = detail.chars().take(2048).collect::<String>();
         return Err(if detail.is_empty() {
             "Slack workspace discovery failed; check browser authorization".into()
@@ -506,7 +506,7 @@ pub async fn list_buzz_communities<R: tauri::Runtime>(
         }
     };
     if !success {
-        let detail = sanitize_log(&String::from_utf8_lossy(&stderr));
+        let detail = crate::job_support::sanitize_log(&String::from_utf8_lossy(&stderr), usize::MAX);
         let detail = detail.chars().take(2048).collect::<String>();
         return Err(if detail.is_empty() {
             "Buzz community discovery failed; check the configured Buzz data directory".into()
@@ -1267,7 +1267,8 @@ impl SourceJobState {
             job.snapshot.status = "failed";
             job.snapshot.summary =
                 format!("Source {} could not be cancelled.", job.snapshot.operation);
-            job.snapshot.log = sanitize_log(&error.to_string());
+            job.snapshot.log =
+                crate::job_support::sanitize_log(&error.to_string(), usize::MAX);
             job.snapshot.completed_at_unix_seconds = Some(crate::job_support::unix_now());
             job.snapshot.retryable = true;
         }
@@ -1758,7 +1759,7 @@ fn validate_job_id(id: &str) -> Result<(), String> {
 }
 
 fn append_bounded_log(log: &mut String, bytes: &[u8]) {
-    let line = sanitize_log(&String::from_utf8_lossy(bytes));
+    let line = crate::job_support::sanitize_log(&String::from_utf8_lossy(bytes), usize::MAX);
     if line.is_empty() || log.len() >= MAX_LOG_BYTES {
         return;
     }
@@ -1773,18 +1774,6 @@ fn append_bounded_log(log: &mut String, bytes: &[u8]) {
     log.push_str(&line[..end]);
 }
 
-fn sanitize_log(value: &str) -> String {
-    value
-        .chars()
-        .filter(|character| {
-            *character == '\n'
-                || *character == '\t'
-                || (!character.is_control() && *character != '\u{1b}')
-        })
-        .collect::<String>()
-        .trim()
-        .to_string()
-}
 
 fn audit(snapshot: &SourceJobSnapshot, phase: &str) {
     let event = audit_event_json(snapshot, phase);

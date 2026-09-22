@@ -23,9 +23,6 @@ pub const MAX_MEMORY_ACL_BYTES: usize = 256;
 pub const MAX_MEMORY_RECALL_LIMIT: usize = 100;
 pub const MAX_MEMORY_EXPORT_LIMIT: usize = 100_000;
 pub const DEFAULT_MEMORY_MAX_ACTIVE: usize = 100_000;
-pub const DEFAULT_MEMORY_CONTENT_TYPE: &str = "semantic";
-pub const DEFAULT_MEMORY_RETENTION_TIER: &str = "durable";
-pub const DEFAULT_MEMORY_SCOPE: &str = "workspace";
 
 #[derive(Clone, Copy, Debug)]
 pub struct MemoryDefaults {

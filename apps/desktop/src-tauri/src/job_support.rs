@@ -11,6 +11,25 @@ pub(crate) fn append_bounded(buffer: &mut Vec<u8>, bytes: &[u8], maximum: usize)
     buffer.extend_from_slice(&bytes[..bytes.len().min(remaining)]);
 }
 
+
+/// Strip control characters (log-injection hardening: everything except
+/// `\n` and `\t` is removed, ANSI escapes included), trim, and cap the
+/// length. `maximum_chars` bounds the retained text; pass `usize::MAX` when
+/// the storage layer applies its own bound.
+pub(crate) fn sanitize_log(value: &str, maximum_chars: usize) -> String {
+    value
+        .chars()
+        .filter(|character| {
+            *character == '\n'
+                || *character == '\t'
+                || (!character.is_control() && *character != '\u{1b}')
+        })
+        .take(maximum_chars)
+        .collect::<String>()
+        .trim()
+        .to_string()
+}
+
 /// Seconds since the Unix epoch; 0 if the clock is before the epoch.
 pub(crate) fn unix_now() -> u64 {
     SystemTime::now()

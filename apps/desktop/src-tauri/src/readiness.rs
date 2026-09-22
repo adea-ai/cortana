@@ -21,7 +21,7 @@ const VERSION_TIMEOUT: Duration = Duration::from_secs(3);
 // the CLI is still fail-closed.
 const READINESS_TIMEOUT: Duration = Duration::from_secs(330);
 const EMBEDDING_MIGRATION_TIMEOUT: Duration = Duration::from_secs(90);
-const MAX_DETAIL_BYTES: usize = 2_048;
+const MAX_READINESS_DETAIL_BYTES: usize = 2_048;
 const MAX_READINESS_BYTES: usize = 64 * 1024;
 const MAX_EMBEDDING_FINGERPRINT_BYTES: usize = 512;
 
@@ -235,7 +235,7 @@ async fn migration_sidecar_output<R: tauri::Runtime>(
 }
 
 fn append_migration_output(buffer: &mut Vec<u8>, bytes: &[u8]) {
-    let remaining = MAX_DETAIL_BYTES.saturating_sub(buffer.len());
+    let remaining = MAX_READINESS_DETAIL_BYTES.saturating_sub(buffer.len());
     buffer.extend_from_slice(&bytes[..bytes.len().min(remaining)]);
 }
 
@@ -610,7 +610,7 @@ async fn uv_managed_python() -> Option<PathBuf> {
     .await
     .ok()?
     .ok()?;
-    if output.stdout.len() > MAX_DETAIL_BYTES {
+    if output.stdout.len() > MAX_READINESS_DETAIL_BYTES {
         return None;
     }
     let path = parse_uv_python_path(&output.stdout)?;
@@ -666,7 +666,7 @@ async fn command_version(path: &Path) -> Option<String> {
 }
 
 fn bounded_output(bytes: &[u8]) -> String {
-    let end = bytes.len().min(MAX_DETAIL_BYTES);
+    let end = bytes.len().min(MAX_READINESS_DETAIL_BYTES);
     String::from_utf8_lossy(&bytes[..end])
         .split_whitespace()
         .collect::<Vec<_>>()
@@ -759,7 +759,7 @@ mod tests {
     fn bounded_output_removes_multiline_log_injection_and_limits_size() {
         let output = bounded_output(format!("one\n two\r\n{}", "x".repeat(4_000)).as_bytes());
         assert!(output.starts_with("one two "));
-        assert!(output.len() <= MAX_DETAIL_BYTES);
+        assert!(output.len() <= MAX_READINESS_DETAIL_BYTES);
         assert!(!output.contains('\n'));
     }
 
@@ -941,8 +941,8 @@ mod tests {
     #[test]
     fn migration_output_is_bounded_before_rendering_native_errors() {
         let mut output = Vec::new();
-        append_migration_output(&mut output, &vec![b'x'; MAX_DETAIL_BYTES + 1]);
+        append_migration_output(&mut output, &vec![b'x'; MAX_READINESS_DETAIL_BYTES + 1]);
         append_migration_output(&mut output, b"more");
-        assert_eq!(output.len(), MAX_DETAIL_BYTES);
+        assert_eq!(output.len(), MAX_READINESS_DETAIL_BYTES);
     }
 }
