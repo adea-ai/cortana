@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.58.19](https://github.com/adea-ai/cortana/compare/v0.58.18...v0.58.19) (2026-09-22)
+
+
+### Bug Fixes
+
+* **desktop:** fail closed on hand-edited non-table settings sections ([#2377](https://github.com/adea-ai/cortana/issues/2377)) ([9245bfb](https://github.com/adea-ai/cortana/commit/9245bfbe227f9553d09cf9022f562590c0646ce9))
+
 ## [0.58.18](https://github.com/adea-ai/cortana/compare/v0.58.17...v0.58.18) (2026-09-22)
 
 
