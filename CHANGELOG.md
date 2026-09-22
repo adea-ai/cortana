@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.58.21](https://github.com/adea-ai/cortana/compare/v0.58.20...v0.58.21) (2026-09-22)
+
+
+### Bug Fixes
+
+* web-vault-installer-parsers ([#2380](https://github.com/adea-ai/cortana/issues/2380)) ([1a6d011](https://github.com/adea-ai/cortana/commit/1a6d011b6181e98afc58d83e5987425bd948e659))
+
 ## [0.58.20](https://github.com/adea-ai/cortana/compare/v0.58.19...v0.58.20) (2026-09-22)
 
 
