@@ -8,8 +8,15 @@ import {
   parseBrainDocument,
   parseBrainDocumentPage,
   parseBrainStatus,
+  parseAuditEvents,
   parseCandidatePage,
+  parseConsolidationState,
   parseContextBundle,
+  parseDesktopReadiness,
+  parseDesktopSourceJob,
+  parseDesktopSchedule,
+  parseDesktopServiceReport,
+  parseDesktopSettings,
   parseDesktopUpdate,
   parseDerivedMemoryResponse,
   parseMemoryCandidateActionResult,
@@ -68,12 +75,14 @@ let tokenPromptInFlight: Promise<string | null> | null = null
 
 export async function getDesktopSettings(): Promise<DesktopSettings> {
   if (!isDesktopApp) throw new Error('Settings are available in Cortana Desktop')
-  return invokeDesktop<DesktopSettings>('desktop_settings_get')
+  return parseDesktopSettings(await invokeDesktop<DesktopSettings>('desktop_settings_get'))
 }
 
 export async function saveDesktopSettings(update: DesktopSettingsUpdate): Promise<DesktopSettings> {
   if (!isDesktopApp) throw new Error('Settings are available in Cortana Desktop')
-  return invokeDesktop<DesktopSettings>('desktop_settings_save', { update })
+  return parseDesktopSettings(
+    await invokeDesktop<DesktopSettings>('desktop_settings_save', { update })
+  )
 }
 
 export async function migrateDesktopSecrets(): Promise<DesktopSecretStorageMigration> {
@@ -117,7 +126,7 @@ export async function cancelDesktopVaultExport(id: string): Promise<DesktopVault
 
 export async function scanDesktopReadiness(): Promise<DesktopReadiness> {
   if (!isDesktopApp) throw new Error('Readiness is available in Cortana Desktop')
-  return invokeDesktop<DesktopReadiness>('desktop_readiness_scan')
+  return parseDesktopReadiness(await invokeDesktop<DesktopReadiness>('desktop_readiness_scan'))
 }
 
 export async function migrateDesktopEmbeddingGeneration(from: string): Promise<string> {
@@ -143,22 +152,28 @@ export async function getDesktopServices(): Promise<DesktopServiceReport> {
 
 export async function installDesktopServices(): Promise<DesktopServiceReport> {
   if (!isDesktopApp) throw new Error('Service installation is available in Cortana Desktop')
-  return invokeDesktop<DesktopServiceReport>('desktop_services_install', { approved: true })
+  return parseDesktopServiceReport(
+    await invokeDesktop<DesktopServiceReport>('desktop_services_install', { approved: true })
+  )
 }
 
 export async function installDesktopSyncService(): Promise<DesktopServiceReport> {
   if (!isDesktopApp) throw new Error('Recurring sync installation is available in Cortana Desktop')
-  return invokeDesktop<DesktopServiceReport>('desktop_services_install_sync', { approved: true })
+  return parseDesktopServiceReport(
+    await invokeDesktop<DesktopServiceReport>('desktop_services_install_sync', { approved: true })
+  )
 }
 
 export async function getDesktopSchedule(): Promise<DesktopSchedule> {
   if (!isDesktopApp) throw new Error('Service scheduling is available in Cortana Desktop')
-  return invokeDesktop<DesktopSchedule>('desktop_schedule_get')
+  return parseDesktopSchedule(await invokeDesktop<DesktopSchedule>('desktop_schedule_get'))
 }
 
 export async function saveDesktopSchedule(schedule: DesktopSchedule): Promise<DesktopSchedule> {
   if (!isDesktopApp) throw new Error('Service scheduling is available in Cortana Desktop')
-  return invokeDesktop<DesktopSchedule>('desktop_schedule_save', { schedule })
+  return parseDesktopSchedule(
+    await invokeDesktop<DesktopSchedule>('desktop_schedule_save', { schedule })
+  )
 }
 
 export async function runDesktopServiceAction(
@@ -166,21 +181,25 @@ export async function runDesktopServiceAction(
   action: 'start' | 'stop' | 'restart'
 ): Promise<DesktopServiceReport> {
   if (!isDesktopApp) throw new Error('Service control is available in Cortana Desktop')
-  return invokeDesktop<DesktopServiceReport>('desktop_service_action', {
-    service,
-    action,
-    approved: true,
-  })
+  return parseDesktopServiceReport(
+    await invokeDesktop<DesktopServiceReport>('desktop_service_action', {
+      service,
+      action,
+      approved: true,
+    })
+  )
 }
 
 export async function runDesktopServicesActionAll(
   action: 'start' | 'stop' | 'restart'
 ): Promise<DesktopServiceReport> {
   if (!isDesktopApp) throw new Error('Service control is available in Cortana Desktop')
-  return invokeDesktop<DesktopServiceReport>('desktop_services_action_all', {
-    action,
-    approved: true,
-  })
+  return parseDesktopServiceReport(
+    await invokeDesktop<DesktopServiceReport>('desktop_services_action_all', {
+      action,
+      approved: true,
+    })
+  )
 }
 
 export async function backupDesktopDatabase(): Promise<DesktopDatabaseActionResult | null> {
@@ -226,12 +245,12 @@ export async function cancelDesktopUpdate(): Promise<DesktopUpdate> {
 
 export async function getRuntimeAudit(limit = 100): Promise<AuditEvent[]> {
   if (!isDesktopApp) throw new Error('Audit is available in Cortana Desktop')
-  return invokeDesktop<AuditEvent[]>('brain_audit', { limit })
+  return parseAuditEvents(await invokeDesktop<AuditEvent[]>('brain_audit', { limit }))
 }
 
 export async function getDesktopAudit(limit = 100): Promise<AuditEvent[]> {
   if (!isDesktopApp) throw new Error('Audit is available in Cortana Desktop')
-  return invokeDesktop<AuditEvent[]>('desktop_audit', { limit })
+  return parseAuditEvents(await invokeDesktop<AuditEvent[]>('desktop_audit', { limit }))
 }
 
 export async function openDesktopProject(): Promise<void> {
@@ -266,12 +285,19 @@ export async function cancelDesktopInstaller(id: string): Promise<DesktopInstall
   return invokeDesktop<DesktopInstallJob>('desktop_installer_cancel', { id })
 }
 
+async function invokeDesktopSourceJob(
+  command: string,
+  args?: Record<string, unknown>
+): Promise<DesktopSourceJob> {
+  return parseDesktopSourceJob(await invokeDesktop<DesktopSourceJob>(command, args))
+}
+
 export async function startDesktopSourceValidation(
   source: string,
   budget?: InitialSyncBudget
 ): Promise<DesktopSourceJob> {
   if (!isDesktopApp) throw new Error('Source validation is available in Cortana Desktop')
-  return invokeDesktop<DesktopSourceJob>(
+  return invokeDesktopSourceJob(
     'desktop_source_validation_start',
     budget ? { source, budget } : { source }
   )
@@ -279,17 +305,17 @@ export async function startDesktopSourceValidation(
 
 export async function startDesktopSourceConnectionCheck(source: string): Promise<DesktopSourceJob> {
   if (!isDesktopApp) throw new Error('Source connection checks are available in Cortana Desktop')
-  return invokeDesktop<DesktopSourceJob>('desktop_source_connection_check_start', { source })
+  return invokeDesktopSourceJob('desktop_source_connection_check_start', { source })
 }
 
 export async function startDesktopSourceAuthorization(source: string): Promise<DesktopSourceJob> {
   if (!isDesktopApp) throw new Error('Source authorization is available in Cortana Desktop')
-  return invokeDesktop<DesktopSourceJob>('desktop_source_authorization_start', { source })
+  return invokeDesktopSourceJob('desktop_source_authorization_start', { source })
 }
 
 export async function startDesktopSourceTrialSync(source: string): Promise<DesktopSourceJob> {
   if (!isDesktopApp) throw new Error('Trial sync is available in Cortana Desktop')
-  return invokeDesktop<DesktopSourceJob>('desktop_source_trial_sync_start', {
+  return invokeDesktopSourceJob('desktop_source_trial_sync_start', {
     source,
     approved: true,
   })
@@ -348,7 +374,7 @@ export async function pickDesktopPath(
 
 export async function getDesktopSourceValidation(id: string): Promise<DesktopSourceJob> {
   if (!isDesktopApp) throw new Error('Source validation is available in Cortana Desktop')
-  return invokeDesktop<DesktopSourceJob>('desktop_source_validation_status', { id })
+  return invokeDesktopSourceJob('desktop_source_validation_status', { id })
 }
 
 export async function getDesktopSourceJobs(): Promise<DesktopSourceJob[]> {
@@ -358,7 +384,7 @@ export async function getDesktopSourceJobs(): Promise<DesktopSourceJob[]> {
 
 export async function cancelDesktopSourceValidation(id: string): Promise<DesktopSourceJob> {
   if (!isDesktopApp) throw new Error('Source validation is available in Cortana Desktop')
-  return invokeDesktop<DesktopSourceJob>('desktop_source_validation_cancel', { id })
+  return invokeDesktopSourceJob('desktop_source_validation_cancel', { id })
 }
 
 export async function planDesktopInitialSync(
@@ -658,18 +684,18 @@ export async function getMemoryConsolidationState(): Promise<{
 }> {
   if (isDemoMode) return { paused: false, canControl: true }
   if (isTauri()) {
-    const response = await invokeDesktop<{ paused: boolean; can_control: boolean }>(
-      'brain_memory_consolidation_control',
-      {
-        action: 'status',
-      }
+    return parseConsolidationState(
+      await invokeDesktop<{ paused: boolean; can_control: boolean }>(
+        'brain_memory_consolidation_control',
+        {
+          action: 'status',
+        }
+      )
     )
-    return { paused: response.paused, canControl: response.can_control }
   }
   const response = await authorizedFetch('/v1/memory/consolidation/status', {})
   if (!response.ok) throw new Error(`Memory consolidation status failed (${response.status})`)
-  const state = (await response.json()) as { paused: boolean; can_control: boolean }
-  return { paused: state.paused, canControl: state.can_control }
+  return parseConsolidationState(await response.json())
 }
 
 export async function listDerivedMemories(project?: string): Promise<DerivedMemoryResponse> {
