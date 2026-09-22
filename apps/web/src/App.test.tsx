@@ -255,9 +255,7 @@ test('mobile navigation dismisses after selecting the current destination', asyn
   )
   // The sheet mounts through async effects; a fixed flush races it under
   // parallel CI load.
-  await waitFor(() =>
-    expect(document.querySelector('[data-mobile="true"]')).not.toBeNull()
-  )
+  await waitFor(() => expect(document.querySelector('[data-mobile="true"]')).not.toBeNull())
   await waitFor(() =>
     expect(
       screen.getByRole('navigation', {
