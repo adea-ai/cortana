@@ -23,6 +23,7 @@ import {
   For,
 } from 'solid-js'
 import { cn } from '../lib/utils'
+import { AsyncButton } from './cortana/async-button'
 import { Toaster } from './shadcn/sonner'
 import { normalizeProviderUrl, type ProviderModelsState } from './settings/providerUtils'
 import { SettingsConfirmProvider, useSettingsConfirm } from './settings/SettingsConfirm'
@@ -594,15 +595,17 @@ function SettingsViewContent(incoming: {
                     <X size={15} /> Discard
                   </Button>
                 )}
-                <Button
-                  variant="primary"
+                <AsyncButton
+                  variant="default"
                   type="submit"
                   form="settings-form"
-                  disabled={saving() || !dirty()}
+                  busy={saving()}
+                  disabled={!dirty()}
+                  busyLabel="Saving…"
                   title={dirty() ? undefined : 'Make a change before saving'}
                 >
-                  <Save size={16} /> {saving() ? 'Saving…' : 'Save changes'}
-                </Button>
+                  <Save size={16} /> Save changes
+                </AsyncButton>
               </div>
             </header>
             {settings()!.needs_setup && (

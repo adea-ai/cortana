@@ -30,13 +30,14 @@ import type {
 } from '../types'
 import { virtualRange } from '../virtualization'
 import { Alert, AlertDescription } from './shadcn/alert'
-import { Badge } from './shadcn/badge'
+import { StatusBadge, type StatusTone } from './cortana/status-badge'
 import { VariantButton as MemoryButton } from './cortana/VariantButton'
 import { Card } from './shadcn/card'
 import { cn } from '@/lib/utils'
 
 import { Checkbox } from './shadcn/checkbox'
 import { Input } from './shadcn/input'
+import { FeedbackState } from './cortana/feedback-state'
 import { Spinner } from './shadcn/spinner'
 import { Textarea } from './shadcn/textarea'
 import { Toggle } from './shadcn/toggle'
@@ -62,10 +63,6 @@ function MemoryTextarea(props: ComponentProps<'textarea'>) {
 
 function MemoryCard(props: ComponentProps<'div'>) {
   return <Card size="sm" {...props} />
-}
-
-function MemoryBadge(props: ComponentProps<'span'>) {
-  return <Badge variant="secondary" {...props} />
 }
 
 export type MemoryReviewClient = {
@@ -190,16 +187,20 @@ function CandidateQueue(props: {
                     <strong>{candidate.title}</strong>
                     <span>{candidate.content}</span>
                   </MemoryButton>
-                  <MemoryBadge class="memory-status" data-status={queueStatus(candidate)}>
+                  <StatusBadge tone={QUEUE_TONES[queueStatus(candidate)]}>
                     {queueStatus(candidate)}
-                  </MemoryBadge>
+                  </StatusBadge>
                 </MemoryCard>
               )}
             </For>
           </div>
         </div>
         <Show when={!props.loading && props.filtered.length === 0}>
-          <p class="empty-state">No candidates match this view.</p>
+          <FeedbackState
+            kind="empty"
+            title="No candidates match this view"
+            description="Adjust the search text or switch the status view to see other candidates."
+          />
         </Show>
       </div>
       <Show when={props.selectedIds.size > 0}>
@@ -841,7 +842,17 @@ function MemoryLayers(props: { canonical: AgentMemory[]; derived: DerivedMemoryR
   )
 }
 
-function queueStatus(candidate: MemoryCandidate): QueueView {
+const QUEUE_TONES: Record<Exclude<QueueView, 'all'>, StatusTone> = {
+  pending: 'busy',
+  approved: 'success',
+  'auto-retained': 'success',
+  rejected: 'error',
+  failed: 'error',
+  'dead-letter': 'error',
+  expired: 'offline',
+}
+
+function queueStatus(candidate: MemoryCandidate): Exclude<QueueView, 'all'> {
   const job = candidate.consolidation
   if (candidate.status === 'expired') return 'expired'
   if (candidate.status === 'accepted' && job?.decision === 'auto-retain') return 'auto-retained'
