@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from 'bun:test'
+import { BookOpenText } from 'lucide-solid'
 import { cleanup, fireEvent, render, waitFor } from 'solid-testing-library'
 
 import {
@@ -25,7 +26,7 @@ function renderRail(props: { defaultOpen: boolean }) {
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton size="lg" tooltip="Knowledge">
+              <SidebarMenuButton size="lg" icon={BookOpenText} tooltip="Knowledge">
                 <span>Knowledge</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -46,14 +47,19 @@ test('a collapsed rail row reveals its label on hover without a tooltip arrow', 
   fireEvent.mouseEnter(row)
   await waitFor(() => expect(hintFor()).not.toBeNull())
   expect(hintFor()!.textContent).toBe('Knowledge')
-  // The label is decorative: the row's own text names the control, and the
-  // flyout carries no arrow element for a pointer to sit on.
+  // The label is the row unfolding in place: same box, same icon, no arrow.
   expect(hintFor()!.getAttribute('aria-hidden')).toBe('true')
-  expect(hintFor()!.querySelector('svg')).toBeNull()
+  expect(hintFor()!.querySelector('svg')).not.toBeNull()
   expect(document.querySelector('[data-slot="tooltip-content"]')).toBeNull()
 
   fireEvent.mouseLeave(row)
-  await waitFor(() => expect(hintFor()).toBeNull())
+  // Hiding flips the opacity synchronously; the node itself stays mounted for
+  // the 150ms fade-out before it is dropped. The harness's act loop holds
+  // pending timers, so the removal is polled directly rather than through
+  // waitFor, which would never observe it.
+  await waitFor(() => expect(hintFor()?.className).toContain('opacity-0'))
+  await new Promise((resolve) => setTimeout(resolve, 300))
+  expect(hintFor()).toBeNull()
 })
 
 test('a collapsed rail row reveals its label on keyboard focus', async () => {

@@ -433,12 +433,12 @@ export function M7ApplicationNavigation(props: {
                     <SidebarMenuItem>
                       <SidebarMenuButton
                         size="lg"
+                        icon={icon}
                         tooltip={label}
                         isActive={navActive(view)}
                         aria-current={navActive(view) ? 'page' : undefined}
                         onClick={() => runNavigation(() => props.navigation.onNavigate(view))}
                       >
-                        <Dynamic component={icon} aria-hidden="true" />
                         <span>{label}</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -446,6 +446,7 @@ export function M7ApplicationNavigation(props: {
                       <SidebarMenuItem>
                         <SidebarMenuButton
                           size="lg"
+                          icon={GitFork}
                           tooltip="Graph"
                           isActive={
                             props.navigation.view === 'knowledge' &&
@@ -459,7 +460,6 @@ export function M7ApplicationNavigation(props: {
                           }
                           onClick={() => runNavigation(props.navigation.onOpenGraph)}
                         >
-                          <GitFork aria-hidden="true" />
                           <span>Graph</span>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -468,6 +468,7 @@ export function M7ApplicationNavigation(props: {
                       <SidebarMenuItem>
                         <SidebarMenuButton
                           size="lg"
+                          icon={TerminalSquare}
                           tooltip="Agent tools"
                           isActive={props.navigation.view === 'agent-tools'}
                           aria-current={
@@ -477,7 +478,6 @@ export function M7ApplicationNavigation(props: {
                             runNavigation(() => props.navigation.onNavigate('agent-tools'))
                           }
                         >
-                          <TerminalSquare aria-hidden="true" />
                           <span>Agent tools</span>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -494,12 +494,12 @@ export function M7ApplicationNavigation(props: {
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
+              icon={Inbox}
               tooltip="Inbox"
               isActive={props.navigation.view === 'inbox'}
               aria-current={props.navigation.view === 'inbox' ? 'page' : undefined}
               onClick={() => runNavigation(() => props.navigation.onNavigate('inbox'))}
             >
-              <Inbox aria-hidden="true" />
               <span>Inbox</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -515,12 +515,12 @@ export function M7ApplicationNavigation(props: {
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       size="lg"
+                      icon={item.icon}
                       tooltip={item.label}
                       isActive={item.current()}
                       aria-current={item.current() ? 'page' : undefined}
                       onClick={() => runNavigation(item.run)}
                     >
-                      <Dynamic component={item.icon} aria-hidden="true" />
                       <span>{item.label}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -533,11 +533,11 @@ export function M7ApplicationNavigation(props: {
                 <DropdownMenuTrigger
                   as={SidebarMenuButton}
                   size="lg"
+                  icon={Settings}
                   tooltip="Settings and utilities"
                   aria-label="Settings and utilities"
                   isActive={utilitiesActive()}
                 >
-                  <Settings aria-hidden="true" />
                   <span>Settings</span>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" side="top" sideOffset={6} class="min-w-52">

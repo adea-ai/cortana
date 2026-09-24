@@ -457,6 +457,9 @@ function SidebarMenuButton(
   props: ComponentProps<'button'> & {
     as?: ValidComponent
     isActive?: boolean
+    /** Row icon; also drawn inside the collapsed label so the two match. */
+    icon?: ValidComponent
+    /** Collapsed-rail label text. */
     tooltip?: string
   } & VariantProps<typeof sidebarMenuButtonVariants>
 ) {
@@ -465,6 +468,7 @@ function SidebarMenuButton(
     'class',
     'as',
     'isActive',
+    'icon',
     'variant',
     'size',
     'tooltip',
@@ -475,11 +479,11 @@ function SidebarMenuButton(
     'onBlur',
   ])
   const hintEnabled = () => Boolean(local.tooltip) && !isMobile() && state() === 'collapsed'
-  // The collapsed rail keeps one label surface instead of a pointer bubble: the
-  // flyout borrows the row's box (same top and height, offset past its right
-  // edge) and follows it while shown, so a scan down the rail reads as rows
-  // unfolding rather than tooltips popping. Rendered through a portal because
-  // the rail scrolls and would clip an in-flow child.
+  // The collapsed rail's hover affordance is the row unfolding in place: the
+  // label overlays the row's exact box (same top, left, and height) and carries
+  // the same icon, so the rail keeps one surface instead of a pointer bubble
+  // parked beside it. Portalled because the rail scrolls and would clip an
+  // in-flow child, and repositioned while shown so it follows that scroll.
   const [hintRect, setHintRect] = createSignal<SidebarHintRect | null>(null)
   const [hintVisible, setHintVisible] = createSignal(false)
   let hintAnchor: HTMLElement | null = null
@@ -499,7 +503,7 @@ function SidebarMenuButton(
   const placeHint = () => {
     if (!hintAnchor) return
     const box = hintAnchor.getBoundingClientRect()
-    const next = { top: box.top, left: box.right + 8, height: box.height }
+    const next = { top: box.top, left: box.left, height: box.height }
     setHintRect((previous) =>
       previous &&
       previous.top === next.top &&
@@ -579,6 +583,7 @@ function SidebarMenuButton(
         hideHint()
       }}
     >
+      <Show when={local.icon}>{(icon) => <Dynamic component={icon()} aria-hidden="true" />}</Show>
       {local.children}
     </Dynamic>
   )
@@ -592,7 +597,7 @@ function SidebarMenuButton(
             data-slot="sidebar-menu-hint"
             aria-hidden="true"
             class={cn(
-              'pointer-events-none fixed z-50 flex max-w-64 items-center overflow-hidden rounded-md bg-popover px-3 text-sm font-medium whitespace-nowrap text-popover-foreground shadow-md ring-1 ring-foreground/10 transition-opacity duration-150',
+              'pointer-events-none fixed z-[9999] flex items-center gap-2.5 rounded-md border border-border bg-card pr-3 pl-3 text-sm font-medium whitespace-nowrap text-foreground shadow-lg transition-opacity duration-150',
               hintVisible() ? 'opacity-100' : 'opacity-0'
             )}
             style={{
@@ -601,7 +606,19 @@ function SidebarMenuButton(
               height: `${hintRect()!.height}px`,
             }}
           >
-            <span class="truncate">{local.tooltip}</span>
+            <Show when={local.icon}>
+              {(icon) => (
+                <span
+                  class={cn(
+                    'flex size-6 shrink-0 items-center justify-center',
+                    local.isActive && 'text-sidebar-primary'
+                  )}
+                >
+                  <Dynamic component={icon()} aria-hidden="true" />
+                </span>
+              )}
+            </Show>
+            {local.tooltip}
           </div>
         </Portal>
       </Show>
