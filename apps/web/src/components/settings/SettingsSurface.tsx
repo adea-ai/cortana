@@ -238,8 +238,25 @@ export function SettingsTabsContent(props: ComponentProps<'div'> & { value: stri
   return <TabsContent value={local.value} {...rest} />
 }
 
-export function SettingsAccordion(props: { class?: string; children: JSX.Element }) {
-  return <Accordion class={props.class}>{props.children}</Accordion>
+export function SettingsAccordion(props: {
+  class?: string
+  /** Allow more than one section of the same group open at once. */
+  multiple?: boolean
+  collapsible?: boolean
+  children: JSX.Element
+}) {
+  // Kobalte's Accordion defaults to a single, non-collapsible selection, which
+  // makes an opened section impossible to close again. Settings disclosures are
+  // independent, so they collapse when their trigger is activated twice.
+  return (
+    <Accordion
+      class={props.class}
+      multiple={props.multiple ?? false}
+      collapsible={props.collapsible ?? true}
+    >
+      {props.children}
+    </Accordion>
+  )
 }
 
 export function SettingsAccordionItem(props: {

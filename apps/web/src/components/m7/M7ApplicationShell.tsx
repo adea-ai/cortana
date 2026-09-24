@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   ArrowRight,
   BookOpenText,
+  Check,
   CircleHelp,
   Database,
   GitFork,
@@ -13,6 +14,7 @@ import {
   LoaderCircle,
   MessageCircle,
   MoreVertical,
+  RefreshCw,
   Search,
   Settings,
   Sparkles,
@@ -91,6 +93,8 @@ export type M7NavigationProps = {
   workspaceTab?: 'answer' | 'document' | 'sources' | 'graph' | 'timeline'
   onNavigate: (view: AppView) => void
   onOpenGraph: () => void
+  /** Opens Settings on a named section, used by the utilities menu. */
+  onOpenSettingsSection?: (section: 'updates' | 'services') => void
 }
 
 export type M7HeaderProps = {
@@ -117,6 +121,44 @@ const navigationItems = [
   { view: 'knowledge' as const, label: 'Knowledge', icon: BookOpenText },
   { view: 'conversations' as const, label: 'Conversations', icon: MessageCircle },
 ]
+
+/**
+ * Destinations behind the single utilities trigger. Inbox keeps its own rail
+ * row; the rest of the footer's former rows live here so the collapsed column
+ * stays a short list of surfaces instead of a stack of icon-only entries.
+ */
+function utilityItemsFor(navigation: M7NavigationProps) {
+  return [
+    {
+      id: 'settings',
+      label: 'Settings',
+      icon: Settings,
+      run: () => navigation.onNavigate('settings'),
+      current: () => navigation.view === 'settings',
+    },
+    {
+      id: 'updates',
+      label: 'Updates',
+      icon: RefreshCw,
+      run: () => navigation.onOpenSettingsSection?.('updates'),
+      current: () => false,
+    },
+    {
+      id: 'index',
+      label: 'Index',
+      icon: Database,
+      run: () => navigation.onNavigate('index'),
+      current: () => navigation.view === 'index',
+    },
+    {
+      id: 'help',
+      label: 'Help',
+      icon: CircleHelp,
+      run: () => navigation.onNavigate('help'),
+      current: () => navigation.view === 'help',
+    },
+  ]
+}
 
 export function M7ApplicationHeader(props: M7HeaderProps) {
   const actionsRef = { current: null as HTMLButtonElement | null }
@@ -298,6 +340,9 @@ export function M7ApplicationNavigation(props: {
 }) {
   const activeWorkspace = () => props.workspaces.find((item) => item.id === props.workspace)
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = createSignal(false)
+  const [utilitiesMenuOpen, setUtilitiesMenuOpen] = createSignal(false)
+  const utilityItems = utilityItemsFor(props.navigation)
+  const utilitiesActive = () => utilityItems.some((item) => item.current())
   const { isMobile, mobileFinalFocusRef, mobileTriggerRef, setOpenMobile } = useSidebar()
   const runNavigation = (action: () => void, focusDestination = false) => {
     action()
@@ -449,18 +494,6 @@ export function M7ApplicationNavigation(props: {
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
-              tooltip="Settings"
-              isActive={props.navigation.view === 'settings'}
-              aria-current={props.navigation.view === 'settings' ? 'page' : undefined}
-              onClick={() => runNavigation(() => props.navigation.onNavigate('settings'))}
-            >
-              <Settings aria-hidden="true" />
-              <span>Settings</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              size="lg"
               tooltip="Inbox"
               isActive={props.navigation.view === 'inbox'}
               aria-current={props.navigation.view === 'inbox' ? 'page' : undefined}
@@ -471,28 +504,44 @@ export function M7ApplicationNavigation(props: {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              size="lg"
-              tooltip="Index"
-              isActive={props.navigation.view === 'index'}
-              aria-current={props.navigation.view === 'index' ? 'page' : undefined}
-              onClick={() => runNavigation(() => props.navigation.onNavigate('index'))}
-            >
-              <Database aria-hidden="true" />
-              <span>Index</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              size="lg"
-              tooltip="Help"
-              isActive={props.navigation.view === 'help'}
-              aria-current={props.navigation.view === 'help' ? 'page' : undefined}
-              onClick={() => runNavigation(() => props.navigation.onNavigate('help'))}
-            >
-              <CircleHelp aria-hidden="true" />
-              <span>Help</span>
-            </SidebarMenuButton>
+            <DropdownMenu open={utilitiesMenuOpen()} onOpenChange={setUtilitiesMenuOpen}>
+              <DropdownMenuTrigger
+                as={SidebarMenuButton}
+                size="lg"
+                tooltip="Settings and utilities"
+                aria-label="Settings and utilities"
+                isActive={utilitiesActive()}
+              >
+                <Settings aria-hidden="true" />
+                <span>Settings</span>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" side="top" sideOffset={6} class="min-w-52">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>Cortana</DropdownMenuLabel>
+                  <For each={utilityItems}>
+                    {(item) => (
+                      <DropdownMenuItem
+                        aria-current={item.current() ? 'page' : undefined}
+                        // Kobalte closes a menu 1ms after a selection, and the
+                        // destination's own render can land inside that window.
+                        // Closing here keeps the trigger's next activation
+                        // opening the menu instead of toggling a stale open one.
+                        onSelect={() => {
+                          setUtilitiesMenuOpen(false)
+                          runNavigation(item.run)
+                        }}
+                      >
+                        <Dynamic component={item.icon} aria-hidden="true" />
+                        {item.label}
+                        <Show when={item.current()}>
+                          <Check class="ml-auto" aria-hidden="true" />
+                        </Show>
+                      </DropdownMenuItem>
+                    )}
+                  </For>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
@@ -502,7 +551,9 @@ export function M7ApplicationNavigation(props: {
 
 export function M7ShellProvider(props: { children: JSX.Element }) {
   return (
-    <TooltipProvider delay={250}>
+    // 150ms: long enough to survive a pointer crossing a control, short enough
+    // that action help feels immediate beside the rail's own label flyout.
+    <TooltipProvider delay={150}>
       <SidebarProvider
         defaultOpen={false}
         class="m7-shell-provider min-h-0 overflow-hidden"

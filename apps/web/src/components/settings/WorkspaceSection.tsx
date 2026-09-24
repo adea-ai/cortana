@@ -1,7 +1,6 @@
 import { ArrowDown, ArrowUp, LoaderCircle, Plus, Search, Trash2, Upload } from 'lucide-solid'
 import { createSignal, For, Index } from 'solid-js'
 
-import { cn } from '../../lib/utils'
 import { DEFAULT_THEME, SUPPORTED_THEMES, type ThemeMode } from '../../theme'
 import type { DesktopSettings, WorkspaceSettings } from '../../types'
 import { readWorkspaceLogoFile, writeWorkspaceLogo } from '../../workspaceLogoStore'
@@ -30,6 +29,11 @@ import {
 } from './SettingsSurface'
 import { applyConfirmed } from './SettingsWorkflowUtils'
 
+// Mirrors the desktop settings guard (apps/desktop/src-tauri/src/settings.rs).
+// The cap stays a backend safety bound: the surface never advertises it as a
+// number a person is expected to reach.
+const MAX_WORKSPACES = 128
+
 export function WorkspaceSection(incoming: {
   settings: DesktopSettings
   update: (change: (draft: DesktopSettings) => DesktopSettings) => void
@@ -38,6 +42,10 @@ export function WorkspaceSection(incoming: {
   const confirm = useSettingsConfirm()
   const [logoError, setLogoError] = createSignal('')
   const [logoLoading, setLogoLoading] = createSignal<string | null>(null)
+  // The visible control is a standard button (file inputs cannot hold one), so
+  // each card keeps its hidden picker keyed by workspace for that click.
+  const logoInputs = new Map<string, HTMLInputElement | undefined>()
+  const workspaceLogoInput = (workspaceId: string) => logoInputs.get(workspaceId)
   const [workspaceThemes, setWorkspaceThemes] = createSignal(readWorkspaceThemePreferences())
   const [workspaceQuery, setWorkspaceQuery] = createSignal('')
   const hasWorkspaceSources = (workspaceId: string) =>
@@ -187,34 +195,37 @@ export function WorkspaceSection(incoming: {
                     <strong>{workspace().name || 'New workspace'}</strong>
                     <small>Workspace identity</small>
                   </div>
-                  <label
-                    class={cn(
-                      'workspace-logo-upload',
-                      logoLoading() === workspace().id && 'is-loading'
-                    )}
-                    title={
+                  <Button
+                    variant="ghost"
+                    type="button"
+                    aria-label={`Upload logo for ${workspace().name}`}
+                    disabled={logoLoading() === workspace().id}
+                    tooltip={
                       logoLoading() === workspace().id
                         ? 'Saving workspace logo'
                         : 'Upload workspace logo'
                     }
-                    aria-busy={logoLoading() === workspace().id}
+                    onClick={() => workspaceLogoInput(workspace().id)?.click()}
                   >
                     {logoLoading() === workspace().id ? (
                       <LoaderCircle class="spin" size={14} aria-label="Saving workspace logo" />
                     ) : (
                       <Upload size={14} />
                     )}
-                    <span class="visually-hidden">Upload logo for {workspace().name}</span>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      disabled={logoLoading() === workspace().id}
-                      onChange={(event) => {
-                        void updateLogo(workspace().id, event.target.files?.[0])
-                        event.currentTarget.value = ''
-                      }}
-                    />
-                  </label>
+                  </Button>
+                  <Input
+                    ref={(element: HTMLInputElement) => logoInputs.set(workspace().id, element)}
+                    type="file"
+                    accept="image/*"
+                    aria-label={`Upload logo file for ${workspace().name}`}
+                    aria-hidden="true"
+                    tabIndex={-1}
+                    class="visually-hidden"
+                    onChange={(event) => {
+                      void updateLogo(workspace().id, event.target.files?.[0])
+                      event.currentTarget.value = ''
+                    }}
+                  />
                   {props.settings.workspaces.length > 1 && (
                     <div class="workspace-order-actions">
                       <Button
@@ -353,10 +364,15 @@ export function WorkspaceSection(incoming: {
       <Button
         variant="secondary"
         type="button"
-        disabled={props.settings.workspaces.length >= 128}
+        disabled={props.settings.workspaces.length >= MAX_WORKSPACES}
+        tooltip={
+          props.settings.workspaces.length >= MAX_WORKSPACES
+            ? `Cortana supports ${MAX_WORKSPACES} workspaces in one profile`
+            : 'Add another query scope'
+        }
         onClick={addWorkspace}
       >
-        <Plus size={15} /> Add workspace ({props.settings.workspaces.length}/128)
+        <Plus size={15} /> Add workspace
       </Button>
     </SettingsSection>
   )

@@ -1,5 +1,13 @@
-import { createSignal, onCleanup, onMount, Show, splitProps, type ComponentProps } from 'solid-js'
-import { Dynamic } from 'solid-js/web'
+import {
+  createEffect,
+  createSignal,
+  onCleanup,
+  onMount,
+  Show,
+  splitProps,
+  type ComponentProps,
+} from 'solid-js'
+import { Dynamic, Portal } from 'solid-js/web'
 import type { ValidComponent } from 'solid-js'
 import type { VariantProps } from 'class-variance-authority'
 
@@ -16,7 +24,6 @@ import {
   SheetTitle,
 } from '@/components/shadcn/sheet'
 import { Skeleton } from '@/components/shadcn/skeleton'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/shadcn/tooltip'
 import { PanelLeftIcon } from 'lucide-solid'
 import { SidebarContext, type SidebarContextProps, useSidebar } from './sidebar-context'
 import { sidebarMenuButtonVariants } from './sidebar-variants'
@@ -434,11 +441,23 @@ function SidebarMenuItem(props: ComponentProps<'li'>) {
   )
 }
 
+/** Collapsed-rail label geometry: the anchor row's viewport box. */
+type SidebarHintRect = { top: number; left: number; height: number }
+
+// Rows composed as a menu trigger arrive with the trigger's own handlers on the
+// same props. Solid accepts either a plain handler or a data-bound tuple, and
+// the rail must not swallow the caller's, so relay both shapes.
+function relayHandler(handler: unknown, event: Event) {
+  if (typeof handler === 'function') (handler as (event: Event) => void)(event)
+  else if (Array.isArray(handler))
+    (handler[0] as (data: unknown, event: Event) => void)(handler[1], event)
+}
+
 function SidebarMenuButton(
   props: ComponentProps<'button'> & {
     as?: ValidComponent
     isActive?: boolean
-    tooltip?: string | ComponentProps<typeof TooltipContent>
+    tooltip?: string
   } & VariantProps<typeof sidebarMenuButtonVariants>
 ) {
   const { isMobile, state } = useSidebar()
@@ -450,13 +469,86 @@ function SidebarMenuButton(
     'size',
     'tooltip',
     'children',
+    'onMouseEnter',
+    'onMouseLeave',
+    'onFocus',
+    'onBlur',
   ])
-  const showTooltip = () => Boolean(local.tooltip) && !isMobile() && state() === 'collapsed'
+  const hintEnabled = () => Boolean(local.tooltip) && !isMobile() && state() === 'collapsed'
+  // The collapsed rail keeps one label surface instead of a pointer bubble: the
+  // flyout borrows the row's box (same top and height, offset past its right
+  // edge) and follows it while shown, so a scan down the rail reads as rows
+  // unfolding rather than tooltips popping. Rendered through a portal because
+  // the rail scrolls and would clip an in-flow child.
+  const [hintRect, setHintRect] = createSignal<SidebarHintRect | null>(null)
+  const [hintVisible, setHintVisible] = createSignal(false)
+  let hintAnchor: HTMLElement | null = null
+  let hideTimer: ReturnType<typeof setTimeout> | undefined
+  let frame: number | undefined
+
+  const cancelTimers = () => {
+    if (hideTimer) {
+      clearTimeout(hideTimer)
+      hideTimer = undefined
+    }
+    if (frame !== undefined) {
+      cancelAnimationFrame(frame)
+      frame = undefined
+    }
+  }
+  const placeHint = () => {
+    if (!hintAnchor) return
+    const box = hintAnchor.getBoundingClientRect()
+    const next = { top: box.top, left: box.right + 8, height: box.height }
+    setHintRect((previous) =>
+      previous &&
+      previous.top === next.top &&
+      previous.left === next.left &&
+      previous.height === next.height
+        ? previous
+        : next
+    )
+  }
+  const showHint = (anchor: HTMLElement) => {
+    if (!hintEnabled()) return
+    hintAnchor = anchor
+    cancelTimers()
+    placeHint()
+    frame = requestAnimationFrame(() => {
+      frame = undefined
+      setHintVisible(true)
+    })
+  }
+  const hideHint = () => {
+    cancelTimers()
+    hintAnchor = null
+    setHintVisible(false)
+    // Keeps the node mounted through the fade-out before it is dropped.
+    hideTimer = setTimeout(() => setHintRect(null), 150)
+  }
+  // Expanding the rail (or switching to mobile) while a label is up must drop
+  // it: the row now shows its own text, and mouseleave may never arrive.
+  createEffect(() => {
+    if (hintEnabled()) return
+    cancelTimers()
+    hintAnchor = null
+    setHintVisible(false)
+    setHintRect(null)
+  })
+  createEffect(() => {
+    if (!hintRect()) return
+    window.addEventListener('scroll', placeHint, true)
+    window.addEventListener('resize', placeHint)
+    onCleanup(() => {
+      window.removeEventListener('scroll', placeHint, true)
+      window.removeEventListener('resize', placeHint)
+    })
+  })
+  onCleanup(cancelTimers)
 
   const renderButton = () => (
     <Dynamic
-      component={showTooltip() ? TooltipTrigger : (local.as ?? 'button')}
-      data-slot="sidebar-menu-button"
+      component={local.as ?? 'button'}
       data-sidebar="menu-button"
       data-size={local.size ?? 'default'}
       data-active={local.isActive || undefined}
@@ -465,26 +557,55 @@ function SidebarMenuButton(
         local.class
       )}
       {...rest}
+      // The row owns its own identity: when a caller composes this button as a
+      // menu trigger, the trigger's `data-slot` must not replace the rail row's.
+      data-slot="sidebar-menu-button"
+      // Pointer and keyboard both reveal the label: the rail is icon-only, so
+      // hover alone would leave the names unreachable without a mouse.
+      onMouseEnter={(event: MouseEvent) => {
+        relayHandler(local.onMouseEnter, event)
+        showHint(event.currentTarget as HTMLElement)
+      }}
+      onMouseLeave={(event: MouseEvent) => {
+        relayHandler(local.onMouseLeave, event)
+        hideHint()
+      }}
+      onFocus={(event: FocusEvent) => {
+        relayHandler(local.onFocus, event)
+        showHint(event.currentTarget as HTMLElement)
+      }}
+      onBlur={(event: FocusEvent) => {
+        relayHandler(local.onBlur, event)
+        hideHint()
+      }}
     >
       {local.children}
     </Dynamic>
   )
 
   return (
-    <Show when={showTooltip() && local.tooltip} fallback={renderButton()}>
-      {(tooltip) => (
-        <Tooltip>
-          {renderButton()}
-          <TooltipContent
-            side="right"
-            align="center"
-            {...(typeof tooltip() === 'string'
-              ? { children: tooltip() as string }
-              : (tooltip() as object))}
-          />
-        </Tooltip>
-      )}
-    </Show>
+    <>
+      {renderButton()}
+      <Show when={hintRect()}>
+        <Portal>
+          <div
+            data-slot="sidebar-menu-hint"
+            aria-hidden="true"
+            class={cn(
+              'pointer-events-none fixed z-50 flex max-w-64 items-center overflow-hidden rounded-md bg-popover px-3 text-sm font-medium whitespace-nowrap text-popover-foreground shadow-md ring-1 ring-foreground/10 transition-opacity duration-150',
+              hintVisible() ? 'opacity-100' : 'opacity-0'
+            )}
+            style={{
+              top: `${hintRect()!.top}px`,
+              left: `${hintRect()!.left}px`,
+              height: `${hintRect()!.height}px`,
+            }}
+          >
+            <span class="truncate">{local.tooltip}</span>
+          </div>
+        </Portal>
+      </Show>
+    </>
   )
 }
 

@@ -171,6 +171,18 @@ async function chooseWorkspace(id: string) {
   // Kobalte menu items select on pointerup.
   fireEvent.pointerUp(option)
 }
+// The rail footer keeps one utilities trigger, so its destinations are reached
+// through the menu: Kobalte opens the trigger on pointerdown and selects an item
+// on pointerup.
+async function openSidebarDestination(label: string) {
+  fireEvent.pointerDown(
+    screen.getByRole('button', {
+      name: 'Settings and utilities',
+    })
+  )
+  const item = await screen.findByRole('menuitem', { name: label })
+  fireEvent.pointerUp(item)
+}
 test('the shadcn renderer composes the real application shell and state', async () => {
   render(() => <App />)
   await flushAppBootstrap()
@@ -658,15 +670,11 @@ test('settings navigation explains the desktop-only view in web mode', async () 
   await waitFor(() =>
     expect(
       screen.getByRole('button', {
-        name: 'Settings',
+        name: 'Settings and utilities',
       })
     ).toBeTruthy()
   )
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: 'Settings',
-    })
-  )
+  await openSidebarDestination('Settings')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {

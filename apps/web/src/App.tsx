@@ -1522,6 +1522,11 @@ function CortanaApplication() {
     setView('knowledge')
     focusWhenReady(() => searchRef.current, true)
   }
+  function openSettingsSection(section: 'updates' | 'services') {
+    if (!canLeaveSettings()) return
+    setSettingsSection(section)
+    setView('settings')
+  }
   function focusDocumentFilter() {
     if (!canLeaveSettings()) return
     setView('knowledge')
@@ -1756,6 +1761,7 @@ function CortanaApplication() {
               workspaceTab: workspaceTab(),
               onNavigate: navigate,
               onOpenGraph: openGraph,
+              onOpenSettingsSection: openSettingsSection,
             }}
             workspaces={workspaces()}
             workspace={effectiveWorkspace()}
@@ -2427,7 +2433,7 @@ export function ServiceHealthIndicator(incoming: {
           type="button"
           class={`service-activity-health ${state()}  `}
           aria-label="Open service health"
-          tooltip={`${detail()}. Open Services for controls.`}
+          tooltip={`${detail()}. Open Services to control or install them.`}
           onClick={props.onOpen}
         >
           <i /> {label()}

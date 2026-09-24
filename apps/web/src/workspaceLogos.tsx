@@ -1,4 +1,4 @@
-import { createSignal, onCleanup, onMount, Show } from 'solid-js'
+import { createMemo, createSignal, onCleanup, onMount, Show } from 'solid-js'
 
 import { cn } from '@/lib/utils'
 
@@ -9,11 +9,19 @@ export function WorkspaceLogo(props: {
   workspace: Pick<WorkspaceSettings, 'id' | 'name' | 'color'>
   size?: 'small' | 'medium' | 'large'
 }) {
-  const [logo, setLogo] = createSignal(readWorkspaceLogo(props.workspace.id))
+  // Re-reads on both axes: the stored logo for this workspace changes
+  // (upload/removal), and the rendered workspace changes when the shell
+  // switches scope. Capturing the id once left the switcher showing the
+  // previous workspace's logo.
+  const [version, setVersion] = createSignal(0)
+  const logo = createMemo(() => {
+    version()
+    return readWorkspaceLogo(props.workspace.id)
+  })
   const size = () => props.size ?? 'medium'
 
   onMount(() => {
-    const refresh = () => setLogo(readWorkspaceLogo(props.workspace.id))
+    const refresh = () => setVersion((current) => current + 1)
     refresh()
     window.addEventListener(LOGO_EVENT, refresh)
     onCleanup(() => window.removeEventListener(LOGO_EVENT, refresh))

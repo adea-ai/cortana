@@ -93,6 +93,17 @@ test('SourcePanel reports loading while status is still resolving', () => {
   renderPanel(null, '')
   expect(screen.getByText('Loading source index and health…')).toBeTruthy()
 })
+test('the document filter row renders a single input box', () => {
+  renderPanel(demoStatus, '')
+  const row = document.querySelector('label.document-filter') as HTMLElement
+  expect(row).toBeTruthy()
+  // The shadcn field and the row chrome used to draw two nested boxes; the row
+  // is the only box now, so exactly one input lives inside it.
+  expect(row.querySelectorAll('input')).toHaveLength(1)
+  const input = screen.getByLabelText('Filter documents') as HTMLInputElement
+  expect(row.contains(input)).toBe(true)
+  expect(input.getAttribute('placeholder')).toBe('Filter documents')
+})
 test('source panel uses the shell workspace scope without a duplicate picker', () => {
   renderPanel(demoStatus, '')
   expect(

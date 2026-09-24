@@ -5,6 +5,11 @@
 :root {
   color: #d9d8d4;
   background: #0e1524;
+  /* Every theme ships dark chrome (only the document paper is light), so the
+     native layer is told the same thing: form controls, scrollbars, and the
+     macOS title bar behind the traffic lights render dark instead of following
+     a light system appearance. */
+  color-scheme: dark;
   font-family:
     'Geist Variable',
     Inter,
@@ -1076,6 +1081,10 @@ select:focus-visible {
   font-size: 10px;
 }
 
+/* One box, not two: the label carries the only border, radius, and fill, and
+   the shadcn input inside it drops its own chrome (which otherwise drew a
+   rounded inner box on a straight-cornered outer one). The focus affordance
+   moves to the container so the single box still shows a visible indicator. */
 .document-filter {
   display: flex;
   height: 32px;
@@ -1086,21 +1095,35 @@ select:focus-visible {
   gap: 6px;
   color: var(--chrome-fg-dim);
   border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
   background: var(--panel);
 }
 
 .document-filter:focus-within {
   border-color: var(--amber-soft);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--amber-soft) 30%, transparent);
 }
 
-.document-filter input {
+/* Two classes plus the element outrank the panel's own
+   `.m7-source-panel [data-slot='input']` background, which would otherwise
+   paint a second box inside this row. */
+.document-filter input.document-filter-input {
   min-width: 0;
   flex: 1;
+  height: auto;
   color: var(--chrome-fg);
   border: 0;
+  border-radius: 0;
   outline: 0;
   background: transparent;
+  box-shadow: none;
   font-size: 12px;
+}
+
+.document-filter input.document-filter-input:focus-visible {
+  border: 0;
+  outline: 0;
+  box-shadow: none;
 }
 
 .document-filter-clear {
@@ -2761,37 +2784,6 @@ select:focus-visible {
   gap: 12px;
 }
 
-.workspace-logo-upload {
-  display: grid;
-  width: var(--btn-icon-size);
-  height: var(--btn-icon-size);
-  place-items: center;
-  color: var(--muted-foreground);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xs);
-  background: var(--surface-elevated);
-  cursor: pointer;
-}
-
-.workspace-logo-upload:hover,
-.workspace-logo-upload:focus-within {
-  color: var(--amber);
-  border-color: var(--amber);
-}
-
-.workspace-logo-upload.is-loading {
-  cursor: wait;
-  opacity: 0.7;
-}
-
-.workspace-logo-upload input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  opacity: 0;
-}
-
 .settings-inline-error {
   margin: 10px 0 0;
   color: var(--chrome-danger-fg);
@@ -2947,6 +2939,17 @@ select:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+/* Occupies the action row's place so a not-installed card names its install
+   path instead of leaving the row empty. */
+.service-install-hint {
+  margin: 0;
+  padding: 6px 8px;
+  color: var(--chrome-fg-dim);
+  border-left: 2px solid var(--line);
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .service-actions button {
@@ -5753,7 +5756,7 @@ select:focus-visible {
 }
 
 .m7-source-panel [data-slot='select-trigger'],
-.m7-source-panel [data-slot='input'] {
+.m7-source-panel [data-slot='input']:not(.document-filter-input) {
   background: var(--background);
 }
 

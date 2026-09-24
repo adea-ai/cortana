@@ -441,9 +441,10 @@ export function SourcePanel(props: {
           <span>{props.documents.length.toLocaleString()} loaded</span>
         </div>
         <label class="document-filter">
-          <Search size={14} />
+          <Search size={14} aria-hidden="true" />
           <Input
             id="document-filter"
+            class="document-filter-input"
             value={props.documentQuery}
             onChange={(event) => props.onDocumentQueryChange(event.target.value)}
             placeholder="Filter documents"

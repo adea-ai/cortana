@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from 'bun:test'
+import { createSignal } from 'solid-js'
 import { cleanup, render } from 'solid-testing-library'
 import { WorkspaceLogo } from './workspaceLogos'
 import {
@@ -198,6 +199,26 @@ test('WorkspaceLogo small variant composes with the workspace picker ring', () =
   const tile = container.querySelector('.workspace-logo') as HTMLElement
   expect(tile.className).toContain('workspace-logo--small')
   expect(tile.className).toContain('workspace-picker-mark')
+})
+test('WorkspaceLogo follows the rendered workspace when the shell switches scope', () => {
+  const personalLogo = 'data:image/png;base64,iVBORw0KGgoAAAB'
+  writeWorkspaceLogo('work', pngDataUrl)
+  writeWorkspaceLogo('personal', personalLogo)
+  const [workspace, setWorkspace] = createSignal({
+    id: 'work',
+    name: 'Work',
+    color: null,
+  })
+  const { container } = render(() => <WorkspaceLogo workspace={workspace()} />)
+  // The switcher re-renders this component in place, so a logo read once at
+  // mount left the previous workspace's image on screen after a scope change.
+  expect((container.querySelector('img.workspace-logo') as HTMLImageElement).src).toBe(pngDataUrl)
+  setWorkspace({ id: 'personal', name: 'Personal', color: null })
+  expect((container.querySelector('img.workspace-logo') as HTMLImageElement).src).toBe(personalLogo)
+  setWorkspace({ id: 'archive', name: 'Archive', color: null })
+  const tile = container.querySelector('.workspace-logo') as HTMLElement
+  expect(tile.tagName).toBe('SPAN')
+  expect(tile.textContent).toBe('A')
 })
 test('WorkspaceLogo renders a stored logo image with decorative alt behavior', () => {
   writeWorkspaceLogo('work', pngDataUrl)

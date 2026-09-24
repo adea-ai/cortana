@@ -703,6 +703,18 @@ async function flushDesktopBootstrap() {
     await Promise.resolve()
   })
 }
+// The rail footer keeps a single utilities trigger, so every destination behind
+// it is reached through the menu. Kobalte opens the trigger on pointerdown and
+// selects an item on pointerup.
+async function openSidebarDestination(label: string) {
+  fireEvent.pointerDown(
+    screen.getByRole('button', {
+      name: 'Settings and utilities',
+    })
+  )
+  const item = await screen.findByRole('menuitem', { name: label })
+  fireEvent.pointerUp(item)
+}
 test('shadcn settings compose generated source controls', async () => {
   const sourceSettings = {
     ...desktopSettings,
@@ -1172,11 +1184,7 @@ test('desktop settings navigation opens the audit trail and renders both event s
   )
 
   // Rail navigation into the settings view.
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: 'Settings',
-    })
-  )
+  await openSidebarDestination('Settings')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {
@@ -1253,11 +1261,7 @@ test('audit trail export downloads exactly the loaded redacted events as JSON', 
         })
       ).toBeTruthy()
     )
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -1321,11 +1325,7 @@ test('advanced settings export is blocked while draft is dirty', async () => {
       })
     ).toBeTruthy()
   )
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: 'Settings',
-    })
-  )
+  await openSidebarDestination('Settings')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {
@@ -1373,11 +1373,7 @@ test('advanced settings export shows redacted notice and calls the export bridge
       })
     ).toBeTruthy()
   )
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: 'Settings',
-    })
-  )
+  await openSidebarDestination('Settings')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {
@@ -1418,11 +1414,7 @@ test('advanced settings exports an explicit workspace set as a derived vault', a
         })
       ).toBeTruthy()
     )
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -1485,11 +1477,7 @@ test('advanced import preview cancellation keeps draft values unchanged', async 
         })
       ).toBeTruthy()
     )
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -1551,11 +1539,7 @@ test('advanced settings import preview applies as unsaved draft and requires exp
         })
       ).toBeTruthy()
     )
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -1602,11 +1586,7 @@ test('updates project link surfaces native browser failures', async () => {
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -1796,15 +1776,11 @@ test('desktop Help links use the native external URL bridge', async () => {
   await waitFor(() =>
     expect(
       screen.getByRole('button', {
-        name: 'Help',
+        name: 'Settings and utilities',
       })
     ).toBeTruthy()
   )
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: 'Help',
-    })
-  )
+  await openSidebarDestination('Help')
   const documentation = screen.getByRole('link', {
     name: /Documentation/,
   })
@@ -1819,15 +1795,11 @@ test('desktop Help links surface native browser failures', async () => {
   await waitFor(() =>
     expect(
       screen.getByRole('button', {
-        name: 'Help',
+        name: 'Settings and utilities',
       })
     ).toBeTruthy()
   )
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: 'Help',
-    })
-  )
+  await openSidebarDestination('Help')
   fireEvent.click(
     screen.getByRole('link', {
       name: /Documentation/,
@@ -1842,15 +1814,11 @@ test('desktop Help project action surfaces native browser failures', async () =>
   await waitFor(() =>
     expect(
       screen.getByRole('button', {
-        name: 'Help',
+        name: 'Settings and utilities',
       })
     ).toBeTruthy()
   )
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: 'Help',
-    })
-  )
+  await openSidebarDestination('Help')
   fireEvent.click(
     screen.getByRole('button', {
       name: 'Open project page',
@@ -1899,11 +1867,7 @@ test('desktop shell does not require the local embedding service for cloud embed
 test('query number fields expose deterministic errors and recover to the saved bounds', async () => {
   render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: 'Settings',
-    })
-  )
+  await openSidebarDestination('Settings')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {
@@ -1964,11 +1928,7 @@ test('embedding settings explain local service command ownership', async () => {
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -2003,11 +1963,7 @@ test('embedding model field supports preset catalog with custom fallback', async
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -2043,11 +1999,7 @@ test('query model field remains a dropdown and preserves the current model until
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -2123,11 +2075,7 @@ test('settings add controls avoid reusing removed identifiers', async () => {
   try {
     render(() => <App />)
     await screen.findByLabelText('Search your knowledge')
-    fireEvent.click(
-      await screen.findByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await screen.findByRole('heading', {
       level: 1,
       name: 'Settings',
@@ -2245,11 +2193,7 @@ test('adding files and code opens the native picker before creating a populated 
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -2310,11 +2254,7 @@ test('connecting a provider collects its files before persisting and authorizing
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -2374,11 +2314,7 @@ test('cancelling provider connection creates no source', async () => {
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -2428,11 +2364,7 @@ test('workspace controls protect scopes assigned to sources', async () => {
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -2484,11 +2416,7 @@ test('workspace cards show display name and advanced details', async () => {
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -2510,8 +2438,17 @@ test('workspace cards show display name and advanced details', async () => {
     expect(accountLabel.getAttribute('placeholder')).toBe('e.g. Nifty League')
     expect(screen.getByDisplayValue('Work')).toBeTruthy()
     expect((screen.getByLabelText(/Scope ID/i) as HTMLInputElement).readOnly).toBe(true)
-    const upload = screen.getByLabelText('Upload logo for Work') as HTMLInputElement
-    expect(upload.accept).toBe('image/*')
+    const upload = screen.getByLabelText('Upload logo for Work')
+    const picker = screen.getByLabelText('Upload logo file for Work') as HTMLInputElement
+    expect(picker.accept).toBe('image/*')
+    // The visible control is the shared button; it forwards to the hidden
+    // picker, which is the only way a file dialog opens for this card.
+    let pickerClicks = 0
+    picker.addEventListener('click', () => {
+      pickerClicks += 1
+    })
+    fireEvent.click(upload)
+    expect(pickerClicks).toBe(1)
   } finally {
     state.settings = originalSettings
   }
@@ -2519,11 +2456,7 @@ test('workspace cards show display name and advanced details', async () => {
 test('new workspace display names keep focus while typing', async () => {
   render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: 'Settings',
-    })
-  )
+  await openSidebarDestination('Settings')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {
@@ -2538,7 +2471,7 @@ test('new workspace display names keep focus while typing', async () => {
   )
   fireEvent.click(
     await screen.findByRole('button', {
-      name: 'Add workspace (2/128)',
+      name: 'Add workspace',
     })
   )
   const displayName = (await screen.findAllByLabelText('Display name')).at(-1) as HTMLInputElement
@@ -2576,11 +2509,7 @@ test('workspace settings keep 25 workspaces searchable and keyboard-operable', a
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -2594,7 +2523,7 @@ test('workspace settings keep 25 workspaces searchable and keyboard-operable', a
       })
     )
     const add = await screen.findByRole('button', {
-      name: 'Add workspace (25/128)',
+      name: 'Add workspace',
     })
     expect(add.hasAttribute('disabled')).toBe(false)
     const search = screen.getByLabelText('Find workspace') as HTMLInputElement
@@ -2636,11 +2565,7 @@ test('settings warns before discarding dirty changes', async () => {
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -2694,11 +2619,7 @@ test('settings can discard a draft without leaving the control plane', async () 
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -2764,11 +2685,7 @@ test('settings can discard a draft without leaving the control plane', async () 
       })
     )
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -2808,11 +2725,7 @@ test('late desktop bootstrap settings cannot overwrite a shell-reconciled snapsh
   try {
     render(() => <App />)
     await waitFor(() => expect(state.deferredDesktopSettings.length).toBe(1))
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() => expect(state.deferredDesktopSettings.length).toBe(2))
 
     // Settings completes its own read first; the App bootstrap request then
@@ -2934,11 +2847,7 @@ test('the footer updates shortcut respects unsaved settings changes', async () =
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -3021,11 +2930,7 @@ test('Inbox and Index settings actions open their relevant settings sections', a
       name: 'Sources',
     }).className
   ).toContain('active')
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: 'Index',
-    })
-  )
+  await openSidebarDestination('Index')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {
@@ -3069,11 +2974,7 @@ test('source settings use workspace tabs without repeating assigned workspace co
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -3147,11 +3048,7 @@ test('Apple Notes sources expose exact include and exclude folder filters', asyn
   try {
     render(() => <App />)
     await screen.findByLabelText('Search your knowledge')
-    fireEvent.click(
-      await screen.findByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await screen.findByRole('heading', {
       name: 'Settings',
     })
@@ -3201,11 +3098,7 @@ test('source settings quarantine legacy scopes and offer workspace assignment', 
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -3264,11 +3157,7 @@ test('GitHub code sources expose an explicit workspace-scoped repository allowli
   try {
     render(() => <App />)
     await screen.findByLabelText('Search your knowledge')
-    fireEvent.click(
-      await screen.findByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await screen.findByRole('heading', {
       name: 'Settings',
     })
@@ -3350,11 +3239,7 @@ test('settings refuses duplicate canonical source labels in one workspace', asyn
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -3390,15 +3275,11 @@ test('settings navigation opens workspace and services first and exposes native 
   await waitFor(() =>
     expect(
       screen.getByRole('button', {
-        name: 'Settings',
+        name: 'Settings and utilities',
       })
     ).toBeTruthy()
   )
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: 'Settings',
-    })
-  )
+  await openSidebarDestination('Settings')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {
@@ -3450,15 +3331,11 @@ test('settings uses graphite as the fixed default and exposes theme controls per
   await waitFor(() =>
     expect(
       screen.getByRole('button', {
-        name: 'Settings',
+        name: 'Settings and utilities',
       })
     ).toBeTruthy()
   )
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: 'Settings',
-    })
-  )
+  await openSidebarDestination('Settings')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {
@@ -3508,15 +3385,11 @@ test('workspace theme controls persist and apply per workspace', async () => {
   await waitFor(() =>
     expect(
       screen.getByRole('button', {
-        name: 'Settings',
+        name: 'Settings and utilities',
       })
     ).toBeTruthy()
   )
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: 'Settings',
-    })
-  )
+  await openSidebarDestination('Settings')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {
@@ -3581,11 +3454,7 @@ test('settings refuses padded or control-character source labels before save', a
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -3683,11 +3552,7 @@ test('source tree actions resolve a configured source by its canonical label', a
 test('Services settings stay a process-health surface with no source enablement controls', async () => {
   render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: 'Settings',
-    })
-  )
+  await openSidebarDestination('Settings')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {
@@ -3738,11 +3603,7 @@ test('services settings offers an explicit safe core-service install', async () 
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -3790,11 +3651,7 @@ test('services settings enables recurring sync only through its explicit action'
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -3826,11 +3683,7 @@ test('services settings enables recurring sync only through its explicit action'
 test('services settings saves bounded recurring sync and backup intervals', async () => {
   render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: 'Settings',
-    })
-  )
+  await openSidebarDestination('Settings')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {
@@ -3888,11 +3741,7 @@ test('services settings requires explicit apply after changing an installed sche
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -3934,11 +3783,7 @@ test('services settings refuses recurring sync while settings changes are unsave
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -3978,11 +3823,7 @@ test('services settings reuses the shell service snapshot without a duplicate po
   render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
   await waitFor(() => expect(state.getDesktopServicesCalls).toBe(1))
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: 'Settings',
-    })
-  )
+  await openSidebarDestination('Settings')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {
@@ -4004,6 +3845,49 @@ test('services settings reuses the shell service snapshot without a duplicate po
   )
   expect(state.getDesktopServicesCalls).toBe(1)
 })
+test('the utilities menu opens settings on the updates section', async () => {
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await openSidebarDestination('Updates')
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  // Updates is a section of Settings, not a view of its own.
+  expect(
+    screen.getByRole('button', {
+      name: 'Updates',
+    }).className
+  ).toContain('active')
+})
+test('services settings name the install path for services that are not installed', async () => {
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await openSidebarDestination('Settings')
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Services',
+    })
+  )
+  // The shell's default report installs nothing, so every card is a
+  // not-installed card: a bare "Not installed" with disabled controls left no
+  // install path, so each card must name the control that changes its state.
+  await waitFor(() => expect(screen.getByText(/Recurring ingestion is opt-in/)).toBeTruthy())
+  expect(screen.getAllByText(/Installs with the core service set/).length).toBeGreaterThan(0)
+  expect(screen.queryByRole('button', { name: 'Start' })).toBeNull()
+  expect(await screen.findByRole('button', { name: /Enable recurring sync/ })).toBeTruthy()
+  expect(await screen.findByRole('button', { name: /Install core services/ })).toBeTruthy()
+})
 test('services settings exports a verified database backup with explicit confirmation', async () => {
   const originalConfirm = window.confirm
   window.confirm = () => true
@@ -4011,11 +3895,7 @@ test('services settings exports a verified database backup with explicit confirm
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -4065,11 +3945,7 @@ test('services settings permits restore with an installed but idle backup job an
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -4131,11 +4007,7 @@ test('settings view reuses the shell settings snapshot without a duplicate read'
   render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
   await waitFor(() => expect(state.getDesktopSettingsCalls).toBe(1))
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: 'Settings',
-    })
-  )
+  await openSidebarDestination('Settings')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {
@@ -4149,11 +4021,7 @@ test('updates settings reuses the shell updater snapshot without a duplicate rea
   render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
   await waitFor(() => expect(state.getDesktopUpdateCalls).toBe(1))
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: 'Settings',
-    })
-  )
+  await openSidebarDestination('Settings')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {
@@ -4179,11 +4047,7 @@ test('settings save refreshes shell service metadata immediately', async () => {
   render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
   await waitFor(() => expect(state.getDesktopServicesCalls).toBe(1))
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: 'Settings',
-    })
-  )
+  await openSidebarDestination('Settings')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {
@@ -4217,11 +4081,7 @@ test('successful service actions clear a stale shell service error immediately',
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -4280,11 +4140,7 @@ test('saving settings clears stale local service errors', async () => {
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -4364,11 +4220,7 @@ test('service activity survives leaving Settings while a native action is runnin
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -4469,11 +4321,7 @@ test('readiness activity survives leaving Settings while a scan is running', asy
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -4607,11 +4455,7 @@ test('embedding generation mismatch offers a confirmed desktop adoption action',
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -4677,11 +4521,7 @@ test('embedding adoption reports a follow-up mismatch instead of claiming readin
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -4725,11 +4565,7 @@ test('completed installers trigger one shell-owned post-install readiness scan',
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -4795,11 +4631,7 @@ test('local embedding readiness explains the approval-gated runtime installer', 
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -4857,11 +4689,7 @@ test('connector environment install requires explicit approval from readiness', 
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -4926,11 +4754,7 @@ test('missing connector readiness exposes an approval-gated installer', async ()
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -4966,11 +4790,7 @@ test('installer progress survives settings section changes', async () => {
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -5056,11 +4876,7 @@ test('saving settings with restart_required triggers a background restart and cl
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -5108,11 +4924,7 @@ test('successful aggregate restart clears the saved-settings notice', async () =
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -5169,11 +4981,7 @@ test('a failed background restart after saving names the failure and offers reco
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -5309,11 +5117,7 @@ test('services settings keeps repair available for a partial core install', asyn
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -5350,11 +5154,7 @@ test('services settings surfaces a non-zero last exit as a failed service', asyn
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -5380,11 +5180,7 @@ test('services settings disables aggregate actions when the platform backend is 
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -5420,11 +5216,7 @@ test('Google source settings expose env-backed token credentials', async () => {
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -5464,11 +5256,7 @@ test('Google source authorization action starts a tracked browser job', async ()
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -5512,11 +5300,7 @@ test('Google authorization accepts a token path supplied through the configured 
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -5554,11 +5338,7 @@ test('running source jobs stay visible in the shell after leaving the settings v
     expect(screen.queryByText(/active source job/)).toBeNull()
 
     // Start a bounded validation from the settings sources section.
-    fireEvent.click(
-      await screen.findByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await screen.findByRole('heading', {
       level: 1,
       name: 'Settings',
@@ -5639,11 +5419,7 @@ test('completed source jobs refresh source health without waiting for the status
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
     const initialStatusCalls = state.statusCalls
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Settings',
-      })
-    )
+    await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
@@ -5690,11 +5466,7 @@ test('local runtime section opens active secret file path in desktop', async () 
   await screen.findByRole('button', {
     name: updatesButtonName,
   })
-  fireEvent.click(
-    await screen.findByRole('button', {
-      name: 'Settings',
-    })
-  )
+  await openSidebarDestination('Settings')
   await screen.findByRole('heading', {
     level: 1,
     name: 'Settings',
