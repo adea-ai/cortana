@@ -13,6 +13,9 @@ for (let index = 2; index < process.argv.length; index += 2) {
 
 const baseUrl = args.get('--base-url') ?? 'http://127.0.0.1:4173'
 const output = resolve(args.get('--output') ?? 'artifacts/m7-shadcn/final')
+// Destinations that live behind the rail's single utilities trigger rather
+// than on a row of their own.
+const MENU_DESTINATIONS = new Set(['Settings', 'Updates', 'Index', 'Help'])
 const widths = [320, 768, 1024, 1440, 1920]
 const themes = [
   'blue',
@@ -62,12 +65,19 @@ async function openPage(theme, width, state = 'configured') {
   return { context, page }
 }
 
+// The rail footer keeps one utilities trigger: Settings, Updates, Index, and
+// Help are reached by opening its menu and choosing the destination.
+async function openRailDestination(page, destination) {
+  await page.getByRole('button', { name: 'Settings and utilities' }).click()
+  await page.getByRole('menuitem', { name: destination, exact: true }).click()
+}
+
 async function openSettings(page, width) {
   if (width <= 768) {
     await page.getByRole('button', { name: 'Toggle navigation' }).click()
     await page.locator('[data-mobile="true"]').waitFor()
   }
-  await page.getByRole('button', { name: 'Settings', exact: true }).click()
+  await openRailDestination(page, 'Settings')
   if (width <= 768) await page.locator('[data-mobile="true"]').waitFor({ state: 'detached' })
   await page.locator('.settings-view').waitFor()
   await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor()
@@ -78,7 +88,8 @@ async function openDestination(page, width, destination) {
     await page.getByRole('button', { name: 'Toggle navigation' }).click()
     await page.locator('[data-mobile="true"]').waitFor()
   }
-  await page.getByRole('button', { name: destination, exact: true }).click()
+  if (MENU_DESTINATIONS.has(destination)) await openRailDestination(page, destination)
+  else await page.getByRole('button', { name: destination, exact: true }).click()
   if (width <= 768) await page.locator('[data-mobile="true"]').waitFor({ state: 'detached' })
   await page.getByRole('heading', { name: destination, level: 1 }).waitFor()
 }
@@ -155,7 +166,7 @@ async function auditAccessibility(page, label) {
         }
         await navigationTrigger.press('Enter')
         await page.locator('[data-mobile="true"]').waitFor()
-        await page.getByRole('button', { name: 'Settings', exact: true }).waitFor()
+        await page.getByRole('button', { name: 'Settings and utilities' }).waitFor()
         await page.waitForTimeout(300)
         await auditAccessibility(page, 'mobile production navigation')
         await screenshot(page, 'mobile-navigation-blue-320')
@@ -305,7 +316,7 @@ async function auditAccessibility(page, label) {
         await screenshot(page, 'workspace-menu-blue-1440')
         await page.keyboard.press('Escape')
 
-        await page.getByRole('button', { name: 'Settings', exact: true }).click()
+        await openRailDestination(page, 'Settings')
         await page.locator('.settings-view').waitFor()
         await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor()
         await auditAccessibility(page, 'settings readiness')
