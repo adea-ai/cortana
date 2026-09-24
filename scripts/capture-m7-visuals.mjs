@@ -173,7 +173,9 @@ async function auditAccessibility(page, label) {
         }
         await navigationTrigger.press('Enter')
         await page.locator('[data-mobile="true"]').waitFor()
-        await page.getByRole('button', { name: 'Settings and utilities' }).waitFor()
+        // The sheet lists every footer row, including the ones the compact
+        // rail folds into its utilities trigger.
+        await page.getByRole('button', { name: 'Inbox', exact: true }).waitFor()
         await page.waitForTimeout(300)
         await auditAccessibility(page, 'mobile production navigation')
         await screenshot(page, 'mobile-navigation-blue-320')
