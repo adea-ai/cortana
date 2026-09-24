@@ -5685,6 +5685,33 @@ select:focus-visible {
   background: color-mix(in srgb, var(--warning) 10%, var(--card));
 }
 
+/* The rail's utilities menu follows the account menu in the sibling shell: a
+   roomier list than the default dropdown (15rem wide, 0.75rem radius, 2.25rem
+   rows) with muted icons that ink up on the highlighted row. */
+.m7-utilities-menu {
+  min-width: 15rem;
+  padding: 0.4rem;
+  border-radius: 0.75rem;
+}
+
+.m7-utilities-menu [data-slot='dropdown-menu-item'] {
+  min-height: 2.25rem;
+  gap: 0.65rem;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.86rem;
+}
+
+.m7-utilities-menu [data-slot='dropdown-menu-item'] svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  color: var(--muted-foreground);
+}
+
+.m7-utilities-menu [data-slot='dropdown-menu-item']:not([data-disabled]):hover svg,
+.m7-utilities-menu [data-slot='dropdown-menu-item'][data-highlighted] svg {
+  color: currentColor;
+}
+
 .m7-source-panel {
   border-right-color: var(--border);
   background: var(--card);

@@ -2,6 +2,7 @@ import { act } from './test/act'
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
 import { cleanup, fireEvent, render, screen, waitFor, within } from 'solid-testing-library'
 import { demoEvidence, demoStatus } from './demo'
+import { shortcutLabel } from './shortcuts'
 import { answerResponse } from './test/fixtures'
 import type {
   AnswerResponse,
@@ -202,7 +203,14 @@ test('the rail utilities menu keeps the footer destinations one step away', asyn
     })
   )
   const items = await screen.findAllByRole('menuitem')
-  expect(items.map((item) => item.textContent)).toEqual(['Settings', 'Updates', 'Index', 'Help'])
+  // Order mirrors the sibling shell's account menu: help first, then the app's
+  // own surfaces, updates, and settings last with its chord.
+  expect(items.map((item) => item.textContent)).toEqual([
+    'Help',
+    'Index',
+    'Updates',
+    'Settings' + shortcutLabel('MOD,'),
+  ])
   fireEvent.pointerUp(screen.getByRole('menuitem', { name: 'Index' }))
   await waitFor(() =>
     expect(

@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   ArrowRight,
   BookOpenText,
-  Check,
   CircleHelp,
   Database,
   GitFork,
@@ -17,6 +16,7 @@ import {
   RefreshCw,
   Search,
   Settings,
+  Settings2,
   Sparkles,
   TerminalSquare,
 } from 'lucide-solid'
@@ -39,6 +39,7 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/shadcn/dropdown-menu'
 import { Input } from '@/components/shadcn/input'
@@ -122,26 +123,31 @@ const navigationItems = [
   { view: 'conversations' as const, label: 'Conversations', icon: MessageCircle },
 ]
 
+type UtilityItem = {
+  id: 'help' | 'index' | 'updates' | 'settings'
+  label: string
+  icon: typeof CircleHelp
+  /** Chord rendered on the right of the entry; `undefined` when none is bound. */
+  shortcut?: string
+  run: () => void
+  current: () => boolean
+}
+
 /**
  * Destinations behind the single utilities trigger. Inbox keeps its own rail
  * row; the rest of the footer's former rows live here so the collapsed column
- * stays a short list of surfaces instead of a stack of icon-only entries.
+ * stays a short list of surfaces instead of a stack of icon-only entries. The
+ * sequence mirrors the account menu in the sibling shell (help, app surfaces,
+ * updates, settings), minus the entries this app has no surface for.
  */
-function utilityItemsFor(navigation: M7NavigationProps) {
+function utilityItemsFor(navigation: M7NavigationProps): UtilityItem[] {
   return [
     {
-      id: 'settings',
-      label: 'Settings',
-      icon: Settings,
-      run: () => navigation.onNavigate('settings'),
-      current: () => navigation.view === 'settings',
-    },
-    {
-      id: 'updates',
-      label: 'Updates',
-      icon: RefreshCw,
-      run: () => navigation.onOpenSettingsSection?.('updates'),
-      current: () => false,
+      id: 'help',
+      label: 'Help',
+      icon: CircleHelp,
+      run: () => navigation.onNavigate('help'),
+      current: () => navigation.view === 'help',
     },
     {
       id: 'index',
@@ -151,11 +157,19 @@ function utilityItemsFor(navigation: M7NavigationProps) {
       current: () => navigation.view === 'index',
     },
     {
-      id: 'help',
-      label: 'Help',
-      icon: CircleHelp,
-      run: () => navigation.onNavigate('help'),
-      current: () => navigation.view === 'help',
+      id: 'updates',
+      label: 'Updates',
+      icon: RefreshCw,
+      run: () => navigation.onOpenSettingsSection?.('updates'),
+      current: () => false,
+    },
+    {
+      id: 'settings',
+      label: 'Settings',
+      icon: Settings2,
+      shortcut: shortcutLabel('MOD,'),
+      run: () => navigation.onNavigate('settings'),
+      current: () => navigation.view === 'settings',
     },
   ]
 }
@@ -540,9 +554,13 @@ export function M7ApplicationNavigation(props: {
                 >
                   <span>Settings</span>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" side="top" sideOffset={6} class="min-w-52">
+                <DropdownMenuContent
+                  class="m7-utilities-menu"
+                  align="start"
+                  side="top"
+                  sideOffset={0}
+                >
                   <DropdownMenuGroup>
-                    <DropdownMenuLabel>Cortana</DropdownMenuLabel>
                     <For each={utilityItems}>
                       {(item) => (
                         <DropdownMenuItem
@@ -557,9 +575,15 @@ export function M7ApplicationNavigation(props: {
                           }}
                         >
                           <Dynamic component={item.icon} aria-hidden="true" />
-                          {item.label}
-                          <Show when={item.current()}>
-                            <Check class="ml-auto" aria-hidden="true" />
+                          <span>{item.label}</span>
+                          <Show when={item.shortcut}>
+                            {/* Hidden like the reference menu's chord badge: the
+                                item's accessible name stays its label. */}
+                            {(keys) => (
+                              <DropdownMenuShortcut aria-hidden="true">
+                                {keys()}
+                              </DropdownMenuShortcut>
+                            )}
                           </Show>
                         </DropdownMenuItem>
                       )}

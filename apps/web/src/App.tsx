@@ -731,6 +731,10 @@ function CortanaApplication() {
         event.preventDefault()
         setLeftOpen(true)
         window.setTimeout(() => document.getElementById('document-filter')?.focus(), 0)
+      } else if (modifier && key === ',') {
+        // The rail's utilities menu advertises this chord on its Settings entry.
+        event.preventDefault()
+        if (canLeaveSettings()) setView('settings')
       }
     }
     window.addEventListener('keydown', handleKeyDown)

@@ -3845,6 +3845,18 @@ test('services settings reuses the shell service snapshot without a duplicate po
   )
   expect(state.getDesktopServicesCalls).toBe(1)
 })
+test('the settings chord advertised by the utilities menu opens settings', async () => {
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  fireEvent.keyDown(window, { key: ',', metaKey: true })
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+})
 test('the utilities menu opens settings on the updates section', async () => {
   render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
