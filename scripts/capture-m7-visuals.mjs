@@ -68,7 +68,14 @@ async function openPage(theme, width, state = 'configured') {
 // The rail footer keeps one utilities trigger: Settings, Updates, Index, and
 // Help are reached by opening its menu and choosing the destination.
 async function openRailDestination(page, destination) {
-  await page.getByRole('button', { name: 'Settings and utilities' }).click()
+  // The compact rail folds these destinations into one trigger; the mobile
+  // sheet keeps them as rows, so a missing trigger means a direct row click.
+  const trigger = page.getByRole('button', { name: 'Settings and utilities' })
+  if ((await trigger.count()) === 0) {
+    await page.getByRole('button', { name: destination, exact: true }).click()
+    return
+  }
+  await trigger.click()
   await page.getByRole('menuitem', { name: destination, exact: true }).click()
 }
 

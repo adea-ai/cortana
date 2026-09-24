@@ -503,46 +503,72 @@ export function M7ApplicationNavigation(props: {
               <span>Inbox</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <DropdownMenu open={utilitiesMenuOpen()} onOpenChange={setUtilitiesMenuOpen}>
-              <DropdownMenuTrigger
-                as={SidebarMenuButton}
-                size="lg"
-                tooltip="Settings and utilities"
-                aria-label="Settings and utilities"
-                isActive={utilitiesActive()}
-              >
-                <Settings aria-hidden="true" />
-                <span>Settings</span>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" side="top" sideOffset={6} class="min-w-52">
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>Cortana</DropdownMenuLabel>
-                  <For each={utilityItems}>
-                    {(item) => (
-                      <DropdownMenuItem
-                        aria-current={item.current() ? 'page' : undefined}
-                        // Kobalte closes a menu 1ms after a selection, and the
-                        // destination's own render can land inside that window.
-                        // Closing here keeps the trigger's next activation
-                        // opening the menu instead of toggling a stale open one.
-                        onSelect={() => {
-                          setUtilitiesMenuOpen(false)
-                          runNavigation(item.run)
-                        }}
-                      >
-                        <Dynamic component={item.icon} aria-hidden="true" />
-                        {item.label}
-                        <Show when={item.current()}>
-                          <Check class="ml-auto" aria-hidden="true" />
-                        </Show>
-                      </DropdownMenuItem>
-                    )}
-                  </For>
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
+          <Show
+            when={!isMobile()}
+            // The compact rail has no room for these rows, so it folds them into
+            // one trigger. The sheet does have room, and a dropdown opened from
+            // inside a modal sheet lands outside its aria-hidden boundary, where
+            // its items are unreachable — so small screens keep plain rows.
+            fallback={
+              <For each={utilityItems}>
+                {(item) => (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      size="lg"
+                      tooltip={item.label}
+                      isActive={item.current()}
+                      aria-current={item.current() ? 'page' : undefined}
+                      onClick={() => runNavigation(item.run)}
+                    >
+                      <Dynamic component={item.icon} aria-hidden="true" />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+              </For>
+            }
+          >
+            <SidebarMenuItem>
+              <DropdownMenu open={utilitiesMenuOpen()} onOpenChange={setUtilitiesMenuOpen}>
+                <DropdownMenuTrigger
+                  as={SidebarMenuButton}
+                  size="lg"
+                  tooltip="Settings and utilities"
+                  aria-label="Settings and utilities"
+                  isActive={utilitiesActive()}
+                >
+                  <Settings aria-hidden="true" />
+                  <span>Settings</span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" side="top" sideOffset={6} class="min-w-52">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>Cortana</DropdownMenuLabel>
+                    <For each={utilityItems}>
+                      {(item) => (
+                        <DropdownMenuItem
+                          aria-current={item.current() ? 'page' : undefined}
+                          // Kobalte closes a menu 1ms after a selection, and the
+                          // destination's own render can land inside that window.
+                          // Closing here keeps the trigger's next activation
+                          // opening the menu instead of toggling a stale open one.
+                          onSelect={() => {
+                            setUtilitiesMenuOpen(false)
+                            runNavigation(item.run)
+                          }}
+                        >
+                          <Dynamic component={item.icon} aria-hidden="true" />
+                          {item.label}
+                          <Show when={item.current()}>
+                            <Check class="ml-auto" aria-hidden="true" />
+                          </Show>
+                        </DropdownMenuItem>
+                      )}
+                    </For>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          </Show>
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
