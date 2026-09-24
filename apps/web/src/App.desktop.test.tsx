@@ -706,12 +706,13 @@ async function flushDesktopBootstrap() {
 // The rail footer keeps a single utilities trigger, so every destination behind
 // it is reached through the menu. Kobalte opens the trigger on pointerdown and
 // selects an item on pointerup.
+function utilitiesTrigger() {
+  return screen.getByRole('button', {
+    name: 'Settings and utilities',
+  })
+}
 async function openSidebarDestination(label: string) {
-  fireEvent.pointerDown(
-    screen.getByRole('button', {
-      name: 'Settings and utilities',
-    })
-  )
+  fireEvent.pointerDown(utilitiesTrigger())
   const item = await screen.findByRole('menuitem', { name: label })
   fireEvent.pointerUp(item)
 }
@@ -3844,6 +3845,28 @@ test('services settings reuses the shell service snapshot without a duplicate po
     ).toBeTruthy()
   )
   expect(state.getDesktopServicesCalls).toBe(1)
+})
+test('the utilities trigger marks the active destination and clears when it changes', async () => {
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  // The menu's own entry tests run against the live view, not the one captured
+  // when the shell first rendered.
+  expect(utilitiesTrigger().hasAttribute('data-active')).toBe(false)
+  await openSidebarDestination('Settings')
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  expect(utilitiesTrigger().hasAttribute('data-active')).toBe(true)
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Knowledge',
+    })
+  )
+  await waitFor(() => expect(utilitiesTrigger().hasAttribute('data-active')).toBe(false))
 })
 test('the settings chord advertised by the utilities menu opens settings', async () => {
   render(() => <App />)

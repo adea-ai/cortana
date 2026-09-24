@@ -129,8 +129,8 @@ type UtilityItem = {
   icon: typeof CircleHelp
   /** Chord rendered on the right of the entry; `undefined` when none is bound. */
   shortcut?: string
-  run: () => void
-  current: () => boolean
+  run: (navigation: M7NavigationProps) => void
+  current: (view: AppView) => boolean
 }
 
 /**
@@ -139,40 +139,43 @@ type UtilityItem = {
  * stays a short list of surfaces instead of a stack of icon-only entries. The
  * sequence mirrors the account menu in the sibling shell (help, app surfaces,
  * updates, settings), minus the entries this app has no surface for.
+ *
+ * The list is static and both callbacks take what they need as arguments: the
+ * shell re-renders its navigation props on every view change, so an item that
+ * closed over that object would keep testing the view it was built with and the
+ * trigger's active state would never change again.
  */
-function utilityItemsFor(navigation: M7NavigationProps): UtilityItem[] {
-  return [
-    {
-      id: 'help',
-      label: 'Help',
-      icon: CircleHelp,
-      run: () => navigation.onNavigate('help'),
-      current: () => navigation.view === 'help',
-    },
-    {
-      id: 'index',
-      label: 'Index',
-      icon: Database,
-      run: () => navigation.onNavigate('index'),
-      current: () => navigation.view === 'index',
-    },
-    {
-      id: 'updates',
-      label: 'Updates',
-      icon: RefreshCw,
-      run: () => navigation.onOpenSettingsSection?.('updates'),
-      current: () => false,
-    },
-    {
-      id: 'settings',
-      label: 'Settings',
-      icon: Settings2,
-      shortcut: shortcutLabel('MOD,'),
-      run: () => navigation.onNavigate('settings'),
-      current: () => navigation.view === 'settings',
-    },
-  ]
-}
+const utilityItems: UtilityItem[] = [
+  {
+    id: 'help',
+    label: 'Help',
+    icon: CircleHelp,
+    run: (navigation) => navigation.onNavigate('help'),
+    current: (view) => view === 'help',
+  },
+  {
+    id: 'index',
+    label: 'Index',
+    icon: Database,
+    run: (navigation) => navigation.onNavigate('index'),
+    current: (view) => view === 'index',
+  },
+  {
+    id: 'updates',
+    label: 'Updates',
+    icon: RefreshCw,
+    run: (navigation) => navigation.onOpenSettingsSection?.('updates'),
+    current: () => false,
+  },
+  {
+    id: 'settings',
+    label: 'Settings',
+    icon: Settings2,
+    shortcut: shortcutLabel('MOD,'),
+    run: (navigation) => navigation.onNavigate('settings'),
+    current: (view) => view === 'settings',
+  },
+]
 
 export function M7ApplicationHeader(props: M7HeaderProps) {
   const actionsRef = { current: null as HTMLButtonElement | null }
@@ -355,8 +358,10 @@ export function M7ApplicationNavigation(props: {
   const activeWorkspace = () => props.workspaces.find((item) => item.id === props.workspace)
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = createSignal(false)
   const [utilitiesMenuOpen, setUtilitiesMenuOpen] = createSignal(false)
-  const utilityItems = utilityItemsFor(props.navigation)
-  const utilitiesActive = () => utilityItems.some((item) => item.current())
+  // Read the view through the props accessor: capturing `props.navigation`
+  // here would freeze the entry-state comparisons at mount.
+  const currentView = () => props.navigation.view
+  const utilitiesActive = () => utilityItems.some((item) => item.current(currentView()))
   const { isMobile, mobileFinalFocusRef, mobileTriggerRef, setOpenMobile } = useSidebar()
   const runNavigation = (action: () => void, focusDestination = false) => {
     action()
@@ -531,9 +536,9 @@ export function M7ApplicationNavigation(props: {
                       size="lg"
                       icon={item.icon}
                       tooltip={item.label}
-                      isActive={item.current()}
-                      aria-current={item.current() ? 'page' : undefined}
-                      onClick={() => runNavigation(item.run)}
+                      isActive={item.current(currentView())}
+                      aria-current={item.current(currentView()) ? 'page' : undefined}
+                      onClick={() => runNavigation(() => item.run(props.navigation))}
                     >
                       <span>{item.label}</span>
                     </SidebarMenuButton>
@@ -564,14 +569,14 @@ export function M7ApplicationNavigation(props: {
                     <For each={utilityItems}>
                       {(item) => (
                         <DropdownMenuItem
-                          aria-current={item.current() ? 'page' : undefined}
+                          aria-current={item.current(currentView()) ? 'page' : undefined}
                           // Kobalte closes a menu 1ms after a selection, and the
                           // destination's own render can land inside that window.
                           // Closing here keeps the trigger's next activation
                           // opening the menu instead of toggling a stale open one.
                           onSelect={() => {
                             setUtilitiesMenuOpen(false)
-                            runNavigation(item.run)
+                            runNavigation(() => item.run(props.navigation))
                           }}
                         >
                           <Dynamic component={item.icon} aria-hidden="true" />
