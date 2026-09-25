@@ -131,7 +131,7 @@
     ]
   },
   "release": {
-    "version": "0.59.2",
+    "version": "0.59.3",
     "release_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
     "source": "published-release-assets"
   },
