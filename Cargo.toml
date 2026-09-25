@@ -63,7 +63,7 @@ libc = "0.2"
 
 [package]
 name = "cortana"
-version = "0.59.0"
+version = "0.59.1"
 edition.workspace = true
 rust-version.workspace = true
 description = "Local-first, agent-native second brain with configurable ingestion and hybrid retrieval"
