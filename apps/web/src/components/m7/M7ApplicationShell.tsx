@@ -446,7 +446,7 @@ export function M7ApplicationNavigation(props: {
               as={SidebarMenuButton}
               size="lg"
               class="m7-workspace-trigger p-0"
-              icon={() => <WorkspaceGlyph workspace={activeWorkspace()} size="small" />}
+              hintIcon={() => <WorkspaceGlyph workspace={activeWorkspace()} size="small" />}
               tooltip={`Workspace: ${activeWorkspace()?.name ?? 'Choose workspace'}`}
               aria-label="Switch workspace"
             >

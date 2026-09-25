@@ -459,6 +459,11 @@ function SidebarMenuButton(
     isActive?: boolean
     /** Row icon; also drawn inside the collapsed label so the two match. */
     icon?: ValidComponent
+    /**
+     * Mark for the collapsed label only, for rows whose own mark is not an icon
+     * (the workspace row draws a logo). Takes precedence over `icon` there.
+     */
+    hintIcon?: ValidComponent
     /** Collapsed-rail label text. */
     tooltip?: string
   } & VariantProps<typeof sidebarMenuButtonVariants>
@@ -469,6 +474,7 @@ function SidebarMenuButton(
     'as',
     'isActive',
     'icon',
+    'hintIcon',
     'variant',
     'size',
     'tooltip',
@@ -606,15 +612,15 @@ function SidebarMenuButton(
               height: `${hintRect()!.height}px`,
             }}
           >
-            <Show when={local.icon}>
-              {(icon) => (
+            <Show when={local.hintIcon ?? local.icon}>
+              {(mark) => (
                 <span
                   class={cn(
                     'flex size-6 shrink-0 items-center justify-center',
                     local.isActive && 'text-sidebar-primary'
                   )}
                 >
-                  <Dynamic component={icon()} aria-hidden="true" />
+                  <Dynamic component={mark()} aria-hidden="true" />
                 </span>
               )}
             </Show>
