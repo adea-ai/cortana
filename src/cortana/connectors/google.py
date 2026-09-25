@@ -118,6 +118,10 @@ GMAIL_DETAIL_RETRY_BACKOFF_SECONDS = (0.25, 0.75, 1.5, 3.0)
 # mistaken for a permanently unavailable message — that misread skip fails the
 # whole source closed as a partial snapshot.
 GMAIL_THROTTLE_BACKOFF_SECONDS = (1.0, 2.0, 4.0, 8.0)
+# A whole-burst denial is the account-level quota window, not one message. Wait
+# once between the concurrent pass and the sequential retry pass so a strict
+# run recovers instead of refusing the snapshot on the first denied detail.
+GMAIL_SECOND_PASS_PAUSE_SECONDS = 2.0
 GMAIL_DETAIL_CONCURRENCY = 4
 # Drive body fetches are independent after the metadata page is bounded. Keep
 # this deliberately small so PDF/DOCX extraction cannot exhaust memory or
@@ -509,7 +513,7 @@ def fetch_drive(
     drive_scope: str | None = None
     drive_start_page_token: str | None = None
     drive_cursor_eligible = strict and cache is not None and query.strip() == DRIVE_DEFAULT_QUERY
-    stale_content_used = False
+    content_deferred = False
     try:
         with GoogleSession(token_path, client) as session:
             if drive_cursor_eligible:
@@ -610,12 +614,16 @@ def fetch_drive(
                                     if stale is not None:
                                         body = stale
                                         stale_ids.add(file_id)
-                                        stale_content_used = True
                                     elif strict:
-                                        raise RuntimeError(
-                                            "Drive file content unavailable: "
-                                            f"id={file_id}; refusing partial snapshot"
-                                        )
+                                        # One unreadable file must not fail the
+                                        # source. Keep the document with the
+                                        # explicit marker instead.
+                                        body = _DriveContent(DRIVE_NO_TEXT_MARKER, None, True)
+                                    # Either way the degraded body never blesses
+                                    # the cursor: the next run retries the fetch.
+                                    # Bounded trials keep the empty body and skip
+                                    # the record below.
+                                    content_deferred = True
                                     print(
                                         "drive file content unavailable: "
                                         f"id={file_id} error={error_name} "
@@ -728,7 +736,7 @@ def fetch_drive(
                 # bodies it did not list, or every bounded sync would invalidate
                 # the whole derived cache. Additive writes above are safe.
                 cache.execute("DELETE FROM files WHERE id NOT IN (SELECT id FROM seen)")
-                if drive_cursor_eligible and drive_scope is not None and not stale_content_used:
+                if drive_cursor_eligible and drive_scope is not None and not content_deferred:
                     cache.execute("DELETE FROM sync_state")
                     cache.execute(
                         "INSERT INTO sync_state(scope,page_token) VALUES(?,?)",
@@ -827,39 +835,72 @@ def fetch_gmail(
                         max_workers=min(GMAIL_DETAIL_CONCURRENCY, len(missing_ids)),
                         thread_name_prefix="cortana-gmail",
                     ) as pool:
-                        fetched = pool.map(
-                            lambda message_id: _fetch_gmail_message(session, message_id),
-                            missing_ids,
+                        fetched = list(
+                            pool.map(
+                                lambda message_id: _fetch_gmail_message(
+                                    session, message_id, announce_skip=False
+                                ),
+                                missing_ids,
+                            )
                         )
-                        unavailable = 0
-                        for message_id, message in zip(missing_ids, fetched, strict=True):
-                            if message is None:
+                    retry_ids = [
+                        message_id
+                        for message_id, message in zip(missing_ids, fetched, strict=True)
+                        if message is None
+                    ]
+                    if retry_ids:
+                        # Denied details are usually account-level throttling
+                        # that outlasts the per-request backoff. A second pass
+                        # after a pause rides out short windows before a strict
+                        # run refuses the snapshot; it announces the skips that
+                        # survive it.
+                        time.sleep(GMAIL_SECOND_PASS_PAUSE_SECONDS)
+                        with ThreadPoolExecutor(
+                            max_workers=min(GMAIL_DETAIL_CONCURRENCY, len(retry_ids)),
+                            thread_name_prefix="cortana-gmail-retry",
+                        ) as pool:
+                            retried = pool.map(
+                                lambda message_id: _fetch_gmail_message(session, message_id),
+                                retry_ids,
+                            )
+                            recovered = {
+                                message_id: message
+                                for message_id, message in zip(retry_ids, retried, strict=True)
+                                if message is not None
+                            }
+                        fetched = [
+                            recovered.get(message_id, message)
+                            for message_id, message in zip(missing_ids, fetched, strict=True)
+                        ]
+                    unavailable = 0
+                    for message_id, message in zip(missing_ids, fetched, strict=True):
+                        if message is None:
+                            if strict:
+                                raise RuntimeError(
+                                    "Gmail message detail unavailable: "
+                                    f"id={message_id}; refusing partial snapshot"
+                                )
+                            unavailable += 1
+                        else:
+                            if message.get("id") != message_id:
                                 if strict:
                                     raise RuntimeError(
-                                        "Gmail message detail unavailable: "
-                                        f"id={message_id}; refusing partial snapshot"
+                                        "Gmail message detail id mismatch: "
+                                        f"requested={message_id} received={message.get('id')}"
                                     )
-                                unavailable += 1
+                                _warn_skipped_record(
+                                    "Gmail message",
+                                    message_id,
+                                    "detail id mismatch",
+                                )
                             else:
-                                if message.get("id") != message_id:
-                                    if strict:
-                                        raise RuntimeError(
-                                            "Gmail message detail id mismatch: "
-                                            f"requested={message_id} received={message.get('id')}"
-                                        )
-                                    _warn_skipped_record(
-                                        "Gmail message",
-                                        message_id,
-                                        "detail id mismatch",
-                                    )
-                                else:
-                                    messages[message_id] = message
-                        maximum_unavailable = max(10, len(missing_ids) // 10)
-                        if unavailable > maximum_unavailable:
-                            raise RuntimeError(
-                                "Gmail denied too many message details "
-                                f"({unavailable}/{len(missing_ids)}); refusing partial snapshot"
-                            )
+                                messages[message_id] = message
+                    maximum_unavailable = max(10, len(missing_ids) // 10)
+                    if unavailable > maximum_unavailable:
+                        raise RuntimeError(
+                            "Gmail denied too many message details "
+                            f"({unavailable}/{len(missing_ids)}); refusing partial snapshot"
+                        )
                 missing_set = set(missing_ids)
                 for reference in references:
                     message_id = reference["id"]
@@ -1122,7 +1163,9 @@ def _fetch_gmail_history_delta(
             ) from error
 
 
-def _fetch_gmail_message(session: GoogleSession, message_id: str) -> dict[str, Any] | None:
+def _fetch_gmail_message(
+    session: GoogleSession, message_id: str, *, announce_skip: bool = True
+) -> dict[str, Any] | None:
     response: httpx.Response | None = None
     for attempt in range(GMAIL_DETAIL_RETRIES + 1):
         try:
@@ -1145,10 +1188,11 @@ def _fetch_gmail_message(session: GoogleSession, message_id: str) -> dict[str, A
                 continue
             if status not in {403, 404}:
                 raise
-            print(
-                f"gmail message skipped: id={message_id} status={error.response.status_code}",
-                file=sys.stderr,
-            )
+            if announce_skip:
+                print(
+                    f"gmail message skipped: id={message_id} status={error.response.status_code}",
+                    file=sys.stderr,
+                )
             return None
     if response is None:  # pragma: no cover - loop always breaks or returns above.
         return None
@@ -1741,6 +1785,7 @@ def _fetch_drive_changes_delta(
             raise RuntimeError("Drive changes listing has invalid nextPageToken")
 
     updates: dict[str, tuple[dict[str, Any], str]] = {}
+    content_deferred = False
     if changed:
         with ThreadPoolExecutor(
             max_workers=min(DRIVE_CONTENT_CONCURRENCY, len(changed)),
@@ -1757,9 +1802,25 @@ def _fetch_drive_changes_delta(
                 strict=True,
             ):
                 if error_name is not None:
-                    raise RuntimeError(
-                        "Drive changed file content unavailable: "
-                        f"id={file_id}; refusing cursor advance"
+                    stale = _stale_cached_drive_content(cache, file_id)
+                    content_deferred = True
+                    if stale is not None:
+                        # Keep the cached row and its modified time untouched:
+                        # the stale body stays indexed under the version it
+                        # came from while the next run retries the fetch.
+                        print(
+                            "drive changed file content unavailable: "
+                            f"id={file_id} error={error_name} using_stale_cache=True",
+                            file=sys.stderr,
+                        )
+                        continue
+                    # One unreadable file must not fail the source. Keep the
+                    # document with the explicit marker instead.
+                    body = _DriveContent(DRIVE_NO_TEXT_MARKER, None, True)
+                    print(
+                        "drive changed file content unavailable: "
+                        f"id={file_id} error={error_name} using_stale_cache=False",
+                        file=sys.stderr,
                     )
                 updates[file_id] = (item, body)
 
@@ -1776,11 +1837,12 @@ def _fetch_drive_changes_delta(
                 _drive_cache_values(file_id, modified_time, body, item),
             )
         assert new_start_page_token is not None
-        cache.execute("DELETE FROM sync_state")
-        cache.execute(
-            "INSERT INTO sync_state(scope,page_token) VALUES(?,?)",
-            (scope, new_start_page_token),
-        )
+        if not content_deferred:
+            cache.execute("DELETE FROM sync_state")
+            cache.execute(
+                "INSERT INTO sync_state(scope,page_token) VALUES(?,?)",
+                (scope, new_start_page_token),
+            )
         # Validate every cached record before blessing the new cursor. This is
         # intentionally streamed so a large cache does not become a second
         # in-memory corpus.

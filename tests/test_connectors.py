@@ -2021,11 +2021,14 @@ def test_google_drive_invalidates_cursor_when_account_scope_changes(tmp_path: Pa
     assert changes_calls == 0
 
 
-def test_google_drive_failed_delta_does_not_advance_cursor(tmp_path: Path) -> None:
+def test_google_drive_failed_delta_marks_content_and_holds_cursor(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     token = tmp_path / "token.json"
     write_token(token, '{"token":"access","refresh_token":"refresh","client_id":"client"}')
     cache = tmp_path / "cache"
     fail_delta = False
+    version = "v1"
 
     def handler(request: httpx.Request) -> httpx.Response:
         nonlocal fail_delta
@@ -2050,14 +2053,15 @@ def test_google_drive_failed_delta_does_not_advance_cursor(tmp_path: Path) -> No
                 {
                     "changes": [
                         {
-                            "fileId": "doc1",
+                            "fileId": file_id,
                             "file": {
-                                "id": "doc1",
+                                "id": file_id,
                                 "name": "Changed",
                                 "mimeType": "text/plain",
                                 "modifiedTime": "2026-07-29T13:00:00Z",
                             },
                         }
+                        for file_id in ("doc1", "doc2")
                     ],
                     "newStartPageToken": "120",
                 },
@@ -2065,17 +2069,41 @@ def test_google_drive_failed_delta_does_not_advance_cursor(tmp_path: Path) -> No
             )
         if fail_delta:
             return httpx.Response(503, request=request)
-        return httpx.Response(200, text="body", request=request)
+        return httpx.Response(
+            200,
+            text=f"body-{version}" if "doc1" in str(request.url) else "body",
+            request=request,
+        )
 
     client = httpx.Client(transport=httpx.MockTransport(handler))
     list(fetch_drive(token, "work", client=client, cache_dir=cache))
     fail_delta = True
-    with pytest.raises(RuntimeError, match="refusing cursor advance"):
-        list(fetch_drive(token, "work", client=client, cache_dir=cache))
+    # One unreadable file must not fail the source: the cached document keeps
+    # its last good body, a new file keeps an explicit marker, and the cursor is
+    # withheld so the next run retries the fetch.
+    documents = list(fetch_drive(token, "work", client=client, cache_dir=cache))
+    assert [document.source_id for document in documents] == ["doc1", "doc2"]
+    assert documents[0].content == "body-v1"
+    assert documents[1].content == google.DRIVE_NO_TEXT_MARKER
+    assert documents[1].metadata["content_unavailable"] is True
+    diagnostics = capsys.readouterr().err
+    assert "id=doc1 error=HTTPStatusError using_stale_cache=True" in diagnostics
+    assert "id=doc2 error=HTTPStatusError using_stale_cache=False" in diagnostics
 
     connection = sqlite3.connect(cache / "drive.sqlite3")
     try:
         assert connection.execute("SELECT page_token FROM sync_state").fetchone() == ("100",)
+    finally:
+        connection.close()
+
+    fail_delta = False
+    version = "v2"
+    recovered = list(fetch_drive(token, "work", client=client, cache_dir=cache))
+    assert [document.content for document in recovered] == ["body-v2", "body"]
+    assert [document.metadata["content_unavailable"] for document in recovered] == [False, False]
+    connection = sqlite3.connect(cache / "drive.sqlite3")
+    try:
+        assert connection.execute("SELECT page_token FROM sync_state").fetchone() == ("120",)
     finally:
         connection.close()
 
@@ -2210,7 +2238,7 @@ def test_google_drive_cache_preserves_unknown_pdf_character_count(
         connection.close()
 
 
-def test_google_drive_full_mode_rejects_unresolved_content(
+def test_google_drive_full_mode_marks_unresolved_content(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     token = tmp_path / "token.json"
@@ -2238,9 +2266,15 @@ def test_google_drive_full_mode_rejects_unresolved_content(
 
     monkeypatch.setattr(google, "_drive_content", content)
     client = httpx.Client(transport=httpx.MockTransport(handler))
-    with pytest.raises(RuntimeError, match="Drive file content unavailable: id=doc1") as error:
-        list(fetch_drive(token, "work", client=client))
-    assert "sensitive provider detail" not in str(error.value)
+    # One unreadable file must not fail the source: the document keeps its
+    # metadata under the explicit marker and stays visible to retrieval.
+    documents = list(fetch_drive(token, "work", client=client))
+    assert [document.source_id for document in documents] == ["doc1"]
+    assert documents[0].content == google.DRIVE_NO_TEXT_MARKER
+    assert documents[0].metadata["content_unavailable"] is True
+    diagnostic = capsys.readouterr().err
+    assert "drive file content unavailable: id=doc1 error=ValueError" in diagnostic
+    assert "sensitive provider detail" not in diagnostic
 
     # Bounded trials keep the diagnostic skip for unresolved content.
     capped = list(fetch_drive(token, "work", client=client, max_documents=5))
@@ -3251,11 +3285,62 @@ def test_google_gmail_detail_retries_a_throttled_403(
     assert "gmail message skipped" not in capsys.readouterr().err
 
 
-def test_google_gmail_skips_isolated_inaccessible_message(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+def test_google_gmail_full_mode_recovers_details_on_second_pass(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     token = tmp_path / "token.json"
     write_token(token, '{"token":"access"}')
+    delays: list[float] = []
+    throttled = True
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/messages"):
+            return response({"messages": [{"id": "throttled"}]}, request=request)
+        if throttled:
+            return response(
+                {"error": {"errors": [{"reason": "userRateLimitExceeded"}]}, "code": 403},
+                status=403,
+                request=request,
+            )
+        return response(
+            {
+                "id": "throttled",
+                "threadId": "t1",
+                "internalDate": "1700000000000",
+                "payload": {
+                    "headers": [{"name": "Subject", "value": "Recovered"}],
+                    "mimeType": "text/plain",
+                    "body": {"data": base64.urlsafe_b64encode(b"Recovered body").decode()},
+                },
+            },
+            request=request,
+        )
+
+    def record_sleep(delay: float) -> None:
+        # The quota window resets while the second pass waits.
+        nonlocal throttled
+        delays.append(delay)
+        if delay == google.GMAIL_SECOND_PASS_PAUSE_SECONDS:
+            throttled = False
+
+    monkeypatch.setattr(google.time, "sleep", record_sleep)
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    # A full run must not fail closed on throttling that outlasts the per-request
+    # backoff: the second pass retries the denied details before refusing.
+    documents = list(fetch_gmail(token, "work", client=client))
+
+    assert [document.source_id for document in documents] == ["throttled"]
+    assert documents[0].title == "Recovered"
+    assert google.GMAIL_SECOND_PASS_PAUSE_SECONDS in delays
+    assert "gmail message skipped" not in capsys.readouterr().err
+
+
+def test_google_gmail_skips_isolated_inaccessible_message(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    token = tmp_path / "token.json"
+    write_token(token, '{"token":"access"}')
+    monkeypatch.setattr(google, "GMAIL_SECOND_PASS_PAUSE_SECONDS", 0.0)
 
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path.endswith("/messages"):
@@ -3289,9 +3374,12 @@ def test_google_gmail_skips_isolated_inaccessible_message(
     assert "gmail message skipped: id=denied status=403" in capsys.readouterr().err
 
 
-def test_google_gmail_full_mode_rejects_isolated_detail_denial(tmp_path: Path) -> None:
+def test_google_gmail_full_mode_rejects_isolated_detail_denial(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     token = tmp_path / "token.json"
     write_token(token, '{"token":"access"}')
+    monkeypatch.setattr(google, "GMAIL_SECOND_PASS_PAUSE_SECONDS", 0.0)
 
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path.endswith("/messages"):
@@ -3325,6 +3413,7 @@ def test_google_gmail_refuses_broad_detail_denial(
 ) -> None:
     token = tmp_path / "token.json"
     write_token(token, '{"token":"access"}')
+    monkeypatch.setattr(google, "GMAIL_SECOND_PASS_PAUSE_SECONDS", 0.0)
     client = httpx.Client(
         transport=httpx.MockTransport(
             lambda request: response(
@@ -3336,7 +3425,7 @@ def test_google_gmail_refuses_broad_detail_denial(
     monkeypatch.setattr(
         google,
         "_fetch_gmail_message",
-        lambda _session, _message_id: None,
+        lambda _session, _message_id, **_kwargs: None,
     )
 
     with pytest.raises(RuntimeError, match="refusing partial snapshot"):
