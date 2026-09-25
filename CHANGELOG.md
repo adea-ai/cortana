@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.59.3](https://github.com/adea-ai/cortana/compare/v0.59.2...v0.59.3) (2026-09-25)
+
+
+### Bug Fixes
+
+* **connectors:** tolerate per-file connector failures instead of failing the source ([#2396](https://github.com/adea-ai/cortana/issues/2396)) ([5edfd4a](https://github.com/adea-ai/cortana/commit/5edfd4a7a7d0f49c0fcb66de07bfff1cfc8dab33))
+
 ## [0.59.2](https://github.com/adea-ai/cortana/compare/v0.59.1...v0.59.2) (2026-09-25)
 
 
