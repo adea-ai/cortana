@@ -112,6 +112,12 @@ GOOGLE_TRANSIENT_403_REASONS = {
 }
 GMAIL_DETAIL_RETRIES = 4
 GMAIL_DETAIL_RETRY_BACKOFF_SECONDS = (0.25, 0.75, 1.5, 3.0)
+# A throttled detail fetch has to outlast a quota window rather than a blip:
+# these requests run four at a time, the session's two cheap retries happen
+# inside that burst, and a 403 that is really a throttle must never be
+# mistaken for a permanently unavailable message — that misread skip fails the
+# whole source closed as a partial snapshot.
+GMAIL_THROTTLE_BACKOFF_SECONDS = (1.0, 2.0, 4.0, 8.0)
 GMAIL_DETAIL_CONCURRENCY = 4
 # Drive body fetches are independent after the metadata page is bounded. Keep
 # this deliberately small so PDF/DOCX extraction cannot exhaust memory or
@@ -271,6 +277,34 @@ def _is_token_system_alias(path: Path) -> bool:
     return sys.platform == "darwin" and path in {Path("/tmp"), Path("/var"), Path("/etc")}
 
 
+def _google_403_should_retry(response: httpx.Response) -> bool:
+    """True when a 403 carries a reason Google documents as transient.
+
+    Gmail reports per-user throttling as a 403 with a rate-limit reason, so
+    callers that fetch one record at a time must distinguish that from a
+    message the token genuinely cannot read.
+    """
+    try:
+        error = response.json()
+    except (json.JSONDecodeError, ValueError):
+        return False
+    if not isinstance(error, dict):
+        return False
+    error_payload = error.get("error")
+    if not isinstance(error_payload, dict):
+        return False
+    errors = error_payload.get("errors")
+    if not isinstance(errors, list):
+        return False
+    for entry in errors:
+        if not isinstance(entry, dict):
+            continue
+        reason = entry.get("reason")
+        if reason in GOOGLE_TRANSIENT_403_REASONS:
+            return True
+    return False
+
+
 class GoogleSession:
     """Small OAuth REST client compatible with Google token JSON files."""
 
@@ -334,25 +368,8 @@ class GoogleSession:
 
     @staticmethod
     def _google_403_should_retry(response: httpx.Response) -> bool:
-        try:
-            error = response.json()
-        except (json.JSONDecodeError, ValueError):
-            return False
-        if not isinstance(error, dict):
-            return False
-        error_payload = error.get("error")
-        if not isinstance(error_payload, dict):
-            return False
-        errors = error_payload.get("errors")
-        if not isinstance(errors, list):
-            return False
-        for entry in errors:
-            if not isinstance(entry, dict):
-                continue
-            reason = entry.get("reason")
-            if reason in GOOGLE_TRANSIENT_403_REASONS:
-                return True
-        return False
+        """Session policy kept for callers that already hold this client."""
+        return _google_403_should_retry(response)
 
     @contextmanager
     def stream(self, method: str, url: str, **kwargs: Any) -> Iterator[httpx.Response]:
@@ -1116,10 +1133,17 @@ def _fetch_gmail_message(session: GoogleSession, message_id: str) -> dict[str, A
             )
             break
         except httpx.HTTPStatusError as error:
-            if error.response.status_code == 400 and attempt < GMAIL_DETAIL_RETRIES:
+            status = error.response.status_code
+            if status == 400 and attempt < GMAIL_DETAIL_RETRIES:
                 time.sleep(GMAIL_DETAIL_RETRY_BACKOFF_SECONDS[attempt])
                 continue
-            if error.response.status_code not in {403, 404}:
+            throttled = status == 429 or (
+                status == 403 and _google_403_should_retry(error.response)
+            )
+            if throttled and attempt < GMAIL_DETAIL_RETRIES:
+                time.sleep(GMAIL_THROTTLE_BACKOFF_SECONDS[attempt])
+                continue
+            if status not in {403, 404}:
                 raise
             print(
                 f"gmail message skipped: id={message_id} status={error.response.status_code}",
