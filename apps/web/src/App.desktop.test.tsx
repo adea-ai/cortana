@@ -3846,6 +3846,58 @@ test('services settings reuses the shell service snapshot without a duplicate po
   )
   expect(state.getDesktopServicesCalls).toBe(1)
 })
+test('the collapsed rail labels the workspace row with its own mark', async () => {
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  const row = screen.getByRole('button', {
+    name: 'Switch workspace',
+  })
+  fireEvent.mouseEnter(row)
+  const hint = await waitFor(() => {
+    const node = document.querySelector('[data-slot="sidebar-menu-hint"]')
+    expect(node).not.toBeNull()
+    return node as HTMLElement
+  })
+  // Every rail label carries the row's own mark; for this row that is the
+  // workspace logo rather than a lucide glyph.
+  expect(hint.querySelector('.workspace-logo')).not.toBeNull()
+  expect(hint.textContent).toContain('Workspace:')
+})
+test('the utilities menu opens the identity dialog with the packaged version', async () => {
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await openSidebarDestination('About')
+  const dialog = await screen.findByRole('dialog', {
+    name: 'About Cortana',
+  })
+  expect(dialog).toBeTruthy()
+  expect(within(dialog).getByText(`Version ${desktopInfo.desktop_version}`)).toBeTruthy()
+  // Copy version info is the dialog's only action besides the source link.
+  expect(
+    within(dialog).getByRole('button', {
+      name: 'Copy version info',
+    })
+  ).toBeTruthy()
+  expect(
+    within(dialog)
+      .getByRole('link', {
+        name: /View source/,
+      })
+      .getAttribute('href')
+  ).toBe('https://github.com/adea-ai/cortana')
+  fireEvent.click(
+    within(dialog).getByRole('button', {
+      name: 'Close',
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('dialog', {
+        name: 'About Cortana',
+      })
+    ).toBeNull()
+  )
+})
 test('the utilities trigger marks the active destination and clears when it changes', async () => {
   render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())

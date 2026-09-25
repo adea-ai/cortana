@@ -5392,6 +5392,15 @@ select:focus-visible {
   height: 48px;
 }
 
+/* The sheet's header is identity only: switching happens through the workspace
+   rows below it, which sit inside the sheet's aria boundary. */
+.m7-workspace-identity {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 8px;
+}
+
 .m7-application-sidebar .m7-workspace-trigger .workspace-logo {
   width: 48px;
   height: 48px;
@@ -5683,6 +5692,60 @@ select:focus-visible {
   color: var(--warning);
   border-color: color-mix(in srgb, var(--warning) 45%, var(--border));
   background: color-mix(in srgb, var(--warning) 10%, var(--card));
+}
+
+/* Identity dialog reached from the rail's About entry. */
+.m7-about-dialog__identity {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.m7-about-dialog__identity img {
+  margin-bottom: 8px;
+  border-radius: var(--radius-sm);
+}
+
+.m7-about-dialog__identity strong {
+  font-size: 15px;
+}
+
+.m7-about-dialog__identity span,
+.m7-about-dialog__identity small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.m7-about-dialog__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.m7-about-dialog__actions a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.m7-about-dialog__actions a:hover {
+  color: var(--foreground);
+}
+
+.m7-about-dialog__actions a svg {
+  width: 14px;
+  height: 14px;
+}
+
+.m7-about-dialog__error {
+  margin: 0;
+  color: var(--chrome-danger-fg);
+  font-size: 11px;
 }
 
 /* The rail's utilities menu follows the account menu in the sibling shell: a

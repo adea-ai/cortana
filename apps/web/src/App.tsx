@@ -116,6 +116,10 @@ const SettingsView = lazy(() =>
     default: module.SettingsView,
   }))
 )
+const loadAboutDialog = () => import('./components/m7/M7AboutDialog')
+const M7AboutDialog = lazy(() =>
+  loadAboutDialog().then((module) => ({ default: module.M7AboutDialog }))
+)
 const loadCommandPalette = () => import('./components/m7/M7CommandPalette')
 const M7CommandPalette = lazy(() =>
   loadCommandPalette().then((module) => ({
@@ -222,6 +226,7 @@ function CortanaApplication() {
   const [settingsSection, setSettingsSection] = createSignal<
     'readiness' | 'services' | 'updates' | 'sources' | 'memory'
   >('readiness')
+  const [aboutOpen, setAboutOpen] = createSignal(false)
   const [settingsDirty, setSettingsDirty] = createSignal(false)
   const [installerJob, setInstallerJob] = createSignal<DesktopInstallJob | null>(null)
   const [desktopUpdate, setDesktopUpdate] = createSignal<DesktopUpdate | null>(null)
@@ -1766,6 +1771,7 @@ function CortanaApplication() {
               onNavigate: navigate,
               onOpenGraph: openGraph,
               onOpenSettingsSection: openSettingsSection,
+              onOpenAbout: () => setAboutOpen(true),
             }}
             workspaces={workspaces()}
             workspace={effectiveWorkspace()}
@@ -2086,6 +2092,17 @@ function CortanaApplication() {
             onCancelSourceJob={cancelSourceJob}
           />
         )}
+        <Show when={aboutOpen()}>
+          <Suspense>
+            <M7AboutDialog
+              open
+              onClose={() => setAboutOpen(false)}
+              version={desktopInfo()?.desktop_version}
+              platform={isDesktopApp ? 'desktop' : 'web'}
+              desktopAvailable={isDesktopApp}
+            />
+          </Suspense>
+        </Show>
         <Show when={commandPaletteMounted()}>
           <Suspense>
             <M7CommandPalette

@@ -205,10 +205,12 @@ test('the rail utilities menu keeps the footer destinations one step away', asyn
   const items = await screen.findAllByRole('menuitem')
   // Order mirrors the sibling shell's account menu: help first, then the app's
   // own surfaces, updates, and settings last with its chord.
+  /// This harness runs as the web build, where the reference hides its
+  /// desktop-only Updates entry.
   expect(items.map((item) => item.textContent)).toEqual([
+    'About',
     'Help',
     'Index',
-    'Updates',
     'Settings' + shortcutLabel('MOD,'),
   ])
   fireEvent.pointerUp(screen.getByRole('menuitem', { name: 'Index' }))
