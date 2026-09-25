@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.59.2](https://github.com/adea-ai/cortana/compare/v0.59.1...v0.59.2) (2026-09-25)
+
+
+### Bug Fixes
+
+* **connectors:** retry throttled Gmail detail fetches instead of skipping them ([#2392](https://github.com/adea-ai/cortana/issues/2392)) ([4d31eef](https://github.com/adea-ai/cortana/commit/4d31eef7e2dc3db26d13cdefcf2d5076c1c02aa6))
+* **web:** keep source actions visible and report per-source access state ([#2395](https://github.com/adea-ai/cortana/issues/2395)) ([29ce389](https://github.com/adea-ai/cortana/commit/29ce389842a48ef83de64afe7240804066e81d36))
+* **web:** stop reporting core attention for a recovered service ([#2393](https://github.com/adea-ai/cortana/issues/2393)) ([af696b8](https://github.com/adea-ai/cortana/commit/af696b8105112f83356b3851328444fe057588cf))
+
 ## [0.59.1](https://github.com/adea-ai/cortana/compare/v0.59.0...v0.59.1) (2026-09-25)
 
 
