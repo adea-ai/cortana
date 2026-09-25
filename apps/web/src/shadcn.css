@@ -5,6 +5,11 @@
 :root {
   color: #d9d8d4;
   background: #0e1524;
+  /* Every theme ships dark chrome (only the document paper is light), so the
+     native layer is told the same thing: form controls, scrollbars, and the
+     macOS title bar behind the traffic lights render dark instead of following
+     a light system appearance. */
+  color-scheme: dark;
   font-family:
     'Geist Variable',
     Inter,
@@ -1076,6 +1081,10 @@ select:focus-visible {
   font-size: 10px;
 }
 
+/* One box, not two: the label carries the only border, radius, and fill, and
+   the shadcn input inside it drops its own chrome (which otherwise drew a
+   rounded inner box on a straight-cornered outer one). The focus affordance
+   moves to the container so the single box still shows a visible indicator. */
 .document-filter {
   display: flex;
   height: 32px;
@@ -1086,21 +1095,35 @@ select:focus-visible {
   gap: 6px;
   color: var(--chrome-fg-dim);
   border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
   background: var(--panel);
 }
 
 .document-filter:focus-within {
   border-color: var(--amber-soft);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--amber-soft) 30%, transparent);
 }
 
-.document-filter input {
+/* Two classes plus the element outrank the panel's own
+   `.m7-source-panel [data-slot='input']` background, which would otherwise
+   paint a second box inside this row. */
+.document-filter input.document-filter-input {
   min-width: 0;
   flex: 1;
+  height: auto;
   color: var(--chrome-fg);
   border: 0;
+  border-radius: 0;
   outline: 0;
   background: transparent;
+  box-shadow: none;
   font-size: 12px;
+}
+
+.document-filter input.document-filter-input:focus-visible {
+  border: 0;
+  outline: 0;
+  box-shadow: none;
 }
 
 .document-filter-clear {
@@ -2761,37 +2784,6 @@ select:focus-visible {
   gap: 12px;
 }
 
-.workspace-logo-upload {
-  display: grid;
-  width: var(--btn-icon-size);
-  height: var(--btn-icon-size);
-  place-items: center;
-  color: var(--muted-foreground);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xs);
-  background: var(--surface-elevated);
-  cursor: pointer;
-}
-
-.workspace-logo-upload:hover,
-.workspace-logo-upload:focus-within {
-  color: var(--amber);
-  border-color: var(--amber);
-}
-
-.workspace-logo-upload.is-loading {
-  cursor: wait;
-  opacity: 0.7;
-}
-
-.workspace-logo-upload input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  opacity: 0;
-}
-
 .settings-inline-error {
   margin: 10px 0 0;
   color: var(--chrome-danger-fg);
@@ -2947,6 +2939,17 @@ select:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+/* Occupies the action row's place so a not-installed card names its install
+   path instead of leaving the row empty. */
+.service-install-hint {
+  margin: 0;
+  padding: 6px 8px;
+  color: var(--chrome-fg-dim);
+  border-left: 2px solid var(--line);
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .service-actions button {
@@ -5389,6 +5392,15 @@ select:focus-visible {
   height: 48px;
 }
 
+/* The sheet's header is identity only: switching happens through the workspace
+   rows below it, which sit inside the sheet's aria boundary. */
+.m7-workspace-identity {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 8px;
+}
+
 .m7-application-sidebar .m7-workspace-trigger .workspace-logo {
   width: 48px;
   height: 48px;
@@ -5682,6 +5694,87 @@ select:focus-visible {
   background: color-mix(in srgb, var(--warning) 10%, var(--card));
 }
 
+/* Identity dialog reached from the rail's About entry. */
+.m7-about-dialog__identity {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.m7-about-dialog__identity img {
+  margin-bottom: 8px;
+  border-radius: var(--radius-sm);
+}
+
+.m7-about-dialog__identity strong {
+  font-size: 15px;
+}
+
+.m7-about-dialog__identity span,
+.m7-about-dialog__identity small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.m7-about-dialog__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.m7-about-dialog__actions a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.m7-about-dialog__actions a:hover {
+  color: var(--foreground);
+}
+
+.m7-about-dialog__actions a svg {
+  width: 14px;
+  height: 14px;
+}
+
+.m7-about-dialog__error {
+  margin: 0;
+  color: var(--chrome-danger-fg);
+  font-size: 11px;
+}
+
+/* The rail's utilities menu follows the account menu in the sibling shell: a
+   roomier list than the default dropdown (15rem wide, 0.75rem radius, 2.25rem
+   rows) with muted icons that ink up on the highlighted row. */
+.m7-utilities-menu {
+  min-width: 15rem;
+  padding: 0.4rem;
+  border-radius: 0.75rem;
+}
+
+.m7-utilities-menu [data-slot='dropdown-menu-item'] {
+  min-height: 2.25rem;
+  gap: 0.65rem;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.86rem;
+}
+
+.m7-utilities-menu [data-slot='dropdown-menu-item'] svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  color: var(--muted-foreground);
+}
+
+.m7-utilities-menu [data-slot='dropdown-menu-item']:not([data-disabled]):hover svg,
+.m7-utilities-menu [data-slot='dropdown-menu-item'][data-highlighted] svg {
+  color: currentColor;
+}
+
 .m7-source-panel {
   border-right-color: var(--border);
   background: var(--card);
@@ -5753,7 +5846,7 @@ select:focus-visible {
 }
 
 .m7-source-panel [data-slot='select-trigger'],
-.m7-source-panel [data-slot='input'] {
+.m7-source-panel [data-slot='input']:not(.document-filter-input) {
   background: var(--background);
 }
 

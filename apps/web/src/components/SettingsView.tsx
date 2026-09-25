@@ -16,6 +16,7 @@ import {
   Suspense,
   Switch,
   Match,
+  Show,
   createEffect,
   createSignal,
   mergeProps,
@@ -1105,6 +1106,24 @@ function ServicesSection(incoming: {
   // oxlint-disable-next-line unicorn/consistent-function-scoping -- keeps service state local
   const serviceIsRunning = (service: DesktopServiceReport['services'][number]) =>
     service.state === 'running' || (service.loaded && service.state === null)
+  // A service that is not installed needs a next step, not just a state: each
+  // hint names the control that installs it, so the panel answers the question
+  // the warning raises without sending the reader to the docs.
+  const installHint = (service: DesktopServiceReport['services'][number]) => {
+    if (report()?.supported !== true) {
+      return 'Background service schedules are not supported on this platform.'
+    }
+    if (service.name === 'sync') {
+      return 'Recurring ingestion is opt-in: use Enable recurring sync above, which re-checks every enabled source before scheduling it.'
+    }
+    if (service.name === 'vault') {
+      return 'Vault export installs with the core service set once a vault output path is configured.'
+    }
+    if (service.name === 'embedding' && props.settings.embedding.provider !== 'local') {
+      return 'Not installed by design: the local embedding service is only used when the embedding provider is local.'
+    }
+    return 'Installs with the core service set: use Install core services above.'
+  }
   const serviceAction = async (
     service: DesktopServiceReport['services'][number],
     action: 'start' | 'stop' | 'restart'
@@ -1634,31 +1653,38 @@ function ServicesSection(incoming: {
                 {service.pid ? ` · PID ${service.pid}` : ''}
                 {failed ? ` · last exit ${service.last_exit_status}` : ''}
               </p>
-              <div class="service-actions">
-                <Button
-                  variant="compact"
-                  disabled={
-                    !report()!.supported || !service.installed || running || actionInFlight()
-                  }
-                  onClick={() => void serviceAction(service, 'start')}
-                >
-                  <Play size={14} /> Start
-                </Button>
-                <Button
-                  variant="compact"
-                  disabled={!report()!.supported || !service.loaded || actionInFlight()}
-                  onClick={() => void serviceAction(service, 'stop')}
-                >
-                  <CircleStop size={14} /> Stop
-                </Button>
-                <Button
-                  variant="compact"
-                  disabled={!report()!.supported || !service.installed || actionInFlight()}
-                  onClick={() => void serviceAction(service, 'restart')}
-                >
-                  <RefreshCw size={14} /> Restart
-                </Button>
-              </div>
+              <Show
+                when={service.installed}
+                fallback={
+                  // A bare "Not installed" is a dead end: name the control that
+                  // installs this service and why it is not installed yet.
+                  <p class="service-install-hint">{installHint(service)}</p>
+                }
+              >
+                <div class="service-actions">
+                  <Button
+                    variant="compact"
+                    disabled={!report()!.supported || running || actionInFlight()}
+                    onClick={() => void serviceAction(service, 'start')}
+                  >
+                    <Play size={14} /> Start
+                  </Button>
+                  <Button
+                    variant="compact"
+                    disabled={!report()!.supported || !service.loaded || actionInFlight()}
+                    onClick={() => void serviceAction(service, 'stop')}
+                  >
+                    <CircleStop size={14} /> Stop
+                  </Button>
+                  <Button
+                    variant="compact"
+                    disabled={!report()!.supported || actionInFlight()}
+                    onClick={() => void serviceAction(service, 'restart')}
+                  >
+                    <RefreshCw size={14} /> Restart
+                  </Button>
+                </div>
+              </Show>
             </SettingsCard>
           )
         })}

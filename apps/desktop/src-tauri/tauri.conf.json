@@ -27,7 +27,8 @@
         "center": true,
         "resizable": true,
         "titleBarStyle": "Transparent",
-        "hiddenTitle": true
+        "hiddenTitle": true,
+        "theme": "Dark"
       }
     ]
   },

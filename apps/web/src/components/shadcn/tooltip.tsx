@@ -108,13 +108,16 @@ function TooltipContent(
       <TooltipPrimitive.Content
         data-slot="tooltip-content"
         class={cn(
-          'z-50 inline-flex w-fit max-w-xs origin-(--kb-tooltip-content-transform-origin) items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs text-background has-data-[slot=kbd]:pr-1.5 **:data-[slot=kbd]:relative **:data-[slot=kbd]:isolate **:data-[slot=kbd]:z-50 **:data-[slot=kbd]:rounded-sm data-expanded:animate-in data-expanded:fade-in-0 data-expanded:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
+          // Same floating-surface vocabulary as the dropdown menu: elevated
+          // popover surface, hairline ring, short fade. Deliberately no arrow —
+          // the anchor already makes the pointer obvious, and the rotated
+          // square read as a stray artifact on themed panels.
+          'z-50 inline-flex w-fit max-w-xs origin-(--kb-tooltip-content-transform-origin) items-center gap-1.5 rounded-md bg-popover px-2.5 py-1.5 text-xs font-medium text-popover-foreground shadow-md ring-1 ring-foreground/10 duration-100 outline-none data-expanded:animate-in data-expanded:fade-in-0 data-expanded:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
           local.class
         )}
         {...rest}
       >
         {local.children}
-        <TooltipPrimitive.Arrow class="z-50 size-2.5 translate-y-[calc(-50%-2px)] rotate-45 rounded-[2px] bg-foreground fill-foreground" />
       </TooltipPrimitive.Content>
     </TooltipPrimitive.Portal>
   )

@@ -2,6 +2,7 @@ import { act } from './test/act'
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
 import { cleanup, fireEvent, render, screen, waitFor, within } from 'solid-testing-library'
 import { demoEvidence, demoStatus } from './demo'
+import { shortcutLabel } from './shortcuts'
 import { answerResponse } from './test/fixtures'
 import type {
   AnswerResponse,
@@ -128,12 +129,12 @@ const { M7ActivityInbox } = await import('./components/m7/M7ActivityInbox')
 const RAIL_LABELS = [
   'Knowledge',
   'Graph',
-  'Inbox',
   'Conversations',
   'Agent tools',
-  'Index',
-  'Settings',
-  'Help',
+  'Inbox',
+  // The footer keeps one trigger for the destinations that no longer have
+  // their own row: Settings, Updates, Index, and Help.
+  'Settings and utilities',
 ]
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -152,6 +153,18 @@ function railButton(label: string) {
   return within(rail).getByRole('button', {
     name: label,
   })
+}
+// Destinations behind the rail's utilities trigger are reached through its
+// menu: Kobalte opens the trigger on pointerdown and selects an item on
+// pointerup.
+async function openSidebarDestination(label: string) {
+  fireEvent.pointerDown(
+    screen.getByRole('button', {
+      name: 'Settings and utilities',
+    })
+  )
+  const item = await screen.findByRole('menuitem', { name: label })
+  fireEvent.pointerUp(item)
 }
 async function selectHeaderAction(label: string) {
   // Kobalte menu triggers open on pointerdown, not click. The trigger can
@@ -179,6 +192,37 @@ test('every sidebar destination is enabled and the persistent search remains ava
     expect(button.getAttribute('data-slot')).toBe('sidebar-menu-button')
   }
   expect(screen.getByLabelText('Search your knowledge')).toBeTruthy()
+})
+test('the rail utilities menu keeps the footer destinations one step away', async () => {
+  await renderApp()
+  // The menu is the only place Settings, Updates, Index, and Help live now, so
+  // every one of them must be reachable from the single trigger.
+  fireEvent.pointerDown(
+    screen.getByRole('button', {
+      name: 'Settings and utilities',
+    })
+  )
+  const items = await screen.findAllByRole('menuitem')
+  // Order mirrors the sibling shell's account menu: help first, then the app's
+  // own surfaces, updates, and settings last with its chord.
+  /// This harness runs as the web build, where the reference hides its
+  /// desktop-only Updates entry.
+  expect(items.map((item) => item.textContent)).toEqual([
+    'About',
+    'Help',
+    'Index',
+    'Settings' + shortcutLabel('MOD,'),
+  ])
+  fireEvent.pointerUp(screen.getByRole('menuitem', { name: 'Index' }))
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Index',
+      })
+    ).toBeTruthy()
+  )
+  expect(screen.queryAllByRole('menuitem')).toHaveLength(0)
 })
 test('titlebar controls perform real navigation actions', async () => {
   state.answer = () => Promise.resolve(answerResponse)
@@ -890,7 +934,7 @@ test('Inbox keeps a cancelling source job visibly in progress until it exits', (
 })
 test('Index renders live BrainStatus metrics and a truthful loading empty state', async () => {
   await renderApp()
-  fireEvent.click(railButton('Index'))
+  await openSidebarDestination('Index')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {
@@ -911,7 +955,7 @@ test('Index renders live BrainStatus metrics and a truthful loading empty state'
   cleanup()
   state.status = null
   await renderApp()
-  fireEvent.click(railButton('Index'))
+  await openSidebarDestination('Index')
   await waitFor(() => expect(screen.getByText('Loading index')).toBeTruthy())
   expect(screen.getByText('Open settings')).toBeTruthy()
 })
@@ -1172,7 +1216,7 @@ test('search history arrows navigate previous and next queries', async () => {
 test('Help lists the real keyboard shortcuts and project links', async () => {
   state.answer = () => Promise.resolve(answerResponse)
   await renderApp()
-  fireEvent.click(railButton('Help'))
+  await openSidebarDestination('Help')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {

@@ -1,6 +1,6 @@
 import { act } from './test/act'
 import { afterEach, expect, mock, test } from 'bun:test'
-import { cleanup, fireEvent, render, screen, waitFor } from 'solid-testing-library'
+import { cleanup, fireEvent, render, screen, waitFor, within } from 'solid-testing-library'
 import { demoEvidence, demoStatus } from './demo'
 import {
   answerResponse,
@@ -171,6 +171,33 @@ async function chooseWorkspace(id: string) {
   // Kobalte menu items select on pointerup.
   fireEvent.pointerUp(option)
 }
+// The mobile rail is a modal sheet; tests that drive it must wait for the sheet
+// node rather than for a duration.
+async function openMobileRail() {
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Toggle navigation',
+    })
+  )
+  return (await waitFor(() => {
+    const node = document.querySelector('[data-mobile="true"]')
+    expect(node).not.toBeNull()
+    return node as HTMLElement
+  })) as HTMLElement
+}
+
+// The rail footer keeps one utilities trigger, so its destinations are reached
+// through the menu: Kobalte opens the trigger on pointerdown and selects an item
+// on pointerup.
+async function openSidebarDestination(label: string) {
+  fireEvent.pointerDown(
+    screen.getByRole('button', {
+      name: 'Settings and utilities',
+    })
+  )
+  const item = await screen.findByRole('menuitem', { name: label })
+  fireEvent.pointerUp(item)
+}
 test('the shadcn renderer composes the real application shell and state', async () => {
   render(() => <App />)
   await flushAppBootstrap()
@@ -278,6 +305,35 @@ test('mobile navigation dismisses after selecting the current destination', asyn
       })
     ).not.toBeNull()
   )
+})
+test('mobile navigation lists workspaces as rows rather than a hidden menu', async () => {
+  window.innerWidth = 320
+  render(() => <App />)
+  await flushAppBootstrap()
+  const sheet = await openMobileRail()
+  // A dropdown opened inside the modal sheet lands outside its aria-hidden
+  // subtree, so the sheet lists the workspaces as rows instead of a trigger.
+  expect(
+    screen.queryByRole('button', {
+      name: 'Switch workspace',
+    })
+  ).toBeNull()
+  fireEvent.click(
+    within(sheet).getByRole('button', {
+      name: 'Personal',
+    })
+  )
+  // Selecting a workspace closes the rail; reopening marks it current, which is
+  // only observable to assistive tech if the rows stayed inside the sheet.
+  await waitFor(() => expect(document.querySelector('[data-mobile="true"]')).toBeNull())
+  const reopened = await openMobileRail()
+  expect(
+    within(reopened)
+      .getByRole('button', {
+        name: 'Personal',
+      })
+      .getAttribute('aria-current')
+  ).toBe('page')
 })
 test('Reflect presents grounded reflection separately from ordinary search', async () => {
   window.localStorage.setItem('cortana.workspace-selection.v1', 'work')
@@ -658,15 +714,11 @@ test('settings navigation explains the desktop-only view in web mode', async () 
   await waitFor(() =>
     expect(
       screen.getByRole('button', {
-        name: 'Settings',
+        name: 'Settings and utilities',
       })
     ).toBeTruthy()
   )
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: 'Settings',
-    })
-  )
+  await openSidebarDestination('Settings')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {

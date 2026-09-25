@@ -116,6 +116,10 @@ const SettingsView = lazy(() =>
     default: module.SettingsView,
   }))
 )
+const loadAboutDialog = () => import('./components/m7/M7AboutDialog')
+const M7AboutDialog = lazy(() =>
+  loadAboutDialog().then((module) => ({ default: module.M7AboutDialog }))
+)
 const loadCommandPalette = () => import('./components/m7/M7CommandPalette')
 const M7CommandPalette = lazy(() =>
   loadCommandPalette().then((module) => ({
@@ -222,6 +226,7 @@ function CortanaApplication() {
   const [settingsSection, setSettingsSection] = createSignal<
     'readiness' | 'services' | 'updates' | 'sources' | 'memory'
   >('readiness')
+  const [aboutOpen, setAboutOpen] = createSignal(false)
   const [settingsDirty, setSettingsDirty] = createSignal(false)
   const [installerJob, setInstallerJob] = createSignal<DesktopInstallJob | null>(null)
   const [desktopUpdate, setDesktopUpdate] = createSignal<DesktopUpdate | null>(null)
@@ -731,6 +736,10 @@ function CortanaApplication() {
         event.preventDefault()
         setLeftOpen(true)
         window.setTimeout(() => document.getElementById('document-filter')?.focus(), 0)
+      } else if (modifier && key === ',') {
+        // The rail's utilities menu advertises this chord on its Settings entry.
+        event.preventDefault()
+        if (canLeaveSettings()) setView('settings')
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -1522,6 +1531,11 @@ function CortanaApplication() {
     setView('knowledge')
     focusWhenReady(() => searchRef.current, true)
   }
+  function openSettingsSection(section: 'updates' | 'services') {
+    if (!canLeaveSettings()) return
+    setSettingsSection(section)
+    setView('settings')
+  }
   function focusDocumentFilter() {
     if (!canLeaveSettings()) return
     setView('knowledge')
@@ -1756,6 +1770,8 @@ function CortanaApplication() {
               workspaceTab: workspaceTab(),
               onNavigate: navigate,
               onOpenGraph: openGraph,
+              onOpenSettingsSection: openSettingsSection,
+              onOpenAbout: () => setAboutOpen(true),
             }}
             workspaces={workspaces()}
             workspace={effectiveWorkspace()}
@@ -2076,6 +2092,17 @@ function CortanaApplication() {
             onCancelSourceJob={cancelSourceJob}
           />
         )}
+        <Show when={aboutOpen()}>
+          <Suspense>
+            <M7AboutDialog
+              open
+              onClose={() => setAboutOpen(false)}
+              version={desktopInfo()?.desktop_version}
+              platform={isDesktopApp ? 'desktop' : 'web'}
+              desktopAvailable={isDesktopApp}
+            />
+          </Suspense>
+        </Show>
         <Show when={commandPaletteMounted()}>
           <Suspense>
             <M7CommandPalette
@@ -2427,7 +2454,7 @@ export function ServiceHealthIndicator(incoming: {
           type="button"
           class={`service-activity-health ${state()}  `}
           aria-label="Open service health"
-          tooltip={`${detail()}. Open Services for controls.`}
+          tooltip={`${detail()}. Open Services to control or install them.`}
           onClick={props.onOpen}
         >
           <i /> {label()}

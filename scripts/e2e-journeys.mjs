@@ -59,6 +59,13 @@ async function openDemoApp(context) {
   return page
 }
 
+// The rail footer keeps one utilities trigger, so the destinations behind it
+// (Settings, Updates, Index, Help) are two steps: open the menu, then choose.
+async function openRailDestination(page, label) {
+  await page.getByRole('button', { name: 'Settings and utilities' }).click()
+  await page.getByRole('menuitem', { name: label, exact: true }).click()
+}
+
 async function searchProducesAnswerWithEvidence(context) {
   const page = await openDemoApp(context)
   const query = 'How do releases work?'
@@ -109,7 +116,7 @@ async function openDocumentAndCopyCitation(context) {
 
 async function approveMemoryCandidate(context) {
   const page = await openDemoApp(context)
-  await page.getByRole('button', { name: 'Settings', exact: true }).click()
+  await openRailDestination(page, 'Settings')
   await page.locator('.settings-view').waitFor()
   await page.getByRole('button', { name: 'Memory', exact: true }).click()
 
