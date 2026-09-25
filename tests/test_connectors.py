@@ -3204,6 +3204,53 @@ def test_google_gmail_retries_transient_bad_request_detail(
     assert delays == [0.25, 0.75, 1.5]
 
 
+def test_google_gmail_detail_retries_a_throttled_403(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    token = tmp_path / "token.json"
+    write_token(token, '{"token":"access"}')
+    attempts = 0
+    delays: list[float] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        if request.url.path.endswith("/messages"):
+            return response({"messages": [{"id": "throttled"}]}, request=request)
+        attempts += 1
+        # Outlast the session's two cheap retries: this is the sustained
+        # throttle that used to be misread as an inaccessible message.
+        if attempts <= 4:
+            return response(
+                {"error": {"errors": [{"reason": "userRateLimitExceeded"}]}, "code": 403},
+                status=403,
+                request=request,
+            )
+        return response(
+            {
+                "id": "throttled",
+                "threadId": "t1",
+                "internalDate": "1700000000000",
+                "payload": {
+                    "headers": [{"name": "Subject", "value": "Recovered"}],
+                    "mimeType": "text/plain",
+                    "body": {"data": base64.urlsafe_b64encode(b"Recovered body").decode()},
+                },
+            },
+            request=request,
+        )
+
+    monkeypatch.setattr(google.time, "sleep", delays.append)
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    documents = list(fetch_gmail(token, "work", client=client, max_documents=1))
+
+    # A rate-limit 403 is a throttle, not an inaccessible message: it must not be
+    # skipped, because one skip too many fails the whole source closed.
+    assert [document.source_id for document in documents] == ["throttled"]
+    assert documents[0].title == "Recovered"
+    assert 1.0 in delays
+    assert "gmail message skipped" not in capsys.readouterr().err
+
+
 def test_google_gmail_skips_isolated_inaccessible_message(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
