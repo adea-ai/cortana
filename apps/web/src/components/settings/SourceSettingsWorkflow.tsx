@@ -47,6 +47,7 @@ import { INITIAL_SYNC_BUDGETS } from '../../types'
 import type {
   BuzzCommunitySummary,
   DesktopInitialSyncPlan,
+  ConfiguredSourceSummary,
   DesktopSettings,
   DesktopSourceJob,
   DiscordGuildChannels,
@@ -149,6 +150,8 @@ function initialSourceWorkspace(settings: DesktopSettings): string {
 export function SourcesSection(
   incoming: SettingsSectionProps & {
     canValidate: boolean
+    /** Per-source authorization and validation state from the brain status. */
+    sourceSummaries?: ConfiguredSourceSummary[]
     secretValues: Record<string, string>
     onSecret: (values: Record<string, string>) => void
     clearedSecrets: Set<string>
@@ -166,6 +169,75 @@ export function SourcesSection(
     props.onJob?.(next)
   }
   const [error, setError] = createSignal('')
+  // Per-source actions (setup, authorize, test, sync) all have to run against
+  // saved configuration. Hiding them while the form is dirty left an empty row
+  // with no hint that anything was missing, so the row keeps them and explains
+  // the reason instead.
+  const actionsBlocked = () => Boolean(activeJob())
+  const summaryFor = (source: SourceSettings) =>
+    props.sourceSummaries?.find((item) => item.name === source.name)
+  /**
+   * Whether a source can reach its data, in one line: authorization first
+   * (a dead grant explains any later failure) and then validation coverage.
+   * Authorization is per account — every Google service of one account shares a
+   * single token file — so the token is named when the config has one.
+   */
+  const accessState = (source: SourceSettings) => {
+    const summary = summaryFor(source)
+    if (!summary) return null
+    const account = source.token_path?.split('/').pop() ?? source.token_env ?? null
+    const authorization = summary.authorization
+    if (authorization && authorization.method !== 'none') {
+      if (!authorization.authorized) {
+        return {
+          tone: 'error' as const,
+          text: account
+            ? `Not authorized (${account}) — authorize this account to reconnect every source that uses it`
+            : 'Not authorized — authorize to continue',
+        }
+      }
+    }
+    const validation = summary.validation
+    if (!validation) {
+      // Nothing has been validated yet: stay quiet rather than assert a state
+      // the server has not reported.
+      if (!authorization || authorization.method === 'none') return null
+      return {
+        tone: 'muted' as const,
+        text: account
+          ? `Authorized (${account}) · not validated yet`
+          : 'Authorized · not validated yet',
+      }
+    }
+    if (validation.status === 'failed') {
+      if (validation.error_category === 'authorization') {
+        return {
+          tone: 'error' as const,
+          text: `Needs re-authorization${account ? ` (${account})` : ''}${validation.error ? `: ${validation.error}` : ''}`,
+        }
+      }
+      return {
+        tone: 'error' as const,
+        text: `Validation failed${validation.error ? `: ${validation.error}` : ''}`,
+      }
+    }
+    if (validation.fresh === false) {
+      return {
+        tone: 'warning' as const,
+        text: 'Validation stale — revalidate before the next sync',
+      }
+    }
+    if (validation.complete === false) {
+      return {
+        tone: 'warning' as const,
+        text: 'Sample validation only — a full validation is required for sync',
+      }
+    }
+    const prefix = authorization?.authorized && account ? `Authorized (${account}) · ` : ''
+    return { tone: 'ok' as const, text: `${prefix}Validated` }
+  }
+  const actionsReason = () =>
+    props.canValidate ? null : 'Save source changes before using these actions'
   const [githubRepositories, setGithubRepositories] = createSignal<
     Record<
       string,
@@ -1074,6 +1146,13 @@ export function SourcesSection(
                               {sourceDisplayName(source().kind, source().name || 'New source')}
                             </strong>
                             <small>{sourceSubtitle(source())}</small>
+                            <Show when={accessState(source())}>
+                              {(state) => (
+                                <small class={`source-access source-access--${state().tone}`}>
+                                  {state().text}
+                                </small>
+                              )}
+                            </Show>
                           </span>
                         </div>
                         {!workspaceAssigned() && (
@@ -1123,63 +1202,62 @@ export function SourcesSection(
                               }
                             />
                           </div>
-                          {hasBrowserSetup(source().kind) && props.canValidate && !activeJob() && (
+                          {hasBrowserSetup(source().kind) && (
                             <Button
                               variant="icon"
                               type="button"
                               class="source-icon-button "
                               aria-label={setupActionLabel(source().kind)}
-                              tooltip={setupActionLabel(source().kind)}
+                              disabled={actionsBlocked()}
+                              tooltip={actionsReason() ?? setupActionLabel(source().kind)}
                               onClick={() => void openSetup(source())}
                             >
                               <ExternalLink size={14} />
                             </Button>
                           )}
-                          {props.canValidate &&
-                            !activeJob() &&
-                            (isGoogleSource(source().kind) ||
-                              source().kind === 'github' ||
-                              source().kind === 'discord' ||
-                              source().kind === 'slack') &&
+                          {(isGoogleSource(source().kind) ||
+                            source().kind === 'github' ||
+                            source().kind === 'discord' ||
+                            source().kind === 'slack') &&
                             canAuthorizeSource(source()) && (
                               <Button
                                 variant="icon"
                                 type="button"
                                 class="source-icon-button "
                                 aria-label="Authorize"
-                                tooltip="Authorize"
+                                disabled={actionsBlocked()}
+                                tooltip={actionsReason() ?? 'Authorize'}
                                 onClick={() => void authorizeSource(source())}
                               >
                                 <KeyRound size={14} />
                               </Button>
                             )}
-                          {props.canValidate && !activeJob() && workspaceAssigned() && (
+                          {workspaceAssigned() && (
                             <Button
                               variant="icon"
                               type="button"
                               class="source-icon-button "
                               aria-label="Test connection"
-                              tooltip="Test connection"
+                              disabled={actionsBlocked()}
+                              tooltip={actionsReason() ?? 'Test connection'}
                               onClick={() => void checkSourceConnection(source())}
                             >
                               <ShieldCheck size={14} />
                             </Button>
                           )}
-                          {props.canValidate &&
-                            !activeJob() &&
-                            source().enabled &&
-                            workspaceAssigned() && (
-                              <Button
-                                variant="icon"
-                                type="button"
-                                class="source-icon-button "
-                                aria-label="Initial sync"
-                                tooltip="Initial sync"
-                                onClick={() => openInitialSync(source())}
-                              >
-                                <Zap size={14} />
-                              </Button>
-                            )}
+                          {source().enabled && workspaceAssigned() && (
+                            <Button
+                              variant="icon"
+                              type="button"
+                              class="source-icon-button "
+                              aria-label="Initial sync"
+                              disabled={actionsBlocked()}
+                              tooltip={actionsReason() ?? 'Initial sync'}
+                              onClick={() => openInitialSync(source())}
+                            >
+                              <Zap size={14} />
+                            </Button>
+                          )}
                           <Button
                             variant="danger"
                             type="button"

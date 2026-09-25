@@ -68,6 +68,7 @@ import {
 import { buildSetupSteps } from '../setup'
 import { type ProviderModelKind } from '../types'
 import type {
+  ConfiguredSourceSummary,
   DesktopInstallJob,
   DesktopInfo,
   DesktopReadiness,
@@ -144,6 +145,11 @@ const SETTINGS_NAV_SECONDARY_SECTIONS: Section[] = [
 function SettingsViewContent(incoming: {
   /** Shell-owned settings snapshot. Standalone renders fetch their own copy. */
   desktopSettings?: DesktopSettings
+  /**
+   * Per-source authorization and validation summaries from the brain status.
+   * Absent in standalone renders, which simply show no access line.
+   */
+  sourceSummaries?: ConfiguredSourceSummary[]
   /** Report a standalone settings load back to the Desktop shell. */
   onLoaded?: (settings: DesktopSettings) => void
   onSaved: (settings: DesktopSettings) => void
@@ -754,6 +760,7 @@ function SettingsViewContent(incoming: {
                     <SourcesSection
                       settings={settings()!}
                       update={update}
+                      sourceSummaries={props.sourceSummaries}
                       canValidate={!dirty() && !saving()}
                       secretValues={secretValues()}
                       onSecret={stageSecrets}

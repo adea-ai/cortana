@@ -435,22 +435,16 @@ test('a shared active source job locks source actions until it finishes', async 
     })
   )
   await waitFor(() => expect(state.cancelCalls).toEqual(['source-1-1']))
-  for (const label of ['Test connection', 'Trial sync', 'Initial sync', 'Remove work-code']) {
-    if (label === 'Remove work-code') {
-      expect(
-        (
-          screen.getByRole('button', {
-            name: label,
-          }) as HTMLButtonElement
-        ).disabled
-      ).toBe(true)
-    } else {
-      expect(
-        screen.queryByRole('button', {
+  // A running job disables the row's actions rather than removing them: an
+  // empty row gave no hint that anything existed or why it was unavailable.
+  for (const label of ['Test connection', 'Initial sync', 'Remove work-code']) {
+    expect(
+      (
+        screen.getByRole('button', {
           name: label,
-        })
-      ).toBeNull()
-    }
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(true)
   }
   expect(
     (

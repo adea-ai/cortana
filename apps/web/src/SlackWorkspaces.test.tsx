@@ -297,11 +297,14 @@ test('slack authorize action stays hidden until saved OAuth paths are available'
       },
     }
   )
-  expect(
-    screen.queryByRole('button', {
-      name: 'Authorize',
-    })
-  ).toBeNull()
+  // With the paths filled in the action is offered even before saving (the row
+  // no longer empties itself), but activating it must not reach the native
+  // runtime while the configuration is unsaved.
+  const unsavedAuthorize = await screen.findByRole('button', {
+    name: 'Authorize',
+  })
+  fireEvent.click(unsavedAuthorize)
+  expect(state.authorizationCalls).toEqual([])
 
   // Once the paths are saved, the same source card offers browser
   // authorization for Slack.
