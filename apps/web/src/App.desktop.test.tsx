@@ -2427,6 +2427,60 @@ test('workspace controls protect scopes assigned to sources', async () => {
     state.settings = originalSettings
   }
 })
+test('source actions stay visible while the settings form has unsaved changes', async () => {
+  const originalSettings = state.settings
+  state.settings = {
+    ...desktopSettings,
+    sources: [workSource],
+  }
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await openSidebarDestination('Settings')
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Sources',
+      })
+    )
+    // Sources are grouped in workspace tabs; the fixture source lives under Work.
+    fireEvent.click(
+      await screen.findByRole('tab', {
+        name: /Work/,
+      })
+    )
+    const actions = ['Test connection', 'Initial sync']
+    for (const label of actions) {
+      expect((screen.getByRole('button', { name: label }) as HTMLButtonElement).disabled).toBe(
+        false
+      )
+    }
+    // Making the form dirty used to remove every per-source action, leaving an
+    // empty row with no hint that anything was missing.
+    fireEvent.click(await screen.findByLabelText('Enable work-code'))
+    await waitFor(() =>
+      expect(
+        (screen.getByRole('button', { name: 'Save changes' }) as HTMLButtonElement).disabled
+      ).toBe(false)
+    )
+    // The action stays reachable: hidden-while-dirty was the bug. (The initial
+    // sync action is intentionally tied to an enabled source, so only the
+    // connection test is unconditional.)
+    const connection = screen.queryByRole('button', {
+      name: 'Test connection',
+    }) as HTMLButtonElement | null
+    expect(connection).not.toBeNull()
+    expect(connection!.disabled).toBe(false)
+  } finally {
+    state.settings = originalSettings
+  }
+})
 test('workspace cards show display name and advanced details', async () => {
   const originalSettings = state.settings
   state.settings = {

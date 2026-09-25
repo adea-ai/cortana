@@ -166,6 +166,13 @@ export function SourcesSection(
     props.onJob?.(next)
   }
   const [error, setError] = createSignal('')
+  // Per-source actions (setup, authorize, test, sync) all have to run against
+  // saved configuration. Hiding them while the form is dirty left an empty row
+  // with no hint that anything was missing, so the row keeps them and explains
+  // the reason instead.
+  const actionsBlocked = () => Boolean(activeJob())
+  const actionsReason = () =>
+    props.canValidate ? null : 'Save source changes before using these actions'
   const [githubRepositories, setGithubRepositories] = createSignal<
     Record<
       string,
@@ -1123,63 +1130,62 @@ export function SourcesSection(
                               }
                             />
                           </div>
-                          {hasBrowserSetup(source().kind) && props.canValidate && !activeJob() && (
+                          {hasBrowserSetup(source().kind) && (
                             <Button
                               variant="icon"
                               type="button"
                               class="source-icon-button "
                               aria-label={setupActionLabel(source().kind)}
-                              tooltip={setupActionLabel(source().kind)}
+                              disabled={actionsBlocked()}
+                              tooltip={actionsReason() ?? setupActionLabel(source().kind)}
                               onClick={() => void openSetup(source())}
                             >
                               <ExternalLink size={14} />
                             </Button>
                           )}
-                          {props.canValidate &&
-                            !activeJob() &&
-                            (isGoogleSource(source().kind) ||
-                              source().kind === 'github' ||
-                              source().kind === 'discord' ||
-                              source().kind === 'slack') &&
+                          {(isGoogleSource(source().kind) ||
+                            source().kind === 'github' ||
+                            source().kind === 'discord' ||
+                            source().kind === 'slack') &&
                             canAuthorizeSource(source()) && (
                               <Button
                                 variant="icon"
                                 type="button"
                                 class="source-icon-button "
                                 aria-label="Authorize"
-                                tooltip="Authorize"
+                                disabled={actionsBlocked()}
+                                tooltip={actionsReason() ?? 'Authorize'}
                                 onClick={() => void authorizeSource(source())}
                               >
                                 <KeyRound size={14} />
                               </Button>
                             )}
-                          {props.canValidate && !activeJob() && workspaceAssigned() && (
+                          {workspaceAssigned() && (
                             <Button
                               variant="icon"
                               type="button"
                               class="source-icon-button "
                               aria-label="Test connection"
-                              tooltip="Test connection"
+                              disabled={actionsBlocked()}
+                              tooltip={actionsReason() ?? 'Test connection'}
                               onClick={() => void checkSourceConnection(source())}
                             >
                               <ShieldCheck size={14} />
                             </Button>
                           )}
-                          {props.canValidate &&
-                            !activeJob() &&
-                            source().enabled &&
-                            workspaceAssigned() && (
-                              <Button
-                                variant="icon"
-                                type="button"
-                                class="source-icon-button "
-                                aria-label="Initial sync"
-                                tooltip="Initial sync"
-                                onClick={() => openInitialSync(source())}
-                              >
-                                <Zap size={14} />
-                              </Button>
-                            )}
+                          {source().enabled && workspaceAssigned() && (
+                            <Button
+                              variant="icon"
+                              type="button"
+                              class="source-icon-button "
+                              aria-label="Initial sync"
+                              disabled={actionsBlocked()}
+                              tooltip={actionsReason() ?? 'Initial sync'}
+                              onClick={() => openInitialSync(source())}
+                            >
+                              <Zap size={14} />
+                            </Button>
+                          )}
                           <Button
                             variant="danger"
                             type="button"
