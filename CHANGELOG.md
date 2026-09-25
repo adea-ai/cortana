@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.59.1](https://github.com/adea-ai/cortana/compare/v0.59.0...v0.59.1) (2026-09-25)
+
+
+### Bug Fixes
+
+* **web:** desktop UI follow-up list (nine items) ([#2390](https://github.com/adea-ai/cortana/issues/2390)) ([6515a4c](https://github.com/adea-ai/cortana/commit/6515a4c4400f421b8a7579e1e83764bfe7107f07))
+
 ## [0.59.0](https://github.com/adea-ai/cortana/compare/v0.58.22...v0.59.0) (2026-09-22)
 
 
