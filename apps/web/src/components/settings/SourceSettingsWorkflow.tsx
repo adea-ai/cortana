@@ -199,9 +199,14 @@ export function SourcesSection(
     }
     const validation = summary.validation
     if (!validation) {
+      // Nothing has been validated yet: stay quiet rather than assert a state
+      // the server has not reported.
+      if (!authorization || authorization.method === 'none') return null
       return {
         tone: 'muted' as const,
-        text: account ? `Authorized (${account}) · not validated yet` : 'Not validated yet',
+        text: account
+          ? `Authorized (${account}) · not validated yet`
+          : 'Authorized · not validated yet',
       }
     }
     if (validation.status === 'failed') {
