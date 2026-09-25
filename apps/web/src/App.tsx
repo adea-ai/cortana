@@ -2416,8 +2416,17 @@ export function ServiceHealthIndicator(incoming: {
         service.name === 'server' || (service.name === 'embedding' && props.embeddingRequired)
     )
   const coreLoaded = () => core().filter((service) => service.loaded).length
+  // The last exit status is historical: a KeepAlive service keeps the code from
+  // its previous run, and launchd also records the signal that stopped it for a
+  // restart, so a recovered service would otherwise warn forever. Only a core
+  // service that is *not* running can be failing because of it.
   const coreExitFailure = () =>
-    core().some((service) => service.last_exit_status !== null && service.last_exit_status !== 0)
+    core().some(
+      (service) =>
+        service.state !== 'running' &&
+        service.last_exit_status !== null &&
+        service.last_exit_status !== 0
+    )
   const coreAttention = () =>
     core().length === 0 || coreLoaded() < core().length || coreExitFailure()
   const state = () => (!report()!.supported || coreAttention() ? 'warning' : 'healthy')

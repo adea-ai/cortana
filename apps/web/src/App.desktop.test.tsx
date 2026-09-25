@@ -1865,6 +1865,32 @@ test('desktop shell does not require the local embedding service for cloud embed
   ))
   expect(screen.getByText('Services: core 1/1 online')).toBeTruthy()
 })
+test('a recovered core service no longer reports core attention', () => {
+  const report = {
+    ...installedServiceReport,
+    services: installedServiceReport.services.map((service) =>
+      service.name === 'embedding'
+        ? { ...service, last_exit_status: 1, loaded: true, state: 'running' }
+        : service
+    ),
+  }
+  render(() => <ServiceHealthIndicator report={report} error="" onOpen={() => {}} />)
+  // KeepAlive records the signal that stopped the previous run, so a running
+  // service must not be reported as failing because of it.
+  expect(screen.getByText('Services: core 2/2 online')).toBeTruthy()
+})
+test('a stopped core service that exited non-zero still reports core attention', () => {
+  const report = {
+    ...installedServiceReport,
+    services: installedServiceReport.services.map((service) =>
+      service.name === 'embedding'
+        ? { ...service, loaded: false, state: 'not running', last_exit_status: 1 }
+        : service
+    ),
+  }
+  render(() => <ServiceHealthIndicator report={report} error="" onOpen={() => {}} />)
+  expect(screen.getByText('Services: core attention')).toBeTruthy()
+})
 test('query number fields expose deterministic errors and recover to the saved bounds', async () => {
   render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
