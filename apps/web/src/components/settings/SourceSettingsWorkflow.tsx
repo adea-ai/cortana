@@ -47,6 +47,7 @@ import { INITIAL_SYNC_BUDGETS } from '../../types'
 import type {
   BuzzCommunitySummary,
   DesktopInitialSyncPlan,
+  ConfiguredSourceSummary,
   DesktopSettings,
   DesktopSourceJob,
   DiscordGuildChannels,
@@ -149,6 +150,8 @@ function initialSourceWorkspace(settings: DesktopSettings): string {
 export function SourcesSection(
   incoming: SettingsSectionProps & {
     canValidate: boolean
+    /** Per-source authorization and validation state from the brain status. */
+    sourceSummaries?: ConfiguredSourceSummary[]
     secretValues: Record<string, string>
     onSecret: (values: Record<string, string>) => void
     clearedSecrets: Set<string>
@@ -171,6 +174,63 @@ export function SourcesSection(
   // with no hint that anything was missing, so the row keeps them and explains
   // the reason instead.
   const actionsBlocked = () => Boolean(activeJob())
+  const summaryFor = (source: SourceSettings) =>
+    props.sourceSummaries?.find((item) => item.name === source.name)
+  /**
+   * Whether a source can reach its data, in one line: authorization first
+   * (a dead grant explains any later failure) and then validation coverage.
+   * Authorization is per account — every Google service of one account shares a
+   * single token file — so the token is named when the config has one.
+   */
+  const accessState = (source: SourceSettings) => {
+    const summary = summaryFor(source)
+    if (!summary) return null
+    const account = source.token_path?.split('/').pop() ?? source.token_env ?? null
+    const authorization = summary.authorization
+    if (authorization && authorization.method !== 'none') {
+      if (!authorization.authorized) {
+        return {
+          tone: 'error' as const,
+          text: account
+            ? `Not authorized (${account}) — authorize this account to reconnect every source that uses it`
+            : 'Not authorized — authorize to continue',
+        }
+      }
+    }
+    const validation = summary.validation
+    if (!validation) {
+      return {
+        tone: 'muted' as const,
+        text: account ? `Authorized (${account}) · not validated yet` : 'Not validated yet',
+      }
+    }
+    if (validation.status === 'failed') {
+      if (validation.error_category === 'authorization') {
+        return {
+          tone: 'error' as const,
+          text: `Needs re-authorization${account ? ` (${account})` : ''}${validation.error ? `: ${validation.error}` : ''}`,
+        }
+      }
+      return {
+        tone: 'error' as const,
+        text: `Validation failed${validation.error ? `: ${validation.error}` : ''}`,
+      }
+    }
+    if (validation.fresh === false) {
+      return {
+        tone: 'warning' as const,
+        text: 'Validation stale — revalidate before the next sync',
+      }
+    }
+    if (validation.complete === false) {
+      return {
+        tone: 'warning' as const,
+        text: 'Sample validation only — a full validation is required for sync',
+      }
+    }
+    const prefix = authorization?.authorized && account ? `Authorized (${account}) · ` : ''
+    return { tone: 'ok' as const, text: `${prefix}Validated` }
+  }
   const actionsReason = () =>
     props.canValidate ? null : 'Save source changes before using these actions'
   const [githubRepositories, setGithubRepositories] = createSignal<
@@ -1081,6 +1141,13 @@ export function SourcesSection(
                               {sourceDisplayName(source().kind, source().name || 'New source')}
                             </strong>
                             <small>{sourceSubtitle(source())}</small>
+                            <Show when={accessState(source())}>
+                              {(state) => (
+                                <small class={`source-access source-access--${state().tone}`}>
+                                  {state().text}
+                                </small>
+                              )}
+                            </Show>
                           </span>
                         </div>
                         {!workspaceAssigned() && (

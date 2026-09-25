@@ -282,6 +282,7 @@ const state = {
   pickedPaths: [] as string[],
   pathPickerCalls: [] as string[],
   serviceAction: null as (() => Promise<DesktopServiceReport>) | null,
+  status: null as (() => Promise<typeof demoStatus>) | null,
   readinessScan: null as
     | (() => Promise<Awaited<ReturnType<typeof realApi.scanDesktopReadiness>>>)
     | null,
@@ -356,7 +357,7 @@ mock.module('./api', () => ({
   isDemoMode: false,
   getStatus: () => {
     state.statusCalls += 1
-    return Promise.resolve(demoStatus)
+    return Promise.resolve(state.status ? state.status() : demoStatus)
   },
   getDocuments: (workspace?: string, source?: string, query?: string, cursor?: string | null) => {
     state.getDocumentsCalls.push({
@@ -2424,6 +2425,84 @@ test('workspace controls protect scopes assigned to sources', async () => {
     )
     expect(workScope?.disabled).toBe(true)
   } finally {
+    state.settings = originalSettings
+  }
+})
+test('source cards report authorization and validation state', async () => {
+  const originalStatus = state.status
+  const originalSettings = state.settings
+  state.settings = {
+    ...desktopSettings,
+    sources: [
+      workSource,
+      {
+        ...workSource,
+        name: 'personal-notes',
+        project: 'personal',
+        enabled: true,
+      },
+    ],
+  }
+  state.status = () =>
+    Promise.resolve({
+      ...demoStatus,
+      ingestion: {
+        ...demoStatus.ingestion,
+        configured_sources: demoStatus.ingestion.configured_sources.map((summary) =>
+          summary.name === 'personal-notes'
+            ? {
+                ...summary,
+                authorization: {
+                  method: 'none' as const,
+                  setup_required: true,
+                  authorized: false,
+                },
+                validation: {
+                  source: summary.source,
+                  project: summary.project,
+                  kind: summary.kind,
+                  status: 'failed' as const,
+                  validated_at: '2026-09-25T05:12:00Z',
+                  documents: null,
+                  bytes: null,
+                  max_documents: 2000,
+                  max_bytes: 134217728,
+                  max_seconds: 900,
+                  error: 'Apple Notes automation timed out; open Notes and grant Automation access',
+                  error_category: 'authorization' as const,
+                },
+              }
+            : summary
+        ),
+      },
+    })
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await openSidebarDestination('Settings')
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Sources',
+      })
+    )
+    fireEvent.click(
+      await screen.findByRole('tab', {
+        name: /Personal/,
+      })
+    )
+    // The card names the access problem and its reason instead of leaving it to
+    // surface later as a connector failure during a sync.
+    await waitFor(() => expect(screen.getByText(/Needs re-authorization/)).toBeTruthy())
+    expect(screen.getByText(/Automation access/)).toBeTruthy()
+  } finally {
+    state.status = originalStatus
     state.settings = originalSettings
   }
 })

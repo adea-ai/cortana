@@ -1790,6 +1790,7 @@ function CortanaApplication() {
           >
             <SettingsView
               desktopSettings={desktopSettings() ?? undefined}
+              sourceSummaries={status()?.ingestion.configured_sources ?? []}
               onLoaded={applyDesktopSettings}
               initialSection={settingsSection()}
               onDirtyChange={setSettingsDirty}

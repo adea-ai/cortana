@@ -5748,6 +5748,31 @@ select:focus-visible {
   font-size: 11px;
 }
 
+/* Per-source access state: authorization is per account (one Google token
+   serves Drive, Gmail, and Calendar), so a dead grant reads here instead of
+   surfacing later as a connector error. */
+.source-access {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+}
+
+.source-access--ok {
+  color: var(--status-ready-text);
+}
+
+.source-access--warning {
+  color: var(--status-warning-text);
+}
+
+.source-access--error {
+  color: var(--status-danger-text);
+}
+
+.source-access--muted {
+  color: var(--muted-foreground);
+}
+
 /* The rail's utilities menu follows the account menu in the sibling shell: a
    roomier list than the default dropdown (15rem wide, 0.75rem radius, 2.25rem
    rows) with muted icons that ink up on the highlighted row. */
