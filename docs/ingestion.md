@@ -137,22 +137,27 @@ cursor; if Drive does not return a usable start token, Cortana safely falls back
 listing without claiming incremental progress.
 Idempotent Google GET/HEAD calls retry bounded transport failures and standard transient HTTP
 statuses; a 403 is retried only for Google's explicit rate-limit/backend reasons. Gmail detail
-requests also retry a small, bounded 400 window before strict runs fail closed.
+requests also retry a small, bounded 400 window before a strict run applies its recovery pass.
 
 Complete, reconciling Google runs fail closed on unresolved listing, detail, or conversion data
 so a truncated snapshot can never reconcile as if it were whole. Drive rejects an
-`incompleteSearch` listing, malformed file records, missing or unparsable `modifiedTime`, invalid
-pagination cursors, and content that cannot be downloaded without a cached copy. Unsupported or
-empty file bodies are retained with `content_unavailable=true` and an explicit recovery marker;
-they are not treated as extracted text. PDFs with no extractable text use the explicit placeholder
-described above.
+`incompleteSearch` listing, malformed file records, missing or unparsable `modifiedTime`, and
+invalid pagination cursors. Unsupported or empty file bodies are retained with
+`content_unavailable=true` and an explicit recovery marker; they are not treated as extracted
+text. PDFs with no extractable text use the explicit placeholder described above.
 Gmail rejects malformed message listings, invalid pagination cursors, cached or
-fresh detail IDs that do not match the listed ID, any message detail that is denied or unavailable
-between list and detail requests, and messages that fail document conversion. Calendar applies the
-same strict listing, event, and cursor checks and paginates the calendar list. The one tolerated
-omission on a complete Drive run is a file whose content download failed but which still has a
-prior cached body: the cached body is emitted, marked `content_stale` in metadata, and diagnostics
-expose only the exception class.
+fresh detail IDs that do not match the listed ID, message details that remain denied or
+unavailable after the recovery pass below, and messages that fail document conversion. Calendar
+applies the same strict listing, event, and cursor checks and paginates the calendar list.
+Per-file content failures never fail a Drive source. A file whose content download or conversion
+failed is emitted with its prior cached body, marked `content_stale` in metadata, when the cache
+holds one, and with the explicit `content_unavailable` marker otherwise; diagnostics expose only
+the exception class. Both cases withhold the changes cursor while still emitting the rest of the
+snapshot, so the next run replays the change and retries the fetch instead of indexing a degraded
+body until the file changes again. Bounded trials keep the diagnostic skip instead.
+Because a denied Gmail detail is usually an account-level quota window rather than an inaccessible
+message, a strict run retries the details a first pass could not fetch after a pause, and
+announces only the skips that survive that pass.
 
 Bounded trial or initial syncs never reconcile, so they keep the diagnostic skip behavior instead:
 malformed records, unsupported content, and isolated denied or unavailable message details are
