@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.59.4](https://github.com/adea-ai/cortana/compare/v0.59.3...v0.59.4) (2026-09-26)
+
+
+### Maintenance
+
+* **code-foundry:** upgrade runtime to v1.33.1 ([#2399](https://github.com/adea-ai/cortana/issues/2399)) ([61f4571](https://github.com/adea-ai/cortana/commit/61f45714f6b539728a047a34e1a5e0092471c0eb))
+
 ## [0.59.3](https://github.com/adea-ai/cortana/compare/v0.59.2...v0.59.3) (2026-09-25)
 
 
