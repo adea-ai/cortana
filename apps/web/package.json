@@ -10,7 +10,7 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@adea-ai/themes": "0.6.2",
+    "@adea-ai/themes": "0.6.3",
     "@adea-ai/ui": "0.72.2",
     "@fontsource-variable/geist": "^5.3.0",
     "@kobalte/core": "^0.13.14",

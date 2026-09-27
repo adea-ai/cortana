@@ -7,12 +7,12 @@ https://www.apache.org/licenses/LICENSE-2.0.
 Individual files may retain their original copyright and license notices.
 
 The web application incorporates the published @adea-ai/ui 0.72.2 and
-@adea-ai/themes 0.6.2 packages, each distributed under the Apache License,
+@adea-ai/themes 0.6.3 packages, each distributed under the Apache License,
 Version 2.0. The full notices published by both packages are reproduced below.
 They record the shared UI design and component provenance and the third-party
 palette attributions consumed here.
 
-# @adea-ai/themes 0.6.2 published notice
+# @adea-ai/themes 0.6.3 published notice
 
 Copyright 2026 0xPlayerOne
 
