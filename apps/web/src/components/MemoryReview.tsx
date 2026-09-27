@@ -161,62 +161,68 @@ function CandidateQueue(props: {
         aria-busy={props.loading}
         onScroll={(event) => props.onScroll(event.currentTarget.scrollTop)}
       >
-        <div
-          class="memory-virtual-space"
-          style={{ '--virtual-total-height': `${props.range.totalHeight}px` } as JSX.CSSProperties}
-        >
-          <div
-            class="memory-virtual-window"
-            style={{ '--virtual-offset': `${props.range.offsetTop}px` } as JSX.CSSProperties}
-          >
-            <For each={props.filtered.slice(props.range.start, props.range.end)}>
-              {(candidate) => (
-                <MemoryCard
-                  role="listitem"
-                  class={cn(
-                    'memory-candidate-row',
-                    props.selectedId === candidate.id && 'selected'
+        <Show
+          when={!props.loading && props.filtered.length === 0}
+          fallback={
+            <div
+              class="memory-virtual-space"
+              style={
+                { '--virtual-total-height': `${props.range.totalHeight}px` } as JSX.CSSProperties
+              }
+            >
+              <div
+                class="memory-virtual-window"
+                style={{ '--virtual-offset': `${props.range.offsetTop}px` } as JSX.CSSProperties}
+              >
+                <For each={props.filtered.slice(props.range.start, props.range.end)}>
+                  {(candidate) => (
+                    <MemoryCard
+                      role="listitem"
+                      class={cn(
+                        'memory-candidate-row',
+                        props.selectedId === candidate.id && 'selected'
+                      )}
+                    >
+                      <Checkbox
+                        aria-label={`Select ${candidate.title}`}
+                        checked={props.selectedIds.has(candidate.id)}
+                        onChange={(checked) => updateSelection(candidate, checked)}
+                      />
+                      <MemoryButton
+                        variant="ghost"
+                        type="button"
+                        aria-current={props.selectedId === candidate.id}
+                        aria-label={`${candidate.title}, ${queueStatus(candidate)}`}
+                        onClick={() => props.onSelect(candidate.id)}
+                      >
+                        <strong>{candidate.title}</strong>
+                        <span>{candidate.content}</span>
+                      </MemoryButton>
+                      <StatusChip
+                        role="status"
+                        tone={QUEUE_TONES[queueStatus(candidate)]}
+                        label={queueStatus(candidate)}
+                      />
+                    </MemoryCard>
                   )}
-                >
-                  <Checkbox
-                    aria-label={`Select ${candidate.title}`}
-                    checked={props.selectedIds.has(candidate.id)}
-                    onChange={(checked) => updateSelection(candidate, checked)}
-                  />
-                  <MemoryButton
-                    variant="ghost"
-                    type="button"
-                    aria-current={props.selectedId === candidate.id}
-                    aria-label={`${candidate.title}, ${queueStatus(candidate)}`}
-                    onClick={() => props.onSelect(candidate.id)}
-                  >
-                    <strong>{candidate.title}</strong>
-                    <span>{candidate.content}</span>
-                  </MemoryButton>
-                  <StatusChip
-                    role="status"
-                    tone={QUEUE_TONES[queueStatus(candidate)]}
-                    label={queueStatus(candidate)}
-                  />
-                </MemoryCard>
-              )}
-            </For>
-          </div>
-        </div>
+                </For>
+              </div>
+            </div>
+          }
+        >
+          <Empty class="memory-candidate-empty">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Inbox aria-hidden="true" />
+              </EmptyMedia>
+              <EmptyTitle>No candidates match this view</EmptyTitle>
+              <EmptyDescription>
+                Adjust the search text or switch the status view to see other candidates.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        </Show>
       </div>
-      <Show when={!props.loading && props.filtered.length === 0}>
-        <Empty>
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <Inbox aria-hidden="true" />
-            </EmptyMedia>
-            <EmptyTitle>No candidates match this view</EmptyTitle>
-            <EmptyDescription>
-              Adjust the search text or switch the status view to see other candidates.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      </Show>
       <Show when={props.selectedIds.size > 0}>
         <div class="memory-bulk-actions" aria-label="Bulk-safe candidate actions">
           <span>

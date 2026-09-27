@@ -168,6 +168,17 @@ test('renders a bounded searchable queue with inspectable policy and provenance'
   expect(await screen.findByText('No candidates match this view')).toBeTruthy()
   expect(document.querySelector('[data-slot="empty"] [data-slot="empty-media"]')).toBeTruthy()
 })
+test('keeps the filtered empty state inside the fixed-height candidate queue', async () => {
+  render(() => <MemoryReview client={client()} />)
+  const queue = await screen.findByRole('list', { name: 'Memory candidate queue' })
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Search memory candidates' }), {
+    target: { value: 'missing' },
+  })
+  await screen.findByText('No candidates match this view')
+  const emptyState = queue.querySelector('[data-slot="empty"]')
+  expect(emptyState).toBeTruthy()
+  expect(emptyState?.classList.contains('memory-candidate-empty')).toBe(true)
+})
 test('requires confirmation for canonical approval and keeps queue controls explicit', async () => {
   const api = client()
   const originalConfirm = window.confirm

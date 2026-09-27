@@ -3792,6 +3792,11 @@ select:focus-visible {
   background: var(--card);
 }
 
+.memory-candidate-empty {
+  height: 100%;
+  min-height: 100%;
+}
+
 .memory-virtual-space {
   position: relative;
   height: var(--virtual-total-height, auto);
