@@ -678,7 +678,11 @@ export function M7ShellProvider(props: { children: JSX.Element }) {
     // 150ms: long enough to survive a pointer crossing a control, short enough
     // that action help feels immediate beside the rail's own label flyout.
     <TooltipProvider delay={150}>
-      <SidebarProvider defaultOpen={false} class="m7-shell-provider min-h-0 overflow-hidden">
+      <SidebarProvider
+        defaultOpen={false}
+        class="m7-shell-provider min-h-0 overflow-hidden"
+        style={{ '--sidebar-width-icon': '56px' } as JSX.CSSProperties}
+      >
         {props.children}
       </SidebarProvider>
     </TooltipProvider>
