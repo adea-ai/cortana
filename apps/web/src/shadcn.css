@@ -4646,6 +4646,8 @@ select:focus-visible {
 .m7-shell-provider {
   width: 100%;
   height: 100svh;
+  /* Shared UI sets the document type scale to 14px; keep the M7 rail geometry at its 56px contract. */
+  --sidebar-width-icon: 56px;
   background: var(--background);
   color: var(--foreground);
 }
@@ -4748,8 +4750,8 @@ select:focus-visible {
 }
 
 .m7-application-sidebar [data-sidebar='menu-button'] > svg {
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 24px;
+  height: 24px;
 }
 
 .m7-application-sidebar [data-sidebar='menu-button'][data-active] {
