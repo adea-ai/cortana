@@ -7,23 +7,28 @@ apply it.
 
 ## Locked foundation
 
-| Decision            | M7 contract                                                                                |
-| ------------------- | ------------------------------------------------------------------------------------------ |
-| Registry            | Official `@shadcn` registry only                                                           |
-| Component base      | Base UI                                                                                    |
-| Style               | Nova (`base-nova` in `components.json`)                                                    |
-| Icons               | Lucide; decorative icons are hidden and action icons retain accessible names               |
-| Font                | Geist Variable for the renderer heading and sans contracts                                 |
-| Styling             | Tailwind CSS 4 with CSS variables and semantic Cortana tokens                              |
-| Generated UI alias  | `@/components/shadcn`                                                                      |
-| Utilities and hooks | `@/lib`, `@/lib/utils`, and `@/hooks`                                                      |
-| Renderer            | One production shadcn renderer; no build flag, query override, or packaged legacy fallback |
+| Decision                | Current shared-system contract                                                     |
+| ----------------------- | ---------------------------------------------------------------------------------- |
+| Distribution            | Versioned `@adea-ai/ui` and `@adea-ai/themes` npm artifacts                        |
+| Component base          | SolidJS with the shared Kobalte/Corvu primitives                                   |
+| Style                   | Shared semantic variants and structural tokens; M7 product composition stays local |
+| Icons                   | Lucide; decorative icons are hidden and action icons retain accessible names       |
+| Font                    | Published `data-font="geist"` selection with the existing optional Geist asset     |
+| Styling                 | Tailwind CSS 4, published base/theme CSS, and application domain hooks             |
+| Application composition | `components/cortana`, settings, knowledge, and shell domain adapters               |
+| Renderer                | One production Solid renderer; no packaged legacy fallback                         |
 
-Generated registry components live under `components/shadcn`. Product composition imports them
-directly or through the bounded `components/cortana` compositions; the temporary legacy Button,
-renderer resolver, duplicate renderer entries, and runtime surface adapters have been removed.
-`scripts/check-web-ui-contract.mjs` prevents those contracts and ordinary raw form controls from
-returning outside the documented graph, root-failure, and generated-component exceptions.
+The earlier app-local Base UI Nova registry preset is superseded by the current Solid
+renderer and published shared-system adoption. The obsolete `components.json` and
+`shadcn/tailwind.css` import are removed. Product code imports public shared component
+subpaths; pure forwarding aliases have been removed. The remaining Field/Sidebar domain
+composition and overlay migration must be qualified before the whole migration is complete.
+`scripts/check-web-ui-contract.mjs` prevents removed renderer contracts and ordinary raw form
+controls from returning, and checks that imported shared controls have explicit Tailwind
+sources. The published base layer owns generic control resets, focus, and reduced motion;
+application CSS no longer resets all button fills/borders or replaces shared radius tokens.
+`check-shared-ui-cascade.mjs` verifies real production-App controls against their semantic
+primary and border styles; the full M7 capture runs this check before each screenshot.
 
 All twelve Cortana themes map the same semantic variables. `background`, `foreground`, `card`,
 `popover`, `primary`, `secondary`, `muted`, `accent`, `destructive`, `border`, `input`, `ring`,
@@ -252,12 +257,11 @@ rules at error severity: `no-restyle`, `no-raw-colors`, `no-arbitrary-values`, `
 
 - Application classes defined in `apps/web/src/shadcn.css` are allowlisted per rule; add new
   project class prefixes to the matching `allow` globs when introducing them.
-- Generated components under `apps/web/src/components/shadcn/**` form the primitive boundary and
-  carry a scoped override so registry code can import Base UI and restyle freely. Application code
-  must reach primitives only through that directory: `eslint/no-restricted-imports` rejects direct
-  `@base-ui/*`, `@radix-ui/*`, and `radix-*` imports elsewhere.
+- Shared primitive implementation comes from `@adea-ai/ui`; application composition
+  follows Solid/Kobalte contracts. Restricted imports block React, Base UI, and Radix
+  framework primitives. Existing app-domain Field/Sidebar code remains explicitly scoped
+  while its final composition and lint boundaries are qualified.
 - `RendererErrorBoundary` keeps inline styles deliberately because it renders before the CSS
   bundle loads; `shadcn/no-inline-styles` is off for that file only.
-- Synchronous `setState` inside effects is a warning (`react/set-state-in-effect`): prefer
-  render-time adjustment for prop-driven resets, and use a documented `oxlint-disable` comment
-  only for reconciliation effects that also perform side effects.
+- Solid effects reconcile external application state only; visual state and shared control
+  behavior use the public component contracts and application-owned signals.

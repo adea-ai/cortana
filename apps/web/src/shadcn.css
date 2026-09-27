@@ -1,7 +1,6 @@
 @import 'tailwindcss';
 @import '@adea-ai/ui/base.css';
 @import '@adea-ai/ui/theme.css';
-@import 'shadcn/tailwind.css';
 @import '@fontsource-variable/geist';
 @source '../node_modules/@adea-ai/ui/src/components/ui/alert';
 @source '../node_modules/@adea-ai/ui/src/components/ui/badge';
@@ -11,30 +10,34 @@
 @source '../node_modules/@adea-ai/ui/src/components/ui/spinner';
 @source '../node_modules/@adea-ai/ui/src/components/ui/status-chip';
 @source '../node_modules/@adea-ai/ui/src/components/ui/tooltip';
+@source '../node_modules/@adea-ai/ui/src/components/ui/input';
+@source '../node_modules/@adea-ai/ui/src/components/ui/textarea';
+@source '../node_modules/@adea-ai/ui/src/components/ui/checkbox';
+@source '../node_modules/@adea-ai/ui/src/components/ui/switch';
+@source '../node_modules/@adea-ai/ui/src/components/ui/radio-group';
+@source '../node_modules/@adea-ai/ui/src/components/ui/slider';
+@source '../node_modules/@adea-ai/ui/src/components/ui/separator';
+@source '../node_modules/@adea-ai/ui/src/components/ui/card';
+@source '../node_modules/@adea-ai/ui/src/components/ui/progress';
+@source '../node_modules/@adea-ai/ui/src/components/ui/accordion';
+@source '../node_modules/@adea-ai/ui/src/components/ui/breadcrumb';
+@source '../node_modules/@adea-ai/ui/src/components/ui/scroll-area';
+@source '../node_modules/@adea-ai/ui/src/components/ui/label';
+@source '../node_modules/@adea-ai/ui/src/components/ui/native-select';
+@source '../node_modules/@adea-ai/ui/src/components/ui/combobox';
+@source '../node_modules/@adea-ai/ui/src/components/ui/dropdown-menu';
+@source '../node_modules/@adea-ai/ui/src/components/ui/input-group';
+@source '../node_modules/@adea-ai/ui/src/components/ui/select';
+@source '../node_modules/@adea-ai/ui/src/components/ui/tabs';
+@source '../node_modules/@adea-ai/ui/src/components/ui/toggle';
+@source '../node_modules/@adea-ai/ui/src/components/ui/command';
+@source '../node_modules/@adea-ai/ui/src/components/ui/dialog';
+@source '../node_modules/@adea-ai/ui/src/components/ui/sheet';
+@source '../node_modules/@adea-ai/ui/src/components/ui/toast';
 :root {
-  color: var(--foreground);
-  background: var(--background);
-  color-scheme: dark;
-  font-family:
-    'Geist Variable',
-    Inter,
-    ui-sans-serif,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-
-  --radius-xs: 8px;
-  --radius-sm: 10px;
-  --radius-pill: 999px;
-
   /* Product-specific layout geometry remains until its controls move to ui. */
   --btn-chrome-size: 34px;
   --btn-icon-size: 30px;
-  --btn-compact-height: 30px;
-  --btn-compact-padding: 0 9px;
   --btn-action-height: 38px;
   --btn-action-padding: 0 14px;
 
@@ -44,26 +47,6 @@
   --cortana-error-border: color-mix(in oklch, var(--destructive) 40%, var(--border));
   --cortana-warning-border: color-mix(in oklch, var(--warning) 40%, var(--border));
 }
-button,
-input,
-select,
-textarea {
-  border-radius: var(--radius-sm);
-  transition:
-    background-color 120ms ease,
-    border-color 120ms ease,
-    color 120ms ease;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  button,
-  input,
-  select,
-  textarea {
-    transition: none;
-  }
-}
-
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -87,28 +70,6 @@ body,
   min-width: 320px;
   height: 100%;
   margin: 0;
-}
-
-button,
-input {
-  font: inherit;
-}
-
-button {
-  color: inherit;
-  cursor: pointer;
-  border: 0;
-  background: transparent;
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-select:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: -2px;
 }
 
 /* Amber clears 3:1 on every theme's dark chrome but falls to ~1.5:1 on the
@@ -135,7 +96,7 @@ select:focus-visible {
   padding: 8px 12px;
   transform: translateY(-180%);
   border: 1px solid var(--cortana-paper-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
   background: var(--secondary);
   color: var(--secondary-foreground);
   box-shadow: 0 6px 18px rgb(0 0 0 / 24%);
@@ -244,7 +205,7 @@ select:focus-visible {
   overflow: hidden;
   color: var(--secondary-foreground);
   border: 0;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-md);
   background: var(--secondary);
   font-size: 11px;
   font-weight: 750;
@@ -270,7 +231,7 @@ select:focus-visible {
 .workspace-logo--large {
   width: 48px;
   height: 48px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
   font-size: 18px;
 }
 
@@ -361,7 +322,7 @@ select:focus-visible {
   padding: 0;
   color: var(--warning);
   border: 1px solid #604827;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-md);
   background: transparent;
 }
 
@@ -501,7 +462,7 @@ select:focus-visible {
   padding: 0;
   color: #a8b2c5;
   border: 1px solid var(--border);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-md);
   background: var(--popover);
 }
 
@@ -592,7 +553,7 @@ select:focus-visible {
   gap: 6px;
   color: var(--subtle-foreground);
   border: 1px solid var(--border);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-md);
   background: var(--card);
 }
 
@@ -2140,7 +2101,7 @@ select:focus-visible {
   padding: 10px 12px;
   color: var(--muted-foreground);
   border: 0;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
   background: transparent;
   cursor: pointer;
   font-size: 13px;
@@ -2298,7 +2259,7 @@ select:focus-visible {
   padding: 0;
   color: var(--muted-foreground);
   border: 1px solid var(--border);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-md);
   background: var(--popover);
   cursor: pointer;
 }
@@ -2619,7 +2580,7 @@ select:focus-visible {
 .source-workspace-tabs button small {
   min-width: 18px;
   padding: 2px 5px;
-  border-radius: var(--radius-pill);
+  border-radius: calc(infinity * 1px);
   background: var(--popover);
   font-size: 10px;
   text-align: center;
@@ -2652,7 +2613,7 @@ select:focus-visible {
   padding: 10px;
   gap: 10px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
   background: var(--card);
   cursor: pointer;
 }
@@ -2697,7 +2658,7 @@ select:focus-visible {
   place-items: center;
   color: var(--primary-hover);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
   background: var(--popover);
   align-self: center;
 }
@@ -2738,7 +2699,7 @@ select:focus-visible {
   gap: 6px;
   color: var(--muted-foreground);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
   background: var(--secondary);
 }
 
@@ -2790,7 +2751,7 @@ select:focus-visible {
   padding: 10px 12px;
   color: var(--muted-foreground);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
   background: var(--muted);
   font-size: 11px;
 }
@@ -3131,7 +3092,7 @@ select:focus-visible {
   padding: 0 10px;
   color: var(--foreground);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
   outline: 0;
   background: var(--secondary);
 }
@@ -3743,7 +3704,7 @@ select:focus-visible {
   gap: 8px;
   color: var(--muted-foreground);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
   background: var(--secondary);
 }
 
@@ -3768,7 +3729,7 @@ select:focus-visible {
   padding: 10px 12px;
   color: #b9e1bf;
   border: 1px solid #5c8062;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
   background: rgba(45, 73, 51, 0.38);
   font-size: 12px;
 }
@@ -3925,7 +3886,7 @@ select:focus-visible {
   padding: 9px;
   gap: 3px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
 }
 
 @media (max-width: 900px) {
@@ -4652,6 +4613,14 @@ select:focus-visible {
 
 .m7-production-shell.shell {
   --m7-sidebar-column: var(--sidebar-width);
+  --m7-navigation-active-surface: color-mix(in srgb, var(--sidebar-accent) 90%, var(--sidebar) 10%);
+  --m7-selected-evidence-surface: color-mix(in srgb, var(--accent) 90%, var(--background) 10%);
+  --m7-document-hover-surface: color-mix(in srgb, var(--surface-hover) 90%, var(--background) 10%);
+  --m7-selected-document-surface: color-mix(
+    in srgb,
+    var(--surface-active) 35%,
+    var(--background) 65%
+  );
   grid-template:
     'rail title title title' 56px
     'rail sources workspace context' minmax(0, 1fr)
@@ -4761,7 +4730,7 @@ select:focus-visible {
 
 .m7-application-sidebar [data-sidebar='menu-button'][data-active] {
   color: var(--sidebar-accent-foreground);
-  background: color-mix(in srgb, var(--sidebar-primary) 22%, var(--sidebar-accent));
+  background: var(--m7-navigation-active-surface);
 }
 
 .m7-application-sidebar .m7-workspace-header {
@@ -4820,7 +4789,7 @@ select:focus-visible {
   width: 48px !important;
   height: 48px !important;
   padding: 0 !important;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
 }
 
 .m7-application-sidebar [data-sidebar='menu-button'][data-active] > svg {
@@ -4976,13 +4945,37 @@ select:focus-visible {
   background: color-mix(in srgb, var(--card) 58%, transparent);
 }
 
+.m7-knowledge-workspace .graph-toolbar {
+  color: var(--card-foreground);
+  border-color: var(--border);
+  background: var(--card);
+}
+
 .m7-knowledge-workspace .graph-toolbar [data-slot='input'] {
   min-width: 12rem;
+  color: var(--foreground);
   background: var(--background);
 }
 
+.m7-knowledge-workspace .graph-toolbar [data-slot='native-select'] {
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+}
+
+.m7-knowledge-workspace .graph-kind-filter {
+  color: var(--card-foreground);
+  border-color: var(--border);
+  background: var(--card);
+}
+
 .m7-knowledge-workspace .graph-kind-filter [data-slot='toggle'] {
+  color: var(--muted-foreground);
   text-transform: capitalize;
+}
+
+.m7-knowledge-workspace .graph-kind-filter [data-slot='toggle'][aria-pressed='true'] {
+  color: var(--foreground);
+  background: var(--muted);
 }
 
 .m7-knowledge-workspace .graph-view {
@@ -5008,7 +5001,53 @@ select:focus-visible {
   background: color-mix(in srgb, var(--card) 92%, transparent);
 }
 
+.m7-knowledge-workspace .graph-selection,
+.m7-knowledge-workspace .graph-pagination {
+  color: var(--card-foreground);
+  border-color: var(--border);
+  background: var(--card);
+}
+
+.m7-knowledge-workspace .graph-selection :is(span, small) {
+  color: var(--muted-foreground);
+}
+
+.m7-knowledge-workspace .graph-selection [data-slot='button'] {
+  color: var(--foreground);
+}
+
+.m7-knowledge-workspace .graph-pagination [data-slot='button'] {
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+}
+
+.m7-knowledge-workspace .graph-empty-filter {
+  color: var(--muted-foreground);
+}
+
+.m7-knowledge-workspace .graph-empty-filter h1 {
+  color: var(--foreground);
+}
+
+.m7-knowledge-workspace .graph-empty-filter [data-slot='button'] {
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+}
+
 .m7-production-shell :is(.source-mode, .source-tree button small) {
+  color: var(--foreground);
+}
+
+.m7-production-shell .virtual-document-space button:is(:hover, .keyboard-active) {
+  background: var(--m7-document-hover-surface);
+}
+
+.m7-production-shell .virtual-document-space button.selected-document {
+  color: var(--foreground);
+  background: var(--m7-selected-document-surface);
+}
+
+.m7-production-shell .virtual-document-space button.selected-document small {
   color: var(--foreground);
 }
 
@@ -5022,6 +5061,7 @@ select:focus-visible {
 
 .m7-knowledge-workspace .graph-view > button:is(:hover, :focus-visible) {
   z-index: 2;
+  color: var(--accent-foreground);
   border-color: var(--primary);
   background: var(--accent);
 }
@@ -5042,6 +5082,59 @@ select:focus-visible {
 
 .m7-knowledge-workspace .answer-source > span {
   color: var(--primary);
+}
+
+.m7-knowledge-workspace .document .breadcrumbs {
+  color: var(--muted-foreground);
+  border-color: var(--border);
+  background: var(--background);
+}
+
+.m7-knowledge-workspace .document .breadcrumbs strong {
+  color: var(--foreground);
+}
+
+.m7-knowledge-workspace .document .byline,
+.m7-knowledge-workspace .document .document-outline > span,
+.m7-knowledge-workspace .document .document-outline small,
+.m7-knowledge-workspace .document .document-relations button small {
+  color: var(--muted-foreground);
+}
+
+.m7-knowledge-workspace .document .document-labels span {
+  color: var(--secondary-foreground);
+  border-color: var(--border);
+  background: var(--secondary);
+}
+
+.m7-knowledge-workspace .document :is(.rule, .document-relations button, .evidence-footer) {
+  border-color: var(--border);
+}
+
+.m7-knowledge-workspace .document .document-outline {
+  border-left-color: var(--border);
+}
+
+.m7-knowledge-workspace .document .document-outline a,
+.m7-knowledge-workspace .document .document-relations button,
+.m7-knowledge-workspace .document .evidence-footer button {
+  color: var(--foreground);
+}
+
+.m7-knowledge-workspace
+  .document
+  :is(.document-relations button, .evidence-footer button):is(:hover, :focus-visible) {
+  color: var(--accent-foreground);
+  background: var(--accent);
+}
+
+.m7-knowledge-workspace .document .document-outline a:hover {
+  color: var(--accent-foreground);
+  background: var(--accent);
+}
+
+.m7-knowledge-workspace .document .evidence-footer button span {
+  color: var(--foreground);
 }
 
 .m7-knowledge-workspace
@@ -5098,7 +5191,7 @@ select:focus-visible {
 
 .m7-about-dialog__identity img {
   margin-bottom: 8px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
 }
 
 .m7-about-dialog__identity strong {
@@ -5278,7 +5371,7 @@ select:focus-visible {
   height: auto;
   min-height: 30px;
   justify-content: stretch;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
 }
 
 .m7-context-panel {
@@ -5319,7 +5412,7 @@ select:focus-visible {
   min-height: 35px;
   justify-content: stretch;
   color: var(--foreground);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
 }
 
 .m7-context-panel .evidence-list [data-slot='button']:is(:hover, :focus-visible) {
@@ -5328,7 +5421,11 @@ select:focus-visible {
 
 .m7-context-panel .evidence-list [data-slot='button'].selected {
   color: var(--accent-foreground);
-  background: var(--accent);
+  background: var(--m7-selected-evidence-surface);
+}
+
+.m7-context-panel .evidence-list [data-slot='button'].selected time {
+  color: var(--accent-foreground);
 }
 
 .m7-context-panel .copy-area {
@@ -5361,7 +5458,7 @@ select:focus-visible {
   padding: 0.5rem 0.75rem;
   transform: translateY(-180%);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
   background: var(--background);
   color: var(--foreground);
   box-shadow: 0 0.5rem 1.5rem var(--overlay);

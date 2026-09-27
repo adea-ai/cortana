@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
-import { mkdir } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
 import { AxeBuilder } from '@axe-core/playwright'
 import { chromium } from 'playwright'
+import { assertSharedUiCascade } from './check-shared-ui-cascade.mjs'
 
 const args = new Map()
 for (let index = 2; index < process.argv.length; index += 2) {
@@ -32,10 +33,27 @@ const themes = [
   'amber',
 ]
 const consoleErrors = []
+const accessibilityFindings = []
+const contrastFindings = []
 let screenshotCount = 0
 
 await mkdir(output, { recursive: true })
 const browser = await chromium.launch({ headless: true })
+
+async function waitForThemeSurface(page, theme) {
+  await page.waitForFunction((expected) => {
+    const root = document.documentElement
+    const workspace = document.querySelector('.m7-production-shell .m7-knowledge-workspace')
+    if (!(workspace instanceof HTMLElement) || root.dataset.theme !== expected) return false
+
+    const rootStyle = getComputedStyle(root)
+    const workspaceStyle = getComputedStyle(workspace)
+    return (
+      workspaceStyle.backgroundColor === rootStyle.getPropertyValue('--background').trim() &&
+      workspaceStyle.color === rootStyle.getPropertyValue('--foreground').trim()
+    )
+  }, theme)
+}
 
 async function openPage(theme, width, state = 'configured') {
   // Reduced motion makes enter/exit animations complete instantly so audits
@@ -62,6 +80,7 @@ async function openPage(theme, width, state = 'configured') {
   await page.goto(`${baseUrl}/?demo=1&demo-state=${state}`, { waitUntil: 'domcontentloaded' })
   await page.locator('[data-m7-production-shell-ready]').waitFor({ state: 'attached' })
   await page.getByRole('textbox', { name: 'Search your knowledge' }).waitFor()
+  await waitForThemeSurface(page, theme)
   return { context, page }
 }
 
@@ -102,6 +121,7 @@ async function openDestination(page, width, destination) {
 }
 
 async function screenshot(page, name) {
+  await assertSharedUiCascade(page)
   await page.screenshot({
     path: resolve(output, `${name}.png`),
     animations: 'disabled',
@@ -113,33 +133,167 @@ async function auditAccessibility(page, label) {
   const accessibility = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
     .analyze()
-  if (accessibility.violations.length > 0) {
-    const summary = accessibility.violations
-      .map(
-        (violation) =>
-          `${violation.id}: ${violation.help}\n${violation.nodes
-            .map((node) => `  ${node.target.join(' ')}: ${node.failureSummary}`)
-            .join('\n')}`
-      )
-      .join('\n')
-    throw new Error(`Accessibility violations in ${label}:\n${summary}`)
-  }
+  accessibilityFindings.push(
+    ...accessibility.violations.map((violation) => ({
+      label,
+      id: violation.id,
+      help: violation.help,
+      nodes: violation.nodes.map((node) => ({
+        target: node.target.join(' '),
+        failure: node.failureSummary,
+      })),
+    }))
+  )
 }
 
 async function auditComposedKnowledgeSurfaceContrast(page, theme) {
-  await page.waitForFunction(
-    (expected) => document.documentElement.dataset.theme === expected,
-    theme
-  )
+  await waitForThemeSurface(page, theme)
   const checks = await page.evaluate(() => {
     const workspace = document.querySelector('.m7-production-shell .m7-knowledge-workspace')
     if (!(workspace instanceof HTMLElement)) {
       throw new Error('Knowledge workspace is missing from the theme contrast probe')
     }
-    const sourcePanel = document.querySelector('.m7-production-shell .m7-source-panel')
-    if (!(sourcePanel instanceof HTMLElement)) {
-      throw new Error('Source panel is missing from the theme contrast probe')
+    const shell = workspace.closest('.m7-production-shell')
+    if (!(shell instanceof HTMLElement)) {
+      throw new Error('Production shell is missing from the theme contrast probe')
     }
+    const navigation = document.createElement('nav')
+    navigation.className = 'm7-application-sidebar'
+    navigation.hidden = true
+    const activeNavigationItem = document.createElement('button')
+    activeNavigationItem.setAttribute('data-sidebar', 'menu-button')
+    activeNavigationItem.setAttribute('data-active', 'true')
+    const activeNavigationLabel = document.createElement('span')
+    activeNavigationLabel.textContent = 'Active navigation contrast probe'
+    activeNavigationItem.append(activeNavigationLabel)
+    navigation.append(activeNavigationItem)
+    shell.append(navigation)
+    const contextPanel = document.createElement('aside')
+    contextPanel.className = 'context-panel m7-context-panel'
+    contextPanel.hidden = true
+    const evidenceList = document.createElement('div')
+    evidenceList.className = 'evidence-list'
+    const selectedEvidenceItem = document.createElement('button')
+    selectedEvidenceItem.setAttribute('data-slot', 'button')
+    selectedEvidenceItem.className = 'selected'
+    const selectedEvidenceTime = document.createElement('time')
+    selectedEvidenceTime.textContent = 'Selected evidence timestamp contrast probe'
+    selectedEvidenceItem.append(selectedEvidenceTime)
+    evidenceList.append(selectedEvidenceItem)
+    contextPanel.append(evidenceList)
+    shell.append(contextPanel)
+    const graphProbe = document.createElement('div')
+    graphProbe.className = 'graph-view'
+    graphProbe.hidden = true
+    const graphToolbar = document.createElement('div')
+    graphToolbar.className = 'graph-toolbar'
+    const graphSearch = document.createElement('input')
+    graphSearch.type = 'search'
+    graphSearch.setAttribute('data-slot', 'input')
+    const graphRelationship = document.createElement('select')
+    graphRelationship.setAttribute('data-slot', 'native-select')
+    const relationshipOption = document.createElement('option')
+    relationshipOption.textContent = 'All relationships'
+    graphRelationship.append(relationshipOption)
+    graphToolbar.append(graphSearch, graphRelationship)
+    const graphKindFilter = document.createElement('div')
+    graphKindFilter.className = 'graph-kind-filter'
+    const activeGraphKind = document.createElement('button')
+    activeGraphKind.setAttribute('data-slot', 'toggle')
+    activeGraphKind.setAttribute('aria-pressed', 'true')
+    activeGraphKind.textContent = 'All graph node types'
+    const idleGraphKind = document.createElement('button')
+    idleGraphKind.setAttribute('data-slot', 'toggle')
+    idleGraphKind.setAttribute('aria-pressed', 'false')
+    idleGraphKind.textContent = 'Document graph nodes'
+    graphKindFilter.append(activeGraphKind, idleGraphKind)
+    const graphSelection = document.createElement('aside')
+    graphSelection.className = 'graph-selection'
+    const selectedGraphSummary = document.createElement('span')
+    selectedGraphSummary.textContent = 'Selected graph node details'
+    graphSelection.append(selectedGraphSummary)
+    const graphPagination = document.createElement('div')
+    graphPagination.className = 'graph-pagination'
+    const graphPaginationButton = document.createElement('button')
+    graphPaginationButton.setAttribute('data-slot', 'button')
+    graphPaginationButton.textContent = 'Load more graph nodes'
+    const graphPaginationSummary = document.createElement('span')
+    graphPaginationSummary.textContent = 'Additional graph nodes remain'
+    graphPagination.append(graphPaginationButton, graphPaginationSummary)
+    const graphEmptyFilter = document.createElement('div')
+    graphEmptyFilter.className = 'graph-empty-filter'
+    const graphEmptyHeading = document.createElement('h1')
+    graphEmptyHeading.textContent = 'No matching graph nodes'
+    const graphEmptyDescription = document.createElement('p')
+    graphEmptyDescription.textContent = 'Try another graph filter.'
+    const graphEmptyClearButton = document.createElement('button')
+    graphEmptyClearButton.setAttribute('data-slot', 'button')
+    graphEmptyClearButton.textContent = 'Clear graph filter'
+    graphEmptyFilter.append(graphEmptyHeading, graphEmptyDescription, graphEmptyClearButton)
+    graphProbe.append(
+      graphToolbar,
+      graphKindFilter,
+      graphSelection,
+      graphPagination,
+      graphEmptyFilter
+    )
+    workspace.append(graphProbe)
+    const documentFixture = document.createElement('article')
+    documentFixture.className = 'document canonical-document'
+    documentFixture.hidden = true
+    const breadcrumbs = document.createElement('div')
+    breadcrumbs.className = 'breadcrumbs'
+    const breadcrumbLink = document.createElement('span')
+    breadcrumbLink.textContent = 'Document workspace breadcrumb'
+    const breadcrumbTitle = document.createElement('strong')
+    breadcrumbTitle.textContent = 'Current document title'
+    breadcrumbs.append(breadcrumbLink, breadcrumbTitle)
+    const byline = document.createElement('p')
+    byline.className = 'byline'
+    byline.textContent = 'Document source and update details'
+    const documentLabels = document.createElement('div')
+    documentLabels.className = 'document-labels'
+    const provenanceLabel = document.createElement('span')
+    provenanceLabel.textContent = 'Document provenance label'
+    documentLabels.append(provenanceLabel)
+    const documentOutline = document.createElement('aside')
+    documentOutline.className = 'document-outline'
+    const outlineLink = document.createElement('a')
+    outlineLink.textContent = 'Document outline entry'
+    const outlineMetadata = document.createElement('span')
+    outlineMetadata.textContent = 'Document source metadata'
+    documentOutline.append(outlineLink, outlineMetadata)
+    const documentRelations = document.createElement('div')
+    documentRelations.className = 'document-relations'
+    const relatedDocument = document.createElement('button')
+    const relatedTitle = document.createElement('span')
+    relatedTitle.textContent = 'Related document title'
+    const relatedSource = document.createElement('small')
+    relatedSource.textContent = 'Related document source'
+    relatedDocument.append(relatedTitle, relatedSource)
+    documentRelations.append(relatedDocument)
+    const evidenceFooter = document.createElement('div')
+    evidenceFooter.className = 'evidence-footer'
+    const evidenceLink = document.createElement('button')
+    const evidenceLinkLabel = document.createElement('span')
+    evidenceLinkLabel.textContent = 'Related evidence link'
+    evidenceLink.append(evidenceLinkLabel)
+    evidenceFooter.append(evidenceLink)
+    documentFixture.append(
+      breadcrumbs,
+      byline,
+      documentLabels,
+      documentOutline,
+      documentRelations,
+      evidenceFooter
+    )
+    workspace.append(documentFixture)
+    // At mobile widths the real source panel is unmounted until its dialog
+    // opens; this hidden panel gives the probe the same card surface contract.
+    const sourcePanel = document.createElement('aside')
+    sourcePanel.className = 'source-panel m7-source-panel'
+    sourcePanel.hidden = true
+    shell.append(sourcePanel)
 
     const fixture = document.createElement('div')
     fixture.hidden = true
@@ -250,6 +404,192 @@ async function auditComposedKnowledgeSurfaceContrast(page, theme) {
         },
       },
       {
+        surface: 'active navigation',
+        actual: {
+          ...readStyle(activeNavigationLabel),
+          background: getComputedStyle(activeNavigationItem).backgroundColor,
+        },
+        expected: {
+          color: readRole('--sidebar-accent-foreground', 'color'),
+          background: readRole('--m7-navigation-active-surface', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'selected evidence timestamp',
+        actual: {
+          ...readStyle(selectedEvidenceTime),
+          background: getComputedStyle(selectedEvidenceItem).backgroundColor,
+        },
+        expected: {
+          color: readRole('--accent-foreground', 'color'),
+          background: readRole('--m7-selected-evidence-surface', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'graph toolbar surface',
+        actual: readStyle(graphToolbar),
+        expected: {
+          color: readRole('--card-foreground', 'color'),
+          background: readRole('--card', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'graph search field',
+        actual: readStyle(graphSearch),
+        expected: {
+          color: readRole('--foreground', 'color'),
+          background: readRole('--background', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'graph relationship selector',
+        actual: readStyle(graphRelationship),
+        expected: {
+          color: readRole('--secondary-foreground', 'color'),
+          background: readRole('--secondary', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'active graph filter',
+        actual: readStyle(activeGraphKind),
+        expected: {
+          color: readRole('--foreground', 'color'),
+          background: readRole('--muted', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'idle graph filter',
+        actual: {
+          ...readStyle(idleGraphKind),
+          background: getComputedStyle(graphKindFilter).backgroundColor,
+        },
+        expected: {
+          color: readRole('--muted-foreground', 'color'),
+          background: readRole('--card', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'selected graph detail',
+        actual: {
+          ...readStyle(selectedGraphSummary),
+          background: getComputedStyle(graphSelection).backgroundColor,
+        },
+        expected: {
+          color: readRole('--muted-foreground', 'color'),
+          background: readRole('--card', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'graph pagination surface',
+        actual: readStyle(graphPagination),
+        expected: {
+          color: readRole('--card-foreground', 'color'),
+          background: readRole('--card', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'graph pagination action',
+        actual: readStyle(graphPaginationButton),
+        expected: {
+          color: readRole('--secondary-foreground', 'color'),
+          background: readRole('--secondary', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'empty graph description',
+        actual: { ...readStyle(graphEmptyDescription), background: workspaceBackground },
+        expected: {
+          color: readRole('--muted-foreground', 'color'),
+          background: readRole('--background', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'empty graph title',
+        actual: { ...readStyle(graphEmptyHeading), background: workspaceBackground },
+        expected: {
+          color: readRole('--foreground', 'color'),
+          background: readRole('--background', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'empty graph action',
+        actual: readStyle(graphEmptyClearButton),
+        expected: {
+          color: readRole('--secondary-foreground', 'color'),
+          background: readRole('--secondary', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'canonical document breadcrumb',
+        actual: {
+          ...readStyle(breadcrumbLink),
+          background: getComputedStyle(breadcrumbs).backgroundColor,
+        },
+        expected: {
+          color: readRole('--muted-foreground', 'color'),
+          background: readRole('--background', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'canonical document title',
+        actual: {
+          ...readStyle(breadcrumbTitle),
+          background: getComputedStyle(breadcrumbs).backgroundColor,
+        },
+        expected: {
+          color: readRole('--foreground', 'color'),
+          background: readRole('--background', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'canonical document byline',
+        actual: { ...readStyle(byline), background: workspaceBackground },
+        expected: {
+          color: readRole('--muted-foreground', 'color'),
+          background: readRole('--background', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'document provenance label',
+        actual: readStyle(provenanceLabel),
+        expected: {
+          color: readRole('--secondary-foreground', 'color'),
+          background: readRole('--secondary', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'document outline entry',
+        actual: { ...readStyle(outlineLink), background: workspaceBackground },
+        expected: {
+          color: readRole('--foreground', 'color'),
+          background: readRole('--background', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'document outline metadata',
+        actual: { ...readStyle(outlineMetadata), background: workspaceBackground },
+        expected: {
+          color: readRole('--muted-foreground', 'color'),
+          background: readRole('--background', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'related document source',
+        actual: { ...readStyle(relatedSource), background: workspaceBackground },
+        expected: {
+          color: readRole('--muted-foreground', 'color'),
+          background: readRole('--background', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'related evidence link label',
+        actual: { ...readStyle(evidenceLinkLabel), background: workspaceBackground },
+        expected: {
+          color: readRole('--foreground', 'color'),
+          background: readRole('--background', 'backgroundColor'),
+        },
+      },
+      {
         surface: 'dark ingestion status',
         actual: {
           ...readStyle(sourceMode),
@@ -301,7 +641,7 @@ async function auditComposedKnowledgeSurfaceContrast(page, theme) {
         },
         expected: {
           color: readRole('--foreground', 'color'),
-          background: readRole('--surface-hover', 'backgroundColor'),
+          background: readRole('--m7-document-hover-surface', 'backgroundColor'),
         },
       },
       {
@@ -312,7 +652,7 @@ async function auditComposedKnowledgeSurfaceContrast(page, theme) {
         },
         expected: {
           color: readRole('--foreground', 'color'),
-          background: readRole('--surface-active', 'backgroundColor'),
+          background: readRole('--m7-selected-document-surface', 'backgroundColor'),
         },
       },
       {
@@ -323,7 +663,7 @@ async function auditComposedKnowledgeSurfaceContrast(page, theme) {
         },
         expected: {
           color: readRole('--foreground', 'color'),
-          background: readRole('--surface-active', 'backgroundColor'),
+          background: readRole('--m7-selected-document-surface', 'backgroundColor'),
         },
       },
       {
@@ -334,7 +674,7 @@ async function auditComposedKnowledgeSurfaceContrast(page, theme) {
         },
         expected: {
           color: readRole('--foreground', 'color'),
-          background: readRole('--surface-hover', 'backgroundColor'),
+          background: readRole('--m7-document-hover-surface', 'backgroundColor'),
         },
       },
       {
@@ -413,6 +753,11 @@ async function auditComposedKnowledgeSurfaceContrast(page, theme) {
     }
 
     sourceFixture.remove()
+    sourcePanel.remove()
+    contextPanel.remove()
+    navigation.remove()
+    graphProbe.remove()
+    documentFixture.remove()
     fixture.remove()
     return rows
   })
@@ -422,17 +767,24 @@ async function auditComposedKnowledgeSurfaceContrast(page, theme) {
       check.actual.color !== check.expected.color ||
       check.actual.background !== check.expected.background
     ) {
-      throw new Error(
-        `${theme} ${check.surface} uses ${check.actual.color} on ${check.actual.background}; ` +
-          `expected matched theme roles ${check.expected.color} on ${check.expected.background}`
-      )
+      contrastFindings.push({
+        theme,
+        surface: check.surface,
+        kind: 'theme-role-mismatch',
+        actual: check.actual,
+        expected: check.expected,
+      })
     }
 
     if (check.ratio < 4.5) {
-      throw new Error(
-        `${theme} ${check.surface} contrast is ${check.ratio.toFixed(2)}:1 ` +
-          `(${check.actual.color} on ${check.actual.background}); expected at least 4.5:1`
-      )
+      contrastFindings.push({
+        theme,
+        surface: check.surface,
+        kind: 'contrast-below-4.5',
+        ratio: Number(check.ratio.toFixed(2)),
+        actual: check.actual,
+        expected: check.expected,
+      })
     }
   }
 }
@@ -855,6 +1207,23 @@ async function auditComposedKnowledgeSurfaceContrast(page, theme) {
 }
 
 await browser.close()
+
+if (accessibilityFindings.length > 0 || contrastFindings.length > 0) {
+  const reportPath = resolve(output, 'm7-audit-report.json')
+  await writeFile(
+    reportPath,
+    `${JSON.stringify({ contrastFindings, accessibilityFindings }, null, 2)}\n`
+  )
+  const failureCount = accessibilityFindings.reduce(
+    (count, finding) => count + finding.nodes.length,
+    0
+  )
+  throw new Error(
+    `M7 audit failures: ${contrastFindings.length} composed contrast findings and ` +
+      `${failureCount} accessibility nodes across ${accessibilityFindings.length} checks. ` +
+      `Detailed report: ${reportPath}`
+  )
+}
 
 if (consoleErrors.length > 0) {
   throw new Error(`Browser console errors:\n${consoleErrors.join('\n')}`)

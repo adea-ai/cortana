@@ -1,30 +1,19 @@
 import { describe, expect, test } from 'bun:test'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const root = resolve(import.meta.dir, '..')
 
 describe('Desktop shadcn renderer contract', () => {
-  test('pins the official Base UI Nova preset and semantic Tailwind entrypoint', () => {
-    const config = JSON.parse(readFileSync(resolve(root, 'apps/web/components.json'), 'utf8'))
-
-    expect(config).toMatchObject({
-      style: 'base-nova',
-      rsc: false,
-      tsx: true,
-      iconLibrary: 'lucide',
-      tailwind: {
-        css: 'src/shadcn.css',
-        cssVariables: true,
-      },
-      aliases: {
-        components: '@/components',
-        ui: '@/components/shadcn',
-        hooks: '@/hooks',
-        lib: '@/lib',
-        utils: '@/lib/utils',
-      },
-    })
+  test('consumes the published shared UI instead of an app-local registry preset', () => {
+    const manifest = JSON.parse(readFileSync(resolve(root, 'apps/web/package.json'), 'utf8'))
+    const css = readFileSync(resolve(root, 'apps/web/src/shadcn.css'), 'utf8')
+    expect(manifest.dependencies['@adea-ai/ui']).toMatch(/^\d+\.\d+\.\d+$/)
+    expect(manifest.dependencies['@adea-ai/themes']).toMatch(/^\d+\.\d+\.\d+$/)
+    expect(css).toContain("@import '@adea-ai/ui/base.css'")
+    expect(css).toContain("@import '@adea-ai/ui/theme.css'")
+    expect(css).not.toContain("@import 'shadcn/tailwind.css'")
+    expect(existsSync(resolve(root, 'apps/web/components.json'))).toBe(false)
   })
 
   test('keeps Tailwind and the Vite plugin in the web workspace', () => {
@@ -36,7 +25,7 @@ describe('Desktop shadcn renderer contract', () => {
     })
   })
 
-  test('resolves generated components through the checked-in source alias', () => {
+  test('resolves application domain compositions through the checked-in source alias', () => {
     const tsconfig = JSON.parse(readFileSync(resolve(root, 'apps/web/tsconfig.json'), 'utf8'))
 
     expect(tsconfig.compilerOptions).toMatchObject({

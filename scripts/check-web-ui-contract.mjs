@@ -2,6 +2,7 @@
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
+import ts from 'typescript'
 
 const root = resolve(import.meta.dir, '..')
 const sourceRoot = resolve(root, 'apps/web/src')
@@ -46,6 +47,52 @@ function isShadcnFile(file) {
   return relativeSourcePath(file).startsWith('components/shadcn/')
 }
 
+/** Tailwind excludes dependency packages unless their used source is explicit. */
+export function missingSharedUiSources(stylesheet, sources) {
+  const listed = new Set(
+    [...stylesheet.matchAll(/@source[^\n]+components\/ui\/([\w-]+)/g)].map((match) => match[1])
+  )
+  const required = new Set()
+  const addModule = (module) => {
+    if (!module || !ts.isStringLiteral(module)) return
+    const match = /^@adea-ai\/ui\/components\/ui\/([\w-]+)/.exec(module.text)
+    if (match) required.add(match[1])
+  }
+  for (const source of sources) {
+    if (!source.includes('@adea-ai/ui/components/ui/')) continue
+    const file = ts.createSourceFile(
+      'consumer.tsx',
+      source,
+      ts.ScriptTarget.Latest,
+      false,
+      ts.ScriptKind.TSX
+    )
+    const visit = (node) => {
+      if (ts.isImportDeclaration(node)) {
+        const clause = node.importClause
+        const bindings = clause?.namedBindings
+        const allNamedTypes =
+          bindings &&
+          ts.isNamedImports(bindings) &&
+          bindings.elements.length > 0 &&
+          bindings.elements.every((element) => element.isTypeOnly)
+        if (!clause?.isTypeOnly && !(allNamedTypes && !clause?.name))
+          addModule(node.moduleSpecifier)
+      } else if (ts.isExportDeclaration(node)) {
+        if (!node.isTypeOnly) addModule(node.moduleSpecifier)
+      } else if (
+        ts.isCallExpression(node) &&
+        node.expression.kind === ts.SyntaxKind.ImportKeyword
+      ) {
+        addModule(node.arguments[0])
+      }
+      ts.forEachChild(node, visit)
+    }
+    visit(file)
+  }
+  return [...required].filter((name) => !listed.has(name)).toSorted()
+}
+
 export function verifyWebUiContract() {
   const failures = []
   for (const relative of removedFiles) {
@@ -53,6 +100,12 @@ export function verifyWebUiContract() {
   }
 
   const files = sourceFiles(sourceRoot)
+  const missingSources = missingSharedUiSources(
+    readFileSync(resolve(sourceRoot, 'shadcn.css'), 'utf8'),
+    files.filter((file) => /\.tsx?$/.test(file)).map((file) => readFileSync(file, 'utf8'))
+  )
+  for (const name of missingSources)
+    failures.push(`Shared UI ${name} is missing its Tailwind source`)
   const forbidden = [
     ['legacy button class', /cortana-button/],
     ['legacy pseudo-tooltip contract', /quick-tooltip|data-tooltip/],
