@@ -4752,9 +4752,11 @@ select:focus-visible {
   height: 24px;
 }
 
-[data-collapsible='icon'] .m7-application-sidebar [data-sidebar='menu-button'] {
-  width: 48px !important;
-  height: 48px !important;
+@layer base {
+  [data-collapsible='icon'] .m7-application-sidebar [data-sidebar='menu-button'] {
+    width: 48px !important;
+    height: 48px !important;
+  }
 }
 
 .m7-application-sidebar [data-sidebar='menu-button'][data-active] {
