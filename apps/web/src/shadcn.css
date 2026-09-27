@@ -4752,6 +4752,11 @@ select:focus-visible {
   height: 24px;
 }
 
+[data-collapsible='icon'] .m7-application-sidebar [data-sidebar='menu-button'] {
+  width: 48px !important;
+  height: 48px !important;
+}
+
 .m7-application-sidebar [data-sidebar='menu-button'][data-active] {
   color: var(--sidebar-accent-foreground);
   background: color-mix(in srgb, var(--sidebar-primary) 22%, var(--sidebar-accent));
