@@ -42,7 +42,6 @@
   --btn-action-padding: 0 14px;
 
   /* Cortana's older surfaces now derive from the shared palette roles. */
-  --primary-hover: color-mix(in oklch, var(--primary) 90%, var(--foreground));
   --cortana-success-border: color-mix(in oklch, var(--success) 40%, var(--border));
   --cortana-error-border: color-mix(in oklch, var(--destructive) 40%, var(--border));
   --cortana-warning-border: color-mix(in oklch, var(--warning) 40%, var(--border));
