@@ -1274,9 +1274,9 @@ select:focus-visible {
   text-transform: uppercase;
 }
 
-.answer-view .lead {
+.answer-view > .lead {
   margin: 20px 0 30px;
-  color: var(--cortana-paper-text-subtle);
+  color: var(--muted-foreground);
   font-family: Georgia, serif;
   font-size: 18px;
 }
@@ -1290,7 +1290,7 @@ select:focus-visible {
 
 .answer-meta span {
   padding: 5px 9px;
-  color: var(--cortana-paper-text-subtle);
+  color: var(--cortana-paper-text-muted);
   border: 1px solid var(--cortana-paper-border);
   border-radius: 12px;
   background: var(--cortana-paper-surface);
@@ -1300,6 +1300,7 @@ select:focus-visible {
 .answer-copy {
   margin: 22px 0 30px;
   padding: 22px 24px;
+  color: var(--cortana-paper-text);
   border-left: 3px solid var(--primary);
   background: var(--cortana-paper-surface);
 }
@@ -1317,7 +1318,7 @@ select:focus-visible {
 
 .answer-plan {
   margin: 0 0 26px;
-  color: var(--cortana-paper-text-subtle);
+  color: var(--muted-foreground);
   font-size: 12px;
 }
 
@@ -1381,12 +1382,14 @@ select:focus-visible {
 .answer-memory {
   margin: 28px 0 8px;
   padding: 18px 20px;
+  color: var(--cortana-paper-text);
   border-left: 3px solid var(--primary);
   background: var(--cortana-paper-surface);
 }
 
 .answer-memory .lead {
   margin: 0 0 14px;
+  color: var(--cortana-paper-text-muted);
   font-family: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -4945,8 +4948,9 @@ select:focus-visible {
   display: none !important;
 }
 
+.m7-production-shell .virtual-document-space button,
 .m7-production-shell .virtual-document-space button small {
-  color: var(--muted-foreground);
+  color: var(--foreground);
 }
 
 .m7-production-shell .m7-knowledge-workspace {
@@ -4995,6 +4999,10 @@ select:focus-visible {
   color: var(--muted-foreground);
   border-color: var(--border);
   background: color-mix(in srgb, var(--card) 92%, transparent);
+}
+
+.m7-production-shell :is(.source-mode, .source-tree button small) {
+  color: var(--foreground);
 }
 
 .m7-knowledge-workspace .graph-view > button {

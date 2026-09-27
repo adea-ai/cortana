@@ -126,10 +126,322 @@ async function auditAccessibility(page, label) {
   }
 }
 
+async function auditComposedKnowledgeSurfaceContrast(page, theme) {
+  await page.waitForFunction(
+    (expected) => document.documentElement.dataset.theme === expected,
+    theme
+  )
+  const checks = await page.evaluate(() => {
+    const workspace = document.querySelector('.m7-production-shell .m7-knowledge-workspace')
+    if (!(workspace instanceof HTMLElement)) {
+      throw new Error('Knowledge workspace is missing from the theme contrast probe')
+    }
+    const sourcePanel = document.querySelector('.m7-production-shell .m7-source-panel')
+    if (!(sourcePanel instanceof HTMLElement)) {
+      throw new Error('Source panel is missing from the theme contrast probe')
+    }
+
+    const fixture = document.createElement('div')
+    fixture.hidden = true
+    const answer = document.createElement('article')
+    answer.className = 'answer-view'
+
+    const copy = document.createElement('div')
+    copy.className = 'answer-copy'
+    const paragraph = document.createElement('p')
+    paragraph.textContent = 'Reader copy contrast probe'
+    copy.append(paragraph)
+
+    const metadata = document.createElement('div')
+    metadata.className = 'answer-meta'
+    const badge = document.createElement('span')
+    badge.className = 'group/badge h-5 rounded-4xl bg-secondary text-secondary-foreground'
+    badge.textContent = 'Reader metadata contrast probe'
+    metadata.append(badge)
+
+    const lead = document.createElement('p')
+    lead.className = 'lead'
+    lead.textContent = 'Dark chrome lead contrast probe'
+
+    const plan = document.createElement('details')
+    plan.className = 'answer-plan'
+    const summary = document.createElement('summary')
+    summary.textContent = 'Dark chrome disclosure contrast probe'
+    plan.append(summary)
+
+    const sourceMode = document.createElement('div')
+    sourceMode.className = 'source-mode'
+    sourceMode.textContent = 'Ingestion status contrast probe'
+
+    const sourceTree = document.createElement('div')
+    sourceTree.className = 'source-tree'
+    const sourceRow = document.createElement('button')
+    const sourceCount = document.createElement('small')
+    sourceCount.textContent = 'Source count contrast probe'
+    sourceRow.append(sourceCount)
+    sourceTree.append(sourceRow)
+
+    const documentSpace = document.createElement('div')
+    documentSpace.className = 'virtual-document-space'
+    const defaultDocument = document.createElement('button')
+    defaultDocument.className = 'document-node'
+    const defaultDocumentLabel = document.createElement('span')
+    defaultDocumentLabel.textContent = 'Default document contrast probe'
+    const defaultDocumentSource = document.createElement('small')
+    defaultDocumentSource.textContent = 'Default document source probe'
+    defaultDocument.append(defaultDocumentLabel, defaultDocumentSource)
+
+    const activeDocument = document.createElement('button')
+    activeDocument.className = 'document-node keyboard-active'
+    const documentLabel = document.createElement('span')
+    documentLabel.textContent = 'Active document contrast probe'
+    const documentSource = document.createElement('small')
+    documentSource.textContent = 'Active document source probe'
+    activeDocument.append(documentLabel, documentSource)
+    const selectedDocument = document.createElement('button')
+    selectedDocument.className = 'document-node selected-document'
+    const selectedDocumentLabel = document.createElement('span')
+    selectedDocumentLabel.textContent = 'Selected document contrast probe'
+    const selectedDocumentSource = document.createElement('small')
+    selectedDocumentSource.textContent = 'Selected document source probe'
+    selectedDocument.append(selectedDocumentLabel, selectedDocumentSource)
+    documentSpace.append(defaultDocument, activeDocument, selectedDocument)
+
+    const memory = document.createElement('section')
+    memory.className = 'answer-memory'
+    const memoryLead = document.createElement('p')
+    memoryLead.className = 'lead'
+    memoryLead.textContent = 'Light reader card heading probe'
+    const memoryParagraph = document.createElement('p')
+    memoryParagraph.textContent = 'Light reader card copy probe'
+    memory.append(memoryLead, memoryParagraph)
+
+    answer.append(copy, metadata, lead, plan, memory)
+    fixture.append(answer)
+    workspace.append(fixture)
+    const sourceFixture = document.createElement('div')
+    sourceFixture.hidden = true
+    sourceFixture.append(sourceMode, sourceTree, documentSpace)
+    sourcePanel.append(sourceFixture)
+
+    // oxlint-disable-next-line unicorn/consistent-function-scoping -- stays serializable in page.evaluate
+    const readStyle = (element) => {
+      const style = getComputedStyle(element)
+      return { color: style.color, background: style.backgroundColor }
+    }
+    const readRole = (property, kind) => {
+      const probe = document.createElement('span')
+      probe.style[kind] = `var(${property})`
+      fixture.append(probe)
+      const style = getComputedStyle(probe)
+      const value = kind === 'color' ? style.color : style.backgroundColor
+      probe.remove()
+      return value
+    }
+    const workspaceBackground = getComputedStyle(workspace).backgroundColor
+    const workspaceColor = getComputedStyle(workspace).color
+    const rows = [
+      {
+        surface: 'dark workspace chrome',
+        actual: { color: workspaceColor, background: workspaceBackground },
+        expected: {
+          color: readRole('--foreground', 'color'),
+          background: readRole('--background', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'dark ingestion status',
+        actual: {
+          ...readStyle(sourceMode),
+          background: getComputedStyle(sourcePanel).backgroundColor,
+        },
+        expected: {
+          color: readRole('--foreground', 'color'),
+          background: readRole('--card', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'dark source count',
+        actual: {
+          ...readStyle(sourceCount),
+          background: getComputedStyle(sourcePanel).backgroundColor,
+        },
+        expected: {
+          color: readRole('--foreground', 'color'),
+          background: readRole('--card', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'default document label',
+        actual: {
+          ...readStyle(defaultDocumentLabel),
+          background: getComputedStyle(sourcePanel).backgroundColor,
+        },
+        expected: {
+          color: readRole('--foreground', 'color'),
+          background: readRole('--card', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'default document source',
+        actual: {
+          ...readStyle(defaultDocumentSource),
+          background: getComputedStyle(sourcePanel).backgroundColor,
+        },
+        expected: {
+          color: readRole('--foreground', 'color'),
+          background: readRole('--card', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'active document label',
+        actual: {
+          ...readStyle(documentLabel),
+          background: getComputedStyle(activeDocument).backgroundColor,
+        },
+        expected: {
+          color: readRole('--foreground', 'color'),
+          background: readRole('--surface-hover', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'selected document label',
+        actual: {
+          ...readStyle(selectedDocumentLabel),
+          background: getComputedStyle(selectedDocument).backgroundColor,
+        },
+        expected: {
+          color: readRole('--foreground', 'color'),
+          background: readRole('--surface-active', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'selected document source',
+        actual: {
+          ...readStyle(selectedDocumentSource),
+          background: getComputedStyle(selectedDocument).backgroundColor,
+        },
+        expected: {
+          color: readRole('--foreground', 'color'),
+          background: readRole('--surface-active', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'active document source',
+        actual: {
+          ...readStyle(documentSource),
+          background: getComputedStyle(activeDocument).backgroundColor,
+        },
+        expected: {
+          color: readRole('--foreground', 'color'),
+          background: readRole('--surface-hover', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'light reader copy',
+        actual: { ...readStyle(paragraph), background: getComputedStyle(copy).backgroundColor },
+        expected: {
+          color: readRole('--cortana-paper-text', 'color'),
+          background: readRole('--cortana-paper-surface', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'light reader metadata',
+        actual: readStyle(badge),
+        expected: {
+          color: readRole('--cortana-paper-text-muted', 'color'),
+          background: readRole('--cortana-paper-surface', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'dark workspace lead',
+        actual: { ...readStyle(lead), background: workspaceBackground },
+        expected: {
+          color: readRole('--muted-foreground', 'color'),
+          background: readRole('--background', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'light reader card heading',
+        actual: { ...readStyle(memoryLead), background: getComputedStyle(memory).backgroundColor },
+        expected: {
+          color: readRole('--cortana-paper-text-muted', 'color'),
+          background: readRole('--cortana-paper-surface', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'light reader card copy',
+        actual: {
+          ...readStyle(memoryParagraph),
+          background: getComputedStyle(memory).backgroundColor,
+        },
+        expected: {
+          color: readRole('--cortana-paper-text', 'color'),
+          background: readRole('--cortana-paper-surface', 'backgroundColor'),
+        },
+      },
+      {
+        surface: 'dark workspace disclosure',
+        actual: { ...readStyle(summary), background: workspaceBackground },
+        expected: {
+          color: readRole('--muted-foreground', 'color'),
+          background: readRole('--background', 'backgroundColor'),
+        },
+      },
+    ]
+
+    const canvas = document.createElement('canvas')
+    const context = canvas.getContext('2d', { willReadFrequently: true })
+    if (!context) throw new Error('Canvas is unavailable for theme contrast verification')
+    const luminance = (color) => {
+      context.fillStyle = color
+      context.fillRect(0, 0, 1, 1)
+      const [red, green, blue] = context.getImageData(0, 0, 1, 1).data
+      const linear = [red, green, blue].map((channel) => {
+        const srgb = channel / 255
+        return srgb <= 0.04045 ? srgb / 12.92 : ((srgb + 0.055) / 1.055) ** 2.4
+      })
+      return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722
+    }
+    const contrastRatio = (foreground, background) => {
+      const first = luminance(foreground)
+      const second = luminance(background)
+      return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05)
+    }
+    for (const row of rows) {
+      row.ratio = contrastRatio(row.actual.color, row.actual.background)
+    }
+
+    sourceFixture.remove()
+    fixture.remove()
+    return rows
+  })
+
+  for (const check of checks) {
+    if (
+      check.actual.color !== check.expected.color ||
+      check.actual.background !== check.expected.background
+    ) {
+      throw new Error(
+        `${theme} ${check.surface} uses ${check.actual.color} on ${check.actual.background}; ` +
+          `expected matched theme roles ${check.expected.color} on ${check.expected.background}`
+      )
+    }
+
+    if (check.ratio < 4.5) {
+      throw new Error(
+        `${theme} ${check.surface} contrast is ${check.ratio.toFixed(2)}:1 ` +
+          `(${check.actual.color} on ${check.actual.background}); expected at least 4.5:1`
+      )
+    }
+  }
+}
+
 {
   for (const theme of themes) {
     for (const width of widths) {
       const { context, page } = await openPage(theme, width)
+      if (width === 320) await auditComposedKnowledgeSurfaceContrast(page, theme)
       await screenshot(page, `shell-${theme}-${width}`)
       await auditAccessibility(page, `${theme}/${width} production shell`)
 
