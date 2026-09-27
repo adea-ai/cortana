@@ -1,4 +1,4 @@
-import { Pause, Play, RefreshCw, Search, ShieldCheck } from 'lucide-solid'
+import { Inbox, Pause, Play, RefreshCw, Search, ShieldCheck } from 'lucide-solid'
 import {
   createComputed,
   createEffect,
@@ -29,15 +29,21 @@ import type {
   MemoryReviewPolicy,
 } from '../types'
 import { virtualRange } from '../virtualization'
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@adea-ai/ui/components/ui/empty'
+import { StatusChip, type StatusTone } from '@adea-ai/ui/components/ui/status-chip'
 import { Alert, AlertDescription } from './shadcn/alert'
-import { StatusBadge, type StatusTone } from './cortana/status-badge'
 import { VariantButton as MemoryButton } from './cortana/VariantButton'
 import { Card } from './shadcn/card'
 import { cn } from '@/lib/utils'
 
 import { Checkbox } from './shadcn/checkbox'
 import { Input } from './shadcn/input'
-import { FeedbackState } from './cortana/feedback-state'
 import { Spinner } from './shadcn/spinner'
 import { Textarea } from './shadcn/textarea'
 import { Toggle } from './shadcn/toggle'
@@ -187,22 +193,30 @@ function CandidateQueue(props: {
                     <strong>{candidate.title}</strong>
                     <span>{candidate.content}</span>
                   </MemoryButton>
-                  <StatusBadge tone={QUEUE_TONES[queueStatus(candidate)]}>
-                    {queueStatus(candidate)}
-                  </StatusBadge>
+                  <StatusChip
+                    role="status"
+                    tone={QUEUE_TONES[queueStatus(candidate)]}
+                    label={queueStatus(candidate)}
+                  />
                 </MemoryCard>
               )}
             </For>
           </div>
         </div>
-        <Show when={!props.loading && props.filtered.length === 0}>
-          <FeedbackState
-            kind="empty"
-            title="No candidates match this view"
-            description="Adjust the search text or switch the status view to see other candidates."
-          />
-        </Show>
       </div>
+      <Show when={!props.loading && props.filtered.length === 0}>
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Inbox aria-hidden="true" />
+            </EmptyMedia>
+            <EmptyTitle>No candidates match this view</EmptyTitle>
+            <EmptyDescription>
+              Adjust the search text or switch the status view to see other candidates.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      </Show>
       <Show when={props.selectedIds.size > 0}>
         <div class="memory-bulk-actions" aria-label="Bulk-safe candidate actions">
           <span>
@@ -843,13 +857,13 @@ function MemoryLayers(props: { canonical: AgentMemory[]; derived: DerivedMemoryR
 }
 
 const QUEUE_TONES: Record<Exclude<QueueView, 'all'>, StatusTone> = {
-  pending: 'busy',
+  pending: 'warning',
   approved: 'success',
   'auto-retained': 'success',
-  rejected: 'error',
-  failed: 'error',
-  'dead-letter': 'error',
-  expired: 'offline',
+  rejected: 'danger',
+  failed: 'danger',
+  'dead-letter': 'danger',
+  expired: 'neutral',
 }
 
 function queueStatus(candidate: MemoryCandidate): Exclude<QueueView, 'all'> {

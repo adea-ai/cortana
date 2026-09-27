@@ -23,8 +23,9 @@ import {
   onCleanup,
   For,
 } from 'solid-js'
+import { Button as SharedButton } from '@adea-ai/ui/components/ui/button'
+import { Spinner as SharedSpinner } from '@adea-ai/ui/components/ui/spinner'
 import { cn } from '../lib/utils'
-import { AsyncButton } from './cortana/async-button'
 import { Toaster } from './shadcn/sonner'
 import { normalizeProviderUrl, type ProviderModelsState } from './settings/providerUtils'
 import { SettingsConfirmProvider, useSettingsConfirm } from './settings/SettingsConfirm'
@@ -602,17 +603,29 @@ function SettingsViewContent(incoming: {
                     <X size={15} /> Discard
                   </Button>
                 )}
-                <AsyncButton
+                <SharedButton
                   variant="default"
+                  size="sm"
                   type="submit"
                   form="settings-form"
-                  busy={saving()}
-                  disabled={!dirty()}
-                  busyLabel="Saving…"
+                  aria-busy={saving() || undefined}
+                  disabled={saving() || !dirty()}
                   title={dirty() ? undefined : 'Make a change before saving'}
                 >
-                  <Save size={16} /> Save changes
-                </AsyncButton>
+                  <Show
+                    when={saving()}
+                    fallback={
+                      <>
+                        <Save size={16} /> Save changes
+                      </>
+                    }
+                  >
+                    <>
+                      <SharedSpinner label={false} data-icon="inline-start" />
+                      Saving…
+                    </>
+                  </Show>
+                </SharedButton>
               </div>
             </header>
             {settings()!.needs_setup && (

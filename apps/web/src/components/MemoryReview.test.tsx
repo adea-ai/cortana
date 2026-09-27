@@ -125,6 +125,8 @@ test('shadcn renderer composes memory review controls from shared primitives', a
       })
     ).getAttribute('data-slot')
   ).toBe('checkbox')
+  const status = screen.getByText('pending', { selector: 'span[role="status"]' })
+  expect(status.querySelector('[aria-hidden="true"]')).toBeTruthy()
 })
 test('renders a bounded searchable queue with inspectable policy and provenance', async () => {
   const api = client()
@@ -163,8 +165,8 @@ test('renders a bounded searchable queue with inspectable policy and provenance'
       },
     }
   )
-  // FeedbackState splits the message across title and description elements.
   expect(await screen.findByText('No candidates match this view')).toBeTruthy()
+  expect(document.querySelector('[data-slot="empty"] [data-slot="empty-media"]')).toBeTruthy()
 })
 test('requires confirmation for canonical approval and keeps queue controls explicit', async () => {
   const api = client()
