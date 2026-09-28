@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.60.0](https://github.com/adea-ai/cortana/compare/v0.59.4...v0.60.0) (2026-09-28)
+
+
+### Features
+
+* **web:** replace clsx + tailwind-merge with the shadcn cn package ([#2405](https://github.com/adea-ai/cortana/issues/2405)) ([7ad62e6](https://github.com/adea-ai/cortana/commit/7ad62e690785438c2d1e306d07519c62ff23c5d7))
+
 ## [0.59.4](https://github.com/adea-ai/cortana/compare/v0.59.3...v0.59.4) (2026-09-26)
 
 
