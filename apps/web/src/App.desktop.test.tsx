@@ -50,6 +50,7 @@ afterEach(() => {
   window.localStorage.removeItem('cortana.source-selection.v1')
   window.localStorage.removeItem('cortana.theme.v1')
   window.localStorage.removeItem('cortana.workspace-themes.v1')
+  window.localStorage.removeItem('cortana.appearance')
   state.getDocumentsCalls = []
   state.getGraphCalls = 0
   state.graphResult = null
@@ -3484,7 +3485,7 @@ test('settings navigation opens workspace and services first and exposes native 
     })
   ).toBeTruthy()
 })
-test('settings uses graphite as the fixed default and exposes theme controls per workspace', async () => {
+test('settings uses the shared catalogue default and exposes theme controls per workspace', async () => {
   const user = userEvent.setup()
   window.localStorage.setItem('cortana.theme.v1', 'accessible')
   render(() => <App />)
@@ -3508,7 +3509,7 @@ test('settings uses graphite as the fixed default and exposes theme controls per
       name: 'Default theme',
     })
   ).toBeNull()
-  expect(document.documentElement.getAttribute('data-theme')).toBe('graphite')
+  expect(document.documentElement.getAttribute('data-theme')).toBe('adea-dark')
   fireEvent.click(
     screen.getByRole('button', {
       name: 'Workspaces',
@@ -3525,17 +3526,17 @@ test('settings uses graphite as the fixed default and exposes theme controls per
   ).toBeTruthy()
   expect(
     screen.getByRole('option', {
-      name: 'Indigo',
+      name: 'Dracula',
     })
   ).toBeTruthy()
   expect(
     screen.getByRole('option', {
-      name: 'Emerald',
+      name: 'Everforest',
     })
   ).toBeTruthy()
   expect(
     screen.getByRole('option', {
-      name: 'Amber',
+      name: 'Gruvbox',
     })
   ).toBeTruthy()
 })
@@ -3569,7 +3570,7 @@ test('workspace theme controls persist and apply per workspace', async () => {
   )
   await user.click(
     await screen.findByRole('option', {
-      name: 'Teal',
+      name: 'Catppuccin Macchiato',
     })
   )
   await user.click(
@@ -3579,14 +3580,18 @@ test('workspace theme controls persist and apply per workspace', async () => {
   )
   await user.click(
     await screen.findByRole('option', {
-      name: 'Rose',
+      name: 'Rosé Pine Moon',
     })
   )
   expect(JSON.parse(window.localStorage.getItem('cortana.workspace-themes.v1') || '{}')).toEqual({
-    work: 'teal',
-    personal: 'rose',
+    work: 'catppuccin-macchiato',
+    personal: 'rosepine-moon',
   })
-  expect(document.documentElement.getAttribute('data-theme')).toBe('teal')
+  // The provider applies the selection from the workspace-theme event, one
+  // effect hop later than the old direct attribute write.
+  await waitFor(() =>
+    expect(document.documentElement.getAttribute('data-theme')).toBe('catppuccin-macchiato')
+  )
   // Kobalte menus open on pointerdown and select on pointerup.
   fireEvent.pointerDown(
     screen.getByRole('button', {
@@ -3598,7 +3603,9 @@ test('workspace theme controls persist and apply per workspace', async () => {
   })
   fireEvent.pointerUp(personalWorkspace)
   fireEvent.click(personalWorkspace)
-  await waitFor(() => expect(document.documentElement.getAttribute('data-theme')).toBe('rose'))
+  await waitFor(() =>
+    expect(document.documentElement.getAttribute('data-theme')).toBe('rosepine-moon')
+  )
 })
 test('settings refuses padded or control-character source labels before save', async () => {
   const originalSettings = state.settings

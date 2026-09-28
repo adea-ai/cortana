@@ -1,11 +1,11 @@
-import { isThemeMode, type ThemeMode } from './theme'
+import { normalizeThemeId, type ThemeMode } from './theme'
 
 const WORKSPACE_THEME_KEY = 'cortana.workspace-themes.v1'
 export const WORKSPACE_THEME_EVENT = 'cortana:workspace-theme-changed'
 
 type WorkspaceThemeMap = Record<string, ThemeMode>
 
-function readMap(): WorkspaceThemeMap {
+function readMap(): Record<string, string> {
   try {
     const raw =
       typeof localStorage === 'undefined' ? null : localStorage.getItem(WORKSPACE_THEME_KEY)
@@ -15,15 +15,15 @@ function readMap(): WorkspaceThemeMap {
     return Object.fromEntries(
       Object.entries(parsed).filter(
         ([workspaceId, theme]) =>
-          workspaceId.length > 0 && workspaceId.length <= 128 && isThemeMode(String(theme))
+          workspaceId.length > 0 && workspaceId.length <= 128 && typeof theme === 'string'
       )
-    ) as WorkspaceThemeMap
+    ) as Record<string, string>
   } catch {
     return {}
   }
 }
 
-function writeMap(map: WorkspaceThemeMap): void {
+function writeMap(map: Record<string, string>): void {
   try {
     localStorage.setItem(WORKSPACE_THEME_KEY, JSON.stringify(map))
     if (typeof window !== 'undefined') window.dispatchEvent(new Event(WORKSPACE_THEME_EVENT))
@@ -32,13 +32,17 @@ function writeMap(map: WorkspaceThemeMap): void {
   }
 }
 
+/** Stored ids resolve through the legacy map, so pre-catalogue values keep working. */
 export function readWorkspaceThemePreferences(): WorkspaceThemeMap {
-  return readMap()
+  return Object.fromEntries(
+    Object.entries(readMap()).map(([workspaceId, theme]) => [workspaceId, normalizeThemeId(theme)])
+  )
 }
 
 export function readWorkspaceThemePreference(workspaceId: string): ThemeMode | null {
   if (!workspaceId) return null
-  return readMap()[workspaceId] ?? null
+  const stored = readMap()[workspaceId]
+  return stored === undefined ? null : normalizeThemeId(stored)
 }
 
 export function writeWorkspaceThemePreference(workspaceId: string, theme: ThemeMode): void {

@@ -4,7 +4,6 @@ import { render } from 'solid-js/web'
 import { App } from './App'
 import { RendererErrorBoundary } from './components/RendererErrorBoundary'
 import { installInertBackground } from './lib/inertBackground'
-import { applyTheme, DEFAULT_THEME } from './theme'
 
 // The primary Latin variable font is discovered through the bundled CSS.
 // Preloading it here starts the fetch in parallel with the first render
@@ -19,7 +18,11 @@ fontPreload.type = 'font/woff2'
 fontPreload.crossOrigin = 'anonymous'
 document.head.appendChild(fontPreload)
 
-applyTheme(DEFAULT_THEME)
+// Cortana is dark-chrome only. The shared theme.css `.dark` block owns the
+// first-paint tokens, so the class goes on before the first render; the
+// ThemeProvider inside App refines it to the workspace's catalogue theme.
+document.documentElement.classList.add('dark')
+document.documentElement.style.colorScheme = 'dark'
 installInertBackground(document.getElementById('root')!)
 
 render(
