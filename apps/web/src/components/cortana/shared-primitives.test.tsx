@@ -14,9 +14,9 @@ import {
   PaginationItem,
   PaginationLink,
 } from '@/components/shadcn/pagination'
-import { Input } from '@/components/shadcn/input'
+import { Input } from '@adea-ai/ui/components/ui/input'
 import { Slider } from '@/components/shadcn/slider'
-import { Textarea } from '@/components/shadcn/textarea'
+import { Textarea } from '@adea-ai/ui/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/shadcn/toggle-group'
 import { AsyncButton } from './async-button'
 import { FeedbackState } from './feedback-state'
@@ -211,16 +211,23 @@ test('keeps pagination links exposed as links', () => {
     })
   ).toBeNull()
 })
-test('text inputs invoke onChange per input event, not only on commit', async () => {
+test('text inputs invoke onInput per keystroke, not only on commit', async () => {
   const user = userEvent.setup()
   const inputValues: string[] = []
   const textareaValues: string[] = []
   render(() => (
     <>
-      <Input aria-label="Name" onChange={(event) => inputValues.push(event.currentTarget.value)} />
+      <Input
+        aria-label="Name"
+        onInput={(event: Event & { currentTarget: HTMLInputElement }) =>
+          inputValues.push(event.currentTarget.value)
+        }
+      />
       <Textarea
         aria-label="Notes"
-        onChange={(event) => textareaValues.push(event.currentTarget.value)}
+        onInput={(event: Event & { currentTarget: HTMLTextAreaElement }) =>
+          textareaValues.push(event.currentTarget.value)
+        }
       />
     </>
   ))

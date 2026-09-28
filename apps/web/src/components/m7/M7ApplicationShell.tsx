@@ -22,7 +22,7 @@ import {
   TerminalSquare,
 } from 'lucide-solid'
 
-import { Badge } from '@/components/shadcn/badge'
+import { Badge } from '@adea-ai/ui/components/ui/badge'
 import { Button } from '@/components/shadcn/button'
 import {
   Breadcrumb,
@@ -42,8 +42,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
-} from '@/components/shadcn/dropdown-menu'
-import { Input } from '@/components/shadcn/input'
+} from '@adea-ai/ui/components/ui/dropdown-menu'
+import { Input } from '@adea-ai/ui/components/ui/input'
 import { ScrollArea, ScrollBar } from '@/components/shadcn/scroll-area'
 import {
   Sheet,
@@ -74,7 +74,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/shadcn/tooltip'
+} from '@adea-ai/ui/components/ui/tooltip'
 import { shortcutLabel } from '@/shortcuts'
 import type { M7ActivityInbox } from '@/components/m7/M7ActivityInbox'
 import type { M7CommandPalette } from '@/components/m7/M7CommandPalette'
@@ -245,7 +245,7 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
             aria-label="Search your knowledge"
             class="h-9 pr-16 pl-9"
             value={props.query}
-            onChange={(event) => props.onQueryChange(event.target.value)}
+            onInput={(event) => props.onQueryChange(event.target.value)}
           />
           <span class="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-xs text-muted-foreground">
             {props.loading ? (
@@ -677,7 +677,7 @@ export function M7ShellProvider(props: { children: JSX.Element }) {
   return (
     // 150ms: long enough to survive a pointer crossing a control, short enough
     // that action help feels immediate beside the rail's own label flyout.
-    <TooltipProvider delay={150}>
+    <TooltipProvider openDelay={150}>
       <SidebarProvider
         defaultOpen={false}
         class="m7-shell-provider min-h-0 overflow-hidden"

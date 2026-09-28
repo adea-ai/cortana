@@ -33,7 +33,7 @@ import { describeSyncRunProgress } from '../operations'
 import { shortcutLabel } from '../shortcuts'
 import { useClipboardCopy } from '../useClipboardCopy'
 import { VariantButton as Button } from './cortana/VariantButton'
-import { Card } from './shadcn/card'
+import { Card } from '@adea-ai/ui/components/ui/card'
 
 const EMPTY_ACTIONS: Array<{ label: string; icon: JSX.Element; onClick: () => void }> = []
 

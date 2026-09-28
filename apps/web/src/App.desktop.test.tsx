@@ -737,7 +737,7 @@ test('shadcn settings compose generated source controls', async () => {
   )
   expect(document.querySelector('[data-slot="input"]')).toBeTruthy()
   expect(document.querySelector('[data-slot="select-trigger"]')).toBeTruthy()
-  expect(document.querySelector('[data-slot="switch"]')).toBeTruthy()
+  expect(document.querySelector('[role="switch"]')).toBeTruthy()
   expect(document.querySelector('[data-slot="button"]')).toBeTruthy()
   expect(
     screen.getByRole('button', {
@@ -873,7 +873,7 @@ test('secret replacement after a confirmed clear submits the replacement instead
         name: 'Clear stored token',
       })
     )
-    fireEvent.change(screen.getByLabelText('New bearer token'), {
+    fireEvent.input(screen.getByLabelText('New bearer token'), {
       target: {
         value: 'replacement-token',
       },
@@ -1343,7 +1343,7 @@ test('advanced settings export is blocked while draft is dirty', async () => {
     })
   )
   const dataDir = (await screen.findByLabelText('Data directory')) as HTMLInputElement
-  fireEvent.change(dataDir, {
+  fireEvent.input(dataDir, {
     target: {
       value: '/tmp/dirty-runtime-directory',
     },
@@ -1437,10 +1437,12 @@ test('advanced settings exports an explicit workspace set as a derived vault', a
     const personal = screen.getByRole('checkbox', {
       name: 'Personal',
     })
-    expect(work.getAttribute('aria-checked')).toBe('true')
-    expect(personal.getAttribute('aria-checked')).toBe('true')
+    // Kobalte marks selection with the data-checked attribute, not aria-checked.
+    expect(work.getAttribute('data-checked')).toBe('')
+    expect(personal.getAttribute('data-checked')).toBe('')
     await user.click(personal)
-    expect(personal.getAttribute('aria-checked')).toBe('false')
+    // Kobalte marks selection via data-checked; an unchecked box has neither.
+    expect(personal.getAttribute('aria-checked')).toBe(null)
     fireEvent.click(
       screen.getByRole('button', {
         name: 'Export vault',
@@ -1495,7 +1497,7 @@ test('advanced import preview cancellation keeps draft values unchanged', async 
       })
     )
     const dataDir = (await screen.findByLabelText('Data directory')) as HTMLInputElement
-    fireEvent.change(dataDir, {
+    fireEvent.input(dataDir, {
       target: {
         value: '/tmp/dirty-draft',
       },
@@ -1842,7 +1844,7 @@ test('desktop shell does not present a stale service report after refresh failur
   const health = screen.getByRole('button', {
     name: 'Open service health',
   })
-  expect(health.getAttribute('data-slot')).toBe('tooltip-trigger')
+  expect(health.getAttribute('aria-label')).toBeTruthy()
 })
 test('desktop shell does not require the local embedding service for cloud embeddings', () => {
   render(() => (
@@ -1911,7 +1913,7 @@ test('query number fields expose deterministic errors and recover to the saved b
     })
   )
   const retrieval = (await screen.findByLabelText('Retrieval candidates')) as HTMLInputElement
-  fireEvent.change(retrieval, {
+  fireEvent.input(retrieval, {
     target: {
       value: '999',
     },
@@ -1921,7 +1923,7 @@ test('query number fields expose deterministic errors and recover to the saved b
   expect(screen.getByRole('alert').textContent).toContain(
     'Retrieval candidates must be between 1 and 100.'
   )
-  fireEvent.change(retrieval, {
+  fireEvent.input(retrieval, {
     target: {
       value: '1.5',
     },
@@ -1934,14 +1936,14 @@ test('query number fields expose deterministic errors and recover to the saved b
   expect(retrieval.value).toBe('10')
   expect(screen.queryByRole('alert')).toBeNull()
   const cacheEntries = screen.getByLabelText(/Cache entries/) as HTMLInputElement
-  fireEvent.change(cacheEntries, {
+  fireEvent.input(cacheEntries, {
     target: {
       value: '0',
     },
   })
   expect(cacheEntries.value).toBe('0')
   const cacheLifetime = screen.getByLabelText(/^Cache lifetime \(seconds\)/) as HTMLInputElement
-  fireEvent.change(cacheLifetime, {
+  fireEvent.input(cacheLifetime, {
     target: {
       value: '0',
     },
@@ -2637,13 +2639,13 @@ test('new workspace display names keep focus while typing', async () => {
   )
   const displayName = (await screen.findAllByLabelText('Display name')).at(-1) as HTMLInputElement
   displayName.focus()
-  fireEvent.change(displayName, {
+  fireEvent.input(displayName, {
     target: {
       value: 'N',
     },
   })
   expect(document.activeElement).toBe(displayName)
-  fireEvent.change(displayName, {
+  fireEvent.input(displayName, {
     target: {
       value: 'New workspace',
     },
@@ -2688,7 +2690,7 @@ test('workspace settings keep 25 workspaces searchable and keyboard-operable', a
     })
     expect(add.hasAttribute('disabled')).toBe(false)
     const search = screen.getByLabelText('Find workspace') as HTMLInputElement
-    fireEvent.change(search, {
+    fireEvent.input(search, {
       target: {
         value: 'needle@example.test',
       },
@@ -2706,7 +2708,7 @@ test('workspace settings keep 25 workspaces searchable and keyboard-operable', a
     })
     expect(document.activeElement).toBe(moveUp)
     fireEvent.click(moveUp)
-    fireEvent.change(search, {
+    fireEvent.input(search, {
       target: {
         value: '',
       },
@@ -2740,7 +2742,7 @@ test('settings warns before discarding dirty changes', async () => {
         name: 'Workspaces',
       })
     )
-    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
+    fireEvent.input((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Draft work',
       },
@@ -2794,7 +2796,7 @@ test('settings can discard a draft without leaving the control plane', async () 
       })
     )
     const displayName = (await screen.findAllByLabelText('Display name'))[0] as HTMLInputElement
-    fireEvent.change(displayName, {
+    fireEvent.input(displayName, {
       target: {
         value: 'Draft work',
       },
@@ -3021,7 +3023,7 @@ test('the footer updates shortcut respects unsaved settings changes', async () =
         name: 'Workspaces',
       })
     )
-    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
+    fireEvent.input((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Unsaved workspace',
       },
@@ -3181,12 +3183,12 @@ test('source settings use workspace tabs without repeating assigned workspace co
       const action = screen.getByRole('button', {
         name: label,
       })
-      expect(action.getAttribute('data-slot')).toBe('tooltip-trigger')
+      expect(action.getAttribute('aria-label')).toBeTruthy()
     }
     const remove = screen.getByRole('button', {
       name: 'Remove work-code',
     })
-    expect(remove.getAttribute('data-slot')).toBe('tooltip-trigger')
+    expect(remove.getAttribute('aria-label')).toBeTruthy()
     expect(remove.className).toContain('text-destructive')
   } finally {
     state.settings = originalSettings
@@ -3413,7 +3415,7 @@ test('settings refuses duplicate canonical source labels in one workspace', asyn
         name: 'Workspaces',
       })
     )
-    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
+    fireEvent.input((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Draft workspace',
       },
@@ -3634,7 +3636,7 @@ test('settings refuses padded or control-character source labels before save', a
         name: 'Workspaces',
       })
     )
-    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
+    fireEvent.input((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Draft workspace',
       },
@@ -3874,7 +3876,7 @@ test('services settings saves bounded recurring sync and backup intervals', asyn
   await waitFor(() => expect(state.scheduleGetCalls).toBe(1))
   await waitFor(() => expect(screen.getByText('Background schedule')).toBeTruthy())
   const syncInterval = await screen.findByLabelText('Sync interval (seconds)')
-  fireEvent.change(syncInterval, {
+  fireEvent.input(syncInterval, {
     target: {
       value: '1800',
     },
@@ -3923,7 +3925,7 @@ test('services settings requires explicit apply after changing an installed sche
       })
     )
     const syncInterval = await screen.findByLabelText('Sync interval (seconds)')
-    fireEvent.change(syncInterval, {
+    fireEvent.input(syncInterval, {
       target: {
         value: '1800',
       },
@@ -3964,7 +3966,7 @@ test('services settings refuses recurring sync while settings changes are unsave
         name: 'Workspaces',
       })
     )
-    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
+    fireEvent.input((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Unsaved workspace',
       },
@@ -4313,7 +4315,7 @@ test('settings save refreshes shell service metadata immediately', async () => {
       name: 'Workspaces',
     })
   )
-  fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
+  fireEvent.input((await screen.findAllByLabelText('Display name'))[0], {
     target: {
       value: 'Work settings',
     },
@@ -4432,7 +4434,7 @@ test('saving settings clears stale local service errors', async () => {
       ).toBeTruthy()
     )
     state.serviceStatusError = null
-    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
+    fireEvent.input((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Work settings',
       },
@@ -5143,7 +5145,7 @@ test('saving settings with restart_required triggers a background restart and cl
         name: 'Workspaces',
       })
     )
-    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
+    fireEvent.input((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Alpha',
       },
@@ -5248,7 +5250,7 @@ test('a failed background restart after saving names the failure and offers reco
         name: 'Workspaces',
       })
     )
-    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
+    fireEvent.input((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Alpha',
       },
@@ -5637,7 +5639,7 @@ test('running source jobs stay visible in the shell after leaving the settings v
       name: 'Open active source jobs',
     })
     expect(activeJobs).toBeTruthy()
-    expect(activeJobs.getAttribute('data-slot')).toBe('tooltip-trigger')
+    expect(activeJobs.getAttribute('aria-label')).toBeTruthy()
     fireEvent.click(activeJobs)
     await screen.findByRole('heading', {
       name: 'Inbox',

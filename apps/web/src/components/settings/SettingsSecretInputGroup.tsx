@@ -26,7 +26,7 @@ export function SettingsSecretInputGroup(
         autocomplete="new-password"
         value={local.value}
         disabled={local.disabled}
-        onChange={local.onChange}
+        onInput={local.onChange}
       />
       <Show when={local.onClear}>
         <InputGroupButton size="xs" onClick={local.onClear}>

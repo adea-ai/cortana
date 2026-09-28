@@ -387,7 +387,7 @@ test('graph supports bounded filtering and explains selected relationships', () 
   const filter = screen.getByRole('searchbox', {
     name: 'Filter graph nodes',
   })
-  fireEvent.change(filter, {
+  fireEvent.input(filter, {
     target: {
       value: 'release',
     },

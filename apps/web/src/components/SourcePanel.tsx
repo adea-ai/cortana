@@ -20,11 +20,11 @@ import { cn } from '@/lib/utils'
 import { sourceDisplayName } from './sourceIconData'
 import { TooltipButton as Button } from './cortana/TooltipButton'
 import { VariantButton as ActionButton } from './cortana/VariantButton'
-import { Input } from './shadcn/input'
+import { Input } from '@adea-ai/ui/components/ui/input'
 import { Progress } from './shadcn/progress'
-import { Skeleton } from './shadcn/skeleton'
-import { Spinner } from './shadcn/spinner'
-import { Switch } from './shadcn/switch'
+import { Skeleton } from '@adea-ai/ui/components/ui/skeleton'
+import { Spinner } from '@adea-ai/ui/components/ui/spinner'
+import { Switch } from '@adea-ai/ui/components/ui/switch'
 import type {
   BrainDocumentSummary,
   BrainStatus,
@@ -395,7 +395,7 @@ export function SourcePanel(props: {
                                 sourceJobActive()
                               }
                               onClick={(event: MouseEvent) => event.stopPropagation()}
-                              onChange={(checked) =>
+                              onChange={(checked: boolean) =>
                                 props.onToggleSource?.(item.source, item.project, checked)
                               }
                             />
@@ -446,7 +446,7 @@ export function SourcePanel(props: {
             id="document-filter"
             class="document-filter-input"
             value={props.documentQuery}
-            onChange={(event) => props.onDocumentQueryChange(event.target.value)}
+            onInput={(event) => props.onDocumentQueryChange(event.target.value)}
             placeholder="Filter documents"
             aria-label="Filter documents"
           />

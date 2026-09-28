@@ -153,7 +153,7 @@ export function NumberField(props: {
         value={draft()}
         min={props.min}
         max={props.max}
-        onChange={(event) => {
+        onInput={(event) => {
           const raw = event.target.value
           setDraft(raw)
           const nextError = validate(raw)

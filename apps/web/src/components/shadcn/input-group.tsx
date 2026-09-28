@@ -5,7 +5,7 @@ import type { ValidComponent } from 'solid-js'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/shadcn/button'
 import { Input } from '@/components/shadcn/input'
-import { Textarea } from '@/components/shadcn/textarea'
+import { Textarea } from '@adea-ai/ui/components/ui/textarea'
 
 function InputGroup(props: ComponentProps<'div'>) {
   const [local, rest] = splitProps(props, ['class'])

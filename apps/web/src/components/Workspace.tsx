@@ -28,7 +28,7 @@ import { isDesktopApp, openDesktopUrl } from '../api'
 import { codeRevisionLabel } from '../codeEvidence'
 import { isFavoriteDocument, toggleFavoriteDocument } from '../favoriteDocuments'
 import { safeSourceLink } from '../sourceLinks'
-import { Badge } from './shadcn/badge'
+import { Badge } from '@adea-ai/ui/components/ui/badge'
 import { TooltipButton as Button } from './cortana/TooltipButton'
 import { VariantButton as WorkspaceButton } from './cortana/VariantButton'
 import {
@@ -38,10 +38,10 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from './shadcn/empty'
-import { Input } from './shadcn/input'
-import { NativeSelect } from './shadcn/native-select'
-import { Spinner } from './shadcn/spinner'
+} from '@adea-ai/ui/components/ui/empty'
+import { Input } from '@adea-ai/ui/components/ui/input'
+import { NativeSelect } from '@adea-ai/ui/components/ui/native-select'
+import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 import { Tabs, TabsList, TabsTrigger } from './shadcn/tabs'
 import { Toggle } from './shadcn/toggle'
 import type {
@@ -933,7 +933,7 @@ function GraphView(props: {
               aria-label="Filter graph nodes"
               placeholder="Filter nodes…"
               value={filter()}
-              onChange={(event) => setFilter(event.target.value)}
+              onInput={(event) => setFilter(event.target.value)}
             />
             <Show when={filter()}>
               <WorkspaceButton

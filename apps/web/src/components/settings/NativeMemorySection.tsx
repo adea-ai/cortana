@@ -33,7 +33,7 @@ export function NativeMemorySection(
             min={1}
             max={1000000}
             value={props.settings.memory.max_active}
-            onChange={(event) =>
+            onInput={(event) =>
               change({
                 max_active: Number(event.target.value) || 1,
               })
@@ -47,7 +47,7 @@ export function NativeMemorySection(
             max={1}
             step={0.05}
             value={props.settings.memory.default_confidence}
-            onChange={(event) =>
+            onInput={(event) =>
               change({
                 default_confidence: Number(event.target.value) || 0,
               })
@@ -61,7 +61,7 @@ export function NativeMemorySection(
             max={1}
             step={0.05}
             value={props.settings.memory.default_importance}
-            onChange={(event) =>
+            onInput={(event) =>
               change({
                 default_importance: Number(event.target.value) || 0,
               })

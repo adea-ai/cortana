@@ -14,9 +14,15 @@ import { describeSyncRunProgress } from '@/operations'
 import { describeSourceJobProgress, recentCompletedJobs } from '@/sourceJobs'
 import type { BrainStatus, DesktopSourceJob, SourceSyncSummary } from '@/types'
 import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/shadcn/alert'
-import { Badge } from '@/components/shadcn/badge'
+import { Badge } from '@adea-ai/ui/components/ui/badge'
 import { Button } from '@/components/shadcn/button'
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/shadcn/card'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@adea-ai/ui/components/ui/card'
 import {
   Empty,
   EmptyContent,
@@ -24,7 +30,7 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from '@/components/shadcn/empty'
+} from '@adea-ai/ui/components/ui/empty'
 import { Progress } from '@/components/shadcn/progress'
 
 export type M7ActivityInboxProps = {
@@ -128,7 +134,7 @@ function SyncActivityCard(props: { run: SourceSyncSummary }) {
       ? Math.min(100, Math.round((documents() / props.run.budget_documents) * 100))
       : null
   return (
-    <Card size="sm">
+    <Card class="activity-card-compact">
       <CardHeader class="activity-card-header">
         <CardTitle class="activity-card-title-line">
           {statusIcon(props.run.status)}
@@ -170,7 +176,7 @@ function SourceJobCard(props: { job: DesktopSourceJob; onCancel?: (id: string) =
   const started = () => new Date(props.job.started_at_unix_seconds * 1000)
   const running = () => props.job.status === 'running' || props.job.status === 'cancelling'
   return (
-    <Card size="sm">
+    <Card class="activity-card-compact">
       <CardHeader class="activity-card-header">
         <CardTitle class="activity-card-title-line">
           {statusIcon(props.job.status)}

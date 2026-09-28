@@ -258,16 +258,16 @@ test('navigation and source-header actions use the shared icon-button primitive'
         .getByRole('button', {
           name: label,
         })
-        .getAttribute('data-slot')
-    ).toBe('tooltip-trigger')
+        .getAttribute('aria-label')
+    ).toBeTruthy()
   }
   expect(
     screen
       .getByRole('button', {
         name: 'Actions',
       })
-      .getAttribute('data-slot')
-  ).toBe('dropdown-menu-trigger')
+      .getAttribute('aria-haspopup')
+  ).toBe('true')
 })
 test('Graph is a separate full-screen sidebar view and Timeline remains result-only', async () => {
   await renderApp()
@@ -306,7 +306,7 @@ test('Graph is a separate full-screen sidebar view and Timeline remains result-o
   // tab and unselects Graph.
   state.answer = () => Promise.resolve(answerResponse)
   const input = screen.getByLabelText('Search your knowledge')
-  fireEvent.change(input, {
+  fireEvent.input(input, {
     target: {
       value: 'release cadence',
     },
@@ -410,7 +410,7 @@ test('graph and timeline evidence actions open the selected source', async () =>
   state.answer = () => Promise.resolve(answerResponse)
   await renderApp()
   const input = screen.getByLabelText('Search your knowledge')
-  fireEvent.change(input, {
+  fireEvent.input(input, {
     target: {
       value: 'release cadence',
     },
@@ -698,7 +698,7 @@ test('timeline order controls navigate to the selected evidence entry', async ()
     })
   await renderApp()
   const input = screen.getByLabelText('Search your knowledge')
-  fireEvent.change(input, {
+  fireEvent.input(input, {
     target: {
       value: 'timeline sort',
     },
@@ -1070,7 +1070,7 @@ test('Conversations shows the session state and offers search focus', async () =
   // After a successful search, the current query/answer/evidence state renders.
   state.answer = () => Promise.resolve(answerResponse)
   const input = screen.getByLabelText('Search your knowledge')
-  fireEvent.change(input, {
+  fireEvent.input(input, {
     target: {
       value: 'release cadence',
     },
@@ -1159,7 +1159,7 @@ test('search history arrows navigate previous and next queries', async () => {
   render(() => <App />)
   const input = screen.getByLabelText('Search your knowledge')
   const submit = (value: string) => {
-    fireEvent.change(input, {
+    fireEvent.input(input, {
       target: {
         value,
       },

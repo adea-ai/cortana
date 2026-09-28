@@ -7,11 +7,11 @@ import type { AnswerResponse, BrainStatus, ContextBundle, Evidence } from '../ty
 import { codeRevisionLabel } from '../codeEvidence'
 import { useClipboardCopy } from '../useClipboardCopy'
 import { Alert, AlertDescription } from './shadcn/alert'
-import { Badge } from './shadcn/badge'
+import { Badge } from '@adea-ai/ui/components/ui/badge'
 import { VariantButton as ActionButton } from './cortana/VariantButton'
-import { Card } from './shadcn/card'
+import { Card } from '@adea-ai/ui/components/ui/card'
 import { ScrollArea } from './shadcn/scroll-area'
-import { Spinner } from './shadcn/spinner'
+import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 
 export function ContextPanel(props: {
   open: boolean

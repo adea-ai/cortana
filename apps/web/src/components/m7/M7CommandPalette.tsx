@@ -9,7 +9,7 @@ import {
   CommandItem,
   CommandList,
   CommandShortcut,
-} from '@/components/shadcn/command'
+} from '@adea-ai/ui/components/ui/command'
 import { shortcutLabel } from '@/shortcuts'
 
 export type M7CommandPaletteProps = {

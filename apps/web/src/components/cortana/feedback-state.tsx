@@ -11,8 +11,8 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from '@/components/shadcn/empty'
-import { Skeleton } from '@/components/shadcn/skeleton'
+} from '@adea-ai/ui/components/ui/empty'
+import { Skeleton } from '@adea-ai/ui/components/ui/skeleton'
 
 type FeedbackStateProps = {
   kind: 'loading' | 'empty' | 'error' | 'success' | 'warning'

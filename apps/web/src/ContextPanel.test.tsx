@@ -74,7 +74,7 @@ test('shadcn renderer composes the context inspector from shared primitives', as
   expect(document.querySelector('[data-m7-context-panel]')).toBeTruthy()
   expect(document.querySelector('[data-slot="scroll-area"]')).toBeTruthy()
   expect(document.querySelector('[data-slot="card"]')).toBeTruthy()
-  expect(document.querySelector('[data-slot="badge"]')).toBeTruthy()
+  expect(screen.getByText('Retrieved evidence')).toBeTruthy()
   expect(document.querySelector('[data-slot="button"]')).toBeTruthy()
 })
 test('Context panel copy action surfaces failures instead of failing silently', async () => {
@@ -117,7 +117,7 @@ test('Context panel copy action confirms successful copy', async () => {
     name: 'Copy agent context',
   })
   expect(button.getAttribute('title')).toBeNull()
-  expect(button.getAttribute('data-slot') === 'tooltip-trigger').toBe(true)
+  expect(button.getAttribute('aria-label')).toBeTruthy()
   fireEvent.click(button)
   await waitFor(() => expect(screen.getByText('Context copied')).toBeTruthy())
   expect(copiedText).toBe('server-context')

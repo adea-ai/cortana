@@ -10,10 +10,15 @@ import {
 
 import { cn } from '../../lib/utils'
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../shadcn/accordion'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@adea-ai/ui/components/ui/accordion'
 import { Alert } from '../shadcn/alert'
-import { Card } from '../shadcn/card'
-import { Checkbox } from '../shadcn/checkbox'
+import { Card } from '@adea-ai/ui/components/ui/card'
+import { Checkbox } from '@adea-ai/ui/components/ui/checkbox'
 import {
   Field,
   FieldDescription,
@@ -23,13 +28,13 @@ import {
   FieldLegend,
   FieldSet,
 } from '../shadcn/field'
-import { Input } from '../shadcn/input'
-import { RadioGroup, RadioGroupItem } from '../shadcn/radio-group'
+import { Input } from '@adea-ai/ui/components/ui/input'
+import { RadioGroup, RadioGroupItem } from '@adea-ai/ui/components/ui/radio-group'
 import { Select, SelectContent, SelectTrigger, SelectValue } from '../shadcn/select'
 import type { SelectOptionValue } from '../shadcn/select'
-import { Switch } from '../shadcn/switch'
+import { Switch } from '@adea-ai/ui/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../shadcn/tabs'
-import { Textarea } from '../shadcn/textarea'
+import { Textarea } from '@adea-ai/ui/components/ui/textarea'
 
 export { VariantButton as SettingsButton } from '../cortana/VariantButton'
 
@@ -147,7 +152,7 @@ export function SettingsCheckbox(
       aria-describedby={props['aria-describedby'] ?? field?.describedBy()}
       aria-invalid={props['aria-invalid'] ?? (field?.invalid() || undefined)}
       title={props.title}
-      onChange={(checked) => {
+      onChange={(checked: boolean) => {
         props.onChange?.({
           target: { checked },
           currentTarget: { checked },
@@ -174,7 +179,7 @@ export function SettingsSwitch(
       aria-describedby={props['aria-describedby'] ?? field?.describedBy()}
       aria-invalid={props['aria-invalid'] ?? (field?.invalid() || undefined)}
       title={props.title}
-      onChange={(checked) => {
+      onChange={(checked: boolean) => {
         props.onChange?.({
           target: { checked },
           currentTarget: { checked },

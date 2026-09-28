@@ -250,7 +250,7 @@ test('changing the endpoint invalidates the advertised catalog', async () => {
   // The user edits the endpoint; the stale advertised list must not apply to
   // the new provider.
   const endpoint = screen.getByLabelText('OpenAI-compatible endpoint') as HTMLInputElement
-  fireEvent.change(endpoint, {
+  fireEvent.input(endpoint, {
     target: {
       value: 'https://other.example.test/v1',
     },
