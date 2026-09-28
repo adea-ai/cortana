@@ -3,7 +3,7 @@ import { Show } from 'solid-js'
 
 import { Alert, AlertDescription, AlertTitle } from '@adea-ai/ui/components/ui/alert'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/shadcn/button'
+import { Button } from '@adea-ai/ui/components/ui/button'
 import {
   Empty,
   EmptyContent,
@@ -65,7 +65,7 @@ export function FeedbackState(props: FeedbackStateProps) {
           <AlertDescription>{props.description}</AlertDescription>
           <Show when={props.kind === 'error' && props.onRetry}>
             <EmptyContent class="mt-3 items-start">
-              <Button variant="outline" size="sm" onClick={props.onRetry}>
+              <Button variant="outline" size="xs" onClick={props.onRetry}>
                 <RotateCcw data-icon="inline-start" />
                 Retry
               </Button>

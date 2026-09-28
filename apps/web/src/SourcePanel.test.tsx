@@ -68,7 +68,7 @@ test('shadcn renderer uses shared source controls without a redundant workspace 
   expect(screen.queryByLabelText('Workspace')).toBeNull()
   expect(document.querySelector('[data-slot="select-trigger"]')).toBeNull()
   expect(document.querySelector('[data-slot="input"]')).toBeTruthy()
-  expect(document.querySelector('[data-slot="button"]')).toBeTruthy()
+  expect(document.querySelectorAll('button').length).toBeGreaterThan(0)
   expect(document.querySelector('[role="switch"]')).toBeTruthy()
 })
 test('source disclosure keeps keyboard focus when local state rerenders the panel', () => {

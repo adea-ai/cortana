@@ -1,16 +1,12 @@
 import { splitProps, type ComponentProps, type JSX } from 'solid-js'
 
-import { cn } from '@/lib/utils'
-
 import {
   Combobox,
   ComboboxContent,
-  ComboboxEmpty,
   ComboboxInput,
   ComboboxItem,
-  ComboboxList,
-  type ComboboxOptionValue,
-} from '../shadcn/combobox'
+} from '@adea-ai/ui/components/ui/combobox'
+import { cn } from '@/lib/utils'
 
 export function SettingsModelCombobox(
   props: Omit<ComponentProps<typeof ComboboxInput>, 'value'> & {
@@ -21,8 +17,10 @@ export function SettingsModelCombobox(
 ) {
   const [local, rest] = splitProps(props, ['value', 'choices', 'onValueChange', 'class'])
   return (
-    <Combobox<ComboboxOptionValue>
+    <Combobox
       options={local.choices}
+      optionValue="value"
+      optionTextValue="label"
       value={local.choices.find((choice) => String(choice.value) === local.value) ?? null}
       onChange={(option) => option && local.onValueChange(String(option.value))}
       itemComponent={(itemProps) => (
@@ -30,10 +28,7 @@ export function SettingsModelCombobox(
       )}
     >
       <ComboboxInput {...rest} class={cn('border-border bg-background shadow-xs', local.class)} />
-      <ComboboxContent>
-        <ComboboxEmpty>No matching models.</ComboboxEmpty>
-        <ComboboxList />
-      </ComboboxContent>
+      <ComboboxContent />
     </Combobox>
   )
 }

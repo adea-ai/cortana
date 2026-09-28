@@ -43,7 +43,7 @@ import { Input } from '@adea-ai/ui/components/ui/input'
 import { NativeSelect } from '@adea-ai/ui/components/ui/native-select'
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 import { Tabs, TabsList, TabsTrigger } from '@adea-ai/ui/components/ui/tabs'
-import { Toggle } from './shadcn/toggle'
+import { Toggle } from '@adea-ai/ui/components/ui/toggle'
 import type {
   AnswerResponse,
   BrainDocument,
@@ -1011,7 +1011,7 @@ function GraphView(props: {
               <For each={['all', 'workspace', 'source', 'document'] as const}>
                 {(kind) => (
                   <Toggle
-                    size="sm"
+                    size="xs"
                     variant="outline"
                     pressed={kindFilter() === kind}
                     onChange={(pressed) => pressed && setKindFilter(kind)}

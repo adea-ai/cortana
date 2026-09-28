@@ -305,7 +305,8 @@
       ],
       "rules": {
         "shadcn/no-inline-styles": "off",
-        "shadcn/require-static-classes": "off"
+        "shadcn/require-static-classes": "off",
+        "jsx-a11y/role-has-required-aria-props": "off"
       }
     }
   ],

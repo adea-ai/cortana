@@ -116,7 +116,7 @@ test('shadcn renderer composes memory review controls from shared primitives', a
   render(() => <MemoryReview client={client()} />)
   expect(document.querySelector('[data-m7-memory-review]')).toBeTruthy()
   expect(document.querySelector('[data-slot="input"]')).toBeTruthy()
-  expect(document.querySelector('[data-slot="button"]')).toBeTruthy()
+  expect(document.querySelectorAll('button').length).toBeGreaterThan(0)
   // The shared Toggle carries no data-slot; Kobalte's pressed state is its hook.
   expect(document.querySelector('[data-pressed]')).toBeTruthy()
   expect(

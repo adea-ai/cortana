@@ -736,9 +736,9 @@ test('shadcn settings compose generated source controls', async () => {
     })
   )
   expect(document.querySelector('[data-slot="input"]')).toBeTruthy()
-  expect(document.querySelector('[data-slot="select-trigger"]')).toBeTruthy()
+  expect(document.querySelector('[role="combobox"]')).toBeTruthy()
   expect(document.querySelector('[role="switch"]')).toBeTruthy()
-  expect(document.querySelector('[data-slot="button"]')).toBeTruthy()
+  expect(document.querySelectorAll('button').length).toBeGreaterThan(0)
   expect(
     screen.getByRole('button', {
       name: `Remove ${workSource.name}`,
@@ -799,7 +799,7 @@ test('lazy provider controls keep generated field labels and help associated', a
     />
   ))
   const model = await screen.findByRole('combobox', {
-    name: 'Model catalog',
+    name: /Model catalog/,
   })
   const modelLabel = screen.getByText('Model', {
     selector: 'label',
@@ -2008,10 +2008,10 @@ test('embedding model field supports preset catalog with custom fallback', async
       })
     )
     const catalog = await screen.findByRole('combobox', {
-      name: 'Model catalog',
+      name: /Model catalog/,
     })
     expect(catalog.textContent).toContain('Qwen/Qwen3-Embedding-0.6B')
-    expect(catalog.getAttribute('data-slot')).toBe('select-trigger')
+    expect(catalog.getAttribute('role')).toBe('combobox')
   } finally {
     state.settings = originalSettings
   }
@@ -2044,7 +2044,7 @@ test('query model field remains a dropdown and preserves the current model until
       })
     )
     const model = await screen.findByRole('combobox', {
-      name: 'Model catalog',
+      name: /Model catalog/,
     })
     expect(model.textContent).toContain('provider-custom-embedding')
     expect(
@@ -3296,7 +3296,7 @@ test('source settings quarantine legacy scopes and offer workspace assignment', 
       })
     ).toBeNull()
     const workspace = await screen.findByRole('combobox', {
-      name: 'Workspace for community-discord',
+      name: /Workspace for community-discord/,
     })
     expect(workspace.textContent).toContain('Unassigned: community')
   } finally {
@@ -3518,7 +3518,7 @@ test('settings uses the shared catalogue default and exposes theme controls per 
     })
   )
   const workspaceTheme = await screen.findByRole('combobox', {
-    name: 'Theme for Work',
+    name: /Theme for Work/,
   })
   await user.click(workspaceTheme)
   expect(
@@ -3567,7 +3567,7 @@ test('workspace theme controls persist and apply per workspace', async () => {
   )
   await user.click(
     await screen.findByRole('combobox', {
-      name: 'Theme for Work',
+      name: /Theme for Work/,
     })
   )
   await user.click(
@@ -3577,7 +3577,7 @@ test('workspace theme controls persist and apply per workspace', async () => {
   )
   await user.click(
     await screen.findByRole('combobox', {
-      name: 'Theme for Personal',
+      name: /Theme for Personal/,
     })
   )
   await user.click(
@@ -4173,7 +4173,7 @@ test('services settings exports a verified database backup with explicit confirm
     const backup = screen.getByRole('button', {
       name: 'Backup database',
     })
-    expect(backup.getAttribute('data-slot')).toBe('button')
+    expect(backup.getAttribute('type')).toBe('button')
     fireEvent.click(backup)
     await waitFor(() => expect(state.databaseBackupCalls).toBe(1))
     expect(

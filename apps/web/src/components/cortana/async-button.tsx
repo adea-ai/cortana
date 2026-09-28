@@ -1,6 +1,6 @@
 import { Show, splitProps, type ComponentProps } from 'solid-js'
 
-import { Button } from '@/components/shadcn/button'
+import { Button } from '@adea-ai/ui/components/ui/button'
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 
 export function AsyncButton(

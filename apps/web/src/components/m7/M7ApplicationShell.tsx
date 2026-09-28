@@ -23,7 +23,7 @@ import {
 } from 'lucide-solid'
 
 import { Badge } from '@adea-ai/ui/components/ui/badge'
-import { Button } from '@/components/shadcn/button'
+import { Button } from '@adea-ai/ui/components/ui/button'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -202,7 +202,7 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
               <TooltipTrigger
                 as={Button}
                 variant="ghost"
-                size="icon"
+                size="icon-sm"
                 aria-label="Previous search query"
                 disabled={!props.canGoBack}
                 onClick={props.onHistoryBack}
@@ -215,7 +215,7 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
               <TooltipTrigger
                 as={Button}
                 variant="ghost"
-                size="icon"
+                size="icon-sm"
                 aria-label="Next search query"
                 disabled={!props.canGoForward}
                 onClick={props.onHistoryForward}
@@ -259,7 +259,7 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
         </form>
         <Button
           type="button"
-          size="sm"
+          size="xs"
           aria-label="Reflect on this objective"
           onClick={props.onReflect}
           disabled={props.loading || !props.query.trim()}
@@ -274,7 +274,7 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
             as={Button}
             ref={(el: HTMLButtonElement) => (actionsRef.current = el)}
             variant="outline"
-            size="icon"
+            size="icon-sm"
             aria-label="Actions"
             title="Actions"
           >
@@ -445,7 +445,7 @@ export function M7ApplicationNavigation(props: {
           <DropdownMenu open={workspaceMenuOpen()} onOpenChange={setWorkspaceMenuOpen}>
             <DropdownMenuTrigger
               as={SidebarMenuButton}
-              size="lg"
+              size="md"
               class="m7-workspace-trigger p-0"
               hintIcon={() => <WorkspaceGlyph workspace={activeWorkspace()} size="small" />}
               tooltip={`Workspace: ${activeWorkspace()?.name ?? 'Choose workspace'}`}
@@ -621,7 +621,7 @@ export function M7ApplicationNavigation(props: {
               <DropdownMenu open={utilitiesMenuOpen()} onOpenChange={setUtilitiesMenuOpen}>
                 <DropdownMenuTrigger
                   as={SidebarMenuButton}
-                  size="lg"
+                  size="md"
                   icon={Settings}
                   tooltip="Settings and utilities"
                   aria-label="Settings and utilities"

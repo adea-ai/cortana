@@ -13,17 +13,17 @@ import type { VariantProps } from 'class-variance-authority'
 
 import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/shadcn/button'
-import { Input } from '@/components/shadcn/input'
-import { Separator } from '@/components/shadcn/separator'
+import { Button } from '@adea-ai/ui/components/ui/button'
+import { Input } from '@adea-ai/ui/components/ui/input'
+import { Separator } from '@adea-ai/ui/components/ui/separator'
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from '@/components/shadcn/sheet'
-import { Skeleton } from '@/components/shadcn/skeleton'
+} from '@adea-ai/ui/components/ui/sheet'
+import { Skeleton } from '@adea-ai/ui/components/ui/skeleton'
 import { PanelLeftIcon } from 'lucide-solid'
 import { SidebarContext, type SidebarContextProps, useSidebar } from './sidebar-context'
 import { sidebarMenuButtonVariants } from './sidebar-variants'
@@ -165,7 +165,7 @@ function Sidebar(
               data-mobile="true"
               class="w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
               style={{ '--sidebar-width': SIDEBAR_WIDTH_MOBILE }}
-              side={local.side ?? 'left'}
+              side={local.side === 'right' ? 'end' : 'start'}
             >
               <SheetHeader class="sr-only">
                 <SheetTitle>Sidebar</SheetTitle>
@@ -187,7 +187,7 @@ function Sidebar(
           data-state={state()}
           data-collapsible={state() === 'collapsed' ? (local.collapsible ?? 'offcanvas') : ''}
           data-variant={local.variant ?? 'sidebar'}
-          data-side={local.side ?? 'left'}
+          data-side={local.side === 'right' ? 'end' : 'start'}
           data-slot="sidebar"
         >
           {/* This is what handles the sidebar gap on desktop */}
@@ -204,7 +204,7 @@ function Sidebar(
           />
           <div
             data-slot="sidebar-container"
-            data-side={local.side ?? 'left'}
+            data-side={local.side === 'right' ? 'end' : 'start'}
             role={local.role}
             aria-label={local['aria-label']}
             class={cn(

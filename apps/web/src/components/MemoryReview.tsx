@@ -40,7 +40,7 @@ import { Input } from '@adea-ai/ui/components/ui/input'
 import { FeedbackState } from './cortana/feedback-state'
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 import { Textarea } from '@adea-ai/ui/components/ui/textarea'
-import { Toggle } from './shadcn/toggle'
+import { Toggle } from '@adea-ai/ui/components/ui/toggle'
 import { useSettingsConfirm } from './settings/SettingsConfirm'
 
 type QueueView =
@@ -482,7 +482,7 @@ export function MemoryReview(props: {
           <For each={QUEUE_VIEWS}>
             {(status) => (
               <Toggle
-                size="sm"
+                size="xs"
                 pressed={view() === status}
                 onChange={(pressed) => pressed && setView(status)}
               >

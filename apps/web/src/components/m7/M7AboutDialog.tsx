@@ -2,7 +2,7 @@ import { ExternalLink } from 'lucide-solid'
 import { createMemo, Show } from 'solid-js'
 
 import { openDesktopUrl } from '@/api'
-import { Button } from '@/components/shadcn/button'
+import { Button } from '@adea-ai/ui/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -54,7 +54,7 @@ export function M7AboutDialog(props: {
           <small>Copyright © 2026 Cortana contributors</small>
         </div>
         <div class="m7-about-dialog__actions">
-          <Button variant="outline" size="sm" type="button" onClick={() => void copy()}>
+          <Button variant="outline" size="xs" type="button" onClick={() => void copy()}>
             {copied() ? 'Copied' : 'Copy version info'}
           </Button>
           <a

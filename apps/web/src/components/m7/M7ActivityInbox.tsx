@@ -15,7 +15,7 @@ import { describeSourceJobProgress, recentCompletedJobs } from '@/sourceJobs'
 import type { BrainStatus, DesktopSourceJob, SourceSyncSummary } from '@/types'
 import { Alert, AlertDescription, AlertTitle } from '@adea-ai/ui/components/ui/alert'
 import { Badge } from '@adea-ai/ui/components/ui/badge'
-import { Button } from '@/components/shadcn/button'
+import { Button } from '@adea-ai/ui/components/ui/button'
 import {
   Card,
   CardAction,
@@ -215,7 +215,7 @@ function SourceJobCard(props: { job: DesktopSourceJob; onCancel?: (id: string) =
             <Show when={props.onCancel && running()}>
               <Button
                 variant="outline"
-                size="sm"
+                size="xs"
                 disabled={props.job.status === 'cancelling'}
                 aria-label={`Cancel ${props.job.project} ${props.job.source} ${props.job.operation}`}
                 onClick={() => props.onCancel?.(props.job.id)}
@@ -269,7 +269,7 @@ export function M7ActivityInbox(props: M7ActivityInboxProps) {
             <Show when={props.onRetrySourceJobs}>
               {/* The shared Alert has no action slot; the retry rides inside it. */}
               <div class="activity-alert-action">
-                <Button variant="outline" size="sm" onClick={props.onRetrySourceJobs}>
+                <Button variant="outline" size="xs" onClick={props.onRetrySourceJobs}>
                   Retry
                 </Button>
               </div>
@@ -284,7 +284,7 @@ export function M7ActivityInbox(props: M7ActivityInboxProps) {
             <Show when={props.onRetryStatus}>
               {/* The shared Alert has no action slot; the retry rides inside it. */}
               <div class="activity-alert-action">
-                <Button variant="outline" size="sm" onClick={props.onRetryStatus}>
+                <Button variant="outline" size="xs" onClick={props.onRetryStatus}>
                   Retry
                 </Button>
               </div>

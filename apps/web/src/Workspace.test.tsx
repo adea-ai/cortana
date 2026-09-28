@@ -107,7 +107,7 @@ test('shadcn workspace names revoked, loading, and malformed-content states with
   const retry = screen.getByRole('button', {
     name: 'Try again',
   })
-  expect(retry.getAttribute('data-slot')).toBe('button')
+  expect(retry.getAttribute('type')).toBe('button')
   fireEvent.click(retry)
   expect(retries).toBe(1)
   cleanup()

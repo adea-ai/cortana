@@ -1150,6 +1150,7 @@ function CortanaApplication() {
     )
   }
   function openSettingsAt(section: 'readiness' | 'services' | 'updates' | 'sources' | 'memory') {
+    console.log('OA section:', section, 'view:', view(), 'canLeave:', canLeaveSettings())
     if (!canLeaveSettings()) return
     setSettingsSection(section)
     setView('settings')

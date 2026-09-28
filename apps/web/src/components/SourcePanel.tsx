@@ -385,7 +385,6 @@ export function SourcePanel(props: {
                           </Show>
                           <Show when={props.onToggleSource && item.kind !== 'indexed'}>
                             <Switch
-                              size="sm"
                               checked={item.enabled}
                               aria-busy={sourceToggleBusy() === key}
                               aria-label={`${item.enabled ? 'Disable' : 'Enable'} ${item.name}`}

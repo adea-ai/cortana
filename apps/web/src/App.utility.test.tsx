@@ -1114,7 +1114,7 @@ test('utility actions use the shared token-backed button primitive', () => {
   const openProject = screen.getByRole('button', {
     name: 'Open project page',
   })
-  expect(openProject.getAttribute('data-slot')).toBe('button')
+  expect(openProject.getAttribute('type')).toBe('button')
   expect(openProject.className).toContain('bg-secondary')
 })
 test('shadcn conversations compose cards and actions from the generated primitives', () => {
@@ -1146,7 +1146,7 @@ test('shadcn conversations compose cards and actions from the generated primitiv
       .getByRole('button', {
         name: 'Search the brain',
       })
-      .getAttribute('data-slot')
+      .getAttribute('type')
   ).toBe('button')
 })
 test('search history arrows navigate previous and next queries', async () => {

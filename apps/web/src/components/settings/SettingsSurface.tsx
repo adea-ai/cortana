@@ -30,8 +30,20 @@ import {
 } from '../shadcn/field'
 import { Input } from '@adea-ai/ui/components/ui/input'
 import { RadioGroup, RadioGroupItem } from '@adea-ai/ui/components/ui/radio-group'
-import { Select, SelectContent, SelectTrigger, SelectValue } from '../shadcn/select'
-import type { SelectOptionValue } from '../shadcn/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@adea-ai/ui/components/ui/select'
+
+/**
+ * The wrapper's option records, collected from the native-option-style children
+ * sections still pass in. Shared Select renders its listbox from the options
+ * prop through itemComponent, so the records only feed the model and the rows.
+ */
+type SelectOptionValue = { value: string; label: string; disabled?: boolean }
 import { Switch } from '@adea-ai/ui/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@adea-ai/ui/components/ui/tabs'
 import { Textarea } from '@adea-ai/ui/components/ui/textarea'
@@ -333,6 +345,12 @@ export function SettingsSelect(
   return (
     <Select<SelectOptionValue>
       options={options()}
+      optionValue="value"
+      optionTextValue="label"
+      optionDisabled="disabled"
+      itemComponent={(itemProps) => (
+        <SelectItem item={itemProps.item}>{itemProps.item.rawValue.label}</SelectItem>
+      )}
       value={options().find((option) => String(option.value) === String(local.value ?? '')) ?? null}
       disabled={local.disabled}
       name={local.name}
@@ -352,6 +370,9 @@ export function SettingsSelect(
     >
       <SelectTrigger
         id={local.id ?? field?.id}
+        // Kobalte's trigger stops at aria-haspopup; the combobox role is what
+        // assistive tech and this app's queries key on.
+        role="combobox"
         class={cn('w-full border-border bg-background shadow-xs', local.class)}
         aria-label={local['aria-label']}
         aria-describedby={local['aria-describedby'] ?? field?.describedBy()}

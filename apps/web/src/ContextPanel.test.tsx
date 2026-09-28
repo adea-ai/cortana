@@ -75,7 +75,7 @@ test('shadcn renderer composes the context inspector from shared primitives', as
   expect(document.querySelector('[data-slot="scroll-area"]')).toBeTruthy()
   expect(document.querySelector('[data-slot="card"]')).toBeTruthy()
   expect(screen.getByText('Retrieved evidence')).toBeTruthy()
-  expect(document.querySelector('[data-slot="button"]')).toBeTruthy()
+  expect(document.querySelectorAll('button').length).toBeGreaterThan(0)
 })
 test('Context panel copy action surfaces failures instead of failing silently', async () => {
   const originalClipboard = navigator.clipboard
@@ -169,7 +169,7 @@ test('Context panel uses the shared action button contract', () => {
     screen.getByRole('button', {
       name: 'Close agent context',
     }).className
-  ).toContain('size-8')
+  ).toContain('size-control-sm')
   expect(
     screen.getByRole('button', {
       name: 'Refresh MCP-equivalent context',

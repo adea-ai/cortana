@@ -8,6 +8,10 @@
    the app keeps the final word on its own tokens. */
 @import '@adea-ai/ui/theme.css';
 @import '@adea-ai/ui/base.css';
+/* Tailwind ignores node_modules: discover the shared components' class strings
+   and the shared helpers (control ladder, overlay fills) they compose with. */
+@source '../node_modules/@adea-ai/ui/src/components';
+@source '../node_modules/@adea-ai/ui/src/lib';
 
 /* The app's interface scale stays 16px; the shared base layer's 14px desktop
    default is a deliberate adoption decision for a later slice, not a side

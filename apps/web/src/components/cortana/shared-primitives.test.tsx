@@ -1,23 +1,19 @@
 import { afterEach, expect, mock, test } from 'bun:test'
-import { cleanup, render, screen, waitFor } from 'solid-testing-library'
+import { cleanup, fireEvent, render, screen, waitFor } from 'solid-testing-library'
 import userEvent from '@testing-library/user-event'
 import { createSignal } from 'solid-js'
 import {
   Combobox,
+  ComboboxClear,
   ComboboxContent,
   ComboboxInput,
-  ComboboxList,
-} from '@/components/shadcn/combobox'
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-} from '@/components/shadcn/pagination'
+  ComboboxItem,
+} from '@adea-ai/ui/components/ui/combobox'
+import { Pagination } from '@adea-ai/ui/components/ui/pagination'
 import { Input } from '@adea-ai/ui/components/ui/input'
-import { Slider } from '@/components/shadcn/slider'
+import { Slider } from '@adea-ai/ui/components/ui/slider'
 import { Textarea } from '@adea-ai/ui/components/ui/textarea'
-import { ToggleGroup, ToggleGroupItem } from '@/components/shadcn/toggle-group'
+import { ToggleGroup, ToggleGroupItem } from '@adea-ai/ui/components/ui/toggle-group'
 import { AsyncButton } from './async-button'
 import { FeedbackState } from './feedback-state'
 import { StatusBadge } from './status-badge'
@@ -103,6 +99,7 @@ test('associates field help and validation errors programmatically', () => {
 })
 test('supports keyboard selection through the shared combobox', async () => {
   const user = userEvent.setup()
+  let selected = ''
   render(() => (
     <Combobox
       options={[
@@ -115,24 +112,26 @@ test('supports keyboard selection through the shared combobox', async () => {
           label: 'Work',
         },
       ]}
+      optionValue="value"
+      optionTextValue="label"
+      value={null}
+      onChange={(option) => {
+        if (option) selected = String(option.value)
+      }}
+      itemComponent={(itemProps) => (
+        <ComboboxItem item={itemProps.item}>{itemProps.item.rawValue?.label}</ComboboxItem>
+      )}
     >
       <ComboboxInput aria-label="Workspace scope" />
-      <ComboboxContent>
-        <ComboboxList />
-      </ComboboxContent>
+      <ComboboxContent />
     </Combobox>
   ))
   const input = screen.getByRole('combobox', {
     name: 'Workspace scope',
   })
-  expect(
-    screen.getByRole('button', {
-      name: 'Toggle options',
-    })
-  ).toBeTruthy()
-  await user.click(input)
+  await user.type(input, 'Pers')
   await user.keyboard('{ArrowDown}{Enter}')
-  expect((input as HTMLInputElement).value).toBe('Personal')
+  expect(selected).toBe('Personal')
 })
 test('names the combobox clear action', () => {
   render(() => (
@@ -147,14 +146,15 @@ test('names the combobox clear action', () => {
           label: 'Work',
         },
       ]}
-      defaultValue={[
-        {
-          value: 'Personal',
-          label: 'Personal',
-        },
-      ]}
+      optionValue="value"
+      optionTextValue="label"
+      value={{ value: 'Personal', label: 'Personal' }}
+      itemComponent={(itemProps) => (
+        <ComboboxItem item={itemProps.item}>{itemProps.item.rawValue?.label}</ComboboxItem>
+      )}
     >
-      <ComboboxInput aria-label="Workspace scope" showClear />
+      <ComboboxInput aria-label="Workspace scope" />
+      <ComboboxClear onClear={() => {}} />
     </Combobox>
   ))
   expect(
@@ -164,10 +164,10 @@ test('names the combobox clear action', () => {
   ).toBeTruthy()
 })
 test('renders a scalar slider value with exactly one thumb', async () => {
-  const { container } = render(() => <Slider aria-label="Relevance" defaultValue={[50]} />)
+  render(() => <Slider aria-label="Relevance" defaultValue={[50]} />)
+  expect(screen.getAllByRole('slider')).toHaveLength(1)
   await waitFor(() => {
-    expect(container.querySelectorAll('[data-slot="slider-thumb"]')).toHaveLength(1)
-    expect((container.querySelector('input[type="range"]') as HTMLInputElement | null)?.value).toBe(
+    expect((document.querySelector('input[type="range"]') as HTMLInputElement | null)?.value).toBe(
       '50'
     )
   })
@@ -190,26 +190,20 @@ test('honors vertical toggle-group keyboard orientation', async () => {
   await user.keyboard('{ArrowDown}')
   expect(document.activeElement).toBe(relevant)
 })
-test('keeps pagination links exposed as links', () => {
+test('keeps pagination navigable through real controls', () => {
+  let changed = -1
   render(() => (
-    <Pagination>
-      <PaginationContent>
-        <PaginationItem>
-          <PaginationLink href="/?page=2">2</PaginationLink>
-        </PaginationItem>
-      </PaginationContent>
-    </Pagination>
+    <Pagination
+      count={30}
+      page={2}
+      onPageChange={(page: number) => {
+        changed = page
+      }}
+    />
   ))
-  const link = screen.getByRole('link', {
-    name: '2',
-  })
-  expect(link.getAttribute('href')).toBe('/?page=2')
-  expect(link.getAttribute('role')).toBeNull()
-  expect(
-    screen.queryByRole('button', {
-      name: '2',
-    })
-  ).toBeNull()
+  expect(screen.getByText('2')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+  expect(changed).toBe(3)
 })
 test('text inputs invoke onInput per keystroke, not only on commit', async () => {
   const user = userEvent.setup()

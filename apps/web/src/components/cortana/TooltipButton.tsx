@@ -1,6 +1,6 @@
 import { Show, splitProps, type ComponentProps } from 'solid-js'
 
-import { Button } from '../shadcn/button'
+import { Button } from '@adea-ai/ui/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@adea-ai/ui/components/ui/tooltip'
 
 type TooltipButtonProps = ComponentProps<typeof Button> & {
