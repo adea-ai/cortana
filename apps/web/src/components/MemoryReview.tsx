@@ -29,7 +29,7 @@ import type {
   MemoryReviewPolicy,
 } from '../types'
 import { virtualRange } from '../virtualization'
-import { Alert, AlertDescription } from './shadcn/alert'
+import { Alert, AlertDescription } from '@adea-ai/ui/components/ui/alert'
 import { StatusBadge, type StatusTone } from './cortana/status-badge'
 import { VariantButton as MemoryButton } from './cortana/VariantButton'
 import { Card } from '@adea-ai/ui/components/ui/card'

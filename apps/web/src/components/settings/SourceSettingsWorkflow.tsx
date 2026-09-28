@@ -22,7 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '../shadcn/dialog'
+} from '@adea-ai/ui/components/ui/dialog'
 import { WorkspaceLogo } from '../../workspaceLogos'
 import { SourceIcon } from '../sourceIcons'
 import { sourceDisplayName } from '../sourceIconData'

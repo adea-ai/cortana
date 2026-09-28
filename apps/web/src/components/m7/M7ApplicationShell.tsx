@@ -28,9 +28,8 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbList,
-  BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@/components/shadcn/breadcrumb'
+} from '@adea-ai/ui/components/ui/breadcrumb'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,14 +43,14 @@ import {
   DropdownMenuTrigger,
 } from '@adea-ai/ui/components/ui/dropdown-menu'
 import { Input } from '@adea-ai/ui/components/ui/input'
-import { ScrollArea, ScrollBar } from '@/components/shadcn/scroll-area'
+import { ScrollArea } from '@adea-ai/ui/components/ui/scroll-area'
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from '@/components/shadcn/sheet'
+} from '@adea-ai/ui/components/ui/sheet'
 import {
   Sidebar,
   SidebarContent,
@@ -231,7 +230,10 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
               <BreadcrumbItem>{props.workspaceName}</BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>{props.location}</BreadcrumbPage>
+                {/* The shared breadcrumb has no page part; a current-page span is its contract. */}
+                <span aria-current="page" class="font-normal text-foreground">
+                  {props.location}
+                </span>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -314,7 +316,7 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
 export type M7StatusBarProps = { children: JSX.Element; demo: boolean }
 
 export type M7PanelBoundaryProps = {
-  side: 'left' | 'right'
+  side: 'start' | 'end'
   breakpoint: number
   open: boolean
   title: string
@@ -357,7 +359,6 @@ export function M7StatusBar(props: M7StatusBarProps) {
             <Badge variant="secondary">Demo data</Badge>
           </Show>
         </div>
-        <ScrollBar orientation="horizontal" />
       </ScrollArea>
     </footer>
   )

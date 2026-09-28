@@ -1,7 +1,7 @@
 import { CircleAlert, CircleCheck, Inbox, RotateCcw } from 'lucide-solid'
 import { Show } from 'solid-js'
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/shadcn/alert'
+import { Alert, AlertDescription, AlertTitle } from '@adea-ai/ui/components/ui/alert'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/shadcn/button'
 import {

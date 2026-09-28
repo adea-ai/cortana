@@ -9,7 +9,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/shadcn/dialog'
+} from '@adea-ai/ui/components/ui/dialog'
 import { useClipboardCopy } from '@/useClipboardCopy'
 
 const SOURCE_URL = 'https://github.com/adea-ai/cortana'

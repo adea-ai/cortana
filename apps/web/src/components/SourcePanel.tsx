@@ -21,7 +21,7 @@ import { sourceDisplayName } from './sourceIconData'
 import { TooltipButton as Button } from './cortana/TooltipButton'
 import { VariantButton as ActionButton } from './cortana/VariantButton'
 import { Input } from '@adea-ai/ui/components/ui/input'
-import { Progress } from './shadcn/progress'
+import { Progress } from '@adea-ai/ui/components/ui/progress'
 import { Skeleton } from '@adea-ai/ui/components/ui/skeleton'
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 import { Switch } from '@adea-ai/ui/components/ui/switch'
@@ -500,7 +500,7 @@ export function SourcePanel(props: {
           </Show>
         </Show>
         <Show when={props.documentsLoading && props.documents.length > 0}>
-          <Progress value={undefined} aria-label="Loading more documents" />
+          <Progress value={undefined} indeterminate hideValue aria-label="Loading more documents" />
         </Show>
         <Show when={props.hasMoreDocuments && !props.documentsLoading}>
           <ActionButton

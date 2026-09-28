@@ -6,11 +6,11 @@ import { cn } from '@/lib/utils'
 import type { AnswerResponse, BrainStatus, ContextBundle, Evidence } from '../types'
 import { codeRevisionLabel } from '../codeEvidence'
 import { useClipboardCopy } from '../useClipboardCopy'
-import { Alert, AlertDescription } from './shadcn/alert'
+import { Alert, AlertDescription } from '@adea-ai/ui/components/ui/alert'
 import { Badge } from '@adea-ai/ui/components/ui/badge'
 import { VariantButton as ActionButton } from './cortana/VariantButton'
 import { Card } from '@adea-ai/ui/components/ui/card'
-import { ScrollArea } from './shadcn/scroll-area'
+import { ScrollArea } from '@adea-ai/ui/components/ui/scroll-area'
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 
 export function ContextPanel(props: {

@@ -1916,7 +1916,7 @@ function CortanaApplication() {
           <>
             {!graphFullScreen() && (
               <M7PanelBoundary
-                side="left"
+                side="start"
                 breakpoint={800}
                 open={leftOpen()}
                 title="Sources and documents"
@@ -2037,7 +2037,7 @@ function CortanaApplication() {
             />
             {!graphFullScreen() && (
               <M7PanelBoundary
-                side="right"
+                side="end"
                 breakpoint={1281}
                 open={rightOpen()}
                 title="Agent context"

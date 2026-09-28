@@ -16,7 +16,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@adea-ai/ui/components/ui/accordion'
-import { Alert } from '../shadcn/alert'
+import { Alert } from '@adea-ai/ui/components/ui/alert'
 import { Card } from '@adea-ai/ui/components/ui/card'
 import { Checkbox } from '@adea-ai/ui/components/ui/checkbox'
 import {
@@ -33,7 +33,7 @@ import { RadioGroup, RadioGroupItem } from '@adea-ai/ui/components/ui/radio-grou
 import { Select, SelectContent, SelectTrigger, SelectValue } from '../shadcn/select'
 import type { SelectOptionValue } from '../shadcn/select'
 import { Switch } from '@adea-ai/ui/components/ui/switch'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../shadcn/tabs'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@adea-ai/ui/components/ui/tabs'
 import { Textarea } from '@adea-ai/ui/components/ui/textarea'
 
 export { VariantButton as SettingsButton } from '../cortana/VariantButton'
@@ -228,7 +228,9 @@ export function SettingsTabs(
 
 export function SettingsTabsList(props: ComponentProps<'div'> & { variant?: 'default' | 'line' }) {
   const [local, rest] = splitProps(props, ['variant'])
-  return <TabsList variant={local.variant} {...rest} />
+  // The shared TabsList styles by appearance: the old pill default is its
+  // segmented look, the old line is its underline.
+  return <TabsList appearance={local.variant === 'line' ? 'underline' : 'segmented'} {...rest} />
 }
 
 export function SettingsTabsTrigger(

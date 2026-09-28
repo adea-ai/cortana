@@ -42,7 +42,7 @@ import {
 import { Input } from '@adea-ai/ui/components/ui/input'
 import { NativeSelect } from '@adea-ai/ui/components/ui/native-select'
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
-import { Tabs, TabsList, TabsTrigger } from './shadcn/tabs'
+import { Tabs, TabsList, TabsTrigger } from '@adea-ai/ui/components/ui/tabs'
 import { Toggle } from './shadcn/toggle'
 import type {
   AnswerResponse,
@@ -166,7 +166,7 @@ export function Workspace(props: {
           value={props.tab}
           onChange={(value) => props.onTabChange(value as WorkspaceTab)}
         >
-          <TabsList variant="line" aria-label="Result views">
+          <TabsList appearance="underline" aria-label="Result views">
             <For each={availableTabs()}>
               {({ id, label, icon }) => (
                 <TabsTrigger value={id}>

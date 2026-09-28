@@ -5068,6 +5068,20 @@ select:focus-visible {
   flex: 0 1 12rem;
 }
 
+/* The shared Progress always renders a label/value header row; the compact
+   status rows run track-only, so a fully empty header collapses instead of
+   reserving its line height. */
+.activity-card-status-row [role='progressbar'] > div:first-child:not(:has(:not(:empty))),
+.m7-source-panel [role='progressbar'] > div:first-child:not(:has(:not(:empty))) {
+  display: none;
+}
+
+/* The shared Alert has no action slot; the retry button rides inside it. */
+.activity-alert-action {
+  margin-top: 0.5rem;
+  display: flex;
+}
+
 .m7-production-shell [data-m7-activity-inbox] .activity-card-log {
   display: block;
   margin-top: 0.75rem;

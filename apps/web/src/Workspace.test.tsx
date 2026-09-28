@@ -86,9 +86,9 @@ test('unsafe document links are not rendered into the web shell', () => {
 test('shadcn renderer composes workspace navigation and empty states from shared primitives', () => {
   render(() => <Workspace {...props} />)
   expect(document.querySelector('[data-m7-knowledge-workspace]')).toBeTruthy()
-  expect(document.querySelector('[data-slot="tabs"]')).toBeTruthy()
-  expect(document.querySelector('[data-slot="tabs-list"]')).toBeTruthy()
-  expect(document.querySelector('[data-slot="tabs-trigger"]')).toBeTruthy()
+  // The shared Tabs carries no data-slot; the tablist/tab roles are its hook.
+  expect(document.querySelector('[role="tablist"]')).toBeTruthy()
+  expect(document.querySelector('[role="tab"]')).toBeTruthy()
   expect(document.querySelector('[data-slot="empty"]')).toBeTruthy()
   expect(screen.getByText('Choose a document')).toBeTruthy()
 })

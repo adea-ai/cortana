@@ -1,6 +1,10 @@
 import { Show, splitProps, type ComponentProps, type JSX } from 'solid-js'
 
-import { InputGroup, InputGroupButton, InputGroupInput } from '../shadcn/input-group'
+import {
+  InputGroup,
+  InputGroupButton,
+  InputGroupInput,
+} from '@adea-ai/ui/components/ui/input-group'
 
 export function SettingsSecretInputGroup(
   props: {
@@ -29,9 +33,7 @@ export function SettingsSecretInputGroup(
         onInput={local.onChange}
       />
       <Show when={local.onClear}>
-        <InputGroupButton size="xs" onClick={local.onClear}>
-          Clear
-        </InputGroupButton>
+        <InputGroupButton onClick={local.onClear}>Clear</InputGroupButton>
       </Show>
     </InputGroup>
   )
