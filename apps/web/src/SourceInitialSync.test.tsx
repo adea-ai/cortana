@@ -668,7 +668,7 @@ test('editing the selected source invalidates its initial-sync plan', async () =
   await waitFor(() => expect(screen.queryByText('Guided initial sync')).toBeNull())
   await openAdvancedSource()
   await act(async () => {
-    fireEvent.change(screen.getByLabelText(/^Source name/), {
+    fireEvent.input(screen.getByLabelText(/^Source name/), {
       target: {
         value: 'work-code-v2',
       },

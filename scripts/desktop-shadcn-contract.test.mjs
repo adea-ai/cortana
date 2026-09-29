@@ -5,26 +5,19 @@ import { resolve } from 'node:path'
 const root = resolve(import.meta.dir, '..')
 
 describe('Desktop shadcn renderer contract', () => {
-  test('pins the official Base UI Nova preset and semantic Tailwind entrypoint', () => {
-    const config = JSON.parse(readFileSync(resolve(root, 'apps/web/components.json'), 'utf8'))
+  test('adopts the shared design system and its stylesheet entrypoints', () => {
+    const manifest = JSON.parse(readFileSync(resolve(root, 'apps/web/package.json'), 'utf8'))
+    const css = readFileSync(resolve(root, 'apps/web/src/shadcn.css'), 'utf8')
 
-    expect(config).toMatchObject({
-      style: 'base-nova',
-      rsc: false,
-      tsx: true,
-      iconLibrary: 'lucide',
-      tailwind: {
-        css: 'src/shadcn.css',
-        cssVariables: true,
-      },
-      aliases: {
-        components: '@/components',
-        ui: '@/components/shadcn',
-        hooks: '@/hooks',
-        lib: '@/lib',
-        utils: '@/lib/utils',
-      },
+    expect(manifest.dependencies).toMatchObject({
+      // Exact pin: the shared packages are pre-1.0 and their patch releases
+      // may change tokens or component DOM.
+      '@adea-ai/ui': expect.any(String),
     })
+    expect(css).toContain("@import '@adea-ai/ui/theme.css';")
+    expect(css).toContain("@import '@adea-ai/ui/base.css';")
+    // Tailwind must discover the shared components' class strings.
+    expect(css).toContain("@source '../node_modules/@adea-ai/ui/src/components';")
   })
 
   test('keeps Tailwind and the Vite plugin in the web workspace', () => {

@@ -29,18 +29,18 @@ import type {
   MemoryReviewPolicy,
 } from '../types'
 import { virtualRange } from '../virtualization'
-import { Alert, AlertDescription } from './shadcn/alert'
+import { Alert, AlertDescription } from '@adea-ai/ui/components/ui/alert'
 import { StatusBadge, type StatusTone } from './cortana/status-badge'
 import { VariantButton as MemoryButton } from './cortana/VariantButton'
-import { Card } from './shadcn/card'
+import { Card } from '@adea-ai/ui/components/ui/card'
 import { cn } from '@/lib/utils'
 
-import { Checkbox } from './shadcn/checkbox'
-import { Input } from './shadcn/input'
+import { Checkbox } from '@adea-ai/ui/components/ui/checkbox'
+import { Input } from '@adea-ai/ui/components/ui/input'
 import { FeedbackState } from './cortana/feedback-state'
-import { Spinner } from './shadcn/spinner'
-import { Textarea } from './shadcn/textarea'
-import { Toggle } from './shadcn/toggle'
+import { Spinner } from '@adea-ai/ui/components/ui/spinner'
+import { Textarea } from '@adea-ai/ui/components/ui/textarea'
+import { Toggle } from '@adea-ai/ui/components/ui/toggle'
 import { useSettingsConfirm } from './settings/SettingsConfirm'
 
 type QueueView =
@@ -62,7 +62,7 @@ function MemoryTextarea(props: ComponentProps<'textarea'>) {
 }
 
 function MemoryCard(props: ComponentProps<'div'>) {
-  return <Card size="sm" {...props} />
+  return <Card class="memory-card-compact" {...props} />
 }
 
 export type MemoryReviewClient = {
@@ -94,7 +94,7 @@ function MemoryPolicy(props: {
           min={1}
           max={7}
           value={props.policy.maxWorkingDays}
-          onChange={(event) => patch({ maxWorkingDays: Number(event.target.value) })}
+          onInput={(event) => patch({ maxWorkingDays: Number(event.target.value) })}
         />
       </label>
       <label>
@@ -104,7 +104,7 @@ function MemoryPolicy(props: {
           min={1}
           max={3650}
           value={props.policy.maxDurableDays}
-          onChange={(event) => patch({ maxDurableDays: Number(event.target.value) })}
+          onInput={(event) => patch({ maxDurableDays: Number(event.target.value) })}
         />
       </label>
       <label>
@@ -114,7 +114,7 @@ function MemoryPolicy(props: {
           min={1}
           max={7}
           value={props.policy.candidateExpiryDays}
-          onChange={(event) => patch({ candidateExpiryDays: Number(event.target.value) })}
+          onInput={(event) => patch({ candidateExpiryDays: Number(event.target.value) })}
         />
       </label>
       <p>
@@ -175,7 +175,7 @@ function CandidateQueue(props: {
                   <Checkbox
                     aria-label={`Select ${candidate.title}`}
                     checked={props.selectedIds.has(candidate.id)}
-                    onChange={(checked) => updateSelection(candidate, checked)}
+                    onChange={(checked: boolean) => updateSelection(candidate, checked)}
                   />
                   <MemoryButton
                     variant="ghost"
@@ -474,7 +474,7 @@ export function MemoryReview(props: {
             type="search"
             aria-label="Search memory candidates"
             value={query()}
-            onChange={(event) => setQuery(event.target.value)}
+            onInput={(event) => setQuery(event.target.value)}
             placeholder="Search candidate content, project, or source"
           />
         </label>
@@ -482,7 +482,7 @@ export function MemoryReview(props: {
           <For each={QUEUE_VIEWS}>
             {(status) => (
               <Toggle
-                size="sm"
+                size="xs"
                 pressed={view() === status}
                 onChange={(pressed) => pressed && setView(status)}
               >
@@ -567,14 +567,14 @@ function CandidateDetail(props: {
                 Proposed title
                 <MemoryInput
                   value={props.editTitle}
-                  onChange={(event) => props.onTitle(event.target.value)}
+                  onInput={(event) => props.onTitle(event.target.value)}
                 />
               </label>
               <label>
                 Proposed content
                 <MemoryTextarea
                   value={props.editContent}
-                  onChange={(event) => props.onContent(event.target.value)}
+                  onInput={(event) => props.onContent(event.target.value)}
                 />
               </label>
             </div>

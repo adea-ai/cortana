@@ -22,7 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '../shadcn/dialog'
+} from '@adea-ai/ui/components/ui/dialog'
 import { WorkspaceLogo } from '../../workspaceLogos'
 import { SourceIcon } from '../sourceIcons'
 import { sourceDisplayName } from '../sourceIconData'
@@ -1321,7 +1321,7 @@ export function SourcesSection(
                                   required
                                   maxLength={64}
                                   pattern="[a-z0-9][a-z0-9_-]*"
-                                  onChange={(event) =>
+                                  onInput={(event) =>
                                     changeSource(index, {
                                       name: event.target.value,
                                     })
@@ -1366,7 +1366,7 @@ export function SourcesSection(
                                       rows={3}
                                       value={(source().folders ?? []).join('\n')}
                                       disabled={sourceLocked() || !source().editable}
-                                      onChange={(event) =>
+                                      onInput={(event) =>
                                         changeSource(index, {
                                           folders: splitList(event.target.value),
                                         })
@@ -1383,7 +1383,7 @@ export function SourcesSection(
                                       rows={3}
                                       value={(source().exclude_folders ?? []).join('\n')}
                                       disabled={sourceLocked() || !source().editable}
-                                      onChange={(event) =>
+                                      onInput={(event) =>
                                         changeSource(index, {
                                           exclude_folders: splitList(event.target.value),
                                         })
@@ -1408,7 +1408,7 @@ export function SourcesSection(
                                       disabled={sourceLocked() || !source().editable}
                                       required={source().enabled}
                                       placeholder="/Users/you/Documents"
-                                      onChange={(event) =>
+                                      onInput={(event) =>
                                         changeSource(index, {
                                           root: event.target.value || null,
                                         })
@@ -1501,7 +1501,7 @@ export function SourcesSection(
                                   disabled={sourceLocked() || !source().editable}
                                   maxLength={128}
                                   placeholder={source().name}
-                                  onChange={(event) =>
+                                  onInput={(event) =>
                                     changeSource(index, {
                                       source: event.target.value || null,
                                     })
@@ -1516,7 +1516,7 @@ export function SourcesSection(
                                   <Input
                                     value={source().exclude.join(', ')}
                                     disabled={sourceLocked() || !source().editable}
-                                    onChange={(event) =>
+                                    onInput={(event) =>
                                       changeSource(index, {
                                         exclude: splitList(event.target.value),
                                       })
@@ -1537,7 +1537,7 @@ export function SourcesSection(
                                         disabled={sourceLocked() || !source().editable}
                                         required={source().enabled && !source().token_env}
                                         placeholder="/Users/you/.config/cortana/google-token.json"
-                                        onChange={(event) =>
+                                        onInput={(event) =>
                                           changeSource(index, {
                                             token_path: event.target.value || null,
                                           })
@@ -1568,7 +1568,7 @@ export function SourcesSection(
                                         value={source().oauth_client_path || ''}
                                         disabled={sourceLocked() || !source().editable}
                                         placeholder="/Users/you/Downloads/google-oauth-client.json"
-                                        onChange={(event) =>
+                                        onInput={(event) =>
                                           changeSource(index, {
                                             oauth_client_path: event.target.value || null,
                                           })
@@ -1602,7 +1602,7 @@ export function SourcesSection(
                                       disabled={sourceLocked() || !source().editable}
                                       pattern="[A-Z_][A-Z0-9_]*"
                                       placeholder="CORTANA_GOOGLE_TOKEN_PATH"
-                                      onChange={(event) =>
+                                      onInput={(event) =>
                                         changeSource(index, {
                                           token_env: event.target.value || null,
                                         })
@@ -1627,7 +1627,7 @@ export function SourcesSection(
                                             ? props.secretValues[source().token_env!] || ''
                                             : ''
                                         }
-                                        onChange={(event) => {
+                                        onInput={(event) => {
                                           if (source().token_env) {
                                             props.onSecret({
                                               ...props.secretValues,
@@ -1667,7 +1667,7 @@ export function SourcesSection(
                                       disabled={sourceLocked() || !source().editable}
                                       maxLength={2048}
                                       placeholder={source().kind === 'gmail' ? 'newer_than:1y' : ''}
-                                      onChange={(event) =>
+                                      onInput={(event) =>
                                         changeSource(index, {
                                           query: event.target.value || null,
                                         })
@@ -1748,7 +1748,7 @@ export function SourcesSection(
                                         disabled={sourceLocked() || !source().editable}
                                         required={source().enabled && !source().token_env}
                                         placeholder="/Users/you/.config/cortana/github-token.json"
-                                        onChange={(event) =>
+                                        onInput={(event) =>
                                           changeSource(index, {
                                             token_path: event.target.value || null,
                                           })
@@ -1994,7 +1994,7 @@ export function SourcesSection(
                                           ? 'GitHub repositories'
                                           : 'Channel IDs'
                                       }
-                                      onChange={(event) => {
+                                      onInput={(event) => {
                                         const values = splitList(event.target.value)
                                         changeSource(
                                           index,
@@ -2028,7 +2028,7 @@ export function SourcesSection(
                                           !source().token_path
                                         }
                                         pattern="[A-Z_][A-Z0-9_]*"
-                                        onChange={(event) =>
+                                        onInput={(event) =>
                                           changeSource(index, {
                                             token_env: event.target.value || null,
                                           })
@@ -2055,7 +2055,7 @@ export function SourcesSection(
                                               ? props.secretValues[source().token_env!] || ''
                                               : ''
                                           }
-                                          onChange={(event) => {
+                                          onInput={(event) => {
                                             if (source().token_env) {
                                               props.onSecret({
                                                 ...props.secretValues,
@@ -2098,7 +2098,7 @@ export function SourcesSection(
                                             value={source().token_path || ''}
                                             disabled={sourceLocked() || !source().editable}
                                             placeholder="/Users/you/.config/cortana/discord-rpc-token.json"
-                                            onChange={(event) =>
+                                            onInput={(event) =>
                                               changeSource(index, {
                                                 token_path: event.target.value || null,
                                               })
@@ -2129,7 +2129,7 @@ export function SourcesSection(
                                             value={source().oauth_client_path || ''}
                                             disabled={sourceLocked() || !source().editable}
                                             placeholder="/Users/you/.config/cortana/discord-rpc-client.json"
-                                            onChange={(event) =>
+                                            onInput={(event) =>
                                               changeSource(index, {
                                                 oauth_client_path: event.target.value || null,
                                               })
@@ -2227,7 +2227,7 @@ export function SourcesSection(
                                             value={source().token_path || ''}
                                             disabled={sourceLocked() || !source().editable}
                                             placeholder="/Users/you/.config/cortana/slack-user-token.json"
-                                            onChange={(event) =>
+                                            onInput={(event) =>
                                               changeSource(index, {
                                                 token_path: event.target.value || null,
                                               })
@@ -2258,7 +2258,7 @@ export function SourcesSection(
                                             value={source().oauth_client_path || ''}
                                             disabled={sourceLocked() || !source().editable}
                                             placeholder="/Users/you/.config/cortana/slack-oauth-client.json"
-                                            onChange={(event) =>
+                                            onInput={(event) =>
                                               changeSource(index, {
                                                 oauth_client_path: event.target.value || null,
                                               })
@@ -2296,7 +2296,7 @@ export function SourcesSection(
                                       min={1}
                                       max={1000000}
                                       value={source().max_documents ?? ''}
-                                      onChange={(event) =>
+                                      onInput={(event) =>
                                         changeSource(index, {
                                           max_documents: optionalNumber(event.target.value),
                                         })
@@ -2313,7 +2313,7 @@ export function SourcesSection(
                                       min={1024}
                                       max={1099511627776}
                                       value={source().max_bytes ?? ''}
-                                      onChange={(event) =>
+                                      onInput={(event) =>
                                         changeSource(index, {
                                           max_bytes: optionalNumber(event.target.value),
                                         })
@@ -2330,7 +2330,7 @@ export function SourcesSection(
                                       min={1}
                                       max={10000000}
                                       value={source().max_content_chars ?? ''}
-                                      onChange={(event) =>
+                                      onInput={(event) =>
                                         changeSource(index, {
                                           max_content_chars: optionalNumber(event.target.value),
                                         })
@@ -2347,7 +2347,7 @@ export function SourcesSection(
                                       min={1}
                                       max={86400}
                                       value={source().max_duration_seconds ?? ''}
-                                      onChange={(event) =>
+                                      onInput={(event) =>
                                         changeSource(index, {
                                           max_duration_seconds: optionalNumber(event.target.value),
                                         })
@@ -2362,7 +2362,7 @@ export function SourcesSection(
                                     <Input
                                       disabled={sourceLocked()}
                                       value={source().labels.join(', ')}
-                                      onChange={(event) =>
+                                      onInput={(event) =>
                                         changeSource(index, {
                                           labels: splitList(event.target.value),
                                         })
@@ -2377,7 +2377,7 @@ export function SourcesSection(
                                     <Input
                                       disabled={sourceLocked()}
                                       value={source().acl.join(', ')}
-                                      onChange={(event) =>
+                                      onInput={(event) =>
                                         changeSource(index, {
                                           acl: splitList(event.target.value),
                                         })

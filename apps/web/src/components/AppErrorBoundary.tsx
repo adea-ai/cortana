@@ -1,7 +1,7 @@
 import { ErrorBoundary, type JSX } from 'solid-js'
 import { AlertTriangle } from 'lucide-solid'
 
-import { Button } from './shadcn/button'
+import { Button } from '@adea-ai/ui/components/ui/button'
 
 /** Keeps a renderer exception from leaving the desktop window blank. */
 export function AppErrorBoundary(props: { children: JSX.Element }) {

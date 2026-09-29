@@ -84,7 +84,10 @@ import {
   sourceJobAttention,
   useSourceJobs,
 } from './sourceJobs'
-import { applyTheme, DEFAULT_THEME } from './theme'
+// Subpath imports, not the package root: the eager graph pays only for the
+// theme module, not the whole component barrel.
+import { ThemeProvider, useTheme } from '@adea-ai/ui/components/theme'
+import { normalizeThemeId } from './theme'
 import { readWorkspaceThemePreference, WORKSPACE_THEME_EVENT } from './workspaceThemePreference'
 import type {
   AnswerResponse,
@@ -190,13 +193,26 @@ function focusWhenReady(
 }
 export function App() {
   return (
-    <AppErrorBoundary>
-      <CortanaApplication />
-    </AppErrorBoundary>
+    <ThemeProvider
+      // The one writer of theme state: it applies the catalogue variant's tokens
+      // to <html> and persists the selection. Cortana pins the axes it does not
+      // expose yet — dark chrome, the theme's own accent, the Geist interface
+      // face — while the workspace theme stays per-workspace in
+      // cortana.workspace-themes.v1 (synced by WorkspaceThemeSync below).
+      storageKey="cortana.appearance"
+      initial={{ appearance: 'dark', accent: 'theme', font: 'geist' }}
+    >
+      <AppErrorBoundary>
+        <CortanaApplication />
+      </AppErrorBoundary>
+    </ThemeProvider>
   )
 }
 function CortanaApplication() {
   const [query, setQuery] = createSignal('How do releases work?')
+  // Context reads belong in the component body: effects run outside the render's
+  // context stack, where useTheme() would find no provider.
+  const { setSelection: setThemeSelection } = useTheme()
   const [activeQuery, setActiveQuery] = createSignal(query())
   const [status, setStatus] = createSignal<BrainStatus | null>(null)
   // Evidence rows are keyed by chunk_id so repeated queries keep stable row
@@ -364,10 +380,23 @@ function CortanaApplication() {
   }
   onMount(() => prefetchDeferredSurfaces())
   createEffect(() => {
+    // The workspace read stays tracked so a workspace switch re-applies that
+    // workspace's theme; the provider write stays untracked because setSelection
+    // reads and replaces the selection signal, and a tracked call would make
+    // this effect depend on the value it writes and re-run forever.
+    const workspaceId = effectiveWorkspace()
+    untrack(() => {
+      setThemeSelection({
+        darkThemeId: normalizeThemeId(readWorkspaceThemePreference(workspaceId)),
+      })
+    })
     const syncTheme = () => {
-      applyTheme(readWorkspaceThemePreference(effectiveWorkspace()) ?? DEFAULT_THEME)
+      untrack(() => {
+        setThemeSelection({
+          darkThemeId: normalizeThemeId(readWorkspaceThemePreference(effectiveWorkspace())),
+        })
+      })
     }
-    syncTheme()
     window.addEventListener(WORKSPACE_THEME_EVENT, syncTheme)
     return onCleanup(() => {
       window.removeEventListener(WORKSPACE_THEME_EVENT, syncTheme)
@@ -1121,6 +1150,7 @@ function CortanaApplication() {
     )
   }
   function openSettingsAt(section: 'readiness' | 'services' | 'updates' | 'sources' | 'memory') {
+    console.log('OA section:', section, 'view:', view(), 'canLeave:', canLeaveSettings())
     if (!canLeaveSettings()) return
     setSettingsSection(section)
     setView('settings')
@@ -1887,7 +1917,7 @@ function CortanaApplication() {
           <>
             {!graphFullScreen() && (
               <M7PanelBoundary
-                side="left"
+                side="start"
                 breakpoint={800}
                 open={leftOpen()}
                 title="Sources and documents"
@@ -2008,7 +2038,7 @@ function CortanaApplication() {
             />
             {!graphFullScreen() && (
               <M7PanelBoundary
-                side="right"
+                side="end"
                 breakpoint={1281}
                 open={rightOpen()}
                 title="Agent context"

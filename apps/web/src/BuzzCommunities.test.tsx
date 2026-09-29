@@ -219,7 +219,7 @@ test('buzz community chooser refuses to discover unsaved changes and surfaces fa
 
   // Editing the source makes the native command unsafe until it is saved, so
   // the discovery button is disabled and no IPC call can start.
-  fireEvent.change(screen.getByLabelText(/^Source name/), {
+  fireEvent.input(screen.getByLabelText(/^Source name/), {
     target: {
       value: 'agent-buzz-renamed',
     },

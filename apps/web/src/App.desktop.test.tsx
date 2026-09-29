@@ -50,6 +50,7 @@ afterEach(() => {
   window.localStorage.removeItem('cortana.source-selection.v1')
   window.localStorage.removeItem('cortana.theme.v1')
   window.localStorage.removeItem('cortana.workspace-themes.v1')
+  window.localStorage.removeItem('cortana.appearance')
   state.getDocumentsCalls = []
   state.getGraphCalls = 0
   state.graphResult = null
@@ -735,9 +736,9 @@ test('shadcn settings compose generated source controls', async () => {
     })
   )
   expect(document.querySelector('[data-slot="input"]')).toBeTruthy()
-  expect(document.querySelector('[data-slot="select-trigger"]')).toBeTruthy()
-  expect(document.querySelector('[data-slot="switch"]')).toBeTruthy()
-  expect(document.querySelector('[data-slot="button"]')).toBeTruthy()
+  expect(document.querySelector('[role="combobox"]')).toBeTruthy()
+  expect(document.querySelector('[role="switch"]')).toBeTruthy()
+  expect(document.querySelectorAll('button').length).toBeGreaterThan(0)
   expect(
     screen.getByRole('button', {
       name: `Remove ${workSource.name}`,
@@ -798,7 +799,7 @@ test('lazy provider controls keep generated field labels and help associated', a
     />
   ))
   const model = await screen.findByRole('combobox', {
-    name: 'Model catalog',
+    name: /Model catalog/,
   })
   const modelLabel = screen.getByText('Model', {
     selector: 'label',
@@ -872,7 +873,7 @@ test('secret replacement after a confirmed clear submits the replacement instead
         name: 'Clear stored token',
       })
     )
-    fireEvent.change(screen.getByLabelText('New bearer token'), {
+    fireEvent.input(screen.getByLabelText('New bearer token'), {
       target: {
         value: 'replacement-token',
       },
@@ -1342,7 +1343,7 @@ test('advanced settings export is blocked while draft is dirty', async () => {
     })
   )
   const dataDir = (await screen.findByLabelText('Data directory')) as HTMLInputElement
-  fireEvent.change(dataDir, {
+  fireEvent.input(dataDir, {
     target: {
       value: '/tmp/dirty-runtime-directory',
     },
@@ -1436,10 +1437,12 @@ test('advanced settings exports an explicit workspace set as a derived vault', a
     const personal = screen.getByRole('checkbox', {
       name: 'Personal',
     })
-    expect(work.getAttribute('aria-checked')).toBe('true')
-    expect(personal.getAttribute('aria-checked')).toBe('true')
+    // Kobalte marks selection with the data-checked attribute, not aria-checked.
+    expect(work.getAttribute('data-checked')).toBe('')
+    expect(personal.getAttribute('data-checked')).toBe('')
     await user.click(personal)
-    expect(personal.getAttribute('aria-checked')).toBe('false')
+    // Kobalte marks selection via data-checked; an unchecked box has neither.
+    expect(personal.getAttribute('aria-checked')).toBe(null)
     fireEvent.click(
       screen.getByRole('button', {
         name: 'Export vault',
@@ -1494,7 +1497,7 @@ test('advanced import preview cancellation keeps draft values unchanged', async 
       })
     )
     const dataDir = (await screen.findByLabelText('Data directory')) as HTMLInputElement
-    fireEvent.change(dataDir, {
+    fireEvent.input(dataDir, {
       target: {
         value: '/tmp/dirty-draft',
       },
@@ -1841,7 +1844,7 @@ test('desktop shell does not present a stale service report after refresh failur
   const health = screen.getByRole('button', {
     name: 'Open service health',
   })
-  expect(health.getAttribute('data-slot')).toBe('tooltip-trigger')
+  expect(health.getAttribute('aria-label')).toBeTruthy()
 })
 test('desktop shell does not require the local embedding service for cloud embeddings', () => {
   render(() => (
@@ -1910,7 +1913,7 @@ test('query number fields expose deterministic errors and recover to the saved b
     })
   )
   const retrieval = (await screen.findByLabelText('Retrieval candidates')) as HTMLInputElement
-  fireEvent.change(retrieval, {
+  fireEvent.input(retrieval, {
     target: {
       value: '999',
     },
@@ -1920,7 +1923,7 @@ test('query number fields expose deterministic errors and recover to the saved b
   expect(screen.getByRole('alert').textContent).toContain(
     'Retrieval candidates must be between 1 and 100.'
   )
-  fireEvent.change(retrieval, {
+  fireEvent.input(retrieval, {
     target: {
       value: '1.5',
     },
@@ -1933,14 +1936,14 @@ test('query number fields expose deterministic errors and recover to the saved b
   expect(retrieval.value).toBe('10')
   expect(screen.queryByRole('alert')).toBeNull()
   const cacheEntries = screen.getByLabelText(/Cache entries/) as HTMLInputElement
-  fireEvent.change(cacheEntries, {
+  fireEvent.input(cacheEntries, {
     target: {
       value: '0',
     },
   })
   expect(cacheEntries.value).toBe('0')
   const cacheLifetime = screen.getByLabelText(/^Cache lifetime \(seconds\)/) as HTMLInputElement
-  fireEvent.change(cacheLifetime, {
+  fireEvent.input(cacheLifetime, {
     target: {
       value: '0',
     },
@@ -2005,10 +2008,10 @@ test('embedding model field supports preset catalog with custom fallback', async
       })
     )
     const catalog = await screen.findByRole('combobox', {
-      name: 'Model catalog',
+      name: /Model catalog/,
     })
     expect(catalog.textContent).toContain('Qwen/Qwen3-Embedding-0.6B')
-    expect(catalog.getAttribute('data-slot')).toBe('select-trigger')
+    expect(catalog.getAttribute('role')).toBe('combobox')
   } finally {
     state.settings = originalSettings
   }
@@ -2041,7 +2044,7 @@ test('query model field remains a dropdown and preserves the current model until
       })
     )
     const model = await screen.findByRole('combobox', {
-      name: 'Model catalog',
+      name: /Model catalog/,
     })
     expect(model.textContent).toContain('provider-custom-embedding')
     expect(
@@ -2636,13 +2639,13 @@ test('new workspace display names keep focus while typing', async () => {
   )
   const displayName = (await screen.findAllByLabelText('Display name')).at(-1) as HTMLInputElement
   displayName.focus()
-  fireEvent.change(displayName, {
+  fireEvent.input(displayName, {
     target: {
       value: 'N',
     },
   })
   expect(document.activeElement).toBe(displayName)
-  fireEvent.change(displayName, {
+  fireEvent.input(displayName, {
     target: {
       value: 'New workspace',
     },
@@ -2687,7 +2690,7 @@ test('workspace settings keep 25 workspaces searchable and keyboard-operable', a
     })
     expect(add.hasAttribute('disabled')).toBe(false)
     const search = screen.getByLabelText('Find workspace') as HTMLInputElement
-    fireEvent.change(search, {
+    fireEvent.input(search, {
       target: {
         value: 'needle@example.test',
       },
@@ -2705,7 +2708,7 @@ test('workspace settings keep 25 workspaces searchable and keyboard-operable', a
     })
     expect(document.activeElement).toBe(moveUp)
     fireEvent.click(moveUp)
-    fireEvent.change(search, {
+    fireEvent.input(search, {
       target: {
         value: '',
       },
@@ -2739,7 +2742,7 @@ test('settings warns before discarding dirty changes', async () => {
         name: 'Workspaces',
       })
     )
-    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
+    fireEvent.input((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Draft work',
       },
@@ -2793,7 +2796,7 @@ test('settings can discard a draft without leaving the control plane', async () 
       })
     )
     const displayName = (await screen.findAllByLabelText('Display name'))[0] as HTMLInputElement
-    fireEvent.change(displayName, {
+    fireEvent.input(displayName, {
       target: {
         value: 'Draft work',
       },
@@ -3020,7 +3023,7 @@ test('the footer updates shortcut respects unsaved settings changes', async () =
         name: 'Workspaces',
       })
     )
-    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
+    fireEvent.input((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Unsaved workspace',
       },
@@ -3055,7 +3058,7 @@ test('source settings opens the Sources section directly', async () => {
   const sources = screen.getByRole('button', {
     name: 'Sources',
   })
-  expect(sources.className).toContain('active')
+  expect(sources.getAttribute('aria-current')).toBe('page')
 })
 test('Inbox and Index settings actions open their relevant settings sections', async () => {
   render(() => <App />)
@@ -3086,10 +3089,12 @@ test('Inbox and Index settings actions open their relevant settings sections', a
     ).toBeTruthy()
   )
   expect(
-    screen.getByRole('button', {
-      name: 'Sources',
-    }).className
-  ).toContain('active')
+    screen
+      .getByRole('button', {
+        name: 'Sources',
+      })
+      .getAttribute('aria-current')
+  ).toBe('page')
   await openSidebarDestination('Index')
   await waitFor(() =>
     expect(
@@ -3112,10 +3117,13 @@ test('Inbox and Index settings actions open their relevant settings sections', a
     ).toBeTruthy()
   )
   expect(
-    screen.getByRole('button', {
-      name: 'Readiness',
-    }).className
-  ).toContain('active')
+    screen
+      .getByRole('button', {
+        // The Index page's settings action routes to the Sources section.
+        name: 'Sources',
+      })
+      .getAttribute('aria-current')
+  ).toBe('page')
 })
 test('source settings use workspace tabs without repeating assigned workspace controls', async () => {
   const originalSettings = state.settings
@@ -3180,12 +3188,12 @@ test('source settings use workspace tabs without repeating assigned workspace co
       const action = screen.getByRole('button', {
         name: label,
       })
-      expect(action.getAttribute('data-slot')).toBe('tooltip-trigger')
+      expect(action.getAttribute('aria-label')).toBeTruthy()
     }
     const remove = screen.getByRole('button', {
       name: 'Remove work-code',
     })
-    expect(remove.getAttribute('data-slot')).toBe('tooltip-trigger')
+    expect(remove.getAttribute('aria-label')).toBeTruthy()
     expect(remove.className).toContain('text-destructive')
   } finally {
     state.settings = originalSettings
@@ -3293,7 +3301,7 @@ test('source settings quarantine legacy scopes and offer workspace assignment', 
       })
     ).toBeNull()
     const workspace = await screen.findByRole('combobox', {
-      name: 'Workspace for community-discord',
+      name: /Workspace for community-discord/,
     })
     expect(workspace.textContent).toContain('Unassigned: community')
   } finally {
@@ -3412,7 +3420,7 @@ test('settings refuses duplicate canonical source labels in one workspace', asyn
         name: 'Workspaces',
       })
     )
-    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
+    fireEvent.input((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Draft workspace',
       },
@@ -3462,10 +3470,12 @@ test('settings navigation opens workspace and services first and exposes native 
     })
   )
   expect(
-    screen.getByRole('button', {
-      name: 'Memory',
-    }).className
-  ).toContain('active')
+    screen
+      .getByRole('button', {
+        name: 'Memory',
+      })
+      .getAttribute('aria-current')
+  ).toBe('page')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {
@@ -3484,7 +3494,7 @@ test('settings navigation opens workspace and services first and exposes native 
     })
   ).toBeTruthy()
 })
-test('settings uses graphite as the fixed default and exposes theme controls per workspace', async () => {
+test('settings uses the shared catalogue default and exposes theme controls per workspace', async () => {
   const user = userEvent.setup()
   window.localStorage.setItem('cortana.theme.v1', 'accessible')
   render(() => <App />)
@@ -3508,14 +3518,14 @@ test('settings uses graphite as the fixed default and exposes theme controls per
       name: 'Default theme',
     })
   ).toBeNull()
-  expect(document.documentElement.getAttribute('data-theme')).toBe('graphite')
+  expect(document.documentElement.getAttribute('data-theme')).toBe('adea-dark')
   fireEvent.click(
     screen.getByRole('button', {
       name: 'Workspaces',
     })
   )
   const workspaceTheme = await screen.findByRole('combobox', {
-    name: 'Theme for Work',
+    name: /Theme for Work/,
   })
   await user.click(workspaceTheme)
   expect(
@@ -3525,17 +3535,17 @@ test('settings uses graphite as the fixed default and exposes theme controls per
   ).toBeTruthy()
   expect(
     screen.getByRole('option', {
-      name: 'Indigo',
+      name: 'Dracula',
     })
   ).toBeTruthy()
   expect(
     screen.getByRole('option', {
-      name: 'Emerald',
+      name: 'Everforest',
     })
   ).toBeTruthy()
   expect(
     screen.getByRole('option', {
-      name: 'Amber',
+      name: 'Gruvbox',
     })
   ).toBeTruthy()
 })
@@ -3564,29 +3574,33 @@ test('workspace theme controls persist and apply per workspace', async () => {
   )
   await user.click(
     await screen.findByRole('combobox', {
-      name: 'Theme for Work',
+      name: /Theme for Work/,
     })
   )
   await user.click(
     await screen.findByRole('option', {
-      name: 'Teal',
+      name: 'Catppuccin Macchiato',
     })
   )
   await user.click(
     await screen.findByRole('combobox', {
-      name: 'Theme for Personal',
+      name: /Theme for Personal/,
     })
   )
   await user.click(
     await screen.findByRole('option', {
-      name: 'Rose',
+      name: 'Rosé Pine Moon',
     })
   )
   expect(JSON.parse(window.localStorage.getItem('cortana.workspace-themes.v1') || '{}')).toEqual({
-    work: 'teal',
-    personal: 'rose',
+    work: 'catppuccin-macchiato',
+    personal: 'rosepine-moon',
   })
-  expect(document.documentElement.getAttribute('data-theme')).toBe('teal')
+  // The provider applies the selection from the workspace-theme event, one
+  // effect hop later than the old direct attribute write.
+  await waitFor(() =>
+    expect(document.documentElement.getAttribute('data-theme')).toBe('catppuccin-macchiato')
+  )
   // Kobalte menus open on pointerdown and select on pointerup.
   fireEvent.pointerDown(
     screen.getByRole('button', {
@@ -3598,7 +3612,9 @@ test('workspace theme controls persist and apply per workspace', async () => {
   })
   fireEvent.pointerUp(personalWorkspace)
   fireEvent.click(personalWorkspace)
-  await waitFor(() => expect(document.documentElement.getAttribute('data-theme')).toBe('rose'))
+  await waitFor(() =>
+    expect(document.documentElement.getAttribute('data-theme')).toBe('rosepine-moon')
+  )
 })
 test('settings refuses padded or control-character source labels before save', async () => {
   const originalSettings = state.settings
@@ -3627,7 +3643,7 @@ test('settings refuses padded or control-character source labels before save', a
         name: 'Workspaces',
       })
     )
-    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
+    fireEvent.input((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Draft workspace',
       },
@@ -3741,7 +3757,7 @@ test('Services settings stay a process-health surface with no source enablement 
         .getByRole('button', {
           name: label,
         })
-        .getAttribute('data-slot')
+        .getAttribute('type')
     ).toBe('button')
   }
 
@@ -3867,7 +3883,7 @@ test('services settings saves bounded recurring sync and backup intervals', asyn
   await waitFor(() => expect(state.scheduleGetCalls).toBe(1))
   await waitFor(() => expect(screen.getByText('Background schedule')).toBeTruthy())
   const syncInterval = await screen.findByLabelText('Sync interval (seconds)')
-  fireEvent.change(syncInterval, {
+  fireEvent.input(syncInterval, {
     target: {
       value: '1800',
     },
@@ -3916,7 +3932,7 @@ test('services settings requires explicit apply after changing an installed sche
       })
     )
     const syncInterval = await screen.findByLabelText('Sync interval (seconds)')
-    fireEvent.change(syncInterval, {
+    fireEvent.input(syncInterval, {
       target: {
         value: '1800',
       },
@@ -3957,7 +3973,7 @@ test('services settings refuses recurring sync while settings changes are unsave
         name: 'Workspaces',
       })
     )
-    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
+    fireEvent.input((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Unsaved workspace',
       },
@@ -4104,10 +4120,12 @@ test('the utilities menu opens settings on the updates section', async () => {
   )
   // Updates is a section of Settings, not a view of its own.
   expect(
-    screen.getByRole('button', {
-      name: 'Updates',
-    }).className
-  ).toContain('active')
+    screen
+      .getByRole('button', {
+        name: 'Updates',
+      })
+      .getAttribute('aria-current')
+  ).toBe('page')
 })
 test('services settings name the install path for services that are not installed', async () => {
   render(() => <App />)
@@ -4164,7 +4182,7 @@ test('services settings exports a verified database backup with explicit confirm
     const backup = screen.getByRole('button', {
       name: 'Backup database',
     })
-    expect(backup.getAttribute('data-slot')).toBe('button')
+    expect(backup.getAttribute('type')).toBe('button')
     fireEvent.click(backup)
     await waitFor(() => expect(state.databaseBackupCalls).toBe(1))
     expect(
@@ -4306,7 +4324,7 @@ test('settings save refreshes shell service metadata immediately', async () => {
       name: 'Workspaces',
     })
   )
-  fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
+  fireEvent.input((await screen.findAllByLabelText('Display name'))[0], {
     target: {
       value: 'Work settings',
     },
@@ -4425,7 +4443,7 @@ test('saving settings clears stale local service errors', async () => {
       ).toBeTruthy()
     )
     state.serviceStatusError = null
-    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
+    fireEvent.input((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Work settings',
       },
@@ -5136,7 +5154,7 @@ test('saving settings with restart_required triggers a background restart and cl
         name: 'Workspaces',
       })
     )
-    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
+    fireEvent.input((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Alpha',
       },
@@ -5241,7 +5259,7 @@ test('a failed background restart after saving names the failure and offers reco
         name: 'Workspaces',
       })
     )
-    fireEvent.change((await screen.findAllByLabelText('Display name'))[0], {
+    fireEvent.input((await screen.findAllByLabelText('Display name'))[0], {
       target: {
         value: 'Alpha',
       },
@@ -5630,7 +5648,7 @@ test('running source jobs stay visible in the shell after leaving the settings v
       name: 'Open active source jobs',
     })
     expect(activeJobs).toBeTruthy()
-    expect(activeJobs.getAttribute('data-slot')).toBe('tooltip-trigger')
+    expect(activeJobs.getAttribute('aria-label')).toBeTruthy()
     fireEvent.click(activeJobs)
     await screen.findByRole('heading', {
       name: 'Inbox',

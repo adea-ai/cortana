@@ -1,9 +1,9 @@
 import { CircleAlert, CircleCheck, Inbox, RotateCcw } from 'lucide-solid'
 import { Show } from 'solid-js'
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/shadcn/alert'
+import { Alert, AlertDescription, AlertTitle } from '@adea-ai/ui/components/ui/alert'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/shadcn/button'
+import { Button } from '@adea-ai/ui/components/ui/button'
 import {
   Empty,
   EmptyContent,
@@ -11,8 +11,8 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from '@/components/shadcn/empty'
-import { Skeleton } from '@/components/shadcn/skeleton'
+} from '@adea-ai/ui/components/ui/empty'
+import { Skeleton } from '@adea-ai/ui/components/ui/skeleton'
 
 type FeedbackStateProps = {
   kind: 'loading' | 'empty' | 'error' | 'success' | 'warning'
@@ -65,7 +65,7 @@ export function FeedbackState(props: FeedbackStateProps) {
           <AlertDescription>{props.description}</AlertDescription>
           <Show when={props.kind === 'error' && props.onRetry}>
             <EmptyContent class="mt-3 items-start">
-              <Button variant="outline" size="sm" onClick={props.onRetry}>
+              <Button variant="outline" size="xs" onClick={props.onRetry}>
                 <RotateCcw data-icon="inline-start" />
                 Retry
               </Button>

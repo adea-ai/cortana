@@ -236,7 +236,7 @@ function ProviderSection<T extends ProviderValue>(incoming: {
         id={modelFieldId}
         aria-label="Model"
         value={props.provider.model}
-        onChange={(event) =>
+        onInput={(event) =>
           props.update({
             ...props.provider,
             model: event.target.value,
@@ -390,7 +390,7 @@ function ProviderSection<T extends ProviderValue>(incoming: {
           <Input
             type="url"
             value={props.provider.base_url}
-            onChange={(event) =>
+            onInput={(event) =>
               props.update({
                 ...props.provider,
                 base_url: event.target.value,
@@ -409,7 +409,7 @@ function ProviderSection<T extends ProviderValue>(incoming: {
         >
           <Input
             value={props.provider.api_key_env || ''}
-            onChange={(event) =>
+            onInput={(event) =>
               props.update({
                 ...props.provider,
                 api_key_env: event.target.value || null,

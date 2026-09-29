@@ -9,7 +9,7 @@ import {
   CommandItem,
   CommandList,
   CommandShortcut,
-} from '@/components/shadcn/command'
+} from '@adea-ai/ui/components/ui/command'
 import { shortcutLabel } from '@/shortcuts'
 
 export type M7CommandPaletteProps = {
@@ -33,9 +33,18 @@ export function M7CommandPalette(props: M7CommandPaletteProps) {
     <CommandDialog
       open={props.open}
       onOpenChange={props.onOpenChange}
-      finalFocus={props.finalFocus}
-      title="Cortana command palette"
-      description="Search navigation and workspace commands"
+      // Kobalte's close-focus contract is this hook, not the old finalFocus
+      // ref object the local dialog accepted.
+      onCloseAutoFocus={(event: Event) => {
+        const target = props.finalFocus?.current
+        if (target) {
+          event.preventDefault()
+          target.focus()
+        }
+      }}
+      // cmdk's Dialog reads this prop and writes aria-label on its content —
+      // the accessible name the old local title/description props provided.
+      label="Cortana command palette"
     >
       <Command label="Search Cortana commands">
         <CommandInput placeholder="Search commands…" />

@@ -2,7 +2,7 @@ import { CircleAlert, CircleCheck, CircleX, CloudOff, LoaderCircle } from 'lucid
 import type { JSX } from 'solid-js'
 import { Dynamic } from 'solid-js/web'
 
-import { Badge } from '@/components/shadcn/badge'
+import { Badge } from '@adea-ai/ui/components/ui/badge'
 import { cn } from '@/lib/utils'
 
 export type StatusTone = 'success' | 'warning' | 'error' | 'offline' | 'busy'
