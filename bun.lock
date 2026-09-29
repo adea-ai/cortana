@@ -24,14 +24,14 @@
     },
     "apps/desktop": {
       "name": "@cortana/desktop",
-      "version": "0.59.4",
+      "version": "0.60.0", // x-release-please-version
       "devDependencies": {
         "@tauri-apps/cli": "^2.11.4",
       },
     },
     "apps/web": {
       "name": "@cortana/web",
-      "version": "0.59.4",
+      "version": "0.60.0", // x-release-please-version
       "dependencies": {
         "@adea-ai/themes": "0.6.3",
         "@adea-ai/ui": "0.72.5",
@@ -758,7 +758,7 @@
 
     "lru-cache": ["lru-cache@5.1.1", "", { "dependencies": { "yallist": "^3.0.2" } }, "sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w=="],
 
-    "lucide-solid": ["lucide-solid@1.48.0", "", { "peerDependencies": { "solid-js": "^1.4.7" } }, "sha512-tes5UEPXUpMYwk8MRgFS9EtV90miJ8P/19H8NR4hhaiVDBfZY39YG0zm7Ofxv3YVNNdKP95XckdYXXc0CtQaoQ=="],
+    "lucide-solid": ["lucide-solid@1.46.0", "", { "peerDependencies": { "solid-js": "^1.4.7" } }, "sha512-OOGNQ8PNGQu/2AHG+yyaJfktdnXM3m0Xz10YVWiu2A/T6DKvIwYj/lgb4oRZepwAj4ZmbG/cZGU3bgtlTdQn1w=="],
 
     "lz-string": ["lz-string@1.5.0", "", { "bin": { "lz-string": "bin/bin.js" } }, "sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ=="],
 
@@ -931,6 +931,8 @@
     "yallist": ["yallist@3.1.1", "", {}, "sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g=="],
 
     "yocto-queue": ["yocto-queue@0.1.0", "", {}, "sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q=="],
+
+    "@adea-ai/ui/lucide-solid": ["lucide-solid@1.48.0", "", { "peerDependencies": { "solid-js": "^1.4.7" } }, "sha512-tes5UEPXUpMYwk8MRgFS9EtV90miJ8P/19H8NR4hhaiVDBfZY39YG0zm7Ofxv3YVNNdKP95XckdYXXc0CtQaoQ=="],
 
     "@eslint-community/eslint-utils/eslint-visitor-keys": ["eslint-visitor-keys@3.4.3", "", {}, "sha512-wpc+LXeiyiisxPlEkUzU6svyS1frIO3Mgxj1fdy7Pm8Ygzguax2N3Fa/D/ag1WqbOprdI+uY6wMUl8/a2G+iag=="],
 
