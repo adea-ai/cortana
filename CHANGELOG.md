@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.61.1](https://github.com/adea-ai/cortana/compare/v0.61.0...v0.61.1) (2026-09-29)
+
+
+### Maintenance
+
+* **deps:** bump rmcp from 3.4.0 to 3.4.1 in the cargo-dependencies group across 1 directory ([#2402](https://github.com/adea-ai/cortana/issues/2402)) ([f31b117](https://github.com/adea-ai/cortana/commit/f31b117bb9a649f7b50ea19be6071207db6e50ac))
+
 ## [0.61.0](https://github.com/adea-ai/cortana/compare/v0.60.0...v0.61.0) (2026-09-29)
 
 
