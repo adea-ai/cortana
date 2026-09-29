@@ -86,9 +86,9 @@ test('unsafe document links are not rendered into the web shell', () => {
 test('shadcn renderer composes workspace navigation and empty states from shared primitives', () => {
   render(() => <Workspace {...props} />)
   expect(document.querySelector('[data-m7-knowledge-workspace]')).toBeTruthy()
-  expect(document.querySelector('[data-slot="tabs"]')).toBeTruthy()
-  expect(document.querySelector('[data-slot="tabs-list"]')).toBeTruthy()
-  expect(document.querySelector('[data-slot="tabs-trigger"]')).toBeTruthy()
+  // The shared Tabs carries no data-slot; the tablist/tab roles are its hook.
+  expect(document.querySelector('[role="tablist"]')).toBeTruthy()
+  expect(document.querySelector('[role="tab"]')).toBeTruthy()
   expect(document.querySelector('[data-slot="empty"]')).toBeTruthy()
   expect(screen.getByText('Choose a document')).toBeTruthy()
 })
@@ -107,7 +107,7 @@ test('shadcn workspace names revoked, loading, and malformed-content states with
   const retry = screen.getByRole('button', {
     name: 'Try again',
   })
-  expect(retry.getAttribute('data-slot')).toBe('button')
+  expect(retry.getAttribute('type')).toBe('button')
   fireEvent.click(retry)
   expect(retries).toBe(1)
   cleanup()
@@ -387,7 +387,7 @@ test('graph supports bounded filtering and explains selected relationships', () 
   const filter = screen.getByRole('searchbox', {
     name: 'Filter graph nodes',
   })
-  fireEvent.change(filter, {
+  fireEvent.input(filter, {
     target: {
       value: 'release',
     },

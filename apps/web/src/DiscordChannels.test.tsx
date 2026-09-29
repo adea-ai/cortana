@@ -240,8 +240,10 @@ test('discord chooser selects every text and announcement channel in the assigne
       .getByRole('checkbox', {
         name: /Town Hall · voice/,
       })
-      .getAttribute('aria-checked')
-  ).toBe('false')
+      // Kobalte marks selection with the data-checked attribute; an unchecked
+      // box carries no aria-checked at all.
+      .getAttribute('data-checked')
+  ).toBe(null)
 })
 test('discord chooser limits select-all to assigned servers', async () => {
   state.settings = settingsWith({
@@ -273,7 +275,7 @@ test('discord chooser refuses to discover unsaved changes and surfaces failures'
 
   // Editing the source makes the native command unsafe until it is saved, so
   // the discovery button is disabled and no IPC call can start.
-  fireEvent.change(screen.getByLabelText(/^Source name/), {
+  fireEvent.input(screen.getByLabelText(/^Source name/), {
     target: {
       value: 'work-discord-renamed',
     },

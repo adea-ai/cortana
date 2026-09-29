@@ -4,4 +4,564 @@ This repository is distributed under the Apache License, Version 2.0
 (Apache-2.0). The complete license text is available in LICENSE and at
 https://www.apache.org/licenses/LICENSE-2.0.
 
-Individual files may retain their original copyright and license notices.
+
+The web application incorporates the published @adea-ai/ui 0.72.5 and
+@adea-ai/themes 0.6.3 packages, each distributed under the Apache License,
+Version 2.0. The full notices published by both packages are reproduced below.
+They record the shared UI design and component provenance and the third-party
+palette attributions consumed here.
+
+# @adea-ai/themes 0.6.3 published notice
+
+Copyright 2026 0xPlayerOne
+
+The Adea theme catalogue is distributed under the Apache License, Version 2.0.
+You may obtain a copy of the License at:
+
+https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+
+---
+
+# Palette provenance
+
+Six themes are Adea-authored: the composed Adea Light and Dark defaults, and the Slate
+and High Contrast light/dark variants. The other twenty-five themes reproduce
+third-party palettes. This section records the sources, terms, and where those values
+came from. The per-theme machine-readable form is on each catalogue entry's
+`provenance` field, and `tests/provenance.test.ts` asserts the published source values.
+
+## The chain of custody
+
+The colour values in `palettes/` were not typed in by hand, and they are not read
+from any package at runtime. They were produced once, by
+`scripts/vendor-palettes.ts`, which reproduces the Base24 scheme for each theme from
+one pinned revision of:
+
+- **oklch-terminal-themes** — https://github.com/williamzujkowski/oklch-terminal-themes
+  — revision `9e800e7fe760081d4c10317498038ed4227341d6` — MIT.
+  This is the bootstrap dataset. Its Base24 schemes are, in turn, derived from the
+  terminal ports published in:
+- **iTerm2-Color-Schemes** — https://github.com/mbadolato/iTerm2-Color-Schemes — MIT.
+
+`oklch-terminal-themes` is a build-time input only. It is not a dependency of this
+package, in either `dependencies` or `devDependencies`, and nothing here reads it at
+run time. What it contributed is a starting set of values, which was then checked
+against each palette's own project before being committed.
+
+## The palettes, and the terms they are used under
+
+Each entry names the project the palette belongs to — the place its design is
+defined and the authority on what "Catppuccin Mocha" means — and the licence the
+vendored values are used under. `tests/provenance.test.ts` asserts that the
+background and foreground of every one of these matches the project's published
+palette.
+
+| Family | Project | Licence | Vendored values |
+| --- | --- | --- | --- |
+| Adea (defaults) | this package | Apache-2.0 plus donor terms below | composed from the two donors below |
+| Slate | https://github.com/adea-ai/adea | Apache-2.0 | first-party semantic and terminal roles carried forward from the product |
+| High Contrast | https://github.com/adea-ai/adea | Apache-2.0 | first-party semantic and terminal roles carried forward from the product |
+| Nord | https://github.com/nordtheme/nord | MIT | via the chain above |
+| Catppuccin | https://github.com/catppuccin/catppuccin | MIT | via the chain above |
+| Tokyo Night | https://github.com/folke/tokyonight.nvim | Apache-2.0 | via the chain above |
+| Rosé Pine | https://github.com/rose-pine/rose-pine-theme | MIT | via the chain above |
+| Gruvbox | https://github.com/morhetz/gruvbox | MIT | via the chain above |
+| Nord | https://github.com/nordtheme/nord | MIT | via the chain above |
+| Dracula | https://github.com/dracula/dracula-theme | MIT | via the chain above |
+| One Dark | https://github.com/atom/one-dark-syntax | MIT | Atom's own palette |
+| Solarized | https://github.com/altercation/solarized | MIT | via the chain above |
+| Everforest | https://github.com/sainnhe/everforest | MIT | via the chain above |
+| Ayu | https://github.com/ayu-theme/ayu-colors | MIT | via the chain above |
+| Kanagawa | https://github.com/rebelot/kanagawa.nvim | MIT | via the chain above |
+| Vesper | https://github.com/raunofreiberg/vesper | MIT | via the chain above |
+| Monokai | https://monokai.pro (design origin) | MIT | via the chain above |
+
+### First-party Adea palettes
+
+Slate and High Contrast retain the semantic and ANSI values from Adea's existing product theme
+definitions. Their records identify Adea and Apache-2.0; this package makes no upstream or
+third-party source claim for those ANSI constants. The exact retained ANSI values are asserted in
+`tests/provenance.test.ts`.
+
+### Adea's two defaults are composed from three of these
+
+Neither default is a copy of a published palette and neither is hand-authored. Each is
+built in the vendor step from two donors, named in its `palettes/*.json` under
+`source.composedFrom`:
+
+| | canvas | canvas hue | hues |
+| --- | --- | --- | --- |
+| **Adea Dark** | Aardvark Ink `#0f141f` | 265° | GitHub Dark Default |
+| **Adea Light** | Nord Light `#e3e9f4` | 262° | GitHub Dark Default |
+
+Both take their hues from the same palette, so a red is the same red and a blue the same
+blue in each; only their canvases come from different projects, each chosen for the
+canvas rather than for its colours. The composition exists because those two properties
+are in tension inside a single palette: one tuned for a comfortable canvas mutes its hues
+to agree with it, and one tuned for vivid syntax colours tends to sit on a canvas that is
+very dark or very flat.
+
+All three donors are MIT-licensed through the same iTerm2-Color-Schemes chain as the rest
+of the catalogue, so the composed results are used under MIT as well as under this
+package's Apache-2.0.
+
+**Neither canvas was adjusted to make the composition work, and no hue was either.**
+GitHub's hues measure between 7.2:1 and 8.8:1 against Aardvark Ink's canvas — *more*
+contrast than they have against GitHub's own — so the dark theme's vibrant set arrives
+intact. On Nord Light's canvas the same hues measure between 2.5:1 and 4.1:1, which is
+legible as an accent and not as terminal text, so the whole set is **transposed down by
+one common step of 0.244 in lightness**; hue and chroma are untouched, and the relative
+brightness ordering that makes an ANSI palette an ANSI palette is preserved. Both facts
+are asserted rather than assumed.
+
+One value *is* a deliberate deviation, and it is aesthetic rather than a correction:
+Nord Light's canvas carries 0.010 of chroma against Aardvark Ink's 0.024, so rendering
+the same hue at half the tint made the light theme read as neutral grey beside a partner
+that is plainly navy. The light canvas is deepened to 0.016 — two thirds of the dark
+theme's — at the same lightness and hue, so no contrast pairing moves. It is recorded in
+`COMPOSED_SOURCES` and can be reverted by deleting one line.
+
+### Two entries that need a note
+
+**Gruvbox** grants the MIT/X11 licence in the *Licence* section of its README and
+ships no `LICENSE` file, which is why automated licence detection reports nothing
+for the repository. The README is the grant, and it is recorded here as MIT. The
+source for this statement is
+https://github.com/morhetz/gruvbox#license.
+
+**Monokai** is the one family whose own repository carries no licence at all: the
+repository under the Monokai organisation has none, so there is no permissively
+licensed artefact of Monokai's own to vendor from. The values in this package are
+therefore taken from the MIT-licensed iTerm2-Color-Schemes port through the chain
+above, which is the artefact the MIT licence attaches to, and Monokai is credited as
+the design's origin without a licence claim being made on its behalf. If Monokai's
+terms are ever clarified, this entry should be revisited — and if they turn out to
+be incompatible, `monokai` should be removed from `VENDORED_SOURCES` and the
+catalogue regenerated, which is a one-line change plus a rebuild.
+
+### One deliberate deviation from the vendored values
+
+**One Dark** is normalized from Atom's own editor palette rather than from the
+terminal port. iTerm2's One Dark port darkens the canvas to `#21252b` so that a
+terminal window reads as a distinct surface, but "One Dark" as a design means Atom's
+`hsl(220, 13%, 18%)` = `#282c34`, with comments at `#5c6370` rather than the port's
+`#767676`. Adea themes an application, so the project's value is the one used. The
+substitution is declared in `src/sources.ts` and reported as a finding on every
+build.
+
+---
+
+# Contrast repairs
+
+Some themes in this catalogue do not ship the exact colour a palette specifies for
+every role, because the palette's own value fails a contrast floor on the palette's
+own background. Solarized Light's body text is the clearest case: `#657b83` on
+`#fdf6e3` measures 4.28:1, below the WCAG AA floor of 4.5:1.
+
+Where that happens, the value's **lightness** is moved by the smallest amount that
+clears the floor, and nothing else is changed — OKLCH makes that a single-axis edit
+that preserves hue and chroma exactly, and `tests/provenance.test.ts` asserts the hue
+is unmoved. In the rare case where lightness alone cannot reach the floor, the colour
+is blended toward the palette's own foreground, which is recorded on the entry and
+reported on every build. No colour is ever invented: every value in the catalogue is
+a value from the palette it is attributed to, viewed at a different brightness.
+
+# @adea-ai/ui 0.72.5 published notice
+
+Copyright 2026 0xPlayerOne
+
+The Adea UI design system is distributed under the Apache License, Version 2.0.
+You may obtain a copy of the License at:
+
+https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+
+---
+
+## Design language derived from KiroCrew
+
+The visual language of this design system — its surface ladder, accent role,
+spacing rhythm, control density, radius scale, focus treatment, glass surfaces,
+and scrollbar affordances — is substantially translated and modified from
+KiroCrew (https://github.com/kirodotdev/KiroCrew):
+
+    Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+    KiroCrew is licensed under the Apache License, Version 2.0, and includes
+    software developed at Amazon.com, Inc. (https://www.amazon.com/).
+
+The translation is deliberate and total: KiroCrew's React components and its
+bespoke CSS custom properties are re-expressed here as SolidJS components built
+on Kobalte and corvu primitives, styled through the shadcn/ui semantic token
+vocabulary carried in OKLCH. No KiroCrew source file is reproduced verbatim.
+
+## Consumed libraries
+
+Components are built on these upstream dependencies, which are consumed rather
+than copied:
+
+    Kobalte (@kobalte/core)        MIT License
+    corvu (@corvu/*)               MIT License
+    SolidJS (solid-js)             MIT License
+    lucide (lucide-solid)          ISC License
+    Tailwind CSS                   MIT License
+
+The shadcn/ui design vocabulary is used throughout the system. Its NativeSelect
+source is translated in one component and separately attributed below.
+
+The component architecture — the folder-per-component layout, the registry
+build, and the convention of composing higher-level blocks on top of an
+unmodified primitive layer — follows patterns established by the
+shadcn-storybook-template (MIT), Kibo UI (MIT), and Dice UI (MIT) projects.
+
+Origin UI / coss (AGPL-3.0-or-later) was consulted for visual ideas only. No
+code, class string, or asset from that project is reproduced here, because its
+licence is incompatible with this distribution.
+
+## NativeSelect translated from shadcn/ui
+
+`packages/ui/src/components/ui/native-select/native-select.tsx` translates
+shadcn/ui's native select wrapper from
+`apps/v4/registry/new-york-v4/ui/native-select.tsx`, pinned at
+`98a1fe67b439324ddc857f47fbdce056600a4329`. The Solid component preserves the
+native `<select>` and its browser-owned form, option, value, and accessibility
+behavior while adapting the wrapper, icon package, and classes to this design
+system. The upstream component is distributed under MIT:
+
+    MIT License
+
+    Copyright (c) 2023 shadcn
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+
+
+## Composer IME input ownership translated from KiroCrew
+
+`packages/ui/src/components/conversation/ime-guard.ts` and its MessageComposer
+binding substantially translate the native latch and textarea-scoped lifecycle
+from `website/src/hooks/useImeGuard.ts`, pinned at KiroCrew revision
+`283e136c0f902e965a535a7c9548c57c7504fed0`.
+
+    Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+    This product includes software developed at Amazon.com, Inc.
+    (https://www.amazon.com/).
+    Licensed under the Apache License, Version 2.0.
+
+Retained: native isComposing/keyCode229 signals, the 50ms post-composition window,
+back-to-back composition fencing, native candidate default actions, and recovery
+on focus/blur. Solid owner cleanup replaces React effects/ref ownership; native
+propagation replaces React's synthetic-event half. A repeated compositionend
+replaces the previous timer so an older expiry cannot release the latest window.
+The document-latch/focus-trap branch is not copied: this is one textarea's send
+binding, and maintained Kobalte primitives retain overlay focus authority.
+
+Browser integration tests translate relevant cases from
+`website/src/test/SideChat.imeEnter.test.tsx` and the lifecycle/window cases in
+`website/src/hooks/useImeGuard.documentLatch.test.tsx`; React/Redux/query/API test
+providers are replaced by a controlled Solid fixture. No React dependency,
+service transport, dictation engine, font, asset or document listener is copied.
+This is selected-unit hardening, not a claim that the full KiroCrew composer,
+goal flow or Adea runtime-session Chat has been ported or integrated.
+
+## Plain transcript follow translated from KiroCrew
+
+`packages/ui/src/components/conversation/scroll-follow-core.ts`,
+`scroll-follow.ts` and ConversationSurface substantially translate the plain
+scroller lifecycle in `website/src/app-sdk/useChatScrollFollow.ts` and its pure
+`website/src/hooks/virtualizer/FollowController.ts` decisions, pinned at
+`283e136c0f902e965a535a7c9548c57c7504fed0`.
+
+    Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+    This product includes software developed at Amazon.com, Inc.
+    (https://www.amazon.com/). Licensed under the Apache License, Version 2.0.
+
+Retained: separate follow intent and jump visibility, synchronous scroll-up race
+fencing, direction-aware re-engagement, self-scroll attribution, DPR tolerance,
+content growth/collapse and viewport shrink/growth distinctions, instant pins,
+explicit disabled/reset behavior and content/viewport observer cleanup. Solid
+ownership replaces React refs/effects. Applications retain identity, durable
+scroll restoration and virtualized row measurement/anchor authority.
+
+The jump label follows `website/src/app-sdk/ChatScrollChrome.tsx`'s action-only
+contract; pixel distance cannot establish an unread message count. The existing
+shared button appearance and configurable 80px visibility default are retained.
+Keyboard jumping returns focus to the focusable transcript as its jump control
+disappears; this hardens a donor edge case without moving focus during automatic
+pins. No donor edge-fade styling, React runtime, virtualizer, asset, font or session
+store is copied. Tests translate applicable cases from
+`website/src/test/useChatScrollFollow.test.tsx` and `FollowController.test.ts`;
+Bun/browser integration and deterministic bounded grids replace React/jsdom,
+Vitest and fast-check without adding dependencies. The full Chat product
+composition and application adoption remain separate gates.
+
+Busy composer action translated from KiroCrew
+--------------------------------------------
+Original: website/src/components/BusySendButton.tsx
+Also translated: website/src/hooks/useMenuKeyboard.ts (enabled-row Tab cycle)
+Revision: 283e136c0f902e965a535a7c9548c57c7504fed0
+Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+This product includes software developed at Amazon.com, Inc.
+Apache License, Version 2.0 (see LICENSE).
+Destination: packages/ui/src/components/conversation/busy-send-button.tsx
+
+The split fire/mode-picker structure, descriptions, independent disabled-fire
+state, selected radio treatment and conditional alternate-action hint are
+substantially translated to Solid and the shared design system. Kobalte owns
+portal positioning, arrow navigation, dismissal and focus restoration. Its
+Tab prevention lacks row cycling, so the donor cycle is translated as a scoped
+menu handler over enabled rows; no document listener or manual focus trap.
+Donor per-slot storage/migration/broadcast, i18n/platform lookup, React runtime,
+manual portal and document listeners are not copied. Applications inject mode,
+action and unavailable reasons. No runtime queue or force-reset authority added.
+Nearest tests: BusySendButton.menuKeyboard.test.tsx and
+BusySendButton.slotScope.test.tsx; controlled mode replaces donor storage tests,
+while keyboard/focus expectations are exercised in Chromium and WebKit.
+
+## Composed input and reading collapse translated from KiroCrew
+
+`packages/ui/src/components/conversation/chat-composer.tsx` substantially
+translates the composer assembly and scoped reading-collapse interactions from
+`website/src/components/ChatInput.tsx`, pinned at
+`283e136c0f902e965a535a7c9548c57c7504fed0`.
+
+    Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+    This product includes software developed at Amazon.com, Inc.
+    (https://www.amazon.com/). Licensed under the Apache License, Version 2.0.
+
+Retained: knowledge/follow-up/band order, approval and notice surfaces, staged
+content, distinct input action groups, context shelf, opt-in reading collapse,
+visible labeled restoration and first-line draft preview. The input and shelf
+unmount while collapsed; the host retains the draft. Menu actions and focus
+restore translate applicable cases from `ChatInput.collapse.test.tsx`.
+
+Solid ownership and maintained Kobalte menus replace React/motion/manual portals.
+A scoped control replaces the global composer lookup and expand broadcast,
+avoiding ambiguous focus when two conversations are present. Controlled host
+collapse replaces localStorage; no shared preference, session store, runtime,
+permission, upload, skill, voice or optimizer authority is copied. Input IME and
+busy-action behavior compose the separately attributed units above. Caret
+selection is retained for reading collapse and local delivery feedback is fenced
+to an injected host reset key. Full Chat composition and product adoption remain
+separate gates.
+
+## Paste-token model translated from KiroCrew (issue #532)
+
+`packages/ui/src/components/conversation/paste-tokens.ts` translates the pure
+block and text transformations from `website/src/utils/pasteTokens.ts`, plus
+the trailing-blank-line policy from `website/src/components/composerPastePolicy.ts`,
+at KiroCrew revision `283e136c0f902e965a535a7c9548c57c7504fed0`.
+
+    Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+    This product includes software developed at Amazon.com, Inc.
+    (https://www.amazon.com/). Licensed under the Apache License, Version 2.0.
+
+Retained: the three-line/200-character collapse thresholds; canonical marker
+formatting and ranges; monotonic sequence allocation and collision remapping;
+token pruning, expansion and content-based re-collapse, including the
+trailing-whitespace fallback; and the linear trailing-blank-line scan. Bun unit
+cases adapt the pure expectations from `website/src/test/pasteTokens.test.ts` and
+the trailing-text policy from `website/src/test/ChatInput.paste.test.tsx`.
+
+The host supplies stable block IDs. Invalid IDs/sequences, duplicate identities,
+ambiguous sequence mappings and noncanonical or line-mismatched markers are
+refused. React, Lexical, browser clipboard/File handling, localStorage side-table
+recovery, backend message reconciliation, uploads, textarea editing, previews,
+chips, undo/history and submit/persistence authority are not included. This
+selected model is not rich editing, complete Chat, or application adoption.
+
+## Controlled paste-token editor translated from KiroCrew (issue #532)
+
+`packages/ui/src/components/conversation/paste-token-editor.tsx` and the
+`AtomicChatComposer` entry substantially translate selected text-editing
+behavior from `website/src/components/ChatInput.tsx`,
+`website/src/components/PasteHighlightLayer.tsx`,
+`website/src/components/PasteHoverLayer.tsx`, and
+`website/src/components/PastePreviewTooltip.tsx`, pinned at KiroCrew revision
+`283e136c0f902e965a535a7c9548c57c7504fed0`.
+
+    Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+    This product includes software developed at Amazon.com, Inc.
+    (https://www.amazon.com/). Licensed under the Apache License, Version 2.0.
+
+Retained: plain-text thresholded paste, trailing-blank cleanup, raw-paste
+bypass, standalone and quote-prefix placement, atomic token deletion and
+navigation, selection snapping, expansion, pruning and expanded copy/cut. The
+Solid mirror and Kobalte tooltip retain the aria-hidden highlight, dwell and
+caret previews, touch suppression, dismissal and `aria-describedby` association.
+`AtomicChatComposer` emits a single controlled `{ text, blocks }` transaction
+and submits a captured text/action/block snapshot; hosts supply IDs, state and
+delivery. Browser cases translate applicable text-input expectations from
+`website/src/test/ChatInputCoverage.test.tsx`,
+`website/src/test/ChatInput.paste.test.tsx`, and
+`website/src/test/PasteHoverLayer.test.tsx`. Upload, image/file clipboard,
+optimizer, React/Lexical/Framer runtime, persistence, undo/history, and
+application transport or restoration behavior are not copied. This is the
+selected editor unit, not a claim of full Chat or product adoption.
+
+## Appearance editor translated from Zeron
+
+The System/Light/Dark miniature composition, palette bands, theme selectors,
+compact divided settings rows, accent helper and surface helper treatment in
+`packages/ui/src/components/composites/appearance-editor/` are substantially
+translated from Zeron (https://github.com/zeronsh/zeron), pinned at:
+
+    30a9a9537c5ec96226c87f4bf349b6f77c5dfb59
+    crates/ui/src/settings/appearance.rs
+    crates/ui/src/settings/widgets.rs
+
+This preserves Adea's previously accepted Zeron port. Rust/GPUI rendering is
+re-expressed in Solid and Kobalte with semantic design-system tokens and palettes
+supplied by the host from @adea-ai/themes. The library imports theme types only;
+it does not acquire GPUI, global theme storage, normalization or native effects.
+Save/Cancel/Reset, custom accent validation, reduced transparency and capability
+reporting preserve accepted Adea issue #425 amendments. Typeface controls are
+outside that accepted surface. The accent row stacks to retain readable helper
+copy in a narrow popup; both theme selectors remain independently visible.
+
+Relevant donor tests for three mode cards, both appearance catalogues, and accent
+and surface helper copy are translated into browser assertions alongside
+keyboard, nested-menu, snapshot, pending-save and responsive accessibility checks.
+Font-specific donor tests are excluded with the corresponding controls. Catalogue
+counts are host data, so tests retain both appearance lanes without hard-coding
+Zeron's catalogue sizes.
+
+Zeron's MIT notice applies to the translated portions:
+
+MIT License
+
+Copyright (c) 2026 Wing
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+## Strict binary layout extracted from the accepted Adea donor port
+
+`packages/ui/src/components/layout/split-layout/model.ts` is extracted from
+Adea `packages/dev-view/src/layout/operations.ts` at
+`0322ab09ff5e9775bfddc0bf2d81e1df436dbef7`, whose MIT portions substantially
+translate bb `apps/app/src/lib/split-layout/ops.ts` at
+`52a9256373d4d36f9b60e9e2a7f333464091a2ac` and Muxy
+`Muxy/Models/Workspace/SplitNode.swift` at
+`5c5be8697c57a2fe70cda97fdbaf7c912e2e31b6`.
+
+Copyright (c) 2026 Michael Yong
+Copyright (c) 2026 Muxy
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+The accepted strict binary representation, reading-order insertion, parent
+collapse, exact leaf identity, resize/normalize, move-at-cap and undo semantics
+are retained. Opaque host leaves replace private domain types and the host
+supplies the last-pane placeholder. Construction validates visual identities
+and structural bounds; application scope/persistence, thread/runtime identity,
+harness launch and process authority are excluded. Nearest test behavior from
+Adea `packages/dev-view/tests/layout.test.ts` and bb `ops.test.ts` is preserved
+where it applies to the accepted binary model. The accessible renderer and
+application adoption remain separate gates under UI issue #22.
+
+### Binary frame renderer continuation
+
+`geometry.ts` translates `areaFrames` from the pinned Muxy source above. Its
+fractional frames, horizontal/vertical offsets and exact node references are
+retained; ratio repair uses the accepted 0.1–0.9 range rather than Muxy's 0–1.
+`split-layout.tsx` adapts the accepted Adea pane-header/close/focus behavior
+through generic callbacks, stable keyed leaf owners and Corvu separators.
+It excludes application commands, persistence, harness/thread authority and
+manual pointer listeners. This renderer is independently written against the
+accepted model; it is not a port of Muxy's native UI or an additional layout tree.
+The MIT attribution and permission above cover the translated frame algorithm.
+
+The pane-drag continuation retains Adea's nearest-edge placement ordering and
+pane-title gesture, replacing plaintext leaf IDs and string casts with typed
+intent, an instance-local active drag payload, and cancellation/removal checks.
+Header action composition injects application keyboard controls without owning
+shortcuts or domain transitions. No new upstream source or license is introduced.
+
+## Shared transcript composition translated from KiroCrew
+
+`packages/ui/src/components/conversation/transcript-grouping.ts`,
+`transcript-folding.ts` and the `transcript-composition.tsx` component substantially
+translate the ordered display grouping and turn disclosure contracts in
+`website/src/app-sdk/ChatMessageList.tsx`,
+`website/src/pages/chat/groupDisplayItems.ts`,
+`website/src/pages/chat/TurnBlock.tsx`,
+`website/src/pages/chat/CollapsibleToolGroup.tsx` and
+`website/src/pages/chat/rowDisclosure.tsx`, pinned at KiroCrew revision
+`283e136c0f902e965a535a7c9548c57c7504fed0`.
+
+    Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+    This product includes software developed at Amazon.com, Inc.
+    (https://www.amazon.com/). Licensed under the Apache License, Version 2.0.
+
+Retained: ordered host-classified turns and contiguous groups, structural sharing,
+stable row owners during loose-to-turn promotion, running/default disclosure,
+host-restorable explicit pins, distinct request counting, tool-payload unmounting,
+mounted interim prose, and visible host-marked actionable or interactive rows.
+The host supplies row identity, redaction, conclusion and call classifications;
+the renderer owns no protocol parser, permission, session, event or success
+authority. Solid/Kobalte-compatible controls and keyed row owners replace React,
+Redux and Framer Motion ownership. Relevant test contracts come from
+`website/src/test/groupDisplayItems.test.ts`,
+`website/src/test/groupDisplayItems.structuralSharing.test.ts`,
+`website/src/test/TurnBlock.test.tsx`,
+`website/src/test/TurnBlock.disclosurePin.test.tsx`,
+`website/src/test/TurnBlock.disclosureDurable.test.tsx`,
+`website/src/test/TurnBlock.rowMemo.test.tsx` and
+`website/src/test/rowDisclosure.test.tsx`; compiled and Solid packed consumers are
+exercised in headless Chromium, WebKit and native Node SSR. Full runtime projection,
+durable application storage and production Chat adoption remain host-owned gates.

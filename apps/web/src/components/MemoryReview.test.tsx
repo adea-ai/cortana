@@ -116,14 +116,17 @@ test('shadcn renderer composes memory review controls from shared primitives', a
   render(() => <MemoryReview client={client()} />)
   expect(document.querySelector('[data-m7-memory-review]')).toBeTruthy()
   expect(document.querySelector('[data-slot="input"]')).toBeTruthy()
-  expect(document.querySelector('[data-slot="button"]')).toBeTruthy()
-  expect(document.querySelector('[data-slot="toggle"]')).toBeTruthy()
+  expect(document.querySelectorAll('button').length).toBeGreaterThan(0)
+  // The shared Toggle carries no data-slot; Kobalte's pressed state is its hook.
+  expect(document.querySelector('[data-pressed]')).toBeTruthy()
   expect(
     (
       await screen.findByRole('checkbox', {
         name: /Select Release preference/,
       })
-    ).getAttribute('data-slot')
+    )
+      // Kobalte's form-associated checkbox: the role is implicit on the input.
+      .getAttribute('type')
   ).toBe('checkbox')
 })
 test('renders a bounded searchable queue with inspectable policy and provenance', async () => {
@@ -153,7 +156,7 @@ test('renders a bounded searchable queue with inspectable policy and provenance'
       name: 'Derived · not canonical',
     })
   ).toBeTruthy()
-  fireEvent.change(
+  fireEvent.input(
     screen.getByRole('searchbox', {
       name: 'Search memory candidates',
     }),

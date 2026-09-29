@@ -16,7 +16,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '../shadcn/alert-dialog'
+} from '@adea-ai/ui/components/ui/alert-dialog'
 
 type ConfirmSettingsAction = (description: string) => boolean | Promise<boolean>
 

@@ -22,15 +22,14 @@ import {
   TerminalSquare,
 } from 'lucide-solid'
 
-import { Badge } from '@/components/shadcn/badge'
-import { Button } from '@/components/shadcn/button'
+import { Badge } from '@adea-ai/ui/components/ui/badge'
+import { Button } from '@adea-ai/ui/components/ui/button'
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbList,
-  BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@/components/shadcn/breadcrumb'
+} from '@adea-ai/ui/components/ui/breadcrumb'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,16 +41,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
-} from '@/components/shadcn/dropdown-menu'
-import { Input } from '@/components/shadcn/input'
-import { ScrollArea, ScrollBar } from '@/components/shadcn/scroll-area'
+} from '@adea-ai/ui/components/ui/dropdown-menu'
+import { Input } from '@adea-ai/ui/components/ui/input'
+import { ScrollArea } from '@adea-ai/ui/components/ui/scroll-area'
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from '@/components/shadcn/sheet'
+} from '@adea-ai/ui/components/ui/sheet'
 import {
   Sidebar,
   SidebarContent,
@@ -74,7 +73,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/shadcn/tooltip'
+} from '@adea-ai/ui/components/ui/tooltip'
 import { shortcutLabel } from '@/shortcuts'
 import type { M7ActivityInbox } from '@/components/m7/M7ActivityInbox'
 import type { M7CommandPalette } from '@/components/m7/M7CommandPalette'
@@ -203,7 +202,7 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
               <TooltipTrigger
                 as={Button}
                 variant="ghost"
-                size="icon"
+                size="icon-sm"
                 aria-label="Previous search query"
                 disabled={!props.canGoBack}
                 onClick={props.onHistoryBack}
@@ -216,7 +215,7 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
               <TooltipTrigger
                 as={Button}
                 variant="ghost"
-                size="icon"
+                size="icon-sm"
                 aria-label="Next search query"
                 disabled={!props.canGoForward}
                 onClick={props.onHistoryForward}
@@ -231,7 +230,10 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
               <BreadcrumbItem>{props.workspaceName}</BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>{props.location}</BreadcrumbPage>
+                {/* The shared breadcrumb has no page part; a current-page span is its contract. */}
+                <span aria-current="page" class="font-normal text-foreground">
+                  {props.location}
+                </span>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -245,7 +247,7 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
             aria-label="Search your knowledge"
             class="h-9 pr-16 pl-9"
             value={props.query}
-            onChange={(event) => props.onQueryChange(event.target.value)}
+            onInput={(event) => props.onQueryChange(event.target.value)}
           />
           <span class="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-xs text-muted-foreground">
             {props.loading ? (
@@ -257,7 +259,7 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
         </form>
         <Button
           type="button"
-          size="sm"
+          size="xs"
           aria-label="Reflect on this objective"
           onClick={props.onReflect}
           disabled={props.loading || !props.query.trim()}
@@ -272,7 +274,7 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
             as={Button}
             ref={(el: HTMLButtonElement) => (actionsRef.current = el)}
             variant="outline"
-            size="icon"
+            size="icon-sm"
             aria-label="Actions"
             title="Actions"
           >
@@ -314,7 +316,7 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
 export type M7StatusBarProps = { children: JSX.Element; demo: boolean }
 
 export type M7PanelBoundaryProps = {
-  side: 'left' | 'right'
+  side: 'start' | 'end'
   breakpoint: number
   open: boolean
   title: string
@@ -331,7 +333,15 @@ export function M7PanelBoundary(props: M7PanelBoundaryProps) {
     <Show when={compact()} fallback={props.children}>
       <Sheet open={props.open} onOpenChange={props.onOpenChange}>
         <SheetContent
-          finalFocus={props.finalFocus}
+          // The shared Sheet delegates close-focus to Kobalte's
+          // onCloseAutoFocus hook; the old local sheet took a ref object.
+          onCloseAutoFocus={(event: Event) => {
+            const target = props.finalFocus?.current
+            if (target) {
+              event.preventDefault()
+              target.focus()
+            }
+          }}
           side={props.side}
           class="m7-panel-boundary max-w-none gap-0 p-0"
         >
@@ -357,7 +367,6 @@ export function M7StatusBar(props: M7StatusBarProps) {
             <Badge variant="secondary">Demo data</Badge>
           </Show>
         </div>
-        <ScrollBar orientation="horizontal" />
       </ScrollArea>
     </footer>
   )
@@ -444,7 +453,7 @@ export function M7ApplicationNavigation(props: {
           <DropdownMenu open={workspaceMenuOpen()} onOpenChange={setWorkspaceMenuOpen}>
             <DropdownMenuTrigger
               as={SidebarMenuButton}
-              size="lg"
+              size="md"
               class="m7-workspace-trigger p-0"
               hintIcon={() => <WorkspaceGlyph workspace={activeWorkspace()} size="small" />}
               tooltip={`Workspace: ${activeWorkspace()?.name ?? 'Choose workspace'}`}
@@ -620,7 +629,7 @@ export function M7ApplicationNavigation(props: {
               <DropdownMenu open={utilitiesMenuOpen()} onOpenChange={setUtilitiesMenuOpen}>
                 <DropdownMenuTrigger
                   as={SidebarMenuButton}
-                  size="lg"
+                  size="md"
                   icon={Settings}
                   tooltip="Settings and utilities"
                   aria-label="Settings and utilities"
@@ -677,7 +686,7 @@ export function M7ShellProvider(props: { children: JSX.Element }) {
   return (
     // 150ms: long enough to survive a pointer crossing a control, short enough
     // that action help feels immediate beside the rail's own label flyout.
-    <TooltipProvider delay={150}>
+    <TooltipProvider openDelay={150}>
       <SidebarProvider
         defaultOpen={false}
         class="m7-shell-provider min-h-0 overflow-hidden"

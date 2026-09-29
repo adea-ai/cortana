@@ -106,7 +106,7 @@ export function AccessSection(
                       value={principal.principal}
                       maxLength={128}
                       required
-                      onChange={(event) =>
+                      onInput={(event) =>
                         change(index(), {
                           principal: event.target.value,
                         })
@@ -119,7 +119,7 @@ export function AccessSection(
                       maxLength={128}
                       pattern="[A-Za-z_][A-Za-z0-9_]*"
                       required
-                      onChange={(event) =>
+                      onInput={(event) =>
                         change(index(), {
                           token_env: event.target.value,
                         })
@@ -131,7 +131,7 @@ export function AccessSection(
                       type="password"
                       autocomplete="new-password"
                       value={props.secretValues[principal.token_env] || ''}
-                      onChange={(event) =>
+                      onInput={(event) =>
                         props.onSecret({
                           ...props.secretValues,
                           [principal.token_env]: event.target.value,
@@ -157,7 +157,7 @@ export function AccessSection(
                   <Field label="ACL labels" hint="comma-separated workspace IDs; * grants all">
                     <Input
                       value={principal.acl.join(', ')}
-                      onChange={(event) =>
+                      onInput={(event) =>
                         change(index(), {
                           acl: event.target.value
                             .split(',')

@@ -1,15 +1,32 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import 'shadcn/tailwind.css';
 @import '@fontsource-variable/geist';
+/* The shared design system: semantic tokens (the catalogue's two defaults here,
+   every other theme arrives inline from ThemeProvider), state variants, and the
+   base layer shared components are styled against. Imported before this sheet so
+   the app keeps the final word on its own tokens. */
+@import '@adea-ai/ui/theme.css';
+@import '@adea-ai/ui/base.css';
+/* Tailwind ignores node_modules: discover the shared components' class strings
+   and the shared helpers (control ladder, overlay fills) they compose with. */
+@source '../node_modules/@adea-ai/ui/src/components';
+@source '../node_modules/@adea-ai/ui/src/lib';
+
+/* The app's interface scale stays 16px; the shared base layer's 14px desktop
+   default is a deliberate adoption decision for a later slice, not a side
+   effect of importing it. */
+html {
+  font-size: 16px;
+}
+
 :root {
-  color: #d9d8d4;
-  background: #0e1524;
   /* Every theme ships dark chrome (only the document paper is light), so the
      native layer is told the same thing: form controls, scrollbars, and the
      macOS title bar behind the traffic lights render dark instead of following
      a light system appearance. */
   color-scheme: dark;
+  color: var(--foreground);
+  background: var(--background);
   font-family:
     'Geist Variable',
     Inter,
@@ -25,38 +42,54 @@
   --radius-sm: 10px;
   --radius-pill: 999px;
 
-  --amber: #59defc;
-  --amber-soft: #8cd7ff;
+  /* ---------------------------------------------------------------------------
+   * Legacy token bridge.
+   *
+   * The theme blocks that used to define the --theme-, --chrome- and --status-
+   * namespaces per theme are gone: the shared ThemeProvider now writes the
+   * catalogue theme semantic tokens (--background, --card, --primary, and the
+   * rest) onto <html> inline, and everything below re-points the historical
+   * app names at those. Changing theme therefore re-skins the legacy sections
+   * without any per-theme CSS; new surfaces should prefer the shared tokens.
+   * ------------------------------------------------------------------------- */
 
-  --theme-background: #0f1624;
-  --theme-surface: #171f2f;
-  --theme-panel: #1b2332;
-  --theme-paper: #eef2fb;
-  --theme-paper-ink: #1e2436;
-  --theme-muted: #a8b2c5;
-  --theme-line: #2a3445;
-  --theme-ink: #151b2b;
-  --theme-surface-elevated: #1f293c;
-  --theme-tooltip-bg: #152238;
-  --theme-control-bg: #222d42;
-  --theme-control-bg-hover: #2a3852;
-  --theme-control-fg: #f0f3fc;
-  --theme-content-muted: #626b82;
-  --theme-content-border: #d7dce8;
-  --theme-content-surface: #f7f9fd;
-  --theme-text-primary: #f0f3fc;
-  --theme-text-secondary: #a8b2c5;
-  --theme-content-text: #1e2436;
-  --theme-content-subtle: #626b82;
-  --theme-success-fg: #cde7d0;
-  --theme-success-bg: #1d3421;
-  --theme-success-border: #3d6945;
-  --theme-error-fg: #f0c1bd;
-  --theme-error-bg: #3a201e;
-  --theme-error-border: #77403b;
-  --theme-warning-fg: #f0d18c;
-  --theme-warning-bg: #302719;
-  --theme-warning-border: #715a2e;
+  /* Brand accent. m7's production shell already rebinds --amber to the primary,
+     so the accent now follows the catalogue theme everywhere. */
+  --amber: var(--primary);
+  --amber-soft: var(--primary-subtle);
+
+  --theme-background: var(--background);
+  --theme-surface: var(--card);
+  --theme-panel: var(--muted);
+  --theme-paper: var(--background);
+  --theme-paper-ink: var(--foreground);
+  --theme-muted: var(--muted-foreground);
+  --theme-line: var(--border);
+  --theme-ink: var(--primary-foreground);
+  --theme-surface-elevated: var(--popover);
+  --theme-tooltip-bg: var(--popover);
+  --theme-control-bg: var(--secondary);
+  --theme-control-bg-hover: var(--accent);
+  --theme-control-fg: var(--foreground);
+  --theme-content-muted: var(--muted-foreground);
+  --theme-content-border: var(--border);
+  --theme-content-surface: var(--card);
+  --theme-text-primary: var(--foreground);
+  --theme-text-secondary: var(--muted-foreground);
+  --theme-content-text: var(--card-foreground);
+  /* Painted at 9px on card and hover surfaces; the raw muted rung measured
+     4.05:1 there, below the AA floor, so it lightens toward the foreground
+     like the pre-bridge per-theme darkening did. */
+  --theme-content-subtle: color-mix(in oklab, var(--muted-foreground) 82%, var(--foreground));
+  --theme-success-fg: var(--success);
+  --theme-success-bg: var(--success-subtle);
+  --theme-success-border: color-mix(in oklab, var(--success) 35%, transparent);
+  --theme-error-fg: var(--destructive);
+  --theme-error-bg: var(--destructive-subtle);
+  --theme-error-border: color-mix(in oklab, var(--destructive) 35%, transparent);
+  --theme-warning-fg: var(--warning);
+  --theme-warning-bg: var(--warning-subtle);
+  --theme-warning-border: color-mix(in oklab, var(--warning) 35%, transparent);
 
   --ink: var(--theme-ink);
   --panel: var(--theme-surface);
@@ -76,11 +109,10 @@
   --btn-action-height: 38px;
   --btn-action-padding: 0 14px;
 
-  /* Shared chrome status palette. The theme blocks below restyle surfaces and
-     paper content, but status indicators must stay legible on every theme's
-     chrome, so their hues live here once instead of being re-declared per
-     rule. Override per data-theme only with a contrast check (WCAG 1.4.3 /
-     1.4.11: 3:1 for indicator dots, 4.5:1 for the small status labels). */
+  /* Shared chrome status palette. Status indicators must stay legible on every
+     theme's chrome, so their hues stay constant instead of following the theme
+     (as before). Override only with a contrast check (WCAG 1.4.3 / 1.4.11:
+     3:1 for indicator dots, 4.5:1 for the small status labels). */
   --status-healthy: #55b966;
   --status-healthy-text: #b8c7a8;
   --status-running: #589bd8;
@@ -91,460 +123,30 @@
   --status-idle: #7a7b76;
   --status-idle-text: #a5a7a1;
 
-  /* Chrome surface neutrals. The legacy sections hand-mixed a dozen
-     near-identical greys per role; these consolidate them so contrast can be
-     audited and themed from one place. Values are the cluster exemplars, so
-     switching is visually a no-op except where two near-neighbours merge. */
-  --chrome-fg: var(--chrome-fg);
-  --chrome-fg-soft: var(--chrome-fg-soft);
-  --chrome-fg-mute: var(--chrome-fg-mute);
-  --chrome-fg-dim: var(--chrome-fg-dim);
-  --chrome-hover: var(--chrome-hover);
-  --chrome-active: var(--chrome-active);
-  --chrome-sunken: var(--chrome-sunken);
-  --chrome-line: var(--chrome-line);
-  --chrome-line-strong: var(--chrome-line-strong);
-  --chrome-danger-fg: var(--chrome-danger-fg);
-  --chrome-danger-line: var(--chrome-danger-line);
-  --paper-line: var(--paper-line);
-}
+  /* Chrome surface neutrals, as token rungs instead of hand-mixed greys. These
+     were defined self-referentially (a cycle, so every consumer silently fell
+     back to inherited/unset values); they now resolve for real. */
+  --chrome-fg: var(--foreground);
+  --chrome-fg-soft: var(--muted-foreground);
+  /* Opacity mixes fail AA for small text on raised surfaces (measured 3.3:1),
+     so the muted rungs lighten toward the foreground instead of fading out. */
+  --chrome-fg-mute: color-mix(in oklab, var(--muted-foreground) 80%, var(--foreground));
+  --chrome-fg-dim: color-mix(in oklab, var(--muted-foreground) 62%, var(--foreground));
+  --chrome-hover: var(--accent);
+  --chrome-active: var(--surface-active);
+  --chrome-sunken: var(--muted);
+  --chrome-line: var(--border);
+  --chrome-line-strong: color-mix(in oklab, var(--border) 80%, var(--foreground));
+  --chrome-danger-fg: var(--destructive);
+  --chrome-danger-line: color-mix(in oklab, var(--destructive) 40%, transparent);
+  --paper-line: var(--border);
 
-:root[data-theme='blue'] {
-  --theme-background: #0f1624;
-  --theme-surface: #171f2f;
-  --theme-panel: #1b2332;
-  --theme-paper: #eef2fb;
-  --theme-paper-ink: #1e2436;
-  --theme-muted: #a8b2c5;
-  --theme-line: #2a3445;
-  --theme-ink: #151b2b;
-  --theme-surface-elevated: #1f293c;
-  --theme-tooltip-bg: #152238;
-  --theme-control-bg: #222d42;
-  --theme-control-bg-hover: #2a3852;
-  --theme-control-fg: #f0f3fc;
-  --theme-content-muted: #626b82;
-  --theme-content-border: #d7dce8;
-  --theme-content-surface: #f7f9fd;
-  --theme-text-primary: #f0f3fc;
-  --theme-text-secondary: #a8b2c5;
-  --theme-content-text: #1e2436;
-  --theme-content-subtle: #626b82;
-  --theme-success-fg: #cde7d0;
-  --theme-success-bg: #1d3421;
-  --theme-success-border: #3d6945;
-  --theme-error-fg: #f0c1bd;
-  --theme-error-bg: #3a201e;
-  --theme-error-border: #77403b;
-  --theme-warning-fg: #f0d18c;
-  --theme-warning-bg: #302719;
-  --theme-warning-border: #715a2e;
-  --amber: #59defc;
-  --amber-soft: #8cd7ff;
-}
-
-:root[data-theme='accessible'] {
-  --theme-background: #0a1022;
-  --theme-surface: #131f38;
-  --theme-panel: #182846;
-  --theme-paper: #f2f6ff;
-  --theme-paper-ink: #1a2745;
-  --theme-muted: #c7d4f6;
-  --theme-line: #3d5275;
-  --theme-ink: #0b121f;
-  --theme-surface-elevated: #1f355a;
-  --theme-tooltip-bg: #1e3760;
-  --theme-control-bg: #20365b;
-  --theme-control-bg-hover: #2b4775;
-  --theme-control-fg: #f4f7ff;
-  --theme-content-muted: #526487;
-  --theme-content-border: #c5d2ea;
-  --theme-content-surface: #f7faff;
-  --theme-text-primary: #f4f7ff;
-  --theme-text-secondary: #c7d4f6;
-  --theme-content-text: #1a2745;
-  --theme-content-subtle: #526487;
-  --theme-success-fg: #d3f7dc;
-  --theme-success-bg: #183e2d;
-  --theme-success-border: #4b9a72;
-  --theme-error-fg: #ffd4ce;
-  --theme-error-bg: #4a252b;
-  --theme-error-border: #b8666d;
-  --theme-warning-fg: #ffe3a3;
-  --theme-warning-bg: #3f321d;
-  --theme-warning-border: #a7833c;
-  --amber: #6ad9ff;
-  --amber-soft: #b3e0ff;
-}
-
-:root[data-theme='forest'] {
-  --theme-background: #101b19;
-  --theme-surface: #182824;
-  --theme-panel: #1e312b;
-  --theme-paper: #eff8f1;
-  --theme-paper-ink: #193127;
-  --theme-muted: #aec8b6;
-  --theme-line: #345248;
-  --theme-ink: #12211b;
-  --theme-surface-elevated: #274238;
-  --theme-tooltip-bg: #18342b;
-  --theme-control-bg: #29483b;
-  --theme-control-bg-hover: #355c4b;
-  --theme-control-fg: #f0fbf3;
-  --theme-content-muted: #597666;
-  --theme-content-border: #c8dfcf;
-  --theme-content-surface: #f6fbf7;
-  --theme-text-primary: #f0fbf3;
-  --theme-text-secondary: #aec8b6;
-  --theme-content-text: #193127;
-  --theme-content-subtle: #597666;
-  --theme-success-fg: #d6f5dc;
-  --theme-success-bg: #1d4430;
-  --theme-success-border: #4d9662;
-  --theme-error-fg: #ffd3cd;
-  --theme-error-bg: #48252a;
-  --theme-error-border: #b76770;
-  --theme-warning-fg: #ffe4a7;
-  --theme-warning-bg: #40351e;
-  --theme-warning-border: #a7823e;
-  --amber: #79e2b0;
-  --amber-soft: #a8f0c8;
-}
-
-:root[data-theme='plum'] {
-  --theme-background: #1b1421;
-  --theme-surface: #282033;
-  --theme-panel: #32263f;
-  --theme-paper: #fbf1fc;
-  --theme-paper-ink: #34213d;
-  --theme-muted: #cfb9d7;
-  --theme-line: #574361;
-  --theme-ink: #21182a;
-  --theme-surface-elevated: #443352;
-  --theme-tooltip-bg: #382348;
-  --theme-control-bg: #49385a;
-  --theme-control-bg-hover: #5d466f;
-  --theme-control-fg: #fff6ff;
-  --theme-content-muted: #7c6786;
-  --theme-content-border: #e3cfe8;
-  --theme-content-surface: #fff9ff;
-  --theme-text-primary: #fff6ff;
-  --theme-text-secondary: #cfb9d7;
-  --theme-content-text: #34213d;
-  --theme-content-subtle: #7c6786;
-  --theme-success-fg: #d8f3df;
-  --theme-success-bg: #214433;
-  --theme-success-border: #579a70;
-  --theme-error-fg: #ffd4d8;
-  --theme-error-bg: #512834;
-  --theme-error-border: #bd687a;
-  --theme-warning-fg: #ffe5ad;
-  --theme-warning-bg: #44351f;
-  --theme-warning-border: #a98542;
-  --amber: #ef9bd6;
-  --amber-soft: #f5bde4;
-}
-
-:root[data-theme='sand'] {
-  --theme-background: #201b15;
-  --theme-surface: #2c261e;
-  --theme-panel: #3a3125;
-  --theme-paper: #fff8ec;
-  --theme-paper-ink: #3b2b1a;
-  --theme-muted: #d2bf9f;
-  --theme-line: #5b4a34;
-  --theme-ink: #261b10;
-  --theme-surface-elevated: #483a2a;
-  --theme-tooltip-bg: #40311f;
-  --theme-control-bg: #4b3c29;
-  --theme-control-bg-hover: #604c31;
-  --theme-control-fg: #fff9ef;
-  --theme-content-muted: #7e6b51;
-  --theme-content-border: #e7d3ae;
-  --theme-content-surface: #fffaf1;
-  --theme-text-primary: #fff9ef;
-  --theme-text-secondary: #d2bf9f;
-  --theme-content-text: #3b2b1a;
-  --theme-content-subtle: #7e6b51;
-  --theme-success-fg: #d6f3d5;
-  --theme-success-bg: #25432b;
-  --theme-success-border: #5e9b67;
-  --theme-error-fg: #ffd9d0;
-  --theme-error-bg: #512a24;
-  --theme-error-border: #bd7163;
-  --theme-warning-fg: #ffe7ad;
-  --theme-warning-bg: #4c3a1d;
-  --theme-warning-border: #b18b45;
-  --amber: #f2bd67;
-  --amber-soft: #f7d395;
-}
-
-:root[data-theme='graphite'] {
-  --theme-background: #151719;
-  --theme-surface: #202326;
-  --theme-panel: #292d31;
-  --theme-paper: #f4f5f6;
-  --theme-paper-ink: #25282b;
-  --theme-muted: #b7bec6;
-  --theme-line: #424950;
-  --theme-ink: #111315;
-  --theme-surface-elevated: #32383e;
-  --theme-tooltip-bg: #252b31;
-  --theme-control-bg: #353b41;
-  --theme-control-bg-hover: #444c54;
-  --theme-control-fg: #f5f7f8;
-  --theme-content-muted: #677079;
-  --theme-content-border: #d3d8dd;
-  --theme-content-surface: #f8f9fa;
-  --theme-text-primary: #f5f7f8;
-  --theme-text-secondary: #b7bec6;
-  --theme-content-text: #25282b;
-  --theme-content-subtle: #677079;
-  --theme-success-fg: #cdebd8;
-  --theme-success-bg: #1f3829;
-  --theme-success-border: #4d7d5d;
-  --theme-error-fg: #f2c7c4;
-  --theme-error-bg: #3b2525;
-  --theme-error-border: #814d4d;
-  --theme-warning-fg: #f0d69d;
-  --theme-warning-bg: #382d1d;
-  --theme-warning-border: #79623a;
-  --amber: #b7c4d2;
-  --amber-soft: #d7e0ea;
-}
-
-:root[data-theme='teal'] {
-  --theme-background: #0c1b1d;
-  --theme-surface: #12292b;
-  --theme-panel: #183638;
-  --theme-paper: #eefaf8;
-  --theme-paper-ink: #153536;
-  --theme-muted: #a7cbc9;
-  --theme-line: #2f5b5c;
-  --theme-ink: #0a1719;
-  --theme-surface-elevated: #225052;
-  --theme-tooltip-bg: #173c3e;
-  --theme-control-bg: #255154;
-  --theme-control-bg-hover: #326c6d;
-  --theme-control-fg: #effdfb;
-  --theme-content-muted: #4f7576;
-  --theme-content-border: #c6e2e0;
-  --theme-content-surface: #f5fcfb;
-  --theme-text-primary: #effdfb;
-  --theme-text-secondary: #a7cbc9;
-  --theme-content-text: #153536;
-  --theme-content-subtle: #4f7576;
-  --theme-success-fg: #d0f2d8;
-  --theme-success-bg: #1c4230;
-  --theme-success-border: #4c9367;
-  --theme-error-fg: #ffd0cb;
-  --theme-error-bg: #47262a;
-  --theme-error-border: #aa5f67;
-  --theme-warning-fg: #ffe3a3;
-  --theme-warning-bg: #40341c;
-  --theme-warning-border: #a7833c;
-  --amber: #75d8d1;
-  --amber-soft: #a7e8e2;
-}
-
-:root[data-theme='rose'] {
-  --theme-background: #21161c;
-  --theme-surface: #302027;
-  --theme-panel: #3d2932;
-  --theme-paper: #fff4f7;
-  --theme-paper-ink: #40242e;
-  --theme-muted: #d4b4bf;
-  --theme-line: #624451;
-  --theme-ink: #24151b;
-  --theme-surface-elevated: #513844;
-  --theme-tooltip-bg: #482c39;
-  --theme-control-bg: #573d49;
-  --theme-control-bg-hover: #6d4c5c;
-  --theme-control-fg: #fff7f9;
-  --theme-content-muted: #856572;
-  --theme-content-border: #ead2da;
-  --theme-content-surface: #fff9fb;
-  --theme-text-primary: #fff7f9;
-  --theme-text-secondary: #d4b4bf;
-  --theme-content-text: #40242e;
-  --theme-content-subtle: #856572;
-  --theme-success-fg: #d6f3df;
-  --theme-success-bg: #214334;
-  --theme-success-border: #579a70;
-  --theme-error-fg: #ffd4d8;
-  --theme-error-bg: #512834;
-  --theme-error-border: #bd687a;
-  --theme-warning-fg: #ffe5ad;
-  --theme-warning-bg: #44351f;
-  --theme-warning-border: #a98542;
-  --amber: #f0a5bb;
-  --amber-soft: #f6c4d2;
-}
-
-:root[data-theme='slate'] {
-  --theme-background: #101820;
-  --theme-surface: #18232f;
-  --theme-panel: #1f2c38;
-  --theme-paper: #f1f5f9;
-  --theme-paper-ink: #1f2937;
-  --theme-muted: #adbac8;
-  --theme-line: #364757;
-  --theme-ink: #0b1117;
-  --theme-surface-elevated: #293846;
-  --theme-tooltip-bg: #1e3448;
-  --theme-control-bg: #2a3b4a;
-  --theme-control-bg-hover: #365065;
-  --theme-control-fg: #f2f7fb;
-  --theme-content-muted: #586f83;
-  --theme-content-border: #d3dee7;
-  --theme-content-surface: #f8fafc;
-  --theme-text-primary: #f2f7fb;
-  --theme-text-secondary: #adbac8;
-  --theme-content-text: #1f2937;
-  --theme-content-subtle: #586f83;
-  --theme-success-fg: #cdebd8;
-  --theme-success-bg: #1e3b2e;
-  --theme-success-border: #4d8768;
-  --theme-error-fg: #f5c9c5;
-  --theme-error-bg: #3c2526;
-  --theme-error-border: #8a4e50;
-  --theme-warning-fg: #f2d49a;
-  --theme-warning-bg: #382d1d;
-  --theme-warning-border: #7d6635;
-  --amber: #93c5fd;
-  --amber-soft: #bfdbfe;
-}
-
-:root[data-theme='indigo'] {
-  --theme-background: #14152a;
-  --theme-surface: #1f2140;
-  --theme-panel: #282b50;
-  --theme-paper: #f6f5ff;
-  --theme-paper-ink: #242344;
-  --theme-muted: #c5c4e6;
-  --theme-line: #4b4d78;
-  --theme-ink: #0f1021;
-  --theme-surface-elevated: #343866;
-  --theme-tooltip-bg: #282b61;
-  --theme-control-bg: #3a3e72;
-  --theme-control-bg-hover: #4a4e8b;
-  --theme-control-fg: #f7f7ff;
-  --theme-content-muted: #686a9b;
-  --theme-content-border: #d9d9f0;
-  --theme-content-surface: #fbfbff;
-  --theme-text-primary: #f7f7ff;
-  --theme-text-secondary: #c5c4e6;
-  --theme-content-text: #242344;
-  --theme-content-subtle: #686a9b;
-  --theme-success-fg: #d6f0dc;
-  --theme-success-bg: #214331;
-  --theme-success-border: #579a70;
-  --theme-error-fg: #ffd5d7;
-  --theme-error-bg: #512832;
-  --theme-error-border: #b86878;
-  --theme-warning-fg: #ffe5ae;
-  --theme-warning-bg: #44351f;
-  --theme-warning-border: #a98542;
-  --amber: #a5b4fc;
-  --amber-soft: #c7d2fe;
-}
-
-:root[data-theme='emerald'] {
-  --theme-background: #0d1c18;
-  --theme-surface: #142b23;
-  --theme-panel: #1d3a2d;
-  --theme-paper: #f1faf5;
-  --theme-paper-ink: #19362a;
-  --theme-muted: #afd0bb;
-  --theme-line: #35604c;
-  --theme-ink: #0a1711;
-  --theme-surface-elevated: #2c4b3b;
-  --theme-tooltip-bg: #174333;
-  --theme-control-bg: #2b5743;
-  --theme-control-bg-hover: #38705a;
-  --theme-control-fg: #effff5;
-  --theme-content-muted: #4e7762;
-  --theme-content-border: #cae4d2;
-  --theme-content-surface: #f8fcf9;
-  --theme-text-primary: #effff5;
-  --theme-text-secondary: #afd0bb;
-  --theme-content-text: #19362a;
-  --theme-content-subtle: #4e7762;
-  --theme-success-fg: #d7f5df;
-  --theme-success-bg: #1d4430;
-  --theme-success-border: #4d9662;
-  --theme-error-fg: #ffd3cd;
-  --theme-error-bg: #48252a;
-  --theme-error-border: #b76770;
-  --theme-warning-fg: #ffe4a7;
-  --theme-warning-bg: #40351e;
-  --theme-warning-border: #a7823e;
-  --amber: #72d7aa;
-  --amber-soft: #a6ebc9;
-}
-
-:root[data-theme='amber'] {
-  --theme-background: #21190f;
-  --theme-surface: #2c2419;
-  --theme-panel: #3a2f20;
-  --theme-paper: #fff8e9;
-  --theme-paper-ink: #3c2a13;
-  --theme-muted: #d6c29e;
-  --theme-line: #5e4c31;
-  --theme-ink: #1a1209;
-  --theme-surface-elevated: #4a3b26;
-  --theme-tooltip-bg: #48351d;
-  --theme-control-bg: #4f3e26;
-  --theme-control-bg-hover: #665033;
-  --theme-control-fg: #fff9ef;
-  --theme-content-muted: #826b4b;
-  --theme-content-border: #ead7b1;
-  --theme-content-surface: #fffaf0;
-  --theme-text-primary: #fff9ef;
-  --theme-text-secondary: #d6c29e;
-  --theme-content-text: #3c2a13;
-  --theme-content-subtle: #826b4b;
-  --theme-success-fg: #d6f3d5;
-  --theme-success-bg: #25432b;
-  --theme-success-border: #5e9b67;
-  --theme-error-fg: #ffd9d0;
-  --theme-error-bg: #512a24;
-  --theme-error-border: #bd7163;
-  --theme-warning-fg: #ffe7ad;
-  --theme-warning-bg: #4c3a1d;
-  --theme-warning-border: #b18b45;
-  --amber: #f4c66e;
-  --amber-soft: #f8d89b;
-}
-
-html[data-theme='blue'],
-html[data-theme='accessible'],
-html[data-theme='forest'],
-html[data-theme='plum'],
-html[data-theme='graphite'],
-html[data-theme='teal'],
-html[data-theme='rose'],
-html[data-theme='slate'],
-html[data-theme='indigo'],
-html[data-theme='emerald'],
-html[data-theme='amber'] {
-  --ink: var(--theme-ink);
-  --panel: var(--theme-surface);
-  --line: var(--theme-line);
-  --muted: var(--theme-panel);
-  --paper: var(--theme-paper);
-  --paper-ink: var(--theme-paper-ink);
-  --surface-elevated: var(--theme-surface-elevated);
-}
-
-html[data-theme='sand'] {
-  --ink: var(--theme-ink);
-  --panel: var(--theme-surface);
-  --line: var(--theme-line);
-  --muted: var(--theme-panel);
-  --paper: var(--theme-paper);
-  --paper-ink: var(--theme-paper-ink);
-  --surface-elevated: var(--theme-surface-elevated);
+  /* The provider selects Geist via data-font="geist"; without fonts.css the
+     family stacks it references must exist locally. Other data-font options are
+     unreachable in this app (no picker) and resolve to nothing until fonts.css
+     is adopted. */
+  --font-family-geist: 'Geist Variable', Inter, ui-sans-serif, sans-serif;
+  --font-family-geist-mono: 'Geist Mono Variable', ui-monospace, monospace;
 }
 
 button,
@@ -804,7 +406,7 @@ select:focus-visible {
   align-items: center;
   gap: 7px;
   padding: 0 20px;
-  color: var(--status-idle-text);
+  color: var(--theme-content-subtle);
   border-bottom: 1px solid var(--line);
   font-size: 11px;
 }
@@ -929,7 +531,7 @@ select:focus-visible {
 }
 
 .source-tree button small {
-  color: var(--status-idle-text);
+  color: var(--theme-content-subtle);
   font-size: 12px;
 }
 
@@ -1134,7 +736,7 @@ select:focus-visible {
   width: 24px;
   height: 24px;
   padding: 0;
-  color: var(--status-idle-text);
+  color: var(--theme-content-subtle);
   border: 0;
   background: transparent;
 }
@@ -1203,6 +805,15 @@ select:focus-visible {
 .virtual-document-space button:hover,
 .virtual-document-space button.keyboard-active {
   background: var(--chrome-hover);
+}
+
+/* Raised hover surfaces need the full foreground for the row text: the muted
+   rung measured below 4.5:1 on them, and the shared button's hover utility
+   cannot win against these unlayered rules. */
+.virtual-document-space button:hover,
+.m7-production-shell .virtual-document-space button.keyboard-active span,
+.m7-production-shell .virtual-document-space button.keyboard-active small {
+  color: var(--chrome-fg);
 }
 
 .virtual-document-space button.selected-document {
@@ -3243,7 +2854,7 @@ select:focus-visible {
 }
 
 .source-workspace-picker select,
-.source-workspace-picker [data-slot='select-trigger'] {
+.source-workspace-picker [role='combobox'] {
   min-width: 0;
   width: 132px;
   padding: 3px 18px 3px 2px;
@@ -3254,7 +2865,7 @@ select:focus-visible {
 }
 
 .source-workspace-picker select:focus-visible,
-.source-workspace-picker [data-slot='select-trigger']:focus-visible {
+.source-workspace-picker [role='combobox']:focus-visible {
   outline-offset: 1px;
 }
 
@@ -5132,7 +4743,7 @@ select:focus-visible {
   }
 }
 
-@custom-variant dark (&:is([data-theme] *));
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --font-heading: var(--font-sans);
@@ -5180,56 +4791,18 @@ select:focus-visible {
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Values the shared system leaves to the app: the overlay scrim, this app's
+   tighter radius (the shared 0.75rem default is a later, deliberate adoption),
+   and chart fallbacks so nothing flashes unstyled before the provider mounts —
+   the provider overwrites all of these inline with the active theme's values. */
 :root {
-  --palette-background: var(--theme-background);
-  --palette-foreground: var(--theme-text-primary);
-  --palette-surface: var(--theme-surface);
-  --palette-elevated: var(--theme-surface-elevated);
-  --palette-panel: var(--theme-panel);
-  --palette-line: var(--theme-line);
-  --palette-ink: var(--theme-ink);
-  --palette-control: var(--theme-control-bg);
-  --palette-control-hover: var(--theme-control-bg-hover);
-  --palette-muted: var(--theme-muted);
-  --palette-success: var(--theme-success-fg);
-  --palette-warning: var(--theme-warning-fg);
-  --palette-error: var(--theme-error-fg);
-  --palette-brand: var(--amber);
-  --background: var(--palette-background);
-  --foreground: var(--palette-foreground);
-  --card: var(--palette-surface);
-  --card-foreground: var(--palette-foreground);
-  --popover: var(--palette-elevated);
-  --popover-foreground: var(--palette-foreground);
-  --primary: var(--palette-brand);
-  --primary-foreground: var(--palette-ink);
-  --secondary: var(--palette-control);
-  --secondary-foreground: var(--palette-foreground);
-  --muted: var(--palette-panel);
-  --muted-foreground: var(--palette-muted);
-  --accent: var(--palette-control-hover);
-  --accent-foreground: var(--palette-foreground);
-  --destructive: var(--palette-error);
-  --warning: var(--palette-warning);
-  --success: var(--palette-success);
-  --border: var(--palette-line);
-  --input: var(--palette-line);
-  --ring: var(--palette-brand);
   --overlay: oklch(0 0 0 / 55%);
-  --chart-1: var(--palette-brand);
-  --chart-2: var(--palette-success);
-  --chart-3: var(--palette-warning);
-  --chart-4: var(--palette-error);
-  --chart-5: var(--palette-muted);
   --radius: 0.625rem;
-  --sidebar: var(--palette-surface);
-  --sidebar-foreground: var(--palette-foreground);
-  --sidebar-primary: var(--palette-brand);
-  --sidebar-primary-foreground: var(--palette-ink);
-  --sidebar-accent: var(--palette-control-hover);
-  --sidebar-accent-foreground: var(--palette-foreground);
-  --sidebar-border: var(--palette-line);
-  --sidebar-ring: var(--palette-brand);
+  --chart-1: var(--primary);
+  --chart-2: var(--info);
+  --chart-3: var(--success);
+  --chart-4: var(--warning);
+  --chart-5: var(--destructive);
 }
 
 @layer base {
@@ -5437,6 +5010,13 @@ select:focus-visible {
   gap: 0.75rem;
 }
 
+/* Compact card spacing for the dense surfaces (the shared Card's own size prop
+   is class-based now, so the rung lives here per the stylesheet-chrome rule). */
+.activity-card-compact,
+.memory-card-compact {
+  --card-spacing: calc(var(--spacing, 0.25rem) * 3);
+}
+
 .m7-production-shell [data-m7-activity-inbox] .activity-card-header {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -5500,9 +5080,23 @@ select:focus-visible {
   text-align: right;
 }
 
-.m7-production-shell [data-m7-activity-inbox] .activity-card-status-row [data-slot='progress'] {
+.m7-production-shell [data-m7-activity-inbox] .activity-card-status-row [role='progressbar'] {
   width: clamp(8rem, 14vw, 12rem);
   flex: 0 1 12rem;
+}
+
+/* The shared Progress always renders a label/value header row; the compact
+   status rows run track-only, so a fully empty header collapses instead of
+   reserving its line height. */
+.activity-card-status-row [role='progressbar'] > div:first-child:not(:has(:not(:empty))),
+.m7-source-panel [role='progressbar'] > div:first-child:not(:has(:not(:empty))) {
+  display: none;
+}
+
+/* The shared Alert has no action slot; the retry button rides inside it. */
+.activity-alert-action {
+  margin-top: 0.5rem;
+  display: flex;
 }
 
 .m7-production-shell [data-m7-activity-inbox] .activity-card-log {
@@ -5554,7 +5148,8 @@ select:focus-visible {
 }
 
 .m7-production-shell .virtual-document-space button small {
-  color: var(--muted-foreground);
+  /* AA at 9px on the hover surface; raw muted-foreground measured 4.05:1. */
+  color: var(--theme-content-subtle);
 }
 
 /* Document and graph renderers consume these semantic aliases while their
@@ -5575,7 +5170,7 @@ select:focus-visible {
   color: var(--foreground);
 }
 
-.m7-knowledge-workspace > [data-slot='tabs'] {
+.m7-knowledge-workspace > [role='tablist'] {
   min-height: 42px;
   background: var(--card);
 }
@@ -5591,7 +5186,7 @@ select:focus-visible {
   background: var(--background);
 }
 
-.m7-knowledge-workspace .graph-kind-filter [data-slot='toggle'] {
+.m7-knowledge-workspace .graph-kind-filter [data-pressed] {
   text-transform: capitalize;
 }
 
@@ -5782,21 +5377,21 @@ select:focus-visible {
   border-radius: 0.75rem;
 }
 
-.m7-utilities-menu [data-slot='dropdown-menu-item'] {
+.m7-utilities-menu [role='menuitem'] {
   min-height: 2.25rem;
   gap: 0.65rem;
   padding: 0.45rem 0.55rem;
   font-size: 0.86rem;
 }
 
-.m7-utilities-menu [data-slot='dropdown-menu-item'] svg {
+.m7-utilities-menu [role='menuitem'] svg {
   width: 1.05rem;
   height: 1.05rem;
   color: var(--muted-foreground);
 }
 
-.m7-utilities-menu [data-slot='dropdown-menu-item']:not([data-disabled]):hover svg,
-.m7-utilities-menu [data-slot='dropdown-menu-item'][data-highlighted] svg {
+.m7-utilities-menu [role='menuitem']:not([data-disabled]):hover svg,
+.m7-utilities-menu [role='menuitem'][data-highlighted] svg {
   color: currentColor;
 }
 
@@ -5870,7 +5465,7 @@ select:focus-visible {
   color: var(--muted-foreground);
 }
 
-.m7-source-panel [data-slot='select-trigger'],
+.m7-source-panel [role='combobox'],
 .m7-source-panel [data-slot='input']:not(.document-filter-input) {
   background: var(--background);
 }
@@ -6108,11 +5703,11 @@ select:focus-visible {
    translate3d transform lands, the content sits at the document origin where
    a press released on the trigger could land on an item. Keep it inert and
    hidden until positioned. */
-[data-slot='dropdown-menu-content'] {
+[role='menu'] {
   visibility: hidden;
   pointer-events: none;
 }
-div[style*='translate3d'] [data-slot='dropdown-menu-content'] {
+div[style*='translate3d'] [role='menu'] {
   visibility: visible;
   pointer-events: auto;
 }

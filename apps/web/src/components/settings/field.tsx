@@ -2,8 +2,8 @@ import { Show, splitProps, type ComponentProps, type JSX } from 'solid-js'
 import { cva, type VariantProps } from 'class-variance-authority'
 
 import { cn } from '@/lib/utils'
-import { Label } from '@/components/shadcn/label'
-import { Separator } from '@/components/shadcn/separator'
+import { Label } from './label'
+import { Separator } from '@adea-ai/ui/components/ui/separator'
 
 function FieldSet(props: ComponentProps<'fieldset'>) {
   const [local, rest] = splitProps(props, ['class'])

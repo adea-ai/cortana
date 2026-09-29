@@ -279,7 +279,11 @@
       }
     },
     {
-      "files": ["apps/web/src/components/shadcn/**"],
+      "files": [
+        "apps/web/src/components/shadcn/**",
+        "apps/web/src/components/settings/field.tsx",
+        "apps/web/src/components/settings/label.tsx"
+      ],
       "rules": {
         "eslint/no-restricted-imports": "off",
         "jsx-a11y/click-events-have-key-events": "off",
@@ -305,7 +309,8 @@
       ],
       "rules": {
         "shadcn/no-inline-styles": "off",
-        "shadcn/require-static-classes": "off"
+        "shadcn/require-static-classes": "off",
+        "jsx-a11y/role-has-required-aria-props": "off"
       }
     }
   ],

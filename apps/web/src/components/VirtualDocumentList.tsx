@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 
 import type { BrainDocumentSummary } from '../types'
 import { virtualRange } from '../virtualization'
-import { Button } from './shadcn/button'
+import { Button } from '@adea-ai/ui/components/ui/button'
 
 const ROW_HEIGHT = 32
 
@@ -167,7 +167,7 @@ export function VirtualDocumentList(props: {
                   onClick={() => props.onSelect(document.id)}
                   title={`${document.title} · ${document.source}`}
                   variant="ghost"
-                  size="sm"
+                  size="xs"
                   data-m7-document-row=""
                 >
                   <FileText size={14} />

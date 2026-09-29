@@ -1,7 +1,8 @@
 import { ArrowDown, ArrowUp, LoaderCircle, Plus, Search, Trash2, Upload } from 'lucide-solid'
+import { useTheme } from '@adea-ai/ui/components/theme'
 import { createSignal, For, Index } from 'solid-js'
 
-import { DEFAULT_THEME, SUPPORTED_THEMES, type ThemeMode } from '../../theme'
+import { DEFAULT_THEME, themeDisplayName, type ThemeMode } from '../../theme'
 import type { DesktopSettings, WorkspaceSettings } from '../../types'
 import { readWorkspaceLogoFile, writeWorkspaceLogo } from '../../workspaceLogoStore'
 import { WorkspaceLogo } from '../../workspaceLogos'
@@ -40,6 +41,9 @@ export function WorkspaceSection(incoming: {
 }) {
   const props = incoming
   const confirm = useSettingsConfirm()
+  // The catalogue comes from the shared provider, so the picker never enumerates
+  // themes this build does not ship.
+  const { themes } = useTheme()
   const [logoError, setLogoError] = createSignal('')
   const [logoLoading, setLogoLoading] = createSignal<string | null>(null)
   // The visible control is a standard button (file inputs cannot hold one), so
@@ -173,7 +177,7 @@ export function WorkspaceSection(incoming: {
             <Input
               type="search"
               value={workspaceQuery()}
-              onChange={(event) => setWorkspaceQuery(event.target.value)}
+              onInput={(event) => setWorkspaceQuery(event.target.value)}
               placeholder="Search name, ID, or account label"
               autocomplete="off"
             />
@@ -221,7 +225,7 @@ export function WorkspaceSection(incoming: {
                     aria-hidden="true"
                     tabIndex={-1}
                     class="visually-hidden"
-                    onChange={(event) => {
+                    onInput={(event) => {
                       void updateLogo(workspace().id, event.target.files?.[0])
                       event.currentTarget.value = ''
                     }}
@@ -283,7 +287,7 @@ export function WorkspaceSection(incoming: {
                   <Field label="Display name">
                     <Input
                       value={workspace().name}
-                      onChange={(event) =>
+                      onInput={(event) =>
                         changeWorkspace(index(), {
                           name: event.target.value,
                         })
@@ -305,8 +309,8 @@ export function WorkspaceSection(incoming: {
                         writeWorkspaceThemePreference(workspace().id, next)
                       }}
                     >
-                      <For each={SUPPORTED_THEMES}>
-                        {(item) => <option value={item.id}>{item.label}</option>}
+                      <For each={themes.filter((theme) => theme.appearance === 'dark')}>
+                        {(theme) => <option value={theme.id}>{themeDisplayName(theme)}</option>}
                       </For>
                     </Select>
                   </Field>
@@ -339,7 +343,7 @@ export function WorkspaceSection(incoming: {
                       >
                         <Input
                           value={workspace().account_label || ''}
-                          onChange={(event) =>
+                          onInput={(event) =>
                             changeWorkspace(index(), {
                               account_label: event.target.value || null,
                             })

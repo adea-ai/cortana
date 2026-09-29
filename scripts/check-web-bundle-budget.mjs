@@ -58,13 +58,17 @@ export function verifyWebBundleBudget() {
   const measurements = [
     // The SolidJS audit moved Settings and the command palette out of the
     // eager graph (measured 409,960 bytes); the ceiling stays tight so a lazy
-    // surface can never drift back into startup unnoticed.
-    ['initial application JavaScript graph', uniqueAssetBytes(manifest, initialKeys), 500_000],
-    // The complete shipped graph measures 727,009 bytes after the same audit.
-    // Headroom covers near-term feature work while still bounding regressions.
-    ['complete production JavaScript graph', uniqueAssetBytes(manifest, productionKeys), 850_000],
+    // surface can never drift back into startup unnoticed. Adopting the shared
+    // @adea-ai/ui theme system measured 424,808 → 508,024 bytes: the catalogue
+    // data ThemeProvider needs at startup (any of the 15 dark themes can be the
+    // active one, so it cannot be lazy without an upstream catalogue split).
+    ['initial application JavaScript graph', uniqueAssetBytes(manifest, initialKeys), 560_000],
+    // Measured 752,955 before the shared theme adoption, 836,260 after it — the
+    // same catalogue cost. Headroom covers the component migration slices.
+    ['complete production JavaScript graph', uniqueAssetBytes(manifest, productionKeys), 900_000],
     // The knowledge graph, vault picker, and accessibility states extend the
-    // shared stylesheet to 208,626 bytes in the audited build.
+    // shared stylesheet to 208,626 bytes in the audited build; the shared theme
+    // CSS plus the deleted local theme blocks measured 207,033 (2026-09-28).
     ['application CSS graph', uniqueCssBytes(manifest, productionKeys), 220_000],
   ]
 

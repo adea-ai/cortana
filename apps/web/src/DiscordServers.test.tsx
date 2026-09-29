@@ -219,7 +219,7 @@ test('discord server chooser refuses to discover unsaved changes and surfaces fa
 
   // Editing the source makes the native command unsafe until it is saved, so
   // the discovery button is disabled and no IPC call can start.
-  fireEvent.change(screen.getByLabelText(/^Source name/), {
+  fireEvent.input(screen.getByLabelText(/^Source name/), {
     target: {
       value: 'work-discord-renamed',
     },
@@ -337,7 +337,7 @@ test('discord authorize action stays hidden until OAuth paths are saved', async 
 
   // A token destination without a client JSON is still incomplete, and the
   // native runtime must not be invoked with unsaved edits anyway.
-  fireEvent.change(
+  fireEvent.input(
     screen.getByPlaceholderText('/Users/you/.config/cortana/discord-rpc-token.json'),
     {
       target: {
@@ -345,7 +345,7 @@ test('discord authorize action stays hidden until OAuth paths are saved', async 
       },
     }
   )
-  fireEvent.change(
+  fireEvent.input(
     screen.getByPlaceholderText('/Users/you/.config/cortana/discord-rpc-client.json'),
     {
       target: {

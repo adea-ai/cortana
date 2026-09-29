@@ -189,7 +189,7 @@ test('slack workspace chooser refuses to discover unsaved changes and surfaces f
 
   // Editing the source makes the native command unsafe until it is saved, so
   // the discovery button is disabled and no IPC call can start.
-  fireEvent.change(screen.getByLabelText(/^Source name/), {
+  fireEvent.input(screen.getByLabelText(/^Source name/), {
     target: {
       value: 'work-slack-renamed',
     },
@@ -281,15 +281,12 @@ test('slack authorize action stays hidden until saved OAuth paths are available'
 
   // A token destination without a client JSON is still incomplete, and the
   // native runtime must not be invoked with unsaved edits anyway.
-  fireEvent.change(
-    screen.getByPlaceholderText('/Users/you/.config/cortana/slack-user-token.json'),
-    {
-      target: {
-        value: '/Users/you/.config/cortana/slack-user-token.json',
-      },
-    }
-  )
-  fireEvent.change(
+  fireEvent.input(screen.getByPlaceholderText('/Users/you/.config/cortana/slack-user-token.json'), {
+    target: {
+      value: '/Users/you/.config/cortana/slack-user-token.json',
+    },
+  })
+  fireEvent.input(
     screen.getByPlaceholderText('/Users/you/.config/cortana/slack-oauth-client.json'),
     {
       target: {

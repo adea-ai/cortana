@@ -383,7 +383,7 @@ test('Reflect presents grounded reflection separately from ordinary search', asy
   await waitFor(() => expect(state.documentsCalls.at(-1)?.project).toBeTruthy())
   await waitFor(() => expect(screen.queryByText('Loading documents…')).toBeNull())
   const input = screen.getByLabelText('Search your knowledge')
-  fireEvent.change(input, {
+  fireEvent.input(input, {
     target: {
       value: 'Review launch risk',
     },
@@ -537,7 +537,7 @@ test('document filter bounds requests to the native query byte budget', async ()
   const filter = await screen.findByRole('textbox', {
     name: 'Filter documents',
   })
-  fireEvent.change(filter, {
+  fireEvent.input(filter, {
     target: {
       value: longUnicodeQuery,
     },
@@ -563,7 +563,7 @@ test('changing workspace clears evidence from the previous security scope', asyn
   try {
     render(() => <App />)
     const input = screen.getByLabelText('Search your knowledge')
-    fireEvent.change(input, {
+    fireEvent.input(input, {
       target: {
         value: 'private release query',
       },
@@ -748,7 +748,7 @@ test('a failed search surfaces the error state and Try again recovers', async ()
   render(() => <App />)
   await waitFor(() => expect(screen.getByText('Choose a document')).toBeTruthy())
   const input = screen.getByLabelText('Search your knowledge')
-  fireEvent.change(input, {
+  fireEvent.input(input, {
     target: {
       value: 'release cadence',
     },
@@ -791,13 +791,13 @@ test('stale search responses do not overwrite the latest query', async () => {
   }
   render(() => <App />)
   const input = screen.getByLabelText('Search your knowledge')
-  fireEvent.change(input, {
+  fireEvent.input(input, {
     target: {
       value: 'first query',
     },
   })
   fireEvent.submit(input.closest('form')!)
-  fireEvent.change(input, {
+  fireEvent.input(input, {
     target: {
       value: 'latest query',
     },
@@ -842,7 +842,7 @@ test('initial status completion does not hide a search that started first', asyn
   try {
     render(() => <App />)
     const input = screen.getByLabelText('Search your knowledge')
-    fireEvent.change(input, {
+    fireEvent.input(input, {
       target: {
         value: 'status race query',
       },
@@ -986,7 +986,7 @@ test('scope-changed context request does not overwrite newer state', async () =>
   }
   render(() => <App />)
   const input = screen.getByLabelText('Search your knowledge')
-  fireEvent.change(input, {
+  fireEvent.input(input, {
     target: {
       value: 'first context query',
     },
@@ -1106,7 +1106,7 @@ test('returning to a document scope restores the cached page while revalidating'
   }
   state.documents = (_project, _source, query) =>
     Promise.resolve(query ? emptyPage : firstDocumentsPage)
-  fireEvent.change(filter, {
+  fireEvent.input(filter, {
     target: {
       value: 'zzzz',
     },
@@ -1125,7 +1125,7 @@ test('returning to a document scope restores the cached page while revalidating'
   const revalidation = deferred<BrainDocumentPage>()
   state.documents = (_project, _source, query) =>
     query ? Promise.resolve(emptyPage) : revalidation.promise
-  fireEvent.change(filter, {
+  fireEvent.input(filter, {
     target: {
       value: '',
     },

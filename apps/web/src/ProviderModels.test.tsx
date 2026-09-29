@@ -131,18 +131,18 @@ async function renderEmbeddingSettings() {
   ))
   // The embedding section is a lazy chunk; wait for it before querying.
   await screen.findByRole('combobox', {
-    name: 'Model catalog',
+    name: /Model catalog/,
   })
 }
 function modelCatalog(): HTMLElement {
   return screen.getByRole('combobox', {
-    name: 'Model catalog',
+    name: /Model catalog/,
   })
 }
 async function openEmbeddingCatalog() {
   fireEvent.pointerDown(
     await screen.findByRole('combobox', {
-      name: 'Model catalog',
+      name: /Model catalog/,
     })
   )
 }
@@ -250,7 +250,7 @@ test('changing the endpoint invalidates the advertised catalog', async () => {
   // The user edits the endpoint; the stale advertised list must not apply to
   // the new provider.
   const endpoint = screen.getByLabelText('OpenAI-compatible endpoint') as HTMLInputElement
-  fireEvent.change(endpoint, {
+  fireEvent.input(endpoint, {
     target: {
       value: 'https://other.example.test/v1',
     },
@@ -303,7 +303,7 @@ test('query section refreshes the query provider separately', async () => {
     })
   )
   const catalog = await screen.findByRole('combobox', {
-    name: 'Model catalog',
+    name: /Model catalog/,
   })
   fireEvent.pointerDown(catalog)
   expect(
