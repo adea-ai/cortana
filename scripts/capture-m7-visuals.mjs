@@ -299,7 +299,33 @@ async function auditAccessibility(page, label) {
           if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
         })
         await page.keyboard.press('Control+p')
-        await page.getByRole('dialog', { name: 'Cortana command palette' }).waitFor()
+        const palette = page.getByRole('dialog', { name: 'Cortana command palette' })
+        // The dialog resolves on every platform, but Linux CI has judged it
+        // hidden while attached and expanded; record the computed state so
+        // the evidence explains which visibility condition the runner sees.
+        await palette.waitFor({ state: 'attached' })
+        const paletteState = await palette.evaluate((element) => {
+          const cs = getComputedStyle(element)
+          const box = element.getBoundingClientRect()
+          let e = element
+          let hiddenAncestor = 'none'
+          while (e && e !== document.documentElement) {
+            if (e.getAttribute('aria-hidden') === 'true' || e.inert) hiddenAncestor = e.tagName
+            e = e.parentElement
+          }
+          return {
+            display: cs.display,
+            visibility: cs.visibility,
+            box: `${Math.round(box.width)}x${Math.round(box.height)} @ ${Math.round(box.x)},${Math.round(box.y)}`,
+            hiddenAncestor,
+          }
+        })
+        console.log(`command palette state: ${JSON.stringify(paletteState)}`)
+        if (paletteState.display === 'none' || paletteState.visibility === 'hidden') {
+          throw new Error(
+            `command palette hidden on this platform: ${JSON.stringify(paletteState)}`
+          )
+        }
         await page.waitForTimeout(300)
         await auditAccessibility(page, 'production command palette')
         await screenshot(page, 'command-blue-1440')
