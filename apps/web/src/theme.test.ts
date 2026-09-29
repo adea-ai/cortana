@@ -18,7 +18,7 @@ describe('normalizeThemeId', () => {
   test('maps every pre-catalogue id onto its replacement', () => {
     expect(normalizeThemeId('graphite')).toBe('adea-dark')
     expect(normalizeThemeId('rose')).toBe('rosepine-moon')
-    expect(normalizeThemeId('accessible')).toBe('contrast-dark')
+    expect(normalizeThemeId('accessible')).toBe('adea-dark-high-contrast')
     for (const replacement of Object.values(LEGACY_THEME_MAP)) {
       expect(normalizeThemeId(replacement)).toBe(replacement)
     }
