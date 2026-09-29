@@ -1981,11 +1981,12 @@ select:focus-visible {
   font-size: 10px;
 }
 
-/* The selected row paints --chrome-active behind it (real since the token
-   cycle was fixed); the muted #aaa children clear AA only in foreground. */
+/* The selected row paints --chrome-active behind it and its own text is #fff;
+   the muted #aaa children measured 3.14:1 on that surface, below AA at 10px.
+   They take the row's white. */
 .evidence-list button.selected span,
 .evidence-list button.selected time {
-  color: var(--chrome-fg);
+  color: #fff;
 }
 
 .evidence-list strong {
