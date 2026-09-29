@@ -22,14 +22,14 @@ const DARK_THEME_IDS: ReadonlySet<string> = new Set(
  */
 export const LEGACY_THEME_MAP: Readonly<Record<string, ThemeMode>> = {
   blue: 'nord',
-  accessible: 'contrast-dark',
+  accessible: 'adea-dark-high-contrast',
   forest: 'everforest-dark',
   plum: 'dracula',
   sand: 'solarized-dark',
   graphite: 'adea-dark',
   teal: 'catppuccin-macchiato',
   rose: 'rosepine-moon',
-  slate: 'slate-dark',
+  slate: 'aardvark-ink',
   indigo: 'tokyonight-night',
   emerald: 'kanagawa',
   amber: 'gruvbox-dark',
