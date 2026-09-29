@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.61.0](https://github.com/adea-ai/cortana/compare/v0.60.0...v0.61.0) (2026-09-29)
+
+
+### Features
+
+* web-adopt-adea-ui ([#2404](https://github.com/adea-ai/cortana/issues/2404)) ([2639ed5](https://github.com/adea-ai/cortana/commit/2639ed5d51b22d9a8cbff74778c0e86b475fc163))
+
+
+### Bug Fixes
+
+* web-selected-row-contrast ([#2408](https://github.com/adea-ai/cortana/issues/2408)) ([982c096](https://github.com/adea-ai/cortana/commit/982c0968f7bf7e9405f78581c75581f5237866d7))
+
 ## [0.60.0](https://github.com/adea-ai/cortana/compare/v0.59.4...v0.60.0) (2026-09-28)
 
 
