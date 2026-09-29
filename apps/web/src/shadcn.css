@@ -5730,13 +5730,11 @@ div[style*='translate3d'] [role='menu'] {
    shortcuts, items on nord). Lift the rung inside the dialog toward the
    foreground so every muted use inside resolves AA-safe, without touching the
    theme's own muted rung elsewhere. */
-/* The palette portal mounts as a body sibling, outside the shell scope. The
-   base is pinned at :root so the dialog's lift does not self-reference the
-   very property it redefines (a custom property cycle resolves to the raw
-   muted rung). */
-:root {
-  --cmdk-muted-base: var(--muted-foreground);
-}
+/* The palette portal mounts as a body sibling, outside the shell scope. Some
+   catalogue rungs (nord among them) carry a muted-foreground that fails AA
+   against the palette's popover and surface-hover surfaces at small sizes, so
+   every muted use inside the palette resolves to the theme's primary ink —
+   the pairing the catalogue holds to AAA on the canvas. */
 [cmdk-dialog] {
-  --muted-foreground: color-mix(in oklab, var(--cmdk-muted-base) 50%, var(--foreground));
+  --muted-foreground: var(--foreground);
 }
