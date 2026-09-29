@@ -77,7 +77,10 @@ html {
   --theme-text-primary: var(--foreground);
   --theme-text-secondary: var(--muted-foreground);
   --theme-content-text: var(--card-foreground);
-  --theme-content-subtle: var(--muted-foreground);
+  /* Painted at 9px on card and hover surfaces; the raw muted rung measured
+     4.05:1 there, below the AA floor, so it lightens toward the foreground
+     like the pre-bridge per-theme darkening did. */
+  --theme-content-subtle: color-mix(in oklab, var(--muted-foreground) 82%, var(--foreground));
   --theme-success-fg: var(--success);
   --theme-success-bg: var(--success-subtle);
   --theme-success-border: color-mix(in oklab, var(--success) 35%, transparent);
@@ -125,8 +128,10 @@ html {
      back to inherited/unset values); they now resolve for real. */
   --chrome-fg: var(--foreground);
   --chrome-fg-soft: var(--muted-foreground);
-  --chrome-fg-mute: color-mix(in oklab, var(--muted-foreground) 75%, transparent);
-  --chrome-fg-dim: color-mix(in oklab, var(--muted-foreground) 55%, transparent);
+  /* Opacity mixes fail AA for small text on raised surfaces (measured 3.3:1),
+     so the muted rungs lighten toward the foreground instead of fading out. */
+  --chrome-fg-mute: color-mix(in oklab, var(--muted-foreground) 80%, var(--foreground));
+  --chrome-fg-dim: color-mix(in oklab, var(--muted-foreground) 62%, var(--foreground));
   --chrome-hover: var(--accent);
   --chrome-active: var(--surface-active);
   --chrome-sunken: var(--muted);
@@ -401,7 +406,7 @@ select:focus-visible {
   align-items: center;
   gap: 7px;
   padding: 0 20px;
-  color: var(--status-idle-text);
+  color: var(--theme-content-subtle);
   border-bottom: 1px solid var(--line);
   font-size: 11px;
 }
@@ -526,7 +531,7 @@ select:focus-visible {
 }
 
 .source-tree button small {
-  color: var(--status-idle-text);
+  color: var(--theme-content-subtle);
   font-size: 12px;
 }
 
@@ -731,7 +736,7 @@ select:focus-visible {
   width: 24px;
   height: 24px;
   padding: 0;
-  color: var(--status-idle-text);
+  color: var(--theme-content-subtle);
   border: 0;
   background: transparent;
 }
@@ -800,6 +805,15 @@ select:focus-visible {
 .virtual-document-space button:hover,
 .virtual-document-space button.keyboard-active {
   background: var(--chrome-hover);
+}
+
+/* Raised hover surfaces need the full foreground for the row text: the muted
+   rung measured below 4.5:1 on them, and the shared button's hover utility
+   cannot win against these unlayered rules. */
+.virtual-document-space button:hover,
+.m7-production-shell .virtual-document-space button.keyboard-active span,
+.m7-production-shell .virtual-document-space button.keyboard-active small {
+  color: var(--chrome-fg);
 }
 
 .virtual-document-space button.selected-document {
@@ -5134,7 +5148,8 @@ select:focus-visible {
 }
 
 .m7-production-shell .virtual-document-space button small {
-  color: var(--muted-foreground);
+  /* AA at 9px on the hover surface; raw muted-foreground measured 4.05:1. */
+  color: var(--theme-content-subtle);
 }
 
 /* Document and graph renderers consume these semantic aliases while their

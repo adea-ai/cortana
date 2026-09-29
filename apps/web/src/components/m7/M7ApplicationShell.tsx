@@ -333,7 +333,15 @@ export function M7PanelBoundary(props: M7PanelBoundaryProps) {
     <Show when={compact()} fallback={props.children}>
       <Sheet open={props.open} onOpenChange={props.onOpenChange}>
         <SheetContent
-          finalFocus={props.finalFocus}
+          // The shared Sheet delegates close-focus to Kobalte's
+          // onCloseAutoFocus hook; the old local sheet took a ref object.
+          onCloseAutoFocus={(event: Event) => {
+            const target = props.finalFocus?.current
+            if (target) {
+              event.preventDefault()
+              target.focus()
+            }
+          }}
           side={props.side}
           class="m7-panel-boundary max-w-none gap-0 p-0"
         >
