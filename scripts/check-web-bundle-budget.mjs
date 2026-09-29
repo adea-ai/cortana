@@ -62,9 +62,11 @@ export function verifyWebBundleBudget() {
     // @adea-ai/ui theme system measured 424,808 → 508,024 bytes: the catalogue
     // data ThemeProvider needs at startup (any of the 15 dark themes can be the
     // active one, so it cannot be lazy without an upstream catalogue split).
-    ['initial application JavaScript graph', uniqueAssetBytes(manifest, initialKeys), 560_000],
+    // The 0.72.5 → 0.77.0 component adoption measured 508,024 → 569,939 bytes
+    // (four minors of shared-package growth, incl. the CommandDialog fix).
+    ['initial application JavaScript graph', uniqueAssetBytes(manifest, initialKeys), 580_000],
     // Measured 752,955 before the shared theme adoption, 836,260 after it — the
-    // same catalogue cost. Headroom covers the component migration slices.
+    // same catalogue cost. The 0.77.0 component adoption measured 849,489.
     ['complete production JavaScript graph', uniqueAssetBytes(manifest, productionKeys), 900_000],
     // The knowledge graph, vault picker, and accessibility states extend the
     // shared stylesheet to 208,626 bytes in the audited build; the shared theme

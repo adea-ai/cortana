@@ -3530,7 +3530,7 @@ test('settings uses the shared catalogue default and exposes theme controls per 
   await user.click(workspaceTheme)
   expect(
     await screen.findByRole('option', {
-      name: 'Slate',
+      name: 'Aardvark Ink',
     })
   ).toBeTruthy()
   expect(

@@ -5723,3 +5723,20 @@ div[style*='translate3d'] [role='menu'] {
   visibility: visible;
   pointer-events: auto;
 }
+
+/* Command palette (shared cmdk dialog). The catalogue validates
+   --muted-foreground against the canvas only; inside the palette it lands on
+   popover and surface-hover surfaces where it measures 2.1–4.0:1 (placeholder,
+   shortcuts, items on nord). Lift the rung inside the dialog toward the
+   foreground so every muted use inside resolves AA-safe, without touching the
+   theme's own muted rung elsewhere. */
+/* The palette portal mounts as a body sibling, outside the shell scope. The
+   base is pinned at :root so the dialog's lift does not self-reference the
+   very property it redefines (a custom property cycle resolves to the raw
+   muted rung). */
+:root {
+  --cmdk-muted-base: var(--muted-foreground);
+}
+[cmdk-dialog] {
+  --muted-foreground: color-mix(in oklab, var(--cmdk-muted-base) 50%, var(--foreground));
+}
