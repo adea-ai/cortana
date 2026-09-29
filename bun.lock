@@ -24,14 +24,14 @@
     },
     "apps/desktop": {
       "name": "@cortana/desktop",
-      "version": "0.61.2", // x-release-please-version
+      "version": "0.61.2",
       "devDependencies": {
         "@tauri-apps/cli": "^2.11.4",
       },
     },
     "apps/web": {
       "name": "@cortana/web",
-      "version": "0.61.2", // x-release-please-version
+      "version": "0.61.2",
       "dependencies": {
         "@adea-ai/themes": "0.6.3",
         "@adea-ai/ui": "0.77.0",
@@ -52,9 +52,6 @@
         "tailwindcss": "^4.3.3",
       },
     },
-  },
-  "patchedDependencies": {
-    "@adea-ai/ui@0.72.5": "patches/@adea-ai%2Fui@0.72.5.patch",
   },
   "overrides": {
     "brace-expansion": "5.0.9",
