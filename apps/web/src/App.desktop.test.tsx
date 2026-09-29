@@ -3058,7 +3058,7 @@ test('source settings opens the Sources section directly', async () => {
   const sources = screen.getByRole('button', {
     name: 'Sources',
   })
-  expect(sources.className).toContain('active')
+  expect(sources.getAttribute('aria-current')).toBe('page')
 })
 test('Inbox and Index settings actions open their relevant settings sections', async () => {
   render(() => <App />)
@@ -3091,8 +3091,8 @@ test('Inbox and Index settings actions open their relevant settings sections', a
   expect(
     screen.getByRole('button', {
       name: 'Sources',
-    }).className
-  ).toContain('active')
+    }).getAttribute('aria-current')
+  ).toBe('page')
   await openSidebarDestination('Index')
   await waitFor(() =>
     expect(
@@ -3116,9 +3116,10 @@ test('Inbox and Index settings actions open their relevant settings sections', a
   )
   expect(
     screen.getByRole('button', {
-      name: 'Readiness',
-    }).className
-  ).toContain('active')
+      // The Index page's settings action routes to the Sources section.
+      name: 'Sources',
+    }).getAttribute('aria-current')
+  ).toBe('page')
 })
 test('source settings use workspace tabs without repeating assigned workspace controls', async () => {
   const originalSettings = state.settings
@@ -3467,8 +3468,8 @@ test('settings navigation opens workspace and services first and exposes native 
   expect(
     screen.getByRole('button', {
       name: 'Memory',
-    }).className
-  ).toContain('active')
+    }).getAttribute('aria-current')
+  ).toBe('page')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {
@@ -3750,7 +3751,7 @@ test('Services settings stay a process-health surface with no source enablement 
         .getByRole('button', {
           name: label,
         })
-        .getAttribute('data-slot')
+        .getAttribute('type')
     ).toBe('button')
   }
 
@@ -4115,8 +4116,8 @@ test('the utilities menu opens settings on the updates section', async () => {
   expect(
     screen.getByRole('button', {
       name: 'Updates',
-    }).className
-  ).toContain('active')
+    }).getAttribute('aria-current')
+  ).toBe('page')
 })
 test('services settings name the install path for services that are not installed', async () => {
   render(() => <App />)
