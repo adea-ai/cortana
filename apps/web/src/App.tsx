@@ -750,17 +750,11 @@ function CortanaApplication() {
         searchRef.current?.select()
       } else if (modifier && key === 'p') {
         event.preventDefault()
-        setCommandPaletteMounted(true)
-        setCommandPaletteOpen((open) => {
-          if (!open) {
-            commandPaletteOriginRef.current =
-              document.activeElement instanceof HTMLElement &&
-              document.activeElement !== document.body
-                ? document.activeElement
-                : searchRef.current
-          }
-          return !open
-        })
+        if (commandPaletteOpen()) {
+          setCommandPaletteOpen(false)
+        } else {
+          openCommandPalette()
+        }
       } else if (modifier && event.shiftKey && key === 'f') {
         event.preventDefault()
         setLeftOpen(true)
@@ -1598,6 +1592,11 @@ function CortanaApplication() {
       (document.activeElement instanceof HTMLElement && document.activeElement !== document.body
         ? document.activeElement
         : searchRef.current)
+    // cmdk-solid's Dialog never forwards onCloseAutoFocus to Kobalte, so the
+    // content restores focus to whatever held it when it mounted — focus the
+    // origin explicitly or a keyboard open from a blurred page restores to
+    // <body> and the next Escape leaves no anchor.
+    commandPaletteOriginRef.current?.focus()
     setCommandPaletteMounted(true)
     setCommandPaletteOpen(true)
   }

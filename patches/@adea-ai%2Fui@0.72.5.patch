@@ -1,0 +1,143 @@
+diff --git a/src/components/ui/command/command.tsx b/src/components/ui/command/command.tsx
+index 1411a999d9bdc9a034f25da2c3cdc34126c482c8..3f436020d4d7da41c6b22b45413865bc2f195ada 100644
+--- a/src/components/ui/command/command.tsx
++++ b/src/components/ui/command/command.tsx
+@@ -1,5 +1,4 @@
+ import {
+-  CommandDialog as CmdkDialog,
+   CommandEmpty as CmdkEmpty,
+   CommandGroup as CmdkGroup,
+   CommandInput as CmdkInput,
+@@ -13,6 +12,7 @@ import {
+ import { Search } from 'lucide-solid'
+ import type { ComponentProps } from 'solid-js'
+ import { createEffect, createSignal, splitProps } from 'solid-js'
++import { Dialog, DialogContent } from '../dialog/dialog'
+ import { menuItem } from '#lib/overlay'
+ import { cn } from '#lib/utils'
+ 
+@@ -46,20 +46,34 @@ export function Command(props: ComponentProps<typeof CmdkRoot>) {
+   )
+ }
+ 
+-export function CommandDialog(props: ComponentProps<typeof CmdkDialog>) {
+-  const [local, rest] = splitProps(props, ['class'])
++export type CommandDialogProps = Omit<ComponentProps<typeof CmdkDialog>, 'contentClassName'> & {
++  /** Accessible name for the dialog surface. */
++  label?: string
++}
++
++export function CommandDialog(props: CommandDialogProps) {
++  const [local, rest] = splitProps(props, ['class', 'label', 'onCloseAutoFocus'])
+ 
+   return (
+-    <CmdkDialog
+-      class={cn(
+-        'bg-popover text-popover-foreground fixed top-1/3 left-1/2 z-(--z-dialog) w-full max-w-lg -translate-x-1/2 -translate-y-1/2',
+-        'overflow-hidden rounded-xl border border-border shadow-xl',
+-        'data-expanded:animate-in data-expanded:fade-in-0 data-expanded:zoom-in-95',
+-        'data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
+-        local.class
+-      )}
+-      {...rest}
+-    />
++    /*
++     * Built on the shared Kobalte dialog rather than cmdk's own Dialog: cmdk
++     * routes `class` to the inner Command root, never renders a trigger for
++     * Kobalte's modal close-focus to restore, and drops onCloseAutoFocus —
++     * together that leaves the role="dialog" element at zero height and focus
++     * on <body> after every close. The shared DialogContent forwards the
++     * close-focus hook, carries the scrim and centring, and keeps the
++     * dialog element visible to Playwright and assistive geometry.
++     */
++    <Dialog {...rest}>
++      <DialogContent
++        closeButton={false}
++        aria-label={local.label}
++        onCloseAutoFocus={local.onCloseAutoFocus}
++        class={cn('gap-0 overflow-hidden rounded-xl p-0', local.class)}
++      >
++        {props.children}
++      </DialogContent>
++    </Dialog>
+   )
+ }
+ 
+@@ -206,7 +220,9 @@ export function CommandShortcut(props: {
+ }) {
+   return (
+     <span
+-      class={cn('text-muted-foreground ms-auto font-mono text-2xs tracking-widest', props.class)}
++      // Foreground-derived ink: the shortcut can sit on a highlighted row
++      // (bg-surface-hover), where text-muted-foreground drops below 4.5:1.
++      class={cn('text-foreground/90 ms-auto font-mono text-2xs tracking-widest', props.class)}
+     >
+       {props.children}
+     </span>
+diff --git a/src/components/ui/dropdown-menu/dropdown-menu.tsx b/src/components/ui/dropdown-menu/dropdown-menu.tsx
+index 14a70e33096bf4938be76539182c5dbbeda28f72..b9f831cc29e672865998fb4bb6350c44b82c156d 100644
+--- a/src/components/ui/dropdown-menu/dropdown-menu.tsx
++++ b/src/components/ui/dropdown-menu/dropdown-menu.tsx
+@@ -1,7 +1,7 @@
+ import { DropdownMenu as KobalteDropdownMenu } from '@kobalte/core/dropdown-menu'
+ import { Check, ChevronRight, Circle } from 'lucide-solid'
+ import type { ComponentProps } from 'solid-js'
+-import { splitProps } from 'solid-js'
++import { createEffect, createSignal, onCleanup, splitProps } from 'solid-js'
+ import {
+   menuContentPadding,
+   destructiveMenuItem,
+@@ -50,10 +50,36 @@ export type DropdownMenuContentProps = ComponentProps<typeof KobalteDropdownMenu
+ 
+ export function DropdownMenuContent(props: DropdownMenuContentProps) {
+   const [local, rest] = splitProps(props, ['class', 'hideArrow', 'children', 'portalMount'])
++  const [content, setContent] = createSignal<HTMLDivElement>()
++
++  createEffect(() => {
++    const root = content()
++    if (!root) return
++    /*
++     * Kobalte's focus scope seeds the menu with visually-hidden sentinel spans
++     * carrying tabindex="0". A menu may only own menuitem-family children, and
++     * axe lists any other child — even an explicit role="presentation" — as
++     * invalid. They are pure focus plumbing: the trap already re-focuses the
++     * last row through its focusin/focusout listeners, so the sentinels can
++     * leave the tab order (tabindex="-1") and the accessibility tree
++     * (aria-hidden="true") together.
++     */
++    const present = () => {
++      for (const sentinel of root.querySelectorAll<HTMLElement>('[data-focus-trap]')) {
++        sentinel.setAttribute('tabindex', '-1')
++        sentinel.setAttribute('aria-hidden', 'true')
++      }
++    }
++    present()
++    const observer = new MutationObserver(present)
++    observer.observe(root, { childList: true })
++    onCleanup(() => observer.disconnect())
++  })
+ 
+   return (
+     <KobalteDropdownMenu.Portal mount={local.portalMount}>
+       <KobalteDropdownMenu.Content
++        ref={setContent}
+         class={cn(
+           overlaySurface,
+           overlayMotion,
+diff --git a/src/lib/overlay.ts b/src/lib/overlay.ts
+index 9d73bdf4cd1baaf4b807d54139e90baeb60d37e0..694bf389ecfc7fbf5f53687ea362c7c22ee5338a 100644
+--- a/src/lib/overlay.ts
++++ b/src/lib/overlay.ts
+@@ -54,7 +54,11 @@ export const menuItem = [
+   'relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none',
+   'transition-colors ease-out',
+   'data-[highlighted]:bg-surface-hover data-[highlighted]:text-foreground',
+-  'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
++  // aria-disabled rather than data-[disabled]: cmdk-solid always writes
++  // data-disabled="true"/"false" (never absent), so a presence matcher
++  // disables every command item; [aria-disabled="true"] is the one form both
++  // cmdk and Kobalte emit only when a row is genuinely disabled.
++  'aria-disabled:pointer-events-none aria-disabled:opacity-50',
+   '[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:size-4',
+   '[&_svg:not([class*=text-])]:text-muted-foreground',
+ ].join(' ')

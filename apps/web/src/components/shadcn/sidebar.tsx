@@ -166,6 +166,16 @@ function Sidebar(
               class="w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
               style={{ '--sidebar-width': SIDEBAR_WIDTH_MOBILE }}
               side={local.side === 'right' ? 'end' : 'start'}
+              // The sheet is toggled by a signal, not a Kobalte trigger, so
+              // close-focus has nothing to return to and focus would drop to
+              // <body>; hand it back to the navigation toggle.
+              onCloseAutoFocus={(event: Event) => {
+                const trigger = document.querySelector<HTMLElement>('[data-sidebar="trigger"]')
+                if (trigger) {
+                  event.preventDefault()
+                  trigger.focus()
+                }
+              }}
             >
               <SheetHeader class="sr-only">
                 <SheetTitle>Sidebar</SheetTitle>

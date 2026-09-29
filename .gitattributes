@@ -7,3 +7,6 @@
 *.webp binary
 *.ico binary
 *.pdf binary
+
+# Vendored patch files carry format-required trailing spaces in context lines.
+patches/*.patch -whitespace
