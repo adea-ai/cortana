@@ -8,6 +8,9 @@ FROM --platform=$BUILDPLATFORM node:22-bookworm-slim AS web-builder
 COPY --from=bun-runtime /usr/local/bin/bun /usr/local/bin/bun
 WORKDIR /src
 COPY package.json bun.lock bunfig.toml ./
+# The lockfile pins a patchedDependencies entry; the patch must ship with the
+# manifests or the frozen install refuses to resolve.
+COPY patches/ patches/
 # The container serves the web app; keep the Tauri workspace out of this install.
 COPY apps/web/package.json apps/web/package.json
 RUN bun install --frozen-lockfile
