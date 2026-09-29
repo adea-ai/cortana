@@ -24,15 +24,16 @@
     },
     "apps/desktop": {
       "name": "@cortana/desktop",
-      "version": "0.59.4", // x-release-please-version
+      "version": "0.59.4",
       "devDependencies": {
         "@tauri-apps/cli": "^2.11.4",
       },
     },
     "apps/web": {
       "name": "@cortana/web",
-      "version": "0.59.4", // x-release-please-version
+      "version": "0.59.4",
       "dependencies": {
+        "@adea-ai/themes": "0.6.3",
         "@adea-ai/ui": "0.72.5",
         "@fontsource-variable/geist": "^5.3.0",
         "@kobalte/core": "^0.13.14",
