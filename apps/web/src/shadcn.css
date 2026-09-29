@@ -1983,9 +1983,13 @@ select:focus-visible {
 
 /* The selected row paints --chrome-active behind it and its own text is #fff;
    the muted #aaa children measured 3.14:1 on that surface, below AA at 10px.
-   They take the row's white. */
-.evidence-list button.selected span,
-.evidence-list button.selected time {
+   They take the row's white. The m7-scoped variant out-ranks the
+   .m7-context-panel rung rule further down this sheet. */
+.evidence-list button.selected :is(span, time) {
+  color: #fff;
+}
+
+.m7-production-shell .m7-context-panel .evidence-list button.selected :is(span, time) {
   color: #fff;
 }
 
