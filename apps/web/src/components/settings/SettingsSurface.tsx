@@ -27,7 +27,7 @@ import {
   FieldLabel,
   FieldLegend,
   FieldSet,
-} from '../shadcn/field'
+} from './field'
 import { Input } from '@adea-ai/ui/components/ui/input'
 import { RadioGroup, RadioGroupItem } from '@adea-ai/ui/components/ui/radio-group'
 import {

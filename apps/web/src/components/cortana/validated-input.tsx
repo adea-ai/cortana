@@ -1,6 +1,6 @@
 import { Show, splitProps, type ComponentProps } from 'solid-js'
 
-import { Field, FieldDescription, FieldError, FieldLabel } from '../shadcn/field'
+import { Field, FieldDescription, FieldError, FieldLabel } from '../settings/field'
 import { Input } from '@adea-ai/ui/components/ui/input'
 
 type ValidatedInputProps = Omit<

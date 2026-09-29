@@ -3089,9 +3089,11 @@ test('Inbox and Index settings actions open their relevant settings sections', a
     ).toBeTruthy()
   )
   expect(
-    screen.getByRole('button', {
-      name: 'Sources',
-    }).getAttribute('aria-current')
+    screen
+      .getByRole('button', {
+        name: 'Sources',
+      })
+      .getAttribute('aria-current')
   ).toBe('page')
   await openSidebarDestination('Index')
   await waitFor(() =>
@@ -3115,10 +3117,12 @@ test('Inbox and Index settings actions open their relevant settings sections', a
     ).toBeTruthy()
   )
   expect(
-    screen.getByRole('button', {
-      // The Index page's settings action routes to the Sources section.
-      name: 'Sources',
-    }).getAttribute('aria-current')
+    screen
+      .getByRole('button', {
+        // The Index page's settings action routes to the Sources section.
+        name: 'Sources',
+      })
+      .getAttribute('aria-current')
   ).toBe('page')
 })
 test('source settings use workspace tabs without repeating assigned workspace controls', async () => {
@@ -3466,9 +3470,11 @@ test('settings navigation opens workspace and services first and exposes native 
     })
   )
   expect(
-    screen.getByRole('button', {
-      name: 'Memory',
-    }).getAttribute('aria-current')
+    screen
+      .getByRole('button', {
+        name: 'Memory',
+      })
+      .getAttribute('aria-current')
   ).toBe('page')
   await waitFor(() =>
     expect(
@@ -4114,9 +4120,11 @@ test('the utilities menu opens settings on the updates section', async () => {
   )
   // Updates is a section of Settings, not a view of its own.
   expect(
-    screen.getByRole('button', {
-      name: 'Updates',
-    }).getAttribute('aria-current')
+    screen
+      .getByRole('button', {
+        name: 'Updates',
+      })
+      .getAttribute('aria-current')
   ).toBe('page')
 })
 test('services settings name the install path for services that are not installed', async () => {

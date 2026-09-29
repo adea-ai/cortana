@@ -1,6 +1,5 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import 'shadcn/tailwind.css';
 @import '@fontsource-variable/geist';
 /* The shared design system: semantic tokens (the catalogue's two defaults here,
    every other theme arrives inline from ThemeProvider), state variants, and the
