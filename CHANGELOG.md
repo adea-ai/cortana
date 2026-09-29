@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.61.2](https://github.com/adea-ai/cortana/compare/v0.61.1...v0.61.2) (2026-09-29)
+
+
+### Maintenance
+
+* **deps:** bump astral-sh/setup-uv ([#2403](https://github.com/adea-ai/cortana/issues/2403)) ([ab261a7](https://github.com/adea-ai/cortana/commit/ab261a7d35905ac7c6db1a2eb0e789e8e1b6a27c))
+
 ## [0.61.1](https://github.com/adea-ai/cortana/compare/v0.61.0...v0.61.1) (2026-09-29)
 
 
