@@ -42,8 +42,9 @@ export function M7CommandPalette(props: M7CommandPaletteProps) {
           target.focus()
         }
       }}
-      title="Cortana command palette"
-      description="Search navigation and workspace commands"
+      // cmdk's Dialog reads this prop and writes aria-label on its content —
+      // the accessible name the old local title/description props provided.
+      label="Cortana command palette"
     >
       <Command label="Search Cortana commands">
         <CommandInput placeholder="Search commands…" />
