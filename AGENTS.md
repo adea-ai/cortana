@@ -217,3 +217,20 @@ Branch/PR:
 ```
 
 Use exact command names and outcomes. Mention external changes separately from local changes, and distinguish completed work from recommendations.
+
+
+## Shared UI enforcement (mandatory)
+
+The oxlint config loads `@adea-ai/ui/lint` — the design system's own plugin — and
+its rules are errors:
+
+- `adea/no-raw-interactive-elements` — `button`, `input`, `textarea`, `select`,
+  `option` and `label` are composed from the shared primitives
+  (`@adea-ai/ui/components/ui/*`), never written as raw markup. When the rule
+  fires, the fix is the primitive it names — not a suppression.
+- `adea/no-primitive-library-imports` — Kobalte and the other primitive libraries
+  are the design system's internal affair. Import the exported component.
+
+Code that predates the rules is exempted **by path** in one override block in
+`.oxlintrc.json`. That block is a ratchet: it only shrinks. Adding a file to it is
+a reviewed change with a stated reason, never a convenience.

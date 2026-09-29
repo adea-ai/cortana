@@ -1,12 +1,22 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "unicorn", "oxc", "import", "promise", "jsx-a11y"],
+  "plugins": [
+    "typescript",
+    "unicorn",
+    "oxc",
+    "import",
+    "promise",
+    "jsx-a11y"
+  ],
   "categories": {
     "correctness": "error",
     "suspicious": "error",
     "perf": "warn"
   },
-  "jsPlugins": ["@shadcn/lint"],
+  "jsPlugins": [
+    "@shadcn/lint",
+    "@adea-ai/ui/lint"
+  ],
   "settings": {
     "shadcn": {
       "note": "Project classes are defined in apps/web/src/shadcn.css. See .agents/skills/shadcn for the full component rules (composition, forms, icons, chat)."
@@ -52,11 +62,18 @@
         ],
         "patterns": [
           {
-            "group": ["@base-ui/*", "@base-ui-components/*", "@radix-ui/*", "radix-*"],
+            "group": [
+              "@base-ui/*",
+              "@base-ui-components/*",
+              "@radix-ui/*",
+              "radix-*"
+            ],
             "message": "Primitives are Kobalte via components/shadcn/*; no direct primitive imports."
           },
           {
-            "group": ["@kobalte/*"],
+            "group": [
+              "@kobalte/*"
+            ],
             "message": "Prefer components/shadcn/* wrappers over direct Kobalte imports."
           }
         ]
@@ -89,7 +106,13 @@
     "shadcn/no-restyle": [
       "error",
       {
-        "deny": ["color", "typography", "shape", "effects", "motion"],
+        "deny": [
+          "color",
+          "typography",
+          "shape",
+          "effects",
+          "motion"
+        ],
         "contracts": [
           {
             "pattern": "^Alert$",
@@ -111,13 +134,31 @@
           },
           {
             "pattern": "^Empty$",
-            "allow": ["layout", "spacing", "border"],
-            "deny": ["color", "typography", "effects", "motion"]
+            "allow": [
+              "layout",
+              "spacing",
+              "border"
+            ],
+            "deny": [
+              "color",
+              "typography",
+              "effects",
+              "motion"
+            ]
           },
           {
             "pattern": "^Tabs$",
-            "allow": ["layout", "spacing", "border-b"],
-            "deny": ["color", "typography", "effects", "motion"]
+            "allow": [
+              "layout",
+              "spacing",
+              "border-b"
+            ],
+            "deny": [
+              "color",
+              "typography",
+              "effects",
+              "motion"
+            ]
           },
           {
             "pattern": "^Badge$",
@@ -269,11 +310,35 @@
         ]
       }
     ],
-    "shadcn/require-static-classes": "error"
+    "shadcn/require-static-classes": "error",
+    "adea/no-raw-interactive-elements": "error",
+    "adea/no-primitive-library-imports": "error"
   },
   "overrides": [
     {
-      "files": ["apps/web/src/components/RendererErrorBoundary.tsx"],
+      "files": [
+        "apps/web/src/components/MemoryReview.tsx",
+        "apps/web/src/components/RendererErrorBoundary.tsx",
+        "apps/web/src/components/settings/AccessSection.tsx",
+        "apps/web/src/components/settings/AdvancedSettingsSection.tsx",
+        "apps/web/src/components/settings/label.tsx",
+        "apps/web/src/components/settings/ProviderSections.tsx",
+        "apps/web/src/components/settings/SourceSettingsWorkflow.tsx",
+        "apps/web/src/components/settings/WorkspaceSection.tsx",
+        "apps/web/src/components/SettingsView.tsx",
+        "apps/web/src/components/shadcn/sidebar.tsx",
+        "apps/web/src/components/SourcePanel.tsx",
+        "apps/web/src/components/Workspace.tsx"
+      ],
+      "rules": {
+        "adea/no-raw-interactive-elements": "off",
+        "adea/no-primitive-library-imports": "off"
+      }
+    },
+    {
+      "files": [
+        "apps/web/src/components/RendererErrorBoundary.tsx"
+      ],
       "rules": {
         "shadcn/no-inline-styles": "off"
       }
@@ -314,5 +379,10 @@
       }
     }
   ],
-  "ignorePatterns": ["node_modules/**", "apps/web/dist/**", "coverage/**", "target/**"]
+  "ignorePatterns": [
+    "node_modules/**",
+    "apps/web/dist/**",
+    "coverage/**",
+    "target/**"
+  ]
 }
