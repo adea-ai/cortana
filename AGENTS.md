@@ -218,7 +218,6 @@ Branch/PR:
 
 Use exact command names and outcomes. Mention external changes separately from local changes, and distinguish completed work from recommendations.
 
-
 ## Shared UI enforcement (mandatory)
 
 The oxlint config loads `@adea-ai/ui/lint` — the design system's own plugin — and
