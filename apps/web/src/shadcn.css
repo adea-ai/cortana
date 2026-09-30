@@ -199,13 +199,21 @@ input {
   font: inherit;
 }
 
-button {
-  color: inherit;
-  cursor: pointer;
-  border: 0;
-  background: transparent;
-  -webkit-appearance: none;
-  appearance: none;
+/*
+ * Layered on purpose: the utilities the shared primitives place on buttons
+ * live in the Tailwind utilities layer, and an unlayered reset beats any
+ * layered rule regardless of specificity — bg-* and text-* utilities on a
+ * button silently lost to the transparent background and inherited ink here.
+ */
+@layer base {
+  button {
+    color: inherit;
+    cursor: pointer;
+    border: 0;
+    background: transparent;
+    -webkit-appearance: none;
+    appearance: none;
+  }
 }
 
 button:focus-visible,
@@ -3377,6 +3385,16 @@ select:focus-visible {
   background: var(--theme-error-bg);
 }
 
+/*
+ * The shared destructive Alert carries its own accessible pairing
+ * (text-foreground on bg-destructive-subtle); the legacy rules above
+ * out-specify it and repaint the note in --theme-error-fg, which fails
+ * contrast on the new fill. When both compose, the primitive wins.
+ */
+[data-slot='alert'].safety-note {
+  color: var(--foreground);
+}
+
 .readiness-actions {
   display: flex;
   align-items: center;
@@ -3569,6 +3587,17 @@ select:focus-visible {
   margin-left: 4px;
   padding: 0 10px;
   font-size: 11px;
+}
+
+/*
+ * The shared destructive Alert carries its own accessible pairing
+ * (text-foreground on bg-destructive-subtle); the legacy rules above
+ * out-specify it and repaint the note in --theme-error-fg, which fails
+ * contrast on the new fill. When both compose, the primitive wins.
+ */
+[data-slot='alert'].safety-note,
+[data-slot='alert'].settings-banner {
+  color: var(--foreground);
 }
 
 .settings-unavailable {
@@ -3817,6 +3846,15 @@ select:focus-visible {
 .memory-review-header {
   align-items: flex-start;
   justify-content: space-between;
+}
+
+/*
+ * The bridged --amber accent (var(--primary)) sits under 4.5:1 on this
+ * panel's fill; the header's own muted ink passes, so the overline uses it
+ * like the rest of the section.
+ */
+.memory-review-header .eyebrow {
+  color: var(--muted-foreground);
 }
 
 .memory-review-header h3,
