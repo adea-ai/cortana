@@ -1,9 +1,11 @@
+import { isActionDisabled } from './test/actionState'
 import { afterEach, expect, test } from 'bun:test'
 import { createSignal } from 'solid-js'
-import { cleanup, fireEvent, render, screen } from 'solid-testing-library'
+import { cleanup, fireEvent, render, screen, waitFor } from 'solid-testing-library'
 import { Workspace } from './components/Workspace'
 import { safeSourceLink } from './sourceLinks'
 import { canonicalDocument } from './test/fixtures'
+import type { AnswerResponse, BrainDocument } from './types'
 afterEach(cleanup)
 const props = {
   query: 'release',
@@ -92,6 +94,68 @@ test('shadcn renderer composes workspace navigation and empty states from shared
   expect(document.querySelector('[data-slot="empty"]')).toBeTruthy()
   expect(screen.getByText('Choose a document')).toBeTruthy()
 })
+test('an explicit graph tab survives mounting with preloaded answer and document data', async () => {
+  const tabChanges: string[] = []
+  render(() => (
+    <Workspace
+      {...props}
+      tab="graph"
+      answer={{
+        query: 'release',
+        answer: 'Release details',
+        evidence: [],
+        mode: 'synthesized',
+        cached: false,
+        latency_ms: 10,
+        warnings: [],
+        plan: { queries: ['release'], model_generated: false },
+      }}
+      document={canonicalDocument}
+      onTabChange={(tab) => tabChanges.push(tab)}
+    />
+  ))
+
+  expect(tabChanges).toEqual([])
+  expect(document.querySelector('[role="tablist"]')).toBeNull()
+  await waitFor(() => expect(screen.getByRole('heading', { name: 'Graph' })).toBeTruthy())
+})
+test('new answer and document data select their respective views after mount', async () => {
+  const answerChanges: string[] = []
+  const [answer, setAnswer] = createSignal<AnswerResponse | null>(null)
+  render(() => (
+    <Workspace
+      {...props}
+      tab="graph"
+      answer={answer()}
+      onTabChange={(tab) => answerChanges.push(tab)}
+    />
+  ))
+  setAnswer({
+    query: 'release',
+    answer: 'Release details',
+    evidence: [],
+    mode: 'synthesized',
+    cached: false,
+    latency_ms: 10,
+    warnings: [],
+    plan: { queries: ['release'], model_generated: false },
+  })
+  await waitFor(() => expect(answerChanges).toEqual(['answer']))
+
+  cleanup()
+  const documentChanges: string[] = []
+  const [selectedDocument, setSelectedDocument] = createSignal<BrainDocument | null>(null)
+  render(() => (
+    <Workspace
+      {...props}
+      tab="graph"
+      document={selectedDocument()}
+      onTabChange={(tab) => documentChanges.push(tab)}
+    />
+  ))
+  setSelectedDocument(canonicalDocument)
+  await waitFor(() => expect(documentChanges).toEqual(['document']))
+})
 test('shadcn workspace names revoked, loading, and malformed-content states without widening scope', () => {
   let retries = 0
   render(() => (
@@ -174,10 +238,10 @@ test('supported app source links keep an explicit open-source affordance', () =>
       name: 'Open original source',
     })
     expect(link.getAttribute('href')).toBe(uri)
-    expect(link.getAttribute('title')).toBe('Open original source')
+    expect(link.getAttribute('aria-label')).toBe('Open original source')
   }
 })
-test('graph failures expose a retry action', () => {
+test('graph failures expose a retry action', async () => {
   let retries = 0
   render(() => (
     <Workspace
@@ -190,6 +254,7 @@ test('graph failures expose a retry action', () => {
       }}
     />
   ))
+  await waitFor(() => expect(screen.queryByText('Loading knowledge graph')).toBeNull())
   expect(
     screen.getByRole('heading', {
       name: 'Graph unavailable',
@@ -207,7 +272,7 @@ test('graph failures expose a retry action', () => {
   )
   expect(retries).toBe(1)
 })
-test('graph retries stay outside the live summary and document nodes describe their destination', () => {
+test('graph retries stay outside the live summary and document nodes describe their destination', async () => {
   render(() => (
     <Workspace
       {...props}
@@ -238,6 +303,7 @@ test('graph retries stay outside the live summary and document nodes describe th
       onSelectDocument={() => {}}
     />
   ))
+  await waitFor(() => expect(screen.queryByText('Loading knowledge graph')).toBeNull())
   const summary = screen.getByRole('status')
   expect(summary.querySelector('button')).toBeNull()
   expect(
@@ -255,11 +321,11 @@ test('graph retries stay outside the live summary and document nodes describe th
       .getByRole('button', {
         name: /Open document:/,
       })
-      .getAttribute('title')
-  ).toBe('Open document')
+      .getAttribute('aria-label')
+  ).toContain('Open document')
   expect(document.querySelector('.graph-links line')).toBeTruthy()
 })
-test('graph exposes bounded pagination when another page is available', () => {
+test('graph exposes bounded pagination when another page is available', async () => {
   let loads = 0
   render(() => (
     <Workspace
@@ -289,6 +355,7 @@ test('graph exposes bounded pagination when another page is available', () => {
       onSelectDocument={() => {}}
     />
   ))
+  await waitFor(() => expect(screen.queryByText('Loading knowledge graph')).toBeNull())
   expect(screen.getByText('Showing 12 of 13 documents · 0 links')).toBeTruthy()
   const loadMore = screen.getByRole('button', {
     name: 'Load more nodes',
@@ -297,7 +364,7 @@ test('graph exposes bounded pagination when another page is available', () => {
   fireEvent.click(loadMore)
   expect(loads).toBe(1)
 })
-test('an empty graph page does not reuse unrelated retrieved evidence', () => {
+test('an empty graph page does not reuse unrelated retrieved evidence', async () => {
   render(() => (
     <Workspace
       {...props}
@@ -324,6 +391,7 @@ test('an empty graph page does not reuse unrelated retrieved evidence', () => {
       }}
     />
   ))
+  await waitFor(() => expect(screen.queryByText('Loading knowledge graph')).toBeNull())
   expect(
     screen.getByRole('heading', {
       name: 'No graph data',
@@ -335,7 +403,7 @@ test('an empty graph page does not reuse unrelated retrieved evidence', () => {
     })
   ).toBeNull()
 })
-test('graph supports bounded filtering and explains selected relationships', () => {
+test('graph supports bounded filtering and explains selected relationships', async () => {
   const focused: string[] = []
   const relationshipFilters: string[] = []
   render(() => (
@@ -384,6 +452,7 @@ test('graph supports bounded filtering and explains selected relationships', () 
       onGraphMinConfidenceChange={(confidence) => relationshipFilters.push(String(confidence))}
     />
   ))
+  await waitFor(() => expect(screen.queryByText('Loading knowledge graph')).toBeNull())
   const filter = screen.getByRole('searchbox', {
     name: 'Filter graph nodes',
   })
@@ -469,7 +538,7 @@ test('graph supports bounded filtering and explains selected relationships', () 
   )
   expect(relationshipFilters).toEqual(['contains', 'explicit', '0.75'])
 }, 15_000)
-test('graph keeps the selection across reordered revalidations and prunes vanished nodes', () => {
+test('graph keeps the selection across reordered revalidations and prunes vanished nodes', async () => {
   const firstPage = {
     nodes: [
       {
@@ -496,6 +565,7 @@ test('graph keeps the selection across reordered revalidations and prunes vanish
   render(() => (
     <Workspace {...props} document={null} tab="graph" graph={graph()} onSelectDocument={() => {}} />
   ))
+  await waitFor(() => expect(screen.queryByText('Loading knowledge graph')).toBeNull())
   fireEvent.click(
     screen.getByRole('button', {
       name: /Open document: Release notes/,
@@ -531,7 +601,7 @@ test('graph keeps the selection across reordered revalidations and prunes vanish
     })
   ).toBeNull()
 })
-test('graph exposes workspace and source nodes with bounded type filters', () => {
+test('graph exposes workspace and source nodes with bounded type filters', async () => {
   const focused: string[] = []
   render(() => (
     <Workspace
@@ -582,6 +652,7 @@ test('graph exposes workspace and source nodes with bounded type filters', () =>
       onFocusGraphNode={(node) => focused.push(`${node.kind}:${node.project}:${node.source ?? ''}`)}
     />
   ))
+  await waitFor(() => expect(screen.queryByText('Loading knowledge graph')).toBeNull())
   expect(
     screen.getByRole('button', {
       name: 'Focus workspace: work',
@@ -665,11 +736,11 @@ test('document is the default primary view and result tabs stay hidden until a s
   }
   // Document remains first-class without a search result; Graph is a rail-only view.
   expect(
-    screen
-      .getByRole('tab', {
+    isActionDisabled(
+      screen.getByRole('tab', {
         name: 'Document',
       })
-      .hasAttribute('disabled')
+    )
   ).toBe(false)
 })
 test('result tabs cannot be activated before a search because they are hidden', () => {
@@ -714,11 +785,11 @@ test('answer, evidence, and timeline tabs enable once evidence arrives and keep 
   ))
   for (const name of ['Answer', 'Evidence', 'Timeline']) {
     expect(
-      screen
-        .getByRole('tab', {
+      isActionDisabled(
+        screen.getByRole('tab', {
           name: new RegExp(name),
         })
-        .hasAttribute('disabled')
+      )
     ).toBe(false)
   }
   expect(

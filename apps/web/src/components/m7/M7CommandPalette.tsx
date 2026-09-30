@@ -1,7 +1,6 @@
 import { For } from 'solid-js'
 
 import {
-  Command,
   CommandDialog,
   CommandEmpty,
   CommandGroup,
@@ -42,35 +41,34 @@ export function M7CommandPalette(props: M7CommandPaletteProps) {
           target.focus()
         }
       }}
-      // The shared dialog uses this as its content's accessible name.
+      // cmdk's Dialog reads this prop and writes aria-label on its content —
+      // the accessible name the old local title/description props provided.
       label="Cortana command palette"
     >
-      <Command label="Search Cortana commands">
-        <CommandInput placeholder="Search commands…" />
-        <CommandList>
-          <CommandEmpty>No commands found.</CommandEmpty>
-          <CommandGroup heading="Actions">
-            <CommandItem onSelect={() => run(props.onSearch)}>
-              Search the brain
-              <CommandShortcut>{shortcutLabel('MOD K')}</CommandShortcut>
-            </CommandItem>
-            <CommandItem onSelect={() => run(props.onFilterDocuments)}>
-              Filter documents
-              <CommandShortcut>{shortcutLabel('MOD ⇧ F')}</CommandShortcut>
-            </CommandItem>
-            <CommandItem onSelect={() => run(props.onOpenSettings)}>Open settings</CommandItem>
-          </CommandGroup>
-          <CommandGroup heading="Workspaces">
-            <For each={props.workspaces}>
-              {(item) => (
-                <CommandItem onSelect={() => run(() => props.onChooseWorkspace(item.id))}>
-                  Switch to {item.name}
-                </CommandItem>
-              )}
-            </For>
-          </CommandGroup>
-        </CommandList>
-      </Command>
+      <CommandInput placeholder="Search commands…" />
+      <CommandList>
+        <CommandEmpty>No commands found.</CommandEmpty>
+        <CommandGroup heading="Actions">
+          <CommandItem onSelect={() => run(props.onSearch)}>
+            Search the brain
+            <CommandShortcut>{shortcutLabel('MOD K')}</CommandShortcut>
+          </CommandItem>
+          <CommandItem onSelect={() => run(props.onFilterDocuments)}>
+            Filter documents
+            <CommandShortcut>{shortcutLabel('MOD ⇧ F')}</CommandShortcut>
+          </CommandItem>
+          <CommandItem onSelect={() => run(props.onOpenSettings)}>Open settings</CommandItem>
+        </CommandGroup>
+        <CommandGroup heading="Workspaces">
+          <For each={props.workspaces}>
+            {(item) => (
+              <CommandItem onSelect={() => run(() => props.onChooseWorkspace(item.id))}>
+                Switch to {item.name}
+              </CommandItem>
+            )}
+          </For>
+        </CommandGroup>
+      </CommandList>
     </CommandDialog>
   )
 }

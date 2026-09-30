@@ -67,7 +67,7 @@ test('shadcn renderer uses shared source controls without a redundant workspace 
   expect(document.querySelector('[data-m7-source-panel]')).toBeTruthy()
   expect(screen.queryByLabelText('Workspace')).toBeNull()
   expect(document.querySelector('[data-slot="select-trigger"]')).toBeNull()
-  expect(document.querySelector('[data-slot="input"]')).toBeTruthy()
+  expect(document.querySelector('[data-slot="input-group-input"]')).toBeTruthy()
   expect(document.querySelectorAll('button').length).toBeGreaterThan(0)
   expect(document.querySelector('[role="switch"]')).toBeTruthy()
 })
@@ -95,10 +95,9 @@ test('SourcePanel reports loading while status is still resolving', () => {
 })
 test('the document filter row renders a single input box', () => {
   renderPanel(demoStatus, '')
-  const row = document.querySelector('label.document-filter') as HTMLElement
+  const row = document.querySelector('[data-slot="input-group"]') as HTMLElement
   expect(row).toBeTruthy()
-  // The shadcn field and the row chrome used to draw two nested boxes; the row
-  // is the only box now, so exactly one input lives inside it.
+  // The shared input group owns the single border and focus ring.
   expect(row.querySelectorAll('input')).toHaveLength(1)
   const input = screen.getByLabelText('Filter documents') as HTMLInputElement
   expect(row.contains(input)).toBe(true)
@@ -712,12 +711,11 @@ test('document explorer heading stays workspace-scoped when no source is selecte
   expect(screen.getByLabelText('Documents in Work / All sources')).toBeTruthy()
   expect(screen.queryByLabelText(/Documents in Personal/)).toBeNull()
 })
-test('document rows are indented nodes with no legacy workflow/folder labels', () => {
+test('shared document rows preserve source names and avoid legacy workflow/folder labels', () => {
   const { container } = renderExplorer('')
-  const rows = container.querySelectorAll('.virtual-document-space button.document-node')
+  const rows = container.querySelectorAll('[data-m7-document-row]')
   expect(rows).toHaveLength(explorerDocs.length)
-  // Each row keeps its source disambiguation and the indented hierarchy
-  // class that the stylesheet nests under the workspace/source breadcrumb.
+  // Each shared row keeps its source disambiguation and option semantics.
   expect(
     screen.getByRole('option', {
       name: /Main entrypoint/,

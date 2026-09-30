@@ -178,14 +178,14 @@ test('WorkspaceLogo renders the workspace initial tile without a stored logo', (
       }}
     />
   ))
-  const tile = container.querySelector('.workspace-logo') as HTMLElement
+  const tile = container.querySelector('[data-workspace-logo]') as HTMLElement
   expect(tile).toBeTruthy()
-  expect(tile.className).toContain('workspace-logo--medium')
-  expect(tile.textContent).toBe('W')
+  expect(tile.getAttribute('role')).toBe('img')
+  expect(tile.textContent).toBe('Wo')
   expect(tile.getAttribute('style')).toBeNull()
   expect(tile.getAttribute('aria-hidden')).toBe('true')
 })
-test('WorkspaceLogo small variant composes with the workspace picker ring', () => {
+test('WorkspaceLogo uses the shared decorative entity tile in the workspace picker', () => {
   const { container } = render(() => (
     <WorkspaceLogo
       workspace={{
@@ -196,9 +196,9 @@ test('WorkspaceLogo small variant composes with the workspace picker ring', () =
       size="small"
     />
   ))
-  const tile = container.querySelector('.workspace-logo') as HTMLElement
-  expect(tile.className).toContain('workspace-logo--small')
-  expect(tile.className).toContain('workspace-picker-mark')
+  const tile = container.querySelector('[data-workspace-logo]') as HTMLElement
+  expect(tile.getAttribute('role')).toBe('img')
+  expect(tile.getAttribute('aria-hidden')).toBe('true')
 })
 test('WorkspaceLogo follows the rendered workspace when the shell switches scope', () => {
   const personalLogo = 'data:image/png;base64,iVBORw0KGgoAAAB'
@@ -212,13 +212,17 @@ test('WorkspaceLogo follows the rendered workspace when the shell switches scope
   const { container } = render(() => <WorkspaceLogo workspace={workspace()} />)
   // The switcher re-renders this component in place, so a logo read once at
   // mount left the previous workspace's image on screen after a scope change.
-  expect((container.querySelector('img.workspace-logo') as HTMLImageElement).src).toBe(pngDataUrl)
+  expect((container.querySelector('[data-workspace-logo] img') as HTMLImageElement).src).toBe(
+    pngDataUrl
+  )
   setWorkspace({ id: 'personal', name: 'Personal', color: null })
-  expect((container.querySelector('img.workspace-logo') as HTMLImageElement).src).toBe(personalLogo)
+  expect((container.querySelector('[data-workspace-logo] img') as HTMLImageElement).src).toBe(
+    personalLogo
+  )
   setWorkspace({ id: 'archive', name: 'Archive', color: null })
-  const tile = container.querySelector('.workspace-logo') as HTMLElement
+  const tile = container.querySelector('[data-workspace-logo]') as HTMLElement
   expect(tile.tagName).toBe('SPAN')
-  expect(tile.textContent).toBe('A')
+  expect(tile.textContent).toBe('Ar')
 })
 test('WorkspaceLogo renders a stored logo image with decorative alt behavior', () => {
   writeWorkspaceLogo('work', pngDataUrl)
@@ -231,7 +235,7 @@ test('WorkspaceLogo renders a stored logo image with decorative alt behavior', (
       }}
     />
   ))
-  const img = container.querySelector('img.workspace-logo') as HTMLImageElement
+  const img = container.querySelector('[data-workspace-logo] img') as HTMLImageElement
   expect(img).toBeTruthy()
   expect(img.getAttribute('src')).toBe(pngDataUrl)
   expect(img.getAttribute('alt')).toBe('')

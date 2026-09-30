@@ -1,3 +1,4 @@
+import { isActionDisabled } from '../test/actionState'
 import { afterEach, expect, mock, test } from 'bun:test'
 import { cleanup, fireEvent, render, screen, waitFor } from 'solid-testing-library'
 import { MemoryReview, type MemoryReviewClient } from './MemoryReview'
@@ -189,7 +190,7 @@ test('requires confirmation for canonical approval and keeps queue controls expl
     name: 'Pause consolidation',
   })
   // Consolidation control stays disabled until the first refresh resolves.
-  await waitFor(() => expect(pause.hasAttribute('disabled')).toBe(false))
+  await waitFor(() => expect(isActionDisabled(pause)).toBe(false))
   fireEvent.click(pause)
   await waitFor(() => expect(api.actions).toContain('pause'))
   window.confirm = originalConfirm
@@ -210,8 +211,9 @@ test('keeps the review queue available while disabling owner-only consolidation 
   const pause = screen.getByRole('button', {
     name: 'Pause consolidation',
   })
-  expect(pause.hasAttribute('disabled')).toBe(true)
-  expect(pause.getAttribute('title')).toMatch(/owner/i)
+  expect(isActionDisabled(pause)).toBe(true)
+  pause.focus()
+  expect((await screen.findByRole('tooltip')).textContent).toMatch(/owner/i)
 })
 test('surfaces bounded-response truncation instead of presenting a partial queue as complete', async () => {
   const api = client()

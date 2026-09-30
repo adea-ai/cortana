@@ -1,3 +1,4 @@
+import { isActionDisabled } from './test/actionState'
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
 import { cleanup, fireEvent, render, screen, waitFor, within } from 'solid-testing-library'
 import { createSignal } from 'solid-js'
@@ -227,7 +228,7 @@ test('buzz community chooser refuses to discover unsaved changes and surfaces fa
   const discoverButton = screen.getByRole('button', {
     name: /Discover communities/,
   }) as HTMLButtonElement
-  expect(discoverButton.disabled).toBe(true)
+  expect(isActionDisabled(discoverButton)).toBe(true)
   fireEvent.click(discoverButton)
   expect(state.discoverCalls).toEqual([])
 

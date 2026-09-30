@@ -1,3 +1,4 @@
+import { isActionDisabled } from './test/actionState'
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
 import { cleanup, fireEvent, render, screen, waitFor } from 'solid-testing-library'
 import userEvent from '@testing-library/user-event'
@@ -197,7 +198,7 @@ test('slack workspace chooser refuses to discover unsaved changes and surfaces f
   const discoverButton = screen.getByRole('button', {
     name: /Discover workspaces/,
   }) as HTMLButtonElement
-  expect(discoverButton.disabled).toBe(true)
+  expect(isActionDisabled(discoverButton)).toBe(true)
   fireEvent.click(discoverButton)
   expect(state.discoverCalls).toEqual([])
 
@@ -313,11 +314,11 @@ test('slack authorize action stays hidden until saved OAuth paths are available'
   await waitFor(() => expect(state.savedUpdates).toHaveLength(1))
   await waitFor(() =>
     expect(
-      (
+      isActionDisabled(
         screen.getByRole('button', {
           name: 'Authorize',
         }) as HTMLButtonElement
-      ).disabled
+      )
     ).toBe(false)
   )
   expect(state.saved?.sources[0].token_path).toBe(

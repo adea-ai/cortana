@@ -1,47 +1,34 @@
 import { ErrorBoundary, type JSX } from 'solid-js'
+import { ActionButton as Button } from '@adea-ai/ui/components/composites/action-button'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from '@adea-ai/ui/components/ui/empty'
 
-/** Catches renderer chunk and root failures before either visual system loads. */
+/** Keep recovery in the eagerly loaded shell when a renderer chunk fails. */
 export function RendererErrorBoundary(props: { children: JSX.Element }) {
   return (
     <ErrorBoundary
       fallback={(error) => {
         console.error('Cortana renderer failed', error)
         return (
-          <main
-            role="alert"
-            style={{
-              'align-items': 'center',
-              background: 'var(--background, #0f1624)',
-              color: 'var(--foreground, #f0f3fc)',
-              display: 'flex',
-              'flex-direction': 'column',
-              'font-family': 'system-ui, sans-serif',
-              gap: '0.75rem',
-              'justify-content': 'center',
-              'min-height': '100vh',
-              padding: '2rem',
-              'text-align': 'center',
-            }}
-          >
-            <h1>Cortana needs a reload</h1>
-            <p>The renderer could not load. Your local index and settings are safe.</p>
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              style={{
-                background: 'var(--primary, #59defc)',
-                border: 0,
-                'border-radius': '0.5rem',
-                color: 'var(--primary-foreground, #151b2b)',
-                cursor: 'pointer',
-                font: 'inherit',
-                'font-weight': 600,
-                'min-height': '2.75rem',
-                padding: '0.625rem 1rem',
-              }}
-            >
-              Reload workspace
-            </button>
+          <main role="alert">
+            <Empty>
+              <EmptyHeader>
+                <EmptyTitle>Cortana needs a reload</EmptyTitle>
+                <EmptyDescription>
+                  The renderer could not load. Your local index and settings are safe.
+                </EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                <Button onClick={() => window.location.reload()} tooltip="Reload the workspace">
+                  Reload workspace
+                </Button>
+              </EmptyContent>
+            </Empty>
           </main>
         )
       }}

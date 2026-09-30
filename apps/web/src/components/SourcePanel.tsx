@@ -1,4 +1,9 @@
 import {
+  Alert as SharedFeedbackAlert,
+  AlertDescription as SharedFeedbackDescription,
+} from '@adea-ai/ui/components/ui/alert'
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@adea-ai/ui/components/ui/input-group'
+import {
   ChevronDown,
   ChevronRight,
   CircleStop,
@@ -16,14 +21,16 @@ import { activeJobs, describeSourceJobProgress } from '../sourceJobs'
 import { operationalSources, sourceHealth, type OperationalSource } from '../operations'
 import { SourceIcon } from './sourceIcons'
 import { cn } from '@/lib/utils'
+import { createMediaQuery } from '@/lib/mediaQuery'
 
 import { sourceDisplayName } from './sourceIconData'
-import { TooltipButton as Button } from './cortana/TooltipButton'
-import { VariantButton as ActionButton } from './cortana/VariantButton'
-import { Input } from '@adea-ai/ui/components/ui/input'
+import { ActionButton as Button } from '@adea-ai/ui/components/composites/action-button'
+import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
+import { EmptyState } from '@adea-ai/ui/components/ui/empty'
 import { Progress } from '@adea-ai/ui/components/ui/progress'
 import { Skeleton } from '@adea-ai/ui/components/ui/skeleton'
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
+import { StatusChip, type StatusTone } from '@adea-ai/ui/components/ui/status-chip'
 import { Switch } from '@adea-ai/ui/components/ui/switch'
 import type {
   BrainDocumentSummary,
@@ -69,6 +76,7 @@ export function SourcePanel(props: {
   onCancelSourceJob?: (id: string) => void
   jobs?: DesktopSourceJob[]
 }) {
+  const compact = createMediaQuery(() => '(max-width: 799px)')
   const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set())
   const sourceJobError = () => props.sourceJobError ?? ''
   const sourceToggleBusy = () => props.sourceToggleBusy ?? null
@@ -96,14 +104,6 @@ export function SourcePanel(props: {
     props.workspaces.find((item) => item.id === props.workspace) ?? props.workspaces[0]
   const selectedSource = () => sources.find((item) => item.source === props.selected)
   const statusLoading = () => props.status === null && props.statusError === ''
-  const sourceModeClass = () =>
-    props.status
-      ? props.status.ingestion.scheduled
-        ? 'scheduled'
-        : 'manual'
-      : props.statusError
-        ? 'unavailable'
-        : 'manual'
   const sourceModeLabel = () =>
     props.status
       ? props.status.ingestion.scheduled
@@ -120,18 +120,21 @@ export function SourcePanel(props: {
     >
       <div class="panel-heading">
         <strong>Sources</strong>
+        <Show when={compact()}>
+          <ActionButton
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Close sources"
+            tooltip="Close sources"
+            onClick={props.onClose}
+          >
+            <X size={17} aria-hidden="true" />
+          </ActionButton>
+        </Show>
         <ActionButton
-          variant="icon"
-          class="mobile-close "
-          aria-label="Close sources"
-          tooltip="Close sources"
-          onClick={props.onClose}
-        >
-          <X size={17} />
-        </ActionButton>
-        <ActionButton
-          variant="icon"
-          class=""
+          variant="ghost"
+          size="icon-sm"
+
           aria-label="Add source"
           tooltip="Add source"
           onClick={props.onOpenSourcesSettings}
@@ -139,18 +142,23 @@ export function SourcePanel(props: {
           +
         </ActionButton>
         <ActionButton
-          variant="icon"
-          class=""
+          variant="ghost"
+          size="icon-sm"
+
           aria-label="Source settings"
           tooltip="Source settings"
           onClick={props.onOpenSourcesSettings}
         >
-          <Settings size={16} />
+          <Settings size={16} aria-hidden="true" />
         </ActionButton>
       </div>
-      <div class={`source-mode ${sourceModeClass()}`}>
-        <i />
-        Ingestion {statusLoading() ? 'loading status…' : sourceModeLabel()}
+      <div class="source-mode">
+        <StatusChip
+          tone={
+            props.statusError ? 'warning' : props.status?.ingestion.scheduled ? 'info' : 'neutral'
+          }
+          label={`Ingestion ${statusLoading() ? 'loading status…' : sourceModeLabel()}`}
+        />
       </div>
       <Show when={active().length > 0}>
         <div class="source-jobs-strip" aria-label="Active source jobs">
@@ -164,15 +172,16 @@ export function SourcePanel(props: {
                 </span>
                 <Show when={props.onCancelSourceJob}>
                   <ActionButton
-                    variant="icon"
+                    variant="ghost"
+                    size="icon-sm"
                     type="button"
-                    class="source-job-cancel "
+                    class="ml-auto shrink-0"
                     aria-label={`Cancel ${job.project} ${job.source} ${job.operation}`}
                     tooltip={`Cancel ${job.project} ${job.source} ${job.operation}`}
                     disabled={job.status === 'cancelling'}
                     onClick={() => props.onCancelSourceJob?.(job.id)}
                   >
-                    <CircleStop size={12} />
+                    <CircleStop size={12} aria-hidden="true" />
                   </ActionButton>
                 </Show>
               </div>
@@ -181,45 +190,53 @@ export function SourcePanel(props: {
         </div>
       </Show>
       <Show when={sourceJobError()}>
-        <p class="document-list-error source-job-error" role="alert">
-          {sourceJobError()}
-          <Show when={props.onRetrySourceJobs}>
-            {' '}
-            <ActionButton
-              variant="ghost"
-              type="button"
-              class="link-button"
-              onClick={props.onRetrySourceJobs}
-            >
-              Retry source jobs
-            </ActionButton>
-          </Show>
-        </p>
+        <SharedFeedbackAlert variant="destructive" role="alert" class="my-2">
+          <SharedFeedbackDescription>
+            {sourceJobError()}
+            <Show when={props.onRetrySourceJobs}>
+              {' '}
+              <ActionButton
+                tooltip="Retry source jobs"
+                variant="ghost"
+                size="sm"
+                type="button"
+                class="link-button"
+                onClick={props.onRetrySourceJobs}
+              >
+                Retry source jobs
+              </ActionButton>
+            </Show>
+          </SharedFeedbackDescription>
+        </SharedFeedbackAlert>
       </Show>
       <Show when={sourceToggleError()}>
-        <p class="document-list-error source-job-error" role="alert">
-          {sourceToggleError()}
-        </p>
+        <SharedFeedbackAlert variant="destructive" role="alert" class="my-2">
+          <SharedFeedbackDescription>{sourceToggleError()}</SharedFeedbackDescription>
+        </SharedFeedbackAlert>
       </Show>
       <Show when={sourceToggleNotice()}>
-        <p class="document-list-state source-toggle-notice" role="status">
+        <p class="document-list-state" role="status">
           {sourceToggleNotice()}
         </p>
       </Show>
       <Show when={props.statusError && props.status}>
-        <p class="document-list-error" role="status">
-          {props.statusError} Showing the last known source index.{' '}
-          <Show when={props.onRetryStatus}>
-            <ActionButton
-              variant="ghost"
-              type="button"
-              class="link-button"
-              onClick={props.onRetryStatus}
-            >
-              Retry status
-            </ActionButton>
-          </Show>
-        </p>
+        <SharedFeedbackAlert variant="warning" role="status" class="my-2">
+          <SharedFeedbackDescription>
+            {props.statusError} Showing the last known source index.{' '}
+            <Show when={props.onRetryStatus}>
+              <ActionButton
+                tooltip="Retry status"
+                variant="ghost"
+                size="sm"
+                type="button"
+                class="link-button"
+                onClick={props.onRetryStatus}
+              >
+                Retry status
+              </ActionButton>
+            </Show>
+          </SharedFeedbackDescription>
+        </SharedFeedbackAlert>
       </Show>
       <Show
         when={!statusLoading()}
@@ -238,29 +255,34 @@ export function SourcePanel(props: {
         <Show
           when={!(props.statusError && !props.status)}
           fallback={
-            <p class="document-list-error" role="status">
-              {props.statusError}{' '}
-              <Show when={props.onRetryStatus}>
-                <ActionButton
-                  variant="ghost"
-                  type="button"
-                  class="link-button"
-                  onClick={props.onRetryStatus}
-                >
-                  Retry status
-                </ActionButton>
-              </Show>
-            </p>
+            <SharedFeedbackAlert variant="warning" role="status" class="my-2">
+              <SharedFeedbackDescription>
+                {props.statusError}{' '}
+                <Show when={props.onRetryStatus}>
+                  <ActionButton
+                    tooltip="Retry status"
+                    variant="ghost"
+                    size="sm"
+                    type="button"
+                    class="link-button"
+                    onClick={props.onRetryStatus}
+                  >
+                    Retry status
+                  </ActionButton>
+                </Show>
+              </SharedFeedbackDescription>
+            </SharedFeedbackAlert>
           }
         >
           <Show
             when={sources.length}
             fallback={
-              <div class="source-empty">
-                <Database size={20} />
-                <p>No indexed sources yet.</p>
-                <span>Configure a source, then run cortana sync.</span>
-              </div>
+              <EmptyState
+                headingLevel={2}
+                title="No indexed sources yet."
+                detail="Configure a source, then run cortana sync."
+                icon={<Database aria-hidden="true" />}
+              />
             }
           >
             <div class="source-tree">
@@ -291,12 +313,13 @@ export function SourcePanel(props: {
                           (job.source === item.source || job.source === item.name)
                       )
                     return (
-                      <div class="source-node">
+                      <div>
                         <div class="source-row">
                           <ActionButton
-                            variant="icon"
+                            variant="ghost"
+                            size="icon-sm"
                             type="button"
-                            class="tree-toggle "
+                            class="tree-toggle"
                             aria-label={`${isCollapsed() ? 'Expand' : 'Collapse'} ${item.name}`}
                             tooltip={`${isCollapsed() ? 'Expand' : 'Collapse'} ${item.name}`}
                             aria-expanded={!isCollapsed()}
@@ -309,27 +332,48 @@ export function SourcePanel(props: {
                               })
                             }}
                           >
-                            {isCollapsed() ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+                            {isCollapsed() ? (
+                              <ChevronRight size={13} aria-hidden="true" />
+                            ) : (
+                              <ChevronDown size={13} aria-hidden="true" />
+                            )}
                           </ActionButton>
                           <Button
-                            variant="ghost"
+                            variant={isSelected() ? 'secondary' : 'ghost'}
                             type="button"
-                            class={cn('source-select', isSelected() && 'selected')}
+                            class="source-select"
                             aria-pressed={isSelected()}
                             aria-label={`${item.source} ${item.documents.toLocaleString()}`}
                             onClick={() => props.onSelect(item.source, item.project)}
-                            title={health().label}
+                            tooltip={health().label}
                           >
-                            <SourceIcon kind={item.kind} size={17} />
-                            <span>{sourceDisplayName(item.kind, item.name)}</span>
-                            <i class={`source-health ${health().state}`} />
-                            <small>{item.documents.toLocaleString()}</small>
+                            <span class="source-select-content">
+                              <SourceIcon kind={item.kind} size={17} />
+                              <span>{sourceDisplayName(item.kind, item.name)}</span>
+                              <StatusChip
+                                compact
+                                tone={
+                                  (
+                                    {
+                                      healthy: 'success',
+                                      failed: 'danger',
+                                      warning: 'warning',
+                                      running: 'info',
+                                      disabled: 'neutral',
+                                    } as Record<string, StatusTone>
+                                  )[health().state] ?? 'unknown'
+                                }
+                                label={health().label}
+                              />
+                              <small>{item.documents.toLocaleString()}</small>
+                            </span>
                           </Button>
                           <Show when={props.onOpenSourceSetup && needsProviderSetup()}>
                             <ActionButton
-                              variant="icon"
+                              variant="ghost"
+                              size="icon-sm"
                               type="button"
-                              class="source-action "
+                              class="source-action"
                               aria-label={`Open ${item.name} setup`}
                               tooltip={
                                 sourceJobActive()
@@ -352,14 +396,15 @@ export function SourcePanel(props: {
                                 props.onOpenSourceSetup?.(item.source, item.project)
                               }}
                             >
-                              <ExternalLink size={13} />
+                              <ExternalLink size={13} aria-hidden="true" />
                             </ActionButton>
                           </Show>
                           <Show when={props.onAuthorizeSource && needsBrowserAuthorization()}>
                             <ActionButton
-                              variant="icon"
+                              variant="ghost"
+                              size="icon-sm"
                               type="button"
-                              class="source-action "
+                              class="source-action"
                               aria-label={`Authorize ${item.name}`}
                               tooltip={
                                 sourceJobActive()
@@ -380,7 +425,7 @@ export function SourcePanel(props: {
                                 props.onAuthorizeSource?.(item.source, item.project)
                               }}
                             >
-                              <KeyRound size={13} />
+                              <KeyRound size={13} aria-hidden="true" />
                             </ActionButton>
                           </Show>
                           <Show when={props.onToggleSource && item.kind !== 'indexed'}>
@@ -439,44 +484,52 @@ export function SourcePanel(props: {
           </strong>
           <span>{props.documents.length.toLocaleString()} loaded</span>
         </div>
-        <label class="document-filter">
-          <Search size={14} aria-hidden="true" />
-          <Input
+        <InputGroup class="mb-2 shrink-0">
+          <InputGroupAddon>
+            <Search aria-hidden="true" />
+          </InputGroupAddon>
+          <InputGroupInput
             id="document-filter"
-            class="document-filter-input"
             value={props.documentQuery}
             onInput={(event) => props.onDocumentQueryChange(event.target.value)}
             placeholder="Filter documents"
             aria-label="Filter documents"
           />
           <Show when={props.documentQuery !== ''}>
-            <ActionButton
-              variant="icon"
-              type="button"
-              class="document-filter-clear"
-              aria-label="Clear document filter"
-              onClick={() => props.onDocumentQueryChange('')}
-            >
-              <X size={14} />
-            </ActionButton>
+            <InputGroupAddon align="end">
+              <ActionButton
+                tooltip="Clear document filter"
+                variant="ghost"
+                size="icon-sm"
+                type="button"
+                aria-label="Clear document filter"
+                onClick={() => props.onDocumentQueryChange('')}
+              >
+                <X size={14} aria-hidden="true" />
+              </ActionButton>
+            </InputGroupAddon>
           </Show>
-        </label>
+        </InputGroup>
         <Show
           when={!props.documentsError}
           fallback={
-            <p class="document-list-error" role="alert">
-              {props.documentsError}{' '}
-              <Show when={props.onRetryDocuments}>
-                <ActionButton
-                  variant="ghost"
-                  type="button"
-                  class="link-button"
-                  onClick={props.onRetryDocuments}
-                >
-                  Retry documents
-                </ActionButton>
-              </Show>
-            </p>
+            <SharedFeedbackAlert variant="destructive" role="alert" class="my-2">
+              <SharedFeedbackDescription>
+                {props.documentsError}{' '}
+                <Show when={props.onRetryDocuments}>
+                  <ActionButton
+                    tooltip="Retry documents"
+                    variant="ghost"
+                    size="sm"
+                    type="button"
+                    class="link-button"
+                    onClick={props.onRetryDocuments}
+                  >
+                    Retry documents
+                  </ActionButton>
+                </Show>
+              </SharedFeedbackDescription>
+            </SharedFeedbackAlert>
           }
         >
           <Show
@@ -503,7 +556,9 @@ export function SourcePanel(props: {
         </Show>
         <Show when={props.hasMoreDocuments && !props.documentsLoading}>
           <ActionButton
+            tooltip="Load next page"
             variant="secondary"
+            size="sm"
             class="load-more-documents"
             onClick={props.onLoadMoreDocuments}
           >

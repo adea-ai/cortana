@@ -1,5 +1,7 @@
 # Desktop shadcn migration record
 
+This is the historical M7 baseline. The production component ownership, imports, styling rules, and validation contract are now defined in [Web UI standards](web-ui-standards.md), which supersedes the local generated-component foundation and exceptions below.
+
 This record owns the reproducible baseline, architecture decision, legacy inventory, and issue
 sequence for M7. The product acceptance contract remains in
 [`desktop-ux-audit.md`](desktop-ux-audit.md); this file records the migration evidence needed to

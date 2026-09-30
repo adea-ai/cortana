@@ -12,7 +12,7 @@ afterEach(cleanup)
 
 test('settings disclosures close again when their trigger is activated twice', async () => {
   const { getByRole, queryByText } = render(() => (
-    <SettingsAccordion>
+    <SettingsAccordion collapsible>
       <SettingsAccordionItem value="details">
         <SettingsAccordionTrigger>Advanced details</SettingsAccordionTrigger>
         <SettingsAccordionContent>

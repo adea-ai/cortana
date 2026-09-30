@@ -1,4 +1,7 @@
-import { Download, LoaderCircle, RefreshCw } from 'lucide-solid'
+import { Spinner } from '@adea-ai/ui/components/ui/spinner'
+import { downloadBlob } from '@adea-ai/ui/lib/download'
+import { AlertDescription } from '@adea-ai/ui/components/ui/alert'
+import { Download, RefreshCw } from 'lucide-solid'
 import { createEffect, createSignal, onCleanup } from 'solid-js'
 
 import { getDesktopAudit, getRuntimeAudit } from '../../api'
@@ -50,19 +53,11 @@ export function AuditSection() {
     const blob = new Blob([JSON.stringify(payload, null, 2)], {
       type: 'application/json',
     })
-    const url = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = `cortana-audit-${new Date().toISOString().slice(0, 10)}.json`
-    document.body.appendChild(anchor)
-    anchor.click()
-    anchor.remove()
-    // Defer the revoke one tick so the browser can initiate the download
-    // before the object URL is torn down.
-    window.setTimeout(() => URL.revokeObjectURL(url), 0)
+    downloadBlob(blob, `cortana-audit-${new Date().toISOString().slice(0, 10)}.json`)
   }
   return (
     <SettingsSection
+      bodyLayout="content"
       title="Audit trail"
       description="Bounded metadata-only runtime and Desktop events. Queries, document contents, bearer tokens, and secret values are excluded."
     >
@@ -72,7 +67,9 @@ export function AuditSection() {
         </span>
         <div class="service-actions">
           <Button
-            variant="compact"
+            tooltip="Reload the bounded runtime and Desktop audit events."
+            variant="secondary"
+            size="xs"
             disabled={loading()}
             onClick={() => {
               setLoading(true)
@@ -80,17 +77,32 @@ export function AuditSection() {
               void refresh()
             }}
           >
-            {loading() ? <LoaderCircle class="spin" size={14} /> : <RefreshCw size={14} />}
+            {loading() ? (
+              <Spinner size="sm" label={false} />
+            ) : (
+              <RefreshCw size={14} aria-hidden="true" />
+            )}
             Refresh
           </Button>
-          <Button variant="secondary" type="button" disabled={loading()} onClick={exportAudit}>
-            <Download size={14} /> Export
+          <Button
+            tooltip={
+              loading()
+                ? 'Wait for the audit events to finish loading before exporting.'
+                : 'Download the currently loaded, redacted audit events as JSON.'
+            }
+            variant="secondary"
+            size="sm"
+            type="button"
+            disabled={loading()}
+            onClick={exportAudit}
+          >
+            <Download size={14} aria-hidden="true" /> Export
           </Button>
         </div>
       </div>
       {error() && (
         <SettingsAlert class="safety-note error" variant="destructive" role="alert">
-          {error()}
+          <AlertDescription>{error()}</AlertDescription>
         </SettingsAlert>
       )}
       <AuditList title="Runtime retrieval" events={runtime()} />

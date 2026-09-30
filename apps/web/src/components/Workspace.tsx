@@ -1,49 +1,41 @@
+import { Card, CardContent } from '@adea-ai/ui/components/ui/card'
+import { ListRow } from '@adea-ai/ui/components/composites/list-row'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@adea-ai/ui/components/ui/tooltip'
 import {
-  BookOpen,
-  Database,
-  FileText,
-  FolderTree,
-  History,
-  Link2,
-  Network,
-  Search,
-  Star,
-} from 'lucide-solid'
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from '@adea-ai/ui/components/ui/accordion'
+import { Alert, AlertDescription } from '@adea-ai/ui/components/ui/alert'
+import { BookOpen, FileText, History, Link2, Network, Star } from 'lucide-solid'
 import {
   createComputed,
   createEffect,
-  createMemo,
   createSignal,
   For,
   Match,
   Show,
   Switch,
-  type ComponentProps,
-  type JSX,
+  lazy,
+  on,
+  Suspense,
 } from 'solid-js'
-import { createStore, reconcile } from 'solid-js/store'
 import { Dynamic } from 'solid-js/web'
 
+import { writeClipboardText } from '../clipboard'
 import { isDesktopApp, openDesktopUrl } from '../api'
 import { codeRevisionLabel } from '../codeEvidence'
 import { isFavoriteDocument, toggleFavoriteDocument } from '../favoriteDocuments'
 import { safeSourceLink } from '../sourceLinks'
 import { Badge } from '@adea-ai/ui/components/ui/badge'
-import { TooltipButton as Button } from './cortana/TooltipButton'
-import { VariantButton as WorkspaceButton } from './cortana/VariantButton'
 import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@adea-ai/ui/components/ui/empty'
-import { Input } from '@adea-ai/ui/components/ui/input'
-import { NativeSelect } from '@adea-ai/ui/components/ui/native-select'
-import { Spinner } from '@adea-ai/ui/components/ui/spinner'
+  ActionButton,
+  ActionButton as Button,
+} from '@adea-ai/ui/components/composites/action-button'
+import { ActionButton as WorkspaceButton } from '@adea-ai/ui/components/composites/action-button'
+import { EmptyState } from '@adea-ai/ui/components/ui/empty'
 import { Tabs, TabsList, TabsTrigger } from '@adea-ai/ui/components/ui/tabs'
-import { Toggle } from '@adea-ai/ui/components/ui/toggle'
 import type {
   AnswerResponse,
   BrainDocument,
@@ -66,15 +58,7 @@ export type WorkspaceTab = (typeof tabs)[number]['id'] | 'graph'
 // The Document tab is the default primary view and Graph remains an explicit
 // separate view, so neither is gated.
 const resultGatedTabs = new Set<WorkspaceTab>(['answer', 'sources', 'timeline'])
-const EMPTY_GRAPH_NODES: BrainGraphNode[] = []
-
-function WorkspaceInteractive(props: ComponentProps<'button'>) {
-  return <Button variant="ghost" {...props} />
-}
-
-function WorkspaceBadge(props: ComponentProps<'span'>) {
-  return <Badge variant="secondary" {...props} />
-}
+const LazyKnowledgeGraphView = lazy(() => import('./KnowledgeGraphView'))
 
 async function openSourceLink(href: string): Promise<boolean> {
   if (!isDesktopApp) return false
@@ -137,12 +121,24 @@ export function Workspace(props: {
     }
   }
 
-  createComputed(() => {
-    if (props.document) props.onTabChange('document')
-  })
-  createComputed(() => {
-    if (props.answer || props.reflection) props.onTabChange('answer')
-  })
+  createEffect(
+    on(
+      () => props.document,
+      (document) => {
+        if (document) props.onTabChange('document')
+      },
+      { defer: true }
+    )
+  )
+  createEffect(
+    on(
+      () => props.answer || props.reflection,
+      (result) => {
+        if (result) props.onTabChange('answer')
+      },
+      { defer: true }
+    )
+  )
   createComputed(() => {
     // Keep an explicitly submitted search visible while retrieval is in
     // flight. The result tab is hidden from the tab strip until evidence
@@ -159,26 +155,34 @@ export function Workspace(props: {
     tabs.filter(({ id }) => id === 'document' || hasResults() || props.loading)
 
   return (
-    <main id="main-content" class="workspace m7-knowledge-workspace" data-m7-knowledge-workspace="">
+    <main
+      tabIndex={-1}
+      id="main-content"
+      class="workspace m7-knowledge-workspace"
+      data-m7-knowledge-workspace=""
+    >
       <Show when={props.tab !== 'graph'}>
         <Tabs
-          class="shrink-0 border-b px-3 pt-2"
+          class="shrink-0 px-3 pt-2"
           value={props.tab}
           onChange={(value) => props.onTabChange(value as WorkspaceTab)}
         >
           <TabsList appearance="underline" aria-label="Result views">
             <For each={availableTabs()}>
               {({ id, label, icon }) => (
-                <TabsTrigger value={id}>
-                  <Dynamic component={icon} size={15} />
-                  {label}
-                  <Show when={id === 'document' && props.document}>
-                    <Badge variant="secondary">1</Badge>
-                  </Show>
-                  <Show when={id === 'sources' && props.evidence.length > 0}>
-                    <Badge variant="secondary">{props.evidence.length}</Badge>
-                  </Show>
-                </TabsTrigger>
+                <Tooltip>
+                  <TooltipTrigger as={TabsTrigger} value={id}>
+                    <Dynamic component={icon} size={15} />
+                    {label}
+                    <Show when={id === 'document' && props.document}>
+                      <Badge variant="secondary">1</Badge>
+                    </Show>
+                    <Show when={id === 'sources' && props.evidence.length > 0}>
+                      <Badge variant="secondary">{props.evidence.length}</Badge>
+                    </Show>
+                  </TooltipTrigger>
+                  <TooltipContent>{`Show ${label.toLowerCase()} for this search`}</TooltipContent>
+                </Tooltip>
               )}
             </For>
           </TabsList>
@@ -197,30 +201,41 @@ export function Workspace(props: {
           <BrainDocumentView document={props.document!} onSelectDocument={props.onSelectDocument} />
         </Match>
         <Match when={props.tab === 'graph'}>
-          <GraphView
-            graph={props.graph}
-            graphLoading={props.graphLoading}
-            graphAppendLoading={props.graphAppendLoading ?? false}
-            graphError={props.graphError}
-            onLoadMore={props.onLoadMoreGraph}
-            onRetry={props.onRetryGraph}
-            evidence={props.evidence}
-            onSelect={selectEvidenceByChunkId}
-            onSelectDocument={props.onSelectDocument}
-            onFocusGraphNode={props.onFocusGraphNode}
-            graphFocused={props.graphFocused ?? false}
-            onResetGraphFocus={props.onResetGraphFocus}
-            graphEdgeKind={props.graphEdgeKind ?? 'all'}
-            onGraphEdgeKindChange={props.onGraphEdgeKindChange}
-            graphOrigin={props.graphOrigin ?? 'all'}
-            onGraphOriginChange={props.onGraphOriginChange}
-            graphCanGoBack={props.graphCanGoBack ?? false}
-            graphCanGoForward={props.graphCanGoForward ?? false}
-            onGraphBack={props.onGraphBack}
-            onGraphForward={props.onGraphForward}
-            graphMinConfidence={props.graphMinConfidence ?? null}
-            onGraphMinConfidenceChange={props.onGraphMinConfidenceChange}
-          />
+          <Suspense
+            fallback={
+              <EmptyState
+                title="Loading knowledge graph"
+                detail="Loading graph view…"
+                announceAs="status"
+                busy
+              />
+            }
+          >
+            <LazyKnowledgeGraphView
+              graph={props.graph}
+              graphLoading={props.graphLoading}
+              graphAppendLoading={props.graphAppendLoading ?? false}
+              graphError={props.graphError}
+              onLoadMore={props.onLoadMoreGraph}
+              onRetry={props.onRetryGraph}
+              evidence={props.evidence}
+              onSelect={selectEvidenceByChunkId}
+              onSelectDocument={props.onSelectDocument}
+              onFocusGraphNode={props.onFocusGraphNode}
+              graphFocused={props.graphFocused ?? false}
+              onResetGraphFocus={props.onResetGraphFocus}
+              graphEdgeKind={props.graphEdgeKind ?? 'all'}
+              onGraphEdgeKindChange={props.onGraphEdgeKindChange}
+              graphOrigin={props.graphOrigin ?? 'all'}
+              onGraphOriginChange={props.onGraphOriginChange}
+              graphCanGoBack={props.graphCanGoBack ?? false}
+              graphCanGoForward={props.graphCanGoForward ?? false}
+              onGraphBack={props.onGraphBack}
+              onGraphForward={props.onGraphForward}
+              graphMinConfidence={props.graphMinConfidence ?? null}
+              onGraphMinConfidenceChange={props.onGraphMinConfidenceChange}
+            />
+          </Suspense>
         </Match>
         <Match when={props.error}>
           <EmptyState
@@ -296,7 +311,7 @@ function BrainDocumentView(props: {
     props.document.uri ? safeSourceLink(props.document.uri, { allowLocalFile: isDesktopApp }) : null
   const copyDocumentValue = async (value: string, success: string) => {
     try {
-      await navigator.clipboard.writeText(value)
+      await writeClipboardText(value)
       setCopyStatus(success)
     } catch {
       setCopyStatus('Copy failed. Select the canonical text and copy it manually.')
@@ -308,25 +323,28 @@ function BrainDocumentView(props: {
         <span>Brain</span> / <span>{props.document.project}</span> /{' '}
         <span>{props.document.source}</span> / <strong>{props.document.title}</strong>
         <div>
-          <WorkspaceInteractive
+          <Button
+            variant="ghost"
             type="button"
             aria-label={favorite() ? 'Remove favorite' : 'Add favorite'}
             aria-pressed={favorite()}
-            title={favorite() ? 'Remove favorite' : 'Add favorite'}
-            class=""
+            tooltip={favorite() ? 'Remove favorite' : 'Add favorite'}
+
             onClick={() => setFavorite(toggleFavoriteDocument(props.document.id))}
           >
-            <Star size={17} fill={favorite() ? 'currentColor' : 'none'} />
-          </WorkspaceInteractive>
+            <Star size={17} fill={favorite() ? 'currentColor' : 'none'} aria-hidden="true" />
+          </Button>
           <Show when={sourceHref()}>
-            <a
+            <ActionButton
+              as="a"
+              variant="ghost"
+              size="icon-sm"
+              tooltip="Open original source"
               href={sourceHref()!}
               target={isDesktopApp ? undefined : '_blank'}
               rel={isDesktopApp ? undefined : 'noreferrer'}
               aria-label="Open original source"
-              title="Open original source"
-              class=""
-              onClick={(event) => {
+              onClick={(event: MouseEvent & { currentTarget: HTMLAnchorElement }) => {
                 if (!isDesktopApp) return
                 const uri = sourceHref()!
                 event.preventDefault()
@@ -337,16 +355,18 @@ function BrainDocumentView(props: {
                 })
               }}
             >
-              <Link2 size={17} />
-            </a>
+              <Link2 size={17} aria-hidden="true" />
+            </ActionButton>
           </Show>
         </div>
       </div>
       <Show when={sourceOpenError()}>
-        <p class="answer-warning source-link-error" role="alert">
-          Cortana could not open the original source. Check that the source app is installed and try
-          again.
-        </p>
+        <Alert variant="warning" class="answer-warning source-link-error" role="alert">
+          <AlertDescription>
+            Cortana could not open the original source. Check that the source app is installed and
+            try again.
+          </AlertDescription>
+        </Alert>
       </Show>
       <div class="document-grid">
         <div class="document-body">
@@ -357,15 +377,17 @@ function BrainDocumentView(props: {
             indexed chunks
           </p>
           <div class="document-labels" aria-label="Document security and provenance">
-            <span>Workspace: {props.document.project}</span>
-            <span>Source ID: {props.document.source_id}</span>
+            <Badge variant="secondary">Workspace: {props.document.project}</Badge>
+            <Badge variant="secondary">Source ID: {props.document.source_id}</Badge>
             <For each={props.document.acl.length ? props.document.acl : ['public']}>
               {(label) => <span>ACL: {label}</span>}
             </For>
           </div>
           <div class="document-copy-actions" role="group" aria-label="Document copy actions">
             <WorkspaceButton
+              tooltip="Copy content"
               variant="ghost"
+              size="sm"
               onClick={() =>
                 void copyDocumentValue(props.document.content, 'Canonical content copied.')
               }
@@ -373,7 +395,9 @@ function BrainDocumentView(props: {
               Copy content
             </WorkspaceButton>
             <WorkspaceButton
+              tooltip="Copy citation"
               variant="ghost"
+              size="sm"
               onClick={() =>
                 void copyDocumentValue(
                   `${props.document.title} — ${props.document.source}:${props.document.source_id} (${props.document.updated_at})${props.document.uri ? ` ${props.document.uri}` : ''}`,
@@ -394,10 +418,12 @@ function BrainDocumentView(props: {
             </For>
           </div>
           <Show when={props.document.truncated}>
-            <p class="answer-warning">
-              This unusually large document was safely truncated at the desktop display limit. Open
-              the original source for the complete content.
-            </p>
+            <Alert variant="warning" class="answer-warning">
+              <AlertDescription>
+                This unusually large document was safely truncated at the desktop display limit.
+                Open the original source for the complete content.
+              </AlertDescription>
+            </Alert>
           </Show>
           <Show when={props.document.backlinks.length > 0 || props.document.surrounding.length > 0}>
             <div class="document-relations">
@@ -406,14 +432,16 @@ function BrainDocumentView(props: {
                   <h2>Backlinks</h2>
                   <For each={props.document.backlinks}>
                     {(related) => (
-                      <WorkspaceInteractive
-                        type="button"
+                      <ListRow
+                        as="button"
+                        tooltip={`Open related document: ${related.title}`}
                         onClick={() => props.onSelectDocument(related.id)}
+                        leading={<Link2 size={14} aria-hidden="true" />}
+                        trailing={related.source}
+                        class="w-full text-left"
                       >
-                        <Link2 size={14} />
-                        <span>{related.title}</span>
-                        <small>{related.source}</small>
-                      </WorkspaceInteractive>
+                        {related.title}
+                      </ListRow>
                     )}
                   </For>
                 </section>
@@ -423,14 +451,16 @@ function BrainDocumentView(props: {
                   <h2>Surrounding documents</h2>
                   <For each={props.document.surrounding}>
                     {(related) => (
-                      <WorkspaceInteractive
-                        type="button"
+                      <ListRow
+                        as="button"
+                        tooltip={`Open related document: ${related.title}`}
                         onClick={() => props.onSelectDocument(related.id)}
+                        leading={<FileText size={14} aria-hidden="true" />}
+                        trailing={new Date(related.updated_at).toLocaleDateString()}
+                        class="w-full text-left"
                       >
-                        <FileText size={14} />
-                        <span>{related.title}</span>
-                        <small>{new Date(related.updated_at).toLocaleDateString()}</small>
-                      </WorkspaceInteractive>
+                        {related.title}
+                      </ListRow>
                     )}
                   </For>
                 </section>
@@ -445,21 +475,25 @@ function BrainDocumentView(props: {
           <span>{props.document.source}</span>
           <span title={props.document.source_id}>{props.document.source_id}</span>
           <Show when={metadata().length > 0}>
-            <details class="document-metadata">
-              <summary>Metadata ({metadata().length})</summary>
-              <dl>
-                <For each={metadata()}>
-                  {([key, value]) => (
-                    <div>
-                      <dt>{key}</dt>
-                      <dd>{formatMetadata(value)}</dd>
-                    </div>
-                  )}
-                </For>
-              </dl>
-            </details>
+            <Accordion collapsible class="document-metadata">
+              <AccordionItem value="details">
+                <AccordionTrigger>Metadata ({metadata().length})</AccordionTrigger>
+                <AccordionContent>
+                  <dl>
+                    <For each={metadata()}>
+                      {([key, value]) => (
+                        <div>
+                          <dt>{key}</dt>
+                          <dd>{formatMetadata(value)}</dd>
+                        </div>
+                      )}
+                    </For>
+                  </dl>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </Show>
-          <BookOpen size={56} />
+          <BookOpen size={56} aria-hidden="true" />
           <small>Canonical content protected by workspace ACLs</small>
         </aside>
       </div>
@@ -498,25 +532,28 @@ function DocumentView(props: {
         <span>Brain</span> / <span>{props.active.source}</span> /{' '}
         <strong>{props.active.title}</strong>
         <div>
-          <WorkspaceInteractive
+          <Button
+            variant="ghost"
             type="button"
             aria-label={favorite() ? 'Remove favorite' : 'Add favorite'}
             aria-pressed={favorite()}
-            title={favorite() ? 'Remove favorite' : 'Add favorite'}
-            class=""
+            tooltip={favorite() ? 'Remove favorite' : 'Add favorite'}
+
             onClick={() => setFavorite(toggleFavoriteDocument(props.active.chunk_id))}
           >
-            <Star size={17} fill={favorite() ? 'currentColor' : 'none'} />
-          </WorkspaceInteractive>
+            <Star size={17} fill={favorite() ? 'currentColor' : 'none'} aria-hidden="true" />
+          </Button>
           <Show when={sourceHref()}>
-            <a
+            <ActionButton
+              as="a"
+              variant="ghost"
+              size="icon-sm"
+              tooltip="Open original source"
               href={sourceHref()!}
               target={isDesktopApp ? undefined : '_blank'}
               rel={isDesktopApp ? undefined : 'noreferrer'}
               aria-label="Open original source"
-              title="Open original source"
-              class=""
-              onClick={(event) => {
+              onClick={(event: MouseEvent & { currentTarget: HTMLAnchorElement }) => {
                 if (!isDesktopApp) return
                 event.preventDefault()
                 setSourceOpenError(false)
@@ -526,8 +563,8 @@ function DocumentView(props: {
                 })
               }}
             >
-              <Link2 size={17} />
-            </a>
+              <Link2 size={17} aria-hidden="true" />
+            </ActionButton>
           </Show>
         </div>
       </div>
@@ -548,26 +585,53 @@ function DocumentView(props: {
             <h2>Related evidence</h2>
             <For each={props.evidence.slice(0, 6)}>
               {(item, index) => (
-                <WorkspaceInteractive type="button" onClick={() => props.onSelect(index())}>
+                <Button
+                  tooltip={`Inspect retrieved evidence: ${item.title}`}
+                  variant="ghost"
+                  type="button"
+                  onClick={() => props.onSelect(index())}
+                >
                   <span>{index() + 1}</span> {item.title}
-                </WorkspaceInteractive>
+                </Button>
               )}
             </For>
           </div>
         </div>
         <aside class="document-outline">
           <strong>In this evidence</strong>
-          <a href="#passage">Retrieved passage</a>
-          <a href="#related">Related evidence</a>
-          <Network size={56} />
+          <div class="flex flex-col items-start gap-1">
+            <Button
+              as="a"
+              variant="link"
+              size="xs"
+              href="#passage"
+              tooltip="Jump to the retrieved passage in this evidence."
+              class="justify-start"
+            >
+              Retrieved passage
+            </Button>
+            <Button
+              as="a"
+              variant="link"
+              size="xs"
+              href="#related"
+              tooltip="Jump to related evidence for this result."
+              class="justify-start"
+            >
+              Related evidence
+            </Button>
+          </div>
+          <Network size={56} aria-hidden="true" />
           <small>{props.evidence.length} linked results</small>
         </aside>
       </div>
       <Show when={sourceOpenError()}>
-        <p class="answer-warning source-link-error" role="alert">
-          Cortana could not open the original source. Check that the source app is installed and try
-          again.
-        </p>
+        <Alert variant="warning" class="answer-warning source-link-error" role="alert">
+          <AlertDescription>
+            Cortana could not open the original source. Check that the source app is installed and
+            try again.
+          </AlertDescription>
+        </Alert>
       </Show>
     </article>
   )
@@ -597,10 +661,12 @@ function ReflectionView(props: { response: ReflectResponse }) {
     <article class="answer-view" aria-label="Derived memory reflection">
       <span class="eyebrow">Derived reflection · not canonical memory</span>
       <h1>{props.response.objective}</h1>
-      <p class="answer-warning">
-        {props.response.status} · {props.response.provider.selected} · memory revision{' '}
-        {props.response.memory_revision}
-      </p>
+      <Alert variant="warning" class="answer-warning">
+        <AlertDescription>
+          {props.response.status}· {props.response.provider.selected}· memory revision{' '}
+          {props.response.memory_revision}
+        </AlertDescription>
+      </Alert>
       <div class="answer-copy">
         <For each={statements()}>
           {(item) => (
@@ -667,19 +733,19 @@ function AnswerView(props: {
       <Show when={props.response}>
         {(response) => (
           <div class="answer-meta">
-            <WorkspaceBadge>{response().mode}</WorkspaceBadge>
-            <WorkspaceBadge>
+            <Badge variant="secondary">{response().mode}</Badge>
+            <Badge variant="secondary">
               {response().retrieval_degraded
                 ? 'lexical fallback'
                 : response().retrieval_mode || 'hybrid retrieval'}
-            </WorkspaceBadge>
-            <WorkspaceBadge>
+            </Badge>
+            <Badge variant="secondary">
               {response().cached ? 'cache hit' : `${response().latency_ms} ms`}
-            </WorkspaceBadge>
-            <WorkspaceBadge>
+            </Badge>
+            <Badge variant="secondary">
               {response().plan.queries.length}{' '}
               {response().plan.queries.length === 1 ? 'retrieval' : 'retrievals'}
-            </WorkspaceBadge>
+            </Badge>
           </div>
         )}
       </Show>
@@ -693,23 +759,33 @@ function AnswerView(props: {
         </For>
       </div>
       <Show when={props.response && props.response.plan.queries.length > 1}>
-        <details class="answer-plan">
-          <summary>Retrieval plan</summary>
-          <ol>
-            <For each={props.response!.plan.queries}>
-              {(plannedQuery) => <li>{plannedQuery}</li>}
-            </For>
-          </ol>
-        </details>
+        <Accordion collapsible class="answer-plan">
+          <AccordionItem value="details">
+            <AccordionTrigger>Retrieval plan</AccordionTrigger>
+            <AccordionContent>
+              <ol>
+                <For each={props.response!.plan.queries}>
+                  {(plannedQuery) => <li>{plannedQuery}</li>}
+                </For>
+              </ol>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </Show>
       <For each={props.response?.warnings ?? []}>
-        {(warning) => <p class="answer-warning">{warning}</p>}
+        {(warning) => (
+          <Alert variant="warning" class="answer-warning">
+            <AlertDescription>{warning}</AlertDescription>
+          </Alert>
+        )}
       </For>
       <Show when={props.response?.retrieval_degraded}>
-        <p class="answer-warning" role="status">
-          Embedding retrieval is temporarily unavailable; these citations came from exact-term
-          search.
-        </p>
+        <Alert variant="warning" class="answer-warning" role="status">
+          <AlertDescription>
+            Embedding retrieval is temporarily unavailable; these citations came from exact-term
+            search.
+          </AlertDescription>
+        </Alert>
       </Show>
       <p class="lead">{props.evidence.length} cited passages</p>
       <Show when={props.response?.memories && props.response.memories.length > 0}>
@@ -735,17 +811,23 @@ function AnswerView(props: {
       </Show>
       <For each={props.evidence.slice(0, 4)}>
         {(item, index) => (
-          <WorkspaceInteractive
-            type="button"
-            class="answer-source"
-            onClick={() => props.onSelect(index())}
-          >
-            <span>[{index() + 1}]</span>
-            <div>
-              <h2>{item.title}</h2>
+          <Card class="mb-4">
+            <CardContent>
+              <h2 class="mb-3">
+                <Button
+                  tooltip={`Inspect cited passage ${index() + 1}: ${item.title}`}
+                  variant="ghost"
+                  type="button"
+                  class="max-w-full"
+                  onClick={() => props.onSelect(index())}
+                >
+                  <span>[{index() + 1}]</span>
+                  <span class="truncate">{item.title}</span>
+                </Button>
+              </h2>
               <p>{item.content}</p>
-            </div>
-          </WorkspaceInteractive>
+            </CardContent>
+          </Card>
         )}
       </For>
       <p class="answer-note">
@@ -754,484 +836,6 @@ function AnswerView(props: {
           : 'Extractive mode keeps citations stable when no synthesis model is configured.'}
       </p>
     </article>
-  )
-}
-
-type GraphNodeLike =
-  | BrainGraphNode
-  | {
-      id: string
-      kind: 'document'
-      label: string
-      project: string
-      source: string | null
-      document_id: null
-    }
-
-function GraphView(props: {
-  graph: BrainGraphPage | null
-  graphLoading: boolean
-  graphAppendLoading: boolean
-  graphError: string
-  onRetry?: () => void
-  onLoadMore?: () => void
-  evidence: Evidence[]
-  onSelect?: (chunkId: string) => void
-  onSelectDocument: (id: string) => void
-  onFocusGraphNode?: (node: BrainGraphNode) => void
-  graphFocused: boolean
-  onResetGraphFocus?: () => void
-  graphEdgeKind: BrainGraphPage['edges'][number]['kind'] | 'all'
-  onGraphEdgeKindChange?: (kind: BrainGraphPage['edges'][number]['kind'] | 'all') => void
-  graphOrigin: NonNullable<BrainGraphPage['edges'][number]['origin']> | 'all'
-  onGraphOriginChange?: (
-    origin: NonNullable<BrainGraphPage['edges'][number]['origin']> | 'all'
-  ) => void
-  graphCanGoBack: boolean
-  graphCanGoForward: boolean
-  onGraphBack?: () => void
-  onGraphForward?: () => void
-  graphMinConfidence: number | null
-  onGraphMinConfidenceChange?: (confidence: number | null) => void
-}) {
-  const [visibleCount, setVisibleCount] = createSignal(12)
-  const [filter, setFilter] = createSignal('')
-  const [kindFilter, setKindFilter] = createSignal<BrainGraphNode['kind'] | 'all'>('all')
-  const [selectedNodeId, setSelectedNodeId] = createSignal<string | null>(null)
-  const [pinnedNodeIds, setPinnedNodeIds] = createSignal<Set<string>>(new Set())
-  const graphNodes = createMemo(() => props.graph?.nodes ?? EMPTY_GRAPH_NODES)
-  const usingEvidenceFallback = () => props.graph === null
-  const normalizedFilter = () => filter().trim().toLocaleLowerCase()
-  const filteredNodes = createMemo(() =>
-    normalizedFilter()
-      ? graphNodes().filter(
-          (node) =>
-            (kindFilter() === 'all' || node.kind === kindFilter()) &&
-            [node.label, node.project, node.source ?? '', node.kind].some((value) =>
-              value.toLocaleLowerCase().includes(normalizedFilter())
-            )
-        )
-      : graphNodes().filter((node) => kindFilter() === 'all' || node.kind === kindFilter())
-  )
-  // Revalidation can reorder nodes even when the set is unchanged; keying the
-  // reset on nodes[0] cleared an active selection mid-interaction. Only drop
-  // the selection when the selected node actually leaves the filtered set.
-  createComputed(() => {
-    kindFilter()
-    normalizedFilter()
-    setVisibleCount(12)
-  })
-  createComputed(() => {
-    const selected = selectedNodeId()
-    if (selected && !filteredNodes().some((node) => node.id === selected)) {
-      setSelectedNodeId(null)
-    }
-  })
-  // The graph revalidates (SWR) while a node may be focused or selected, and
-  // every fetch returns fresh node objects. Reconcile by id so an unchanged
-  // revalidation keeps row identity — a rebuilt button would drop focus and
-  // lose the pending keyboard activation.
-  const [stableNodes, setStableNodes] = createStore<GraphNodeLike[]>([])
-  createEffect(() => {
-    setStableNodes(
-      reconcile(
-        filteredNodes().length
-          ? filteredNodes()
-          : usingEvidenceFallback()
-            ? props.evidence.slice(0, 8).map((item) => ({
-                id: item.chunk_id,
-                kind: 'document' as const,
-                label: item.title,
-                project: '',
-                source: item.source,
-                document_id: null,
-              }))
-            : [],
-        { key: 'id' }
-      )
-    )
-  })
-  const nodes = createMemo((): GraphNodeLike[] => stableNodes.slice(0, visibleCount()))
-  const visibleNodeIds = createMemo(() => new Set(nodes().map((node) => node.id)))
-  const visibleEdges = createMemo(() => {
-    if (!props.graph || usingEvidenceFallback()) return []
-    const ids = visibleNodeIds()
-    return props.graph.edges.filter((edge) => ids.has(edge.target) || ids.has(edge.source))
-  })
-  // Search the full filtered set rather than the visible slice: a revalidation
-  // reorder can push the selected node past the window without removing it.
-  const activeGraphNode = createMemo(
-    () => filteredNodes().find((node) => node.id === selectedNodeId()) ?? null
-  )
-  const selectedEdges = createMemo(() => {
-    const active = activeGraphNode()
-    return active
-      ? visibleEdges().filter((edge) => edge.source === active.id || edge.target === active.id)
-      : []
-  })
-
-  return (
-    <Switch>
-      <Match when={props.graphLoading && nodes().length === 0}>
-        <EmptyState
-          title="Loading knowledge graph"
-          detail="Mapping indexed workspaces and documents…"
-          announceAs="status"
-        />
-      </Match>
-      <Match when={props.graphError && nodes().length === 0}>
-        <EmptyState
-          title="Graph unavailable"
-          detail={props.graphError}
-          action={props.onRetry}
-          announceAs="alert"
-        />
-      </Match>
-      <Match when={!props.graphLoading && nodes().length === 0 && normalizedFilter()}>
-        <div class="graph-empty-filter">
-          <Search size={24} aria-hidden="true" />
-          <h1>No matching graph nodes</h1>
-          <p>Try a workspace, source, or document name.</p>
-          <WorkspaceButton variant="secondary" onClick={() => setFilter('')}>
-            Clear filter
-          </WorkspaceButton>
-        </div>
-      </Match>
-      <Match when={!props.graphLoading && nodes().length === 0}>
-        <EmptyState
-          title="No graph data"
-          detail="Index a source to build linked workspace nodes."
-        />
-      </Match>
-      <Match when>
-        <div class="graph-view">
-          <Show when={visibleEdges().length > 0}>
-            <svg class="graph-links" viewBox="0 0 100 100" aria-hidden="true">
-              <For each={nodes()}>
-                {(node, index) => {
-                  if (!visibleEdges().some((edge) => edge.target === node.id)) return null
-                  const angle = (index() / Math.max(nodes().length, 1)) * Math.PI * 2 - Math.PI / 2
-                  return (
-                    <line
-                      x1="50"
-                      y1="50"
-                      x2={50 + 31 * Math.cos(angle)}
-                      y2={50 + 31 * Math.sin(angle)}
-                    />
-                  )
-                }}
-              </For>
-            </svg>
-          </Show>
-          <div class="graph-center">
-            <AppIcon size={24} />
-          </div>
-          <div class="graph-toolbar" role="search">
-            <Search size={14} aria-hidden="true" />
-            <Input
-              type="search"
-              aria-label="Filter graph nodes"
-              placeholder="Filter nodes…"
-              value={filter()}
-              onInput={(event) => setFilter(event.target.value)}
-            />
-            <Show when={filter()}>
-              <WorkspaceButton
-                variant="ghost"
-                type="button"
-                class="link-button"
-                onClick={() => setFilter('')}
-              >
-                Clear
-              </WorkspaceButton>
-            </Show>
-            <NativeSelect
-              aria-label="Filter graph relationships"
-              value={props.graphEdgeKind}
-              onChange={(event) =>
-                props.onGraphEdgeKindChange?.(
-                  event.target.value as BrainGraphPage['edges'][number]['kind'] | 'all'
-                )
-              }
-            >
-              <option value="all">All relationships</option>
-              <For
-                each={
-                  [
-                    'contains',
-                    'references',
-                    'backlink',
-                    'nearby',
-                    'same-thread',
-                    'authored-by',
-                    'mentions',
-                    'temporal',
-                    'supports',
-                    'contradicts',
-                    'derives',
-                  ] as const
-                }
-              >
-                {(kind) => <option value={kind}>{kind}</option>}
-              </For>
-            </NativeSelect>
-            <NativeSelect
-              aria-label="Filter graph relationship origin"
-              value={props.graphOrigin}
-              onChange={(event) =>
-                props.onGraphOriginChange?.(
-                  event.target.value as
-                    | NonNullable<BrainGraphPage['edges'][number]['origin']>
-                    | 'all'
-                )
-              }
-            >
-              <option value="all">All origins</option>
-              <option value="explicit">Explicit</option>
-              <option value="derived">Derived</option>
-              <option value="inferred">Inferred</option>
-            </NativeSelect>
-            <NativeSelect
-              aria-label="Filter graph minimum confidence"
-              value={props.graphMinConfidence == null ? 'all' : String(props.graphMinConfidence)}
-              onChange={(event) =>
-                props.onGraphMinConfidenceChange?.(
-                  event.target.value === 'all' ? null : Number(event.target.value)
-                )
-              }
-            >
-              <option value="all">Any confidence</option>
-              <option value="0.5">50% or higher</option>
-              <option value="0.75">75% or higher</option>
-              <option value="0.9">90% or higher</option>
-            </NativeSelect>
-          </div>
-          <Show when={props.graph && !usingEvidenceFallback()}>
-            <div class="graph-kind-filter" role="group" aria-label="Filter graph node types">
-              <For each={['all', 'workspace', 'source', 'document'] as const}>
-                {(kind) => (
-                  <Toggle
-                    size="xs"
-                    variant="outline"
-                    pressed={kindFilter() === kind}
-                    onChange={(pressed) => pressed && setKindFilter(kind)}
-                  >
-                    {kind === 'all'
-                      ? 'All'
-                      : kind === 'workspace'
-                        ? 'Workspaces'
-                        : kind === 'source'
-                          ? 'Sources'
-                          : 'Documents'}
-                  </Toggle>
-                )}
-              </For>
-            </div>
-          </Show>
-          <div class="graph-summary" role="status">
-            <span>
-              {props.graph && !usingEvidenceFallback()
-                ? graphNodes().every((node) => node.kind === 'document')
-                  ? `Showing ${nodes().length} of ${filteredNodes().length}${normalizedFilter() ? ` matching ${graphNodes().length}` : ''} document${filteredNodes().length === 1 ? '' : 's'} · ${visibleEdges().length} link${visibleEdges().length === 1 ? '' : 's'}`
-                  : `Showing ${nodes().length} of ${filteredNodes().length}${normalizedFilter() ? ` matching ${graphNodes().length}` : ''} node${filteredNodes().length === 1 ? '' : 's'} · ${visibleEdges().length} link${visibleEdges().length === 1 ? '' : 's'}`
-                : props.graphLoading
-                  ? 'Loading indexed graph…'
-                  : 'Retrieved evidence'}
-              {props.graphError ? ` · ${props.graphError}` : ''}
-            </span>
-          </div>
-          <Show when={props.graphError && props.onRetry}>
-            <div class="graph-overlay-actions">
-              <WorkspaceButton
-                variant="ghost"
-                type="button"
-                class="link-button"
-                onClick={props.onRetry}
-              >
-                Retry graph
-              </WorkspaceButton>
-            </div>
-          </Show>
-          <Show when={props.graphFocused || props.graphCanGoBack || props.graphCanGoForward}>
-            <div class="graph-overlay-actions">
-              <WorkspaceButton
-                variant="ghost"
-                type="button"
-                disabled={!props.graphCanGoBack}
-                onClick={props.onGraphBack}
-              >
-                Back
-              </WorkspaceButton>
-              <WorkspaceButton
-                variant="ghost"
-                type="button"
-                disabled={!props.graphCanGoForward}
-                onClick={props.onGraphForward}
-              >
-                Forward
-              </WorkspaceButton>
-              <Show when={props.graphFocused && props.onResetGraphFocus}>
-                <WorkspaceButton
-                  variant="secondary"
-                  type="button"
-                  onClick={props.onResetGraphFocus}
-                >
-                  Return to graph overview
-                </WorkspaceButton>
-              </Show>
-            </div>
-          </Show>
-          <Show when={props.graph?.next_cursor && props.onLoadMore}>
-            <div class="graph-pagination">
-              <WorkspaceButton
-                variant="secondary"
-                onClick={props.onLoadMore}
-                disabled={props.graphAppendLoading}
-              >
-                {props.graphAppendLoading ? 'Loading more nodes…' : 'Load more nodes'}
-              </WorkspaceButton>
-              <span>More nodes remain outside this bounded view.</span>
-            </div>
-          </Show>
-          <Show when={!props.graph?.next_cursor && filteredNodes().length > visibleCount()}>
-            <div class="graph-pagination">
-              <WorkspaceButton
-                variant="secondary"
-                onClick={() =>
-                  setVisibleCount((count) => Math.min(count + 12, filteredNodes().length))
-                }
-              >
-                Show more nodes
-              </WorkspaceButton>
-              <span>Showing a bounded window for responsive rendering.</span>
-            </div>
-          </Show>
-          <For each={nodes()}>
-            {(node, index) => (
-              <button
-                type="button"
-                aria-label={`${node.document_id ? 'Open document' : node.kind === 'workspace' ? 'Focus workspace' : node.kind === 'source' ? 'Focus source' : 'Open evidence'}: ${node.label}`}
-                title={
-                  node.document_id
-                    ? 'Open document'
-                    : node.kind === 'workspace'
-                      ? 'Focus workspace'
-                      : node.kind === 'source'
-                        ? 'Focus source'
-                        : 'Open retrieved evidence'
-                }
-                class={` graph-node graph-node--${node.kind}`}
-                data-kind={node.kind}
-                style={
-                  {
-                    '--angle': `${(index() / Math.max(nodes().length, 1)) * Math.PI * 2}rad`,
-                  } as JSX.CSSProperties
-                }
-                onClick={() => {
-                  setSelectedNodeId(node.id)
-                  if (node.document_id) return
-                  if (node.kind === 'workspace' || node.kind === 'source') {
-                    props.onFocusGraphNode?.(node as BrainGraphNode)
-                    return
-                  }
-                  // The API-backed graph uses workspace/source nodes for navigation,
-                  // while the offline evidence fallback uses chunk IDs. Preserve the
-                  // fallback's evidence selection without passing synthetic graph IDs
-                  // into the workspace/source focus handler.
-                  props.onSelect?.(node.id)
-                }}
-              >
-                {node.kind === 'workspace' ? (
-                  <FolderTree size={17} aria-hidden="true" />
-                ) : node.kind === 'source' ? (
-                  <Database size={17} aria-hidden="true" />
-                ) : (
-                  <FileText size={17} aria-hidden="true" />
-                )}
-                <span>{node.label}</span>
-              </button>
-            )}
-          </For>
-          <Show when={activeGraphNode()}>
-            {(selectedNode) => (
-              <aside class="graph-selection" aria-label="Selected graph node" aria-live="polite">
-                <strong>{selectedNode().label}</strong>
-                <span>
-                  {selectedNode().kind === 'workspace'
-                    ? 'Workspace'
-                    : selectedNode().kind === 'source'
-                      ? `Source in ${selectedNode().project || 'Unscoped'}`
-                      : `${selectedNode().project || 'Unscoped'} · ${selectedNode().source || 'Unknown source'}`}
-                </span>
-                <small>
-                  {selectedEdges().length} related link{selectedEdges().length === 1 ? '' : 's'}
-                  {pinnedNodeIds().has(selectedNode().id) ? ' · pinned' : ''}
-                </small>
-                <Show when={selectedEdges().length > 0}>
-                  <ul>
-                    <For each={selectedEdges()}>
-                      {(edge) => (
-                        <li>
-                          <span>
-                            {edge.kind === 'contains'
-                              ? 'Contained by its workspace or source'
-                              : edge.kind}
-                          </span>
-                          <Show when={edge.origin}>
-                            <small>
-                              {edge.origin === 'inferred'
-                                ? `Inferred relationship${edge.confidence == null ? '' : ` · ${Math.round(edge.confidence * 100)}% confidence`}`
-                                : `${edge.origin![0].toUpperCase()}${edge.origin!.slice(1)} relationship`}
-                              {edge.support
-                                ? ` · ${edge.support.record_ids.length} supporting record${edge.support.record_ids.length === 1 ? '' : 's'}`
-                                : ''}
-                              {edge.citation_authority
-                                ? ' · citation-capable'
-                                : ' · not citation evidence'}
-                            </small>
-                          </Show>
-                        </li>
-                      )}
-                    </For>
-                  </ul>
-                </Show>
-                <Show when={selectedNode().document_id}>
-                  <div class="graph-selection-actions">
-                    <WorkspaceButton
-                      variant="ghost"
-                      onClick={() =>
-                        setPinnedNodeIds((current) => {
-                          const next = new Set(current)
-                          if (next.has(selectedNode().id)) next.delete(selectedNode().id)
-                          else next.add(selectedNode().id)
-                          return next
-                        })
-                      }
-                    >
-                      {pinnedNodeIds().has(selectedNode().id) ? 'Unpin node' : 'Pin node'}
-                    </WorkspaceButton>
-                    <WorkspaceButton
-                      variant="secondary"
-                      onClick={() => props.onSelectDocument(selectedNode().document_id!)}
-                    >
-                      Open document
-                    </WorkspaceButton>
-                    <Show when={props.onFocusGraphNode}>
-                      <WorkspaceButton
-                        variant="ghost"
-                        onClick={() => props.onFocusGraphNode!(selectedNode() as BrainGraphNode)}
-                      >
-                        Expand one-hop relationships
-                      </WorkspaceButton>
-                    </Show>
-                  </div>
-                </Show>
-              </aside>
-            )}
-          </Show>
-        </div>
-      </Match>
-    </Switch>
   )
 }
 
@@ -1245,52 +849,21 @@ function TimelineView(props: { evidence: Evidence[]; onSelect: (chunkId: string)
         )}
       >
         {(item) => (
-          <WorkspaceInteractive
+          <ListRow
+            as="button"
             type="button"
             aria-label={`Timeline evidence: ${item.title}`}
+            tooltip={`Inspect timeline evidence: ${item.title}`}
             onClick={() => props.onSelect(item.chunk_id)}
+            description={codeRevisionLabel(item) ?? item.source}
+            trailing={<time>{new Date(item.updated_at).toLocaleDateString()}</time>}
+            class="w-full text-left"
           >
-            <time>{new Date(item.updated_at).toLocaleDateString()}</time>
-            <i />
-            <div>
-              <strong>{item.title}</strong>
-              <span>{codeRevisionLabel(item) ?? item.source}</span>
-            </div>
-          </WorkspaceInteractive>
+            {item.title}
+          </ListRow>
         )}
       </For>
     </div>
-  )
-}
-
-function EmptyState(props: {
-  title: string
-  detail: string
-  action?: () => void
-  busy?: boolean
-  announceAs?: 'alert' | 'status'
-}) {
-  return (
-    <Empty
-      class="m-4 min-h-64 border"
-      role={props.announceAs}
-      aria-live={props.announceAs === 'status' ? 'polite' : undefined}
-    >
-      <EmptyHeader>
-        <EmptyMedia variant="icon">
-          {props.busy ? <Spinner aria-label="Loading" /> : <Search aria-hidden="true" />}
-        </EmptyMedia>
-        <EmptyTitle role="heading" aria-level={1}>
-          {props.title}
-        </EmptyTitle>
-        <EmptyDescription>{props.detail}</EmptyDescription>
-      </EmptyHeader>
-      <Show when={props.action}>
-        <EmptyContent>
-          <Button onClick={props.action}>Try again</Button>
-        </EmptyContent>
-      </Show>
-    </Empty>
   )
 }
 

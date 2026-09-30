@@ -1,13 +1,6 @@
-import {
-  AlertTriangle,
-  Check,
-  CircleStop,
-  Download,
-  FolderOpen,
-  KeyRound,
-  LoaderCircle,
-  Upload,
-} from 'lucide-solid'
+import { Spinner } from '@adea-ai/ui/components/ui/spinner'
+import { AlertDescription } from '@adea-ai/ui/components/ui/alert'
+import { CircleStop, Download, FolderOpen, KeyRound, Upload } from 'lucide-solid'
 import { createEffect, createSignal, For, onCleanup, Show } from 'solid-js'
 
 import {
@@ -29,6 +22,8 @@ import {
   SettingsButton as Button,
   SettingsCheckbox as Checkbox,
   SettingsFieldGroup,
+  SettingsFieldSet,
+  SettingsFieldLegend,
   SettingsInput as Input,
 } from './SettingsSurface'
 
@@ -189,6 +184,7 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
 
   return (
     <SettingsSection
+      bodyLayout="content"
       title="Local runtime"
       description="Storage and audit configuration for this machine. Moving the data directory requires a restart and does not copy existing data."
     >
@@ -200,7 +196,7 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
               ? 'Owner-only Desktop-managed path for provider, connector, and agent tokens'
               : 'Externally managed runtime.env_file; Desktop will not write this path'
           }
-          wide
+          class="col-span-full"
         >
           <Input
             value={props.settings.secret_file_path}
@@ -209,7 +205,7 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
             aria-readonly="true"
           />
         </Field>
-        <Field label="Data directory" wide>
+        <Field label="Data directory" class="col-span-full">
           <Input
             value={props.settings.runtime.data_dir}
             onInput={(event) => setRuntime({ data_dir: event.target.value })}
@@ -242,51 +238,57 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
         <div class="service-actions">
           <Button
             variant="secondary"
+            size="sm"
             type="button"
             disabled={Boolean(portableBusy()) || props.dirty}
-            title={
+            tooltip={
               props.dirty ? 'Save or discard draft changes before exporting' : 'Export settings'
             }
             onClick={() => void exportSettings()}
           >
             {portableBusy() === 'export' ? (
-              <LoaderCircle class="spin" size={14} />
+              <Spinner size="sm" label={false} />
             ) : (
-              <Download size={14} />
+              <Download size={14} aria-hidden="true" />
             )}
             Export
           </Button>
           <Button
+            tooltip="Import preview"
             variant="secondary"
+            size="sm"
             type="button"
             disabled={Boolean(portableBusy())}
             onClick={() => void importSettings()}
           >
             {portableBusy() === 'import' ? (
-              <LoaderCircle class="spin" size={14} />
+              <Spinner size="sm" label={false} />
             ) : (
-              <Upload size={14} />
+              <Upload size={14} aria-hidden="true" />
             )}
             Import preview
           </Button>
           <Button
+            tooltip="Open secret file"
             variant="secondary"
+            size="sm"
             type="button"
             disabled={Boolean(portableBusy())}
             onClick={() => void openSecretFile()}
           >
             {portableBusy() === 'open-secret' ? (
-              <LoaderCircle class="spin" size={14} />
+              <Spinner size="sm" label={false} />
             ) : (
-              <FolderOpen size={14} />
+              <FolderOpen size={14} aria-hidden="true" />
             )}
             Open secret file
           </Button>
           <Button
             variant="secondary"
+            size="sm"
             type="button"
             disabled={Boolean(portableBusy()) || props.dirty}
-            title={
+            tooltip={
               props.dirty
                 ? 'Save or discard draft changes before migrating secrets'
                 : 'Migrate secrets'
@@ -294,9 +296,9 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
             onClick={() => void migrateSecrets()}
           >
             {portableBusy() === 'migrate-secrets' ? (
-              <LoaderCircle class="spin" size={14} />
+              <Spinner size="sm" label={false} />
             ) : (
-              <KeyRound size={14} />
+              <KeyRound size={14} aria-hidden="true" />
             )}
             Migrate to secure storage
           </Button>
@@ -308,8 +310,9 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
           variant={portableError() ? 'destructive' : 'default'}
           role={portableError() ? 'alert' : 'status'}
         >
-          {portableError() ? <AlertTriangle size={16} /> : <Check size={16} />}
-          <span>{portableError() || portableNotice()}</span>
+          <AlertDescription>
+            <span>{portableError() || portableNotice()}</span>
+          </AlertDescription>
         </SettingsAlert>
       </Show>
       <div class="portable-settings">
@@ -320,62 +323,67 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
             read-only projection from Cortana’s perspective and can be removed or rebuilt at any
             time.
           </p>
-          <fieldset class="vault-workspace-picker" disabled={vaultJobRunning()}>
-            <legend>Workspaces to export</legend>
+          <SettingsFieldSet class="mt-3 max-w-xl" disabled={vaultJobRunning()}>
+            <SettingsFieldLegend>Workspaces to export</SettingsFieldLegend>
             <For each={props.settings.workspaces}>
               {(workspace) => (
-                <label>
-                  <Checkbox
-                    checked={vaultSelected().has(workspace.id)}
-                    onChange={(event) =>
-                      setVaultSelected((current) => {
-                        const next = new Set(current)
-                        if (event.target.checked) next.add(workspace.id)
-                        else next.delete(workspace.id)
-                        return next
-                      })
-                    }
-                  />
-                  {workspace.name}
-                </label>
+                <Checkbox
+                  label={workspace.name}
+                  disabled={vaultJobRunning()}
+                  checked={vaultSelected().has(workspace.id)}
+                  onChange={(checked: boolean) =>
+                    setVaultSelected((current) => {
+                      const next = new Set(current)
+                      if (checked) next.add(workspace.id)
+                      else next.delete(workspace.id)
+                      return next
+                    })
+                  }
+                />
               )}
             </For>
-          </fieldset>
+          </SettingsFieldSet>
         </div>
         <div class="service-actions">
           <Button
             variant="secondary"
+            size="sm"
             type="button"
             disabled={props.dirty || vaultJobRunning()}
-            title={props.dirty ? 'Save or discard workspace changes first' : 'Preview vault export'}
+            tooltip={
+              props.dirty ? 'Save or discard workspace changes first' : 'Preview vault export'
+            }
             onClick={() => void startVaultExport(true)}
           >
-            <Download size={14} /> Preview vault export
+            <Download size={14} aria-hidden="true" /> Preview vault export
           </Button>
           <Button
             variant="secondary"
+            size="sm"
             type="button"
             disabled={props.dirty || vaultJobRunning()}
-            title={
+            tooltip={
               props.dirty ? 'Save or discard workspace changes first' : 'Export Obsidian vault'
             }
             onClick={() => void startVaultExport(false)}
           >
             {vaultJob()?.status === 'running' ? (
-              <LoaderCircle class="spin" size={14} />
+              <Spinner size="sm" label={false} />
             ) : (
-              <FolderOpen size={14} />
+              <FolderOpen size={14} aria-hidden="true" />
             )}
             Export vault
           </Button>
           <Show when={vaultJobRunning()}>
             <Button
-              variant="danger"
+              tooltip="Cancel vault export"
+              variant="destructive"
+              size="sm"
               type="button"
               disabled={vaultJob()!.status === 'cancelling'}
               onClick={() => void cancelVaultExport()}
             >
-              <CircleStop size={14} /> Cancel vault export
+              <CircleStop size={14} aria-hidden="true" /> Cancel vault export
             </Button>
           </Show>
         </div>
@@ -388,19 +396,21 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
             role={job().status === 'failed' ? 'alert' : 'status'}
             aria-live="polite"
           >
-            {job().status === 'failed' ? <AlertTriangle size={16} /> : <Check size={16} />}
-            <span>
-              {job().status === 'succeeded' && job().report
-                ? `${job().dry_run ? 'Previewed' : 'Exported'} ${job().report!.documents} documents; ${job().report!.content_rewrites} content rewrites and ${job().report!.unchanged_documents} unchanged.`
-                : `Vault export ${job().phase}: ${job().documents_completed} documents scanned, ${job().files_written} files staged.`}
-            </span>
+            <AlertDescription>
+              <span>
+                {job().status === 'succeeded' && job().report
+                  ? `${job().dry_run ? 'Previewed' : 'Exported'} ${job().report!.documents} documents; ${job().report!.content_rewrites} content rewrites and ${job().report!.unchanged_documents} unchanged.`
+                  : `Vault export ${job().phase}: ${job().documents_completed} documents scanned, ${job().files_written} files staged.`}
+              </span>
+            </AlertDescription>
           </SettingsAlert>
         )}
       </Show>
       <Show when={vaultError()}>
         <SettingsAlert class="safety-note error" variant="destructive" role="alert">
-          <AlertTriangle size={16} />
-          <span>{vaultError()}</span>
+          <AlertDescription>
+            <span>{vaultError()}</span>
+          </AlertDescription>
         </SettingsAlert>
       </Show>
     </SettingsSection>

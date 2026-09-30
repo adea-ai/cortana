@@ -1,8 +1,12 @@
+import {
+  Alert as SharedFeedbackAlert,
+  AlertDescription as SharedFeedbackDescription,
+} from '@adea-ai/ui/components/ui/alert'
 import { ExternalLink } from 'lucide-solid'
 import { createMemo, Show } from 'solid-js'
 
 import { openDesktopUrl } from '@/api'
-import { Button } from '@adea-ai/ui/components/ui/button'
+import { ActionButton as Button } from '@adea-ai/ui/components/composites/action-button'
 import {
   Dialog,
   DialogContent,
@@ -40,7 +44,7 @@ export function M7AboutDialog(props: {
         if (!open) props.onClose()
       }}
     >
-      <DialogContent class="m7-about-dialog">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>About Cortana</DialogTitle>
           <DialogDescription>
@@ -54,10 +58,20 @@ export function M7AboutDialog(props: {
           <small>Copyright © 2026 Cortana contributors</small>
         </div>
         <div class="m7-about-dialog__actions">
-          <Button variant="outline" size="xs" type="button" onClick={() => void copy()}>
+          <Button
+            tooltip={'Copy the app version and runtime details for a support report.'}
+            variant="outline"
+            size="xs"
+            type="button"
+            onClick={() => void copy()}
+          >
             {copied() ? 'Copied' : 'Copy version info'}
           </Button>
-          <a
+          <Button
+            as="a"
+            tooltip="Open the Cortana source repository in your browser."
+            variant="link"
+            size="xs"
             href={SOURCE_URL}
             target="_blank"
             rel="noreferrer"
@@ -69,12 +83,12 @@ export function M7AboutDialog(props: {
           >
             <ExternalLink aria-hidden="true" />
             View source
-          </a>
+          </Button>
         </div>
         <Show when={copyError()}>
-          <p class="m7-about-dialog__error" role="alert">
-            {copyError()}
-          </p>
+          <SharedFeedbackAlert variant="destructive" role="alert" class="my-2">
+            <SharedFeedbackDescription>{copyError()}</SharedFeedbackDescription>
+          </SharedFeedbackAlert>
         </Show>
       </DialogContent>
     </Dialog>

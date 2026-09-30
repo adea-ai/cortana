@@ -17,6 +17,7 @@ Cortana documentation is divided by authority. Each document should define one d
 | Agent setup and interface use                           | [Integrations](integrations.md)                                                                                                   |
 | Desktop architecture and privilege boundary             | [Desktop architecture](desktop-architecture.md)                                                                                   |
 | Desktop packaged-product acceptance                     | [Desktop UX audit](desktop-ux-audit.md)                                                                                           |
+| Shared web component and styling contract               | [Web UI standards](web-ui-standards.md)                                                                                           |
 | Desktop shadcn migration baseline and architecture      | [Desktop shadcn migration record](desktop-shadcn-migration.md)                                                                    |
 | Services, readiness, backup, restore, and recovery      | [Operations](operations.md)                                                                                                       |
 | Derived Obsidian-compatible Markdown export             | [Derived Obsidian vault](obsidian-vault.md)                                                                                       |

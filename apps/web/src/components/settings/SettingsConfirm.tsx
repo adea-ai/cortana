@@ -53,9 +53,9 @@ export function SettingsConfirmProvider(props: { children: JSX.Element }) {
         return
       }
       const fallback =
-        current.scope?.querySelector<HTMLElement>('.settings-nav-item.active') ??
+        current.scope?.querySelector<HTMLElement>('.settings-nav-item[aria-current=page]') ??
         current.scope?.querySelector<HTMLElement>(
-          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])'
+          'button:not([disabled]):not([aria-disabled=true]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])'
         )
       if (fallback?.isConnected) fallback.focus()
     }, 50)

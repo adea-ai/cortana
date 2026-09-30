@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 
-import { mkdir } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
 import { AxeBuilder } from '@axe-core/playwright'
-import { chromium } from 'playwright'
+import { chromium, webkit } from 'playwright'
+import { themesForAppearance } from '@adea-ai/ui/lib/themes'
+import { setViewportAndWaitForLayout } from './knowledge-accessibility-browser.mjs'
 
 const args = new Map()
 for (let index = 2; index < process.argv.length; index += 2) {
@@ -16,26 +18,24 @@ const output = resolve(args.get('--output') ?? 'artifacts/m7-shadcn/final')
 // Destinations that live behind the rail's single utilities trigger rather
 // than on a row of their own.
 const MENU_DESTINATIONS = new Set(['Settings', 'Updates', 'Index', 'Help'])
-const widths = [320, 768, 1024, 1440, 1920]
-const themes = [
-  'blue',
-  'accessible',
-  'forest',
-  'plum',
-  'sand',
-  'graphite',
-  'teal',
-  'rose',
-  'slate',
-  'indigo',
-  'emerald',
-  'amber',
-]
+const widths = args.has('--widths')
+  ? args.get('--widths').split(',').map(Number)
+  : [320, 768, 1024, 1440, 1920]
+const themes = args.has('--themes')
+  ? args.get('--themes').split(',')
+  : [
+      'blue',
+      ...themesForAppearance('dark')
+        .map((theme) => theme.id)
+        .filter((id) => id !== 'nord'),
+    ]
 const consoleErrors = []
 let screenshotCount = 0
 
 await mkdir(output, { recursive: true })
-const browser = await chromium.launch({ headless: true })
+const engine = args.get('--browser') ?? 'chromium'
+if (!['chromium', 'webkit'].includes(engine)) throw new Error(`Unsupported browser: ${engine}`)
+const browser = await (engine === 'webkit' ? webkit : chromium).launch({ headless: true })
 
 async function openPage(theme, width, state = 'configured') {
   // Reduced motion makes enter/exit animations complete instantly so audits
@@ -98,7 +98,30 @@ async function openDestination(page, width, destination) {
   if (MENU_DESTINATIONS.has(destination)) await openRailDestination(page, destination)
   else await page.getByRole('button', { name: destination, exact: true }).click()
   if (width <= 768) await page.locator('[data-mobile="true"]').waitFor({ state: 'detached' })
-  await page.getByRole('heading', { name: destination, level: 1 }).waitFor()
+  if (destination === 'Knowledge') await page.locator('.workspace').waitFor()
+  else {
+    try {
+      await page.getByRole('heading', { name: destination, level: 1 }).waitFor()
+    } catch (error) {
+      const name = `navigation-failure-${destination.toLowerCase().replaceAll(' ', '-')}`
+      const state = await page.evaluate(() => ({
+        rootHidden: document.getElementById('root')?.getAttribute('aria-hidden'),
+        rootInert: document.getElementById('root')?.hasAttribute('inert'),
+        headings: [...document.querySelectorAll('h1')].map((heading) => ({
+          text: heading.textContent,
+          hidden: heading.closest('[aria-hidden="true"],[inert]') !== null,
+          bounds: heading.getBoundingClientRect().toJSON(),
+        })),
+        dialogs: [...document.querySelectorAll('[role="dialog"]')].map((dialog) => ({
+          name: dialog.getAttribute('aria-label'),
+          closed: dialog.hasAttribute('data-closed'),
+        })),
+      }))
+      await writeFile(resolve(output, `${name}.json`), `${JSON.stringify(state, null, 2)}\n`)
+      await screenshot(page, name)
+      throw error
+    }
+  }
 }
 
 async function screenshot(page, name) {
@@ -110,6 +133,7 @@ async function screenshot(page, name) {
 }
 
 async function auditAccessibility(page, label) {
+  await page.evaluate(() => document.fonts.ready)
   const accessibility = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
     .analyze()
@@ -124,14 +148,87 @@ async function auditAccessibility(page, label) {
       .join('\n')
     throw new Error(`Accessibility violations in ${label}:\n${summary}`)
   }
+  const layoutFailures = await page.evaluate(() => {
+    const failures = []
+    const checkContained = (outer, inner, message) => {
+      if (
+        inner.left < outer.left - 1 ||
+        inner.right > outer.right + 1 ||
+        inner.top < outer.top - 1 ||
+        inner.bottom > outer.bottom + 1
+      )
+        failures.push(message)
+    }
+    for (const description of document.querySelectorAll('[data-slot="list-row-description"]')) {
+      const row = description.parentElement?.parentElement
+      if (!row || !row.getBoundingClientRect().height) continue
+      const title = description.previousElementSibling
+      for (const text of [description, title].filter(Boolean))
+        checkContained(
+          row.getBoundingClientRect(),
+          text.getBoundingClientRect(),
+          `List row clips its text: ${row.textContent?.trim()}`
+        )
+    }
+    for (const copy of document.querySelectorAll('[data-readiness-copy]')) {
+      const title = copy.querySelector('strong')
+      const detail = title?.nextElementSibling
+      if (
+        title &&
+        detail &&
+        title.getBoundingClientRect().height &&
+        detail.getBoundingClientRect().top < title.getBoundingClientRect().bottom - 1
+      )
+        failures.push(`Readiness description overlaps its label: ${title.textContent}`)
+    }
+    for (const copy of document.querySelectorAll('[data-activity-card-copy]')) {
+      const card = copy.closest('[data-slot="card"]')
+      if (!card || !card.getBoundingClientRect().height) continue
+      for (const text of copy.querySelectorAll(
+        '[data-slot="card-title"], [data-slot="card-description"]'
+      ))
+        checkContained(
+          card.getBoundingClientRect(),
+          text.getBoundingClientRect(),
+          `Activity card clips its text: ${text.textContent?.trim()}`
+        )
+    }
+    return failures
+  })
+  if (layoutFailures.length)
+    throw new Error(`Layout violations in ${label}:\n${layoutFailures.join('\n')}`)
 }
 
 {
   for (const theme of themes) {
     for (const width of widths) {
       const { context, page } = await openPage(theme, width)
+      if (theme === 'blue' && width === 320) {
+        await page.keyboard.press('Tab')
+        const skipLink = page.getByRole('link', { name: 'Skip to main content', exact: true })
+        if (!(await skipLink.evaluate((element) => element === document.activeElement))) {
+          throw new Error('The shared skip link is not the first keyboard stop')
+        }
+        const bounds = await skipLink.boundingBox()
+        if (!bounds || bounds.y < 0) throw new Error('The focused shared skip link remains hidden')
+        await skipLink.press('Enter')
+        if (
+          !(await page
+            .locator('#main-content')
+            .evaluate((element) => element === document.activeElement))
+        ) {
+          throw new Error('The shared skip link did not focus main content')
+        }
+      }
       await screenshot(page, `shell-${theme}-${width}`)
       await auditAccessibility(page, `${theme}/${width} production shell`)
+
+      await page.getByRole('button', { name: 'System status', exact: true }).click()
+      await page.locator('[aria-label="System status details"]').waitFor()
+      await auditAccessibility(page, `${theme}/${width} system status`)
+      await screenshot(page, `system-status-${theme}-${width}`)
+      await page.keyboard.press('Escape')
+      await page.getByRole('button', { name: 'System status', exact: true }).waitFor()
 
       if (theme === 'blue' && width === 320) {
         const mobileSearch = page.getByRole('textbox', { name: 'Search your knowledge' })
@@ -181,6 +278,48 @@ async function auditAccessibility(page, label) {
         await screenshot(page, 'mobile-navigation-blue-320')
         await page.getByRole('button', { name: 'Knowledge', exact: true }).click()
         await page.locator('[data-mobile="true"]').waitFor({ state: 'detached' })
+        await navigationTrigger.click()
+        await page.getByRole('dialog', { name: 'Primary navigation' }).waitFor()
+        await setViewportAndWaitForLayout(page, { width: 1024, height: 1000 })
+        await page
+          .getByRole('dialog', { name: 'Primary navigation' })
+          .waitFor({ state: 'detached' })
+        await page.waitForFunction(
+          () => document.activeElement?.getAttribute('aria-label') === 'Toggle navigation'
+        )
+        await auditAccessibility(page, 'navigation mobile to desktop transition')
+        await setViewportAndWaitForLayout(page, { width, height: 1000 })
+        if (await page.getByRole('dialog', { name: 'Primary navigation' }).count()) {
+          throw new Error('Navigation reopened after returning to mobile width')
+        }
+      }
+
+      if (theme === 'blue' && width <= 768) {
+        await openDestination(page, width, 'Graph')
+        await page.locator('.graph-view[data-compact]').waitFor()
+        await auditAccessibility(page, `responsive graph/${width}`)
+        const overlaps = await page.locator('[data-slot="orbit-item"]').evaluateAll((items) => {
+          const boxes = items.map((item) => item.getBoundingClientRect())
+          return boxes.some((box, index) =>
+            boxes
+              .slice(index + 1)
+              .some(
+                (other) =>
+                  box.left < other.right &&
+                  box.right > other.left &&
+                  box.top < other.bottom &&
+                  box.bottom > other.top
+              )
+          )
+        })
+        if (overlaps) throw new Error(`Graph nodes overlap at ${width}px`)
+        await screenshot(page, `knowledge-graph-blue-${width}`)
+        const node = page.getByRole('button', { name: /Focus workspace:/ }).first()
+        await node.click()
+        await page.getByRole('complementary', { name: 'Selected graph node' }).waitFor()
+        await auditAccessibility(page, `selected responsive graph/${width}`)
+        await screenshot(page, `knowledge-graph-selected-blue-${width}`)
+        await openDestination(page, width, 'Knowledge')
       }
 
       if (theme === 'blue' && width === 768) {
@@ -193,6 +332,7 @@ async function auditAccessibility(page, label) {
           .dispatchEvent('keydown', { key: 'Enter' })
         await page.getByRole('dialog', { name: 'Sources and documents' }).waitFor()
         await page.locator('aside.source-panel.mobile-open').waitFor()
+        await auditAccessibility(page, 'mobile sources and documents')
         await screenshot(page, 'source-panel-blue-768')
         await page.keyboard.press('Escape')
         await page.getByRole('dialog', { name: 'Sources and documents' }).waitFor({
@@ -201,6 +341,21 @@ async function auditAccessibility(page, label) {
         await page.waitForFunction(
           () => document.activeElement?.getAttribute('aria-label') === 'Actions'
         )
+        for (const action of ['Add source', 'Source settings']) {
+          await page.getByRole('button', { name: 'Actions' }).click()
+          await page
+            .getByRole('menuitem', { name: 'Open sources' })
+            .dispatchEvent('keydown', { key: 'Enter' })
+          const sourcesDialog = page.getByRole('dialog', { name: 'Sources and documents' })
+          await sourcesDialog.waitFor()
+          await sourcesDialog.getByRole('button', { name: action, exact: true }).click()
+          await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor()
+          await sourcesDialog.waitFor({ state: 'detached' })
+          await page.waitForFunction(() => document.activeElement?.matches('main.settings-view'))
+          await openDestination(page, width, 'Knowledge')
+          if (await sourcesDialog.count())
+            throw new Error(`${action} left Sources open after returning to Knowledge`)
+        }
       }
 
       if (theme === 'blue' && width === 1024) {
@@ -221,48 +376,53 @@ async function auditAccessibility(page, label) {
 
       if (theme === 'blue' && width === 1440) {
         const collapsedMetrics = await page.evaluate(() => {
-          const sidebar = document.querySelector('[data-slot="sidebar-container"]')
-          const destination = Array.from(
-            document.querySelectorAll(
-              '[data-slot="sidebar"][data-state="collapsed"] [data-sidebar="menu-button"]'
-            )
-          ).find((element) => element.textContent?.trim() === 'Knowledge')
-          const icon = destination?.querySelector('svg')
-          const logo = document.querySelector('[aria-label="Switch workspace"] .workspace-logo')
-          const labels = document.querySelector('[data-workspace-labels]')
+          const rail = document.querySelector('#m7-primary-navigation[data-collapsed="true"]')
+          const destination = Array.from(rail?.querySelectorAll('button') ?? []).find(
+            (element) => element.textContent?.trim() === 'Knowledge'
+          )
+          const box = destination?.getBoundingClientRect()
+          const rootStyle = getComputedStyle(document.documentElement)
+          const expectedWidth =
+            Number.parseFloat(rootStyle.getPropertyValue('--rail-width')) *
+            Number.parseFloat(rootStyle.fontSize)
           return {
-            sidebarWidth: sidebar?.getBoundingClientRect().width ?? 0,
-            targetWidth: destination?.getBoundingClientRect().width ?? 0,
-            iconWidth: icon?.getBoundingClientRect().width ?? 0,
-            logoWidth: logo?.getBoundingClientRect().width ?? 0,
-            labelsDisplay: labels ? getComputedStyle(labels).display : 'missing',
+            railWidth: rail?.getBoundingClientRect().width ?? 0,
+            expectedWidth,
+            targetWidth: box?.width ?? 0,
+            targetHeight: box?.height ?? 0,
           }
         })
         if (
-          Math.abs(collapsedMetrics.sidebarWidth - 56) > 1 ||
-          Math.abs(collapsedMetrics.targetWidth - 48) > 1 ||
-          Math.abs(collapsedMetrics.iconWidth - 24) > 1 ||
-          Math.abs(collapsedMetrics.logoWidth - 49) > 1 ||
-          collapsedMetrics.labelsDisplay !== 'none'
+          Math.abs(collapsedMetrics.railWidth - collapsedMetrics.expectedWidth) > 1 ||
+          collapsedMetrics.targetWidth < 24 ||
+          collapsedMetrics.targetHeight < 24
         ) {
-          throw new Error(
-            `Collapsed sidebar proportions regressed: ${JSON.stringify(collapsedMetrics)}`
-          )
+          throw new Error(`Shared rail geometry regressed: ${JSON.stringify(collapsedMetrics)}`)
         }
 
         await page.getByRole('button', { name: 'Toggle navigation' }).click()
-        await page.locator('[data-slot="sidebar"][data-state="expanded"]').waitFor()
+        await page.locator('#m7-primary-navigation[data-collapsed="false"]').waitFor()
         await page.waitForTimeout(300)
-        const expandedLogoWidth = await page
-          .locator('[aria-label="Switch workspace"] .workspace-logo')
-          .evaluate((element) => element.getBoundingClientRect().width)
-        if (Math.abs(expandedLogoWidth - 49) > 1) {
-          throw new Error(`Expanded workspace logo regressed to ${expandedLogoWidth}px`)
+        const expandedGeometry = await page
+          .locator('#m7-primary-navigation')
+          .evaluate((element) => {
+            const rootStyle = getComputedStyle(document.documentElement)
+            return {
+              actual: element.getBoundingClientRect().width,
+              expected:
+                Number.parseFloat(rootStyle.getPropertyValue('--rail-width-expanded')) *
+                Number.parseFloat(rootStyle.fontSize),
+            }
+          })
+        if (Math.abs(expandedGeometry.actual - expandedGeometry.expected) > 1) {
+          throw new Error(
+            `Expanded shared rail geometry regressed: ${JSON.stringify(expandedGeometry)}`
+          )
         }
         await auditAccessibility(page, 'expanded desktop navigation')
         await screenshot(page, 'sidebar-expanded-blue-1440')
         await page.getByRole('button', { name: 'Toggle navigation' }).click()
-        await page.locator('[data-slot="sidebar"][data-state="collapsed"]').waitFor()
+        await page.locator('#m7-primary-navigation[data-collapsed="true"]').waitFor()
 
         const knowledgeSearch = page.getByRole('textbox', { name: 'Search your knowledge' })
         await knowledgeSearch.fill('How do releases work?')
@@ -293,6 +453,18 @@ async function auditAccessibility(page, label) {
         await page.locator('.graph-view').waitFor()
         await auditAccessibility(page, 'bounded knowledge graph')
         await screenshot(page, 'knowledge-graph-blue-1440')
+        await page.getByRole('button', { name: 'Actions' }).click()
+        await page
+          .getByRole('menuitem', { name: 'Open agent context' })
+          .dispatchEvent('keydown', { key: 'Enter' })
+        await page.locator('[data-m7-context-panel]').waitFor()
+        if (await page.locator('.graph-view').count())
+          throw new Error('Open agent context left Graph covering the panel')
+        if (await page.getByRole('button', { name: 'Close sources', exact: true }).count())
+          throw new Error('Desktop sources exposes a mobile close action')
+        if (await page.getByRole('button', { name: 'Close agent context', exact: true }).count())
+          throw new Error('Desktop context exposes a mobile close action')
+        await auditAccessibility(page, 'context action from Graph')
 
         await page.getByRole('button', { name: 'Knowledge', exact: true }).click()
         await page.evaluate(() => {
@@ -422,21 +594,19 @@ async function auditAccessibility(page, label) {
         await auditAccessibility(page, 'settings backup and recovery')
         await screenshot(page, 'settings-backup-recovery-blue-1440')
 
-        const collapsedSidebar = page.locator('[data-slot="sidebar"][data-state="collapsed"]')
+        const collapsedSidebar = page.locator('#m7-primary-navigation[data-collapsed="true"]')
         await collapsedSidebar.waitFor()
         await page.waitForFunction(() => {
-          const sidebar = document
-            .querySelector('[data-slot="sidebar"][data-state="collapsed"]')
-            ?.querySelector('[data-slot="sidebar-container"]')
-          const header = document.querySelector('.m7-production-shell > header')
+          const sidebar = document.querySelector('#m7-primary-navigation[data-collapsed="true"]')
+          const header = document.querySelector('.m7-production-shell [data-slot="top-bar"]')
           if (!sidebar || !header) return false
           const sidebarBox = sidebar.getBoundingClientRect()
           const headerBox = header.getBoundingClientRect()
           return Math.abs(sidebarBox.right - headerBox.left) <= 1
         })
         const [sidebarBox, headerBox] = await Promise.all([
-          collapsedSidebar.locator('[data-slot="sidebar-container"]').boundingBox(),
-          page.locator('.m7-production-shell > header').boundingBox(),
+          collapsedSidebar.boundingBox(),
+          page.locator('.m7-production-shell [data-slot="top-bar"]').boundingBox(),
         ])
         if (
           !sidebarBox ||
@@ -565,8 +735,8 @@ async function auditAccessibility(page, label) {
   }
   await motionPage.keyboard.press('Escape')
   await mobileNavigation.waitFor({ state: 'detached' })
-  await motionPage.waitForFunction(() =>
-    document.activeElement?.matches('[data-sidebar="trigger"]')
+  await motionPage.waitForFunction(
+    () => document.activeElement?.getAttribute('aria-label') === 'Toggle navigation'
   )
   await motionContext.close()
 }

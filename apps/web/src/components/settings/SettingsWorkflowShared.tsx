@@ -1,32 +1,16 @@
-import { Check, LoaderCircle, X } from 'lucide-solid'
-
-import { cn } from '@/lib/utils'
+import { StatusChip } from '@adea-ai/ui/components/ui/status-chip'
 
 export function StatusGlyph(props: { passed: boolean; optional?: boolean; pending?: boolean }) {
+  const label = () =>
+    props.pending ? 'In progress' : props.passed ? 'Passed' : props.optional ? 'Optional' : 'Failed'
   return (
-    <i
-      class={cn(
-        'status-glyph',
-        props.pending ? 'pending' : props.passed ? 'passed' : props.optional ? 'optional' : 'failed'
-      )}
-      aria-label={
-        props.pending
-          ? 'In progress'
-          : props.passed
-            ? 'Passed'
-            : props.optional
-              ? 'Optional'
-              : 'Failed'
-      }
+    <StatusChip
       role="img"
-    >
-      {props.pending ? (
-        <LoaderCircle class="spin" size={13} />
-      ) : props.passed ? (
-        <Check size={13} />
-      ) : (
-        <X size={13} />
-      )}
-    </i>
+      aria-label={label()}
+      label={label()}
+      tone={
+        props.pending ? 'info' : props.passed ? 'success' : props.optional ? 'neutral' : 'danger'
+      }
+    />
   )
 }

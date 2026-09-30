@@ -9,7 +9,8 @@
   "jsPlugins": ["@shadcn/lint", "@adea-ai/ui/lint"],
   "settings": {
     "shadcn": {
-      "note": "Project classes are defined in apps/web/src/shadcn.css. See .agents/skills/shadcn for the full component rules (composition, forms, icons, chat)."
+      "ui": "@adea-ai/ui/components",
+      "note": "Import shared primitives from @adea-ai/ui. App styles own native-domain layout only."
     }
   },
   "rules": {
@@ -31,33 +32,33 @@
           },
           {
             "name": "cmdk",
-            "message": "Use cmdk-solid instead of the React cmdk package."
+            "message": "Use shared command components from @adea-ai/ui."
           },
           {
             "name": "sonner",
-            "message": "Use solid-sonner instead of the React sonner package."
+            "message": "Use the application Solid toast adapter."
           },
           {
             "name": "next-themes",
-            "message": "Use the local theme helpers instead of next-themes."
+            "message": "Use the application theme integration with @adea-ai/ui tokens."
           },
           {
             "name": "react-resizable-panels",
-            "message": "Use the local Solid resizable implementation."
+            "message": "Use Resizable from @adea-ai/ui/components/ui/resizable."
           },
           {
             "name": "@base-ui/react",
-            "message": "Import primitives only through components/shadcn/* (Kobalte-backed)."
+            "message": "Import shared primitives from @adea-ai/ui/components/ui/*."
           }
         ],
         "patterns": [
           {
             "group": ["@base-ui/*", "@base-ui-components/*", "@radix-ui/*", "radix-*"],
-            "message": "Primitives are Kobalte via components/shadcn/*; no direct primitive imports."
+            "message": "Import primitives from @adea-ai/ui/components/ui/*; do not use direct primitive libraries."
           },
           {
             "group": ["@kobalte/*"],
-            "message": "Prefer components/shadcn/* wrappers over direct Kobalte imports."
+            "message": "Import primitives from @adea-ai/ui/components/ui/*; do not use direct primitive libraries."
           }
         ]
       }
@@ -89,256 +90,21 @@
     "shadcn/no-restyle": [
       "error",
       {
-        "deny": ["color", "typography", "shape", "effects", "motion"],
-        "contracts": [
-          {
-            "pattern": "^Alert$",
-            "allow": [
-              "layout",
-              "spacing",
-              "safety-note",
-              "settings-banner",
-              "error",
-              "warning",
-              "border-success",
-              "text-success",
-              "border-warning",
-              "text-warning",
-              "border-destructive",
-              "text-destructive"
-            ],
-            "deny": []
-          },
-          {
-            "pattern": "^Empty$",
-            "allow": ["layout", "spacing", "border"],
-            "deny": ["color", "typography", "effects", "motion"]
-          },
-          {
-            "pattern": "^Tabs$",
-            "allow": ["layout", "spacing", "border-b"],
-            "deny": ["color", "typography", "effects", "motion"]
-          },
-          {
-            "pattern": "^Badge$",
-            "allow": [
-              "layout",
-              "spacing",
-              "border-success",
-              "bg-success",
-              "text-success",
-              "border-warning",
-              "bg-warning",
-              "text-warning",
-              "border-destructive",
-              "bg-destructive",
-              "text-destructive",
-              "border-primary",
-              "bg-primary",
-              "text-primary",
-              "border-muted-foreground",
-              "bg-muted",
-              "text-muted-foreground",
-              "memory-status"
-            ],
-            "deny": []
-          },
-          {
-            "pattern": "^(ComboboxInput|SelectTrigger)$",
-            "allow": [
-              "layout",
-              "spacing",
-              "bg-background",
-              "border-border",
-              "shadow-xs",
-              "settings-*"
-            ],
-            "deny": []
-          }
-        ]
+        "deny": ["color", "typography", "shape", "effects", "motion"]
       }
     ],
     "shadcn/no-raw-colors": "error",
     "shadcn/no-arbitrary-values": "error",
     "shadcn/no-inline-styles": "error",
-    "shadcn/no-unknown-classes": [
-      "error",
-      {
-        "allow": [
-          "active",
-          "activity-*",
-          "answer-*",
-          "attention",
-          "audit-*",
-          "brand-*",
-          "breadcrumbs",
-          "byline",
-          "canonical-content",
-          "canonical-document",
-          "command-*",
-          "compact",
-          "complete",
-          "context-*",
-          "copy-area",
-          "core-readiness",
-          "disabled",
-          "discord-*",
-          "document-*",
-          "empty-*",
-          "enabled",
-          "error",
-          "evidence-*",
-          "explorer-*",
-          "eyebrow",
-          "failed",
-          "failure",
-          "form-*",
-          "graph-*",
-          "health",
-          "healthy",
-          "history-buttons",
-          "ingestion-health",
-          "initial-*",
-          "installer-*",
-          "is-loading",
-          "keyboard-active",
-          "lead",
-          "link-button",
-          "load-more-documents",
-          "manual",
-          "m7-*",
-          "memory-*",
-          "mobile-*",
-          "model-*",
-          "optional",
-          "pane-resizer",
-          "panel-heading",
-          "passed",
-          "path-input",
-          "pending",
-          "portable-settings",
-          "principal-*",
-          "provenance",
-          "query-summary",
-          "rail-*",
-          "reachable",
-          "readiness-*",
-          "ready",
-          "release-notes",
-          "retrieval-diagnostics",
-          "rule",
-          "running",
-          "runtime-error",
-          "safe-markdown",
-          "safety-note",
-          "scheduled",
-          "scope-options",
-          "search-form",
-          "secret-input",
-          "section-*",
-          "selected-*",
-          "selected",
-          "server-context",
-          "service-*",
-          "settings-*",
-          "setup-*",
-          "shell",
-          "sidebar-workspace-select",
-          "sidecar-health",
-          "skip-link",
-          "source-*",
-          "spin",
-          "status-*",
-          "statusbar",
-          "succeeded",
-          "success",
-          "timeline-view",
-          "title-actions",
-          "titlebar",
-          "toggle-row",
-          "tree-toggle",
-          "unavailable",
-          "update-*",
-          "utility-*",
-          "vault-workspace-picker",
-          "virtual-*",
-          "visually-hidden",
-          "warning",
-          "wide",
-          "workspace-*"
-        ]
-      }
-    ],
+    "shadcn/no-unknown-classes": "error",
     "shadcn/require-static-classes": "error",
     "adea/no-raw-interactive-elements": "error",
     "adea/no-primitive-library-imports": "error",
-    "adea/no-interactive-wrappers": "error"
+    "adea/no-interactive-wrappers": "error",
+    "adea/no-inline-styles": "error",
+    "adea/no-class-list": "error",
+    "adea/require-action-button-tooltip": "error"
   },
-  "overrides": [
-    {
-      "files": [
-        "apps/web/src/App.tsx",
-        "apps/web/src/components/MemoryReview.tsx",
-        "apps/web/src/components/RendererErrorBoundary.tsx",
-        "apps/web/src/components/SettingsView.tsx",
-        "apps/web/src/components/SourcePanel.tsx",
-        "apps/web/src/components/VirtualDocumentList.tsx",
-        "apps/web/src/components/Workspace.tsx",
-        "apps/web/src/components/settings/AccessSection.tsx",
-        "apps/web/src/components/settings/AdvancedSettingsSection.tsx",
-        "apps/web/src/components/settings/ProviderSections.tsx",
-        "apps/web/src/components/settings/SourceSettingsWorkflow.tsx",
-        "apps/web/src/components/settings/WorkspaceSection.tsx",
-        "apps/web/src/components/settings/label.tsx",
-        "apps/web/src/components/shadcn/sidebar.tsx"
-      ],
-      "rules": {
-        "adea/no-raw-interactive-elements": "off",
-        "adea/no-primitive-library-imports": "off",
-        "adea/no-interactive-wrappers": "off"
-      }
-    },
-    {
-      "files": ["apps/web/src/components/RendererErrorBoundary.tsx"],
-      "rules": {
-        "shadcn/no-inline-styles": "off"
-      }
-    },
-    {
-      "files": [
-        "apps/web/src/components/shadcn/**",
-        "apps/web/src/components/settings/field.tsx",
-        "apps/web/src/components/settings/label.tsx"
-      ],
-      "rules": {
-        "eslint/no-restricted-imports": "off",
-        "jsx-a11y/click-events-have-key-events": "off",
-        "jsx-a11y/no-noninteractive-element-interactions": "off",
-        "jsx-a11y/no-noninteractive-element-to-interactive-role": "off",
-        "jsx-a11y/no-static-element-interactions": "off",
-        "jsx-a11y/interactive-supports-focus": "off",
-        "jsx-a11y/anchor-has-content": "off",
-        "jsx-a11y/label-has-associated-control": "off",
-        "jsx-a11y/no-autofocus": "off",
-        "shadcn/no-restyle": "off",
-        "shadcn/no-raw-colors": "off",
-        "shadcn/no-arbitrary-values": "off",
-        "shadcn/no-inline-styles": "off",
-        "shadcn/no-unknown-classes": "off",
-        "shadcn/require-static-classes": "off"
-      }
-    },
-    {
-      "files": [
-        "apps/web/src/components/settings/SettingsSurface.tsx",
-        "apps/web/src/components/settings/SettingsModelCombobox.tsx"
-      ],
-      "rules": {
-        "shadcn/no-inline-styles": "off",
-        "shadcn/require-static-classes": "off",
-        "jsx-a11y/role-has-required-aria-props": "off"
-      }
-    }
-  ],
+  "overrides": [],
   "ignorePatterns": ["node_modules/**", "apps/web/dist/**", "coverage/**", "target/**"]
 }

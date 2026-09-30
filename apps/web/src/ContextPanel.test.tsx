@@ -3,7 +3,10 @@ import { afterEach, expect, test } from 'bun:test'
 import { cleanup, fireEvent, render, screen, waitFor } from 'solid-testing-library'
 import type { AnswerResponse, ContextBundle, Evidence } from './types'
 import { ContextPanel } from './components/ContextPanel'
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  window.innerWidth = 1024
+})
 const baseEvidence: Evidence[] = [
   {
     chunk_id: 'chunk-1',
@@ -161,15 +164,12 @@ test('Context panel copy falls back when the async clipboard API is unavailable'
     })
   }
 })
-test('Context panel uses the shared action button contract', () => {
-  renderPanel({
-    context: 'server context',
+test('desktop context panel uses shared actions without an ineffective overlay close control', async () => {
+  window.innerWidth = 1440
+  await act(async () => {
+    renderPanel({ context: 'server context' })
   })
-  expect(
-    screen.getByRole('button', {
-      name: 'Close agent context',
-    }).className
-  ).toContain('size-control-sm')
+  expect(screen.queryByRole('button', { name: 'Close agent context' })).toBeNull()
   expect(
     screen.getByRole('button', {
       name: 'Refresh MCP-equivalent context',
