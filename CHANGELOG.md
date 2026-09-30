@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.62.0](https://github.com/adea-ai/cortana/compare/v0.61.6...v0.62.0) (2026-09-30)
+
+
+### Features
+
+* complete shared UI migration and strict styling contract ([#2424](https://github.com/adea-ai/cortana/issues/2424)) ([67e0af8](https://github.com/adea-ai/cortana/commit/67e0af89bf33d640ca49973cd75288c8675f2d36))
+
 ## [0.61.6](https://github.com/adea-ai/cortana/compare/v0.61.5...v0.61.6) (2026-09-30)
 
 
