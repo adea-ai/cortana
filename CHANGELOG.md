@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.61.6](https://github.com/adea-ai/cortana/compare/v0.61.5...v0.61.6) (2026-09-30)
+
+
+### Maintenance
+
+* add Renovate for dependency updates ([#2417](https://github.com/adea-ai/cortana/issues/2417)) ([e4a0da7](https://github.com/adea-ai/cortana/commit/e4a0da70db56279b28871ab18a39b1a1bc120fcc))
+* enforce shared UI composition boundaries ([#2416](https://github.com/adea-ai/cortana/issues/2416)) ([ecbe86b](https://github.com/adea-ai/cortana/commit/ecbe86b97bde1da2a2a56a9b677581235227387d))
+
 ## [0.61.5](https://github.com/adea-ai/cortana/compare/v0.61.4...v0.61.5) (2026-09-30)
 
 
