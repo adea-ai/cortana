@@ -18,7 +18,7 @@ use crate::source_validation::{self, SourceValidationStatus};
 /// unreadable (defense against pathological files).
 pub const MAX_TOKEN_FILE_BYTES: usize = 64 * 1024;
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum SourceAuthorizationMethod {
     None,
@@ -29,14 +29,14 @@ pub enum SourceAuthorizationMethod {
     SlackOauth,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, schemars::JsonSchema)]
 pub struct SourceAuthorizationSummary {
     pub method: SourceAuthorizationMethod,
     pub setup_required: bool,
     pub authorized: bool,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, schemars::JsonSchema)]
 pub struct SourceValidationSummary {
     pub source: String,
     pub project: String,
@@ -62,7 +62,7 @@ pub struct SourceValidationSummary {
 /// Safe, non-secret source configuration shared by the HTTP status API and the
 /// MCP `brain_status` tool. This deliberately omits credential paths,
 /// environment variable names, tokens, and connector arguments.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, schemars::JsonSchema)]
 pub struct ConfiguredSourceStatus {
     pub name: String,
     pub source: String,

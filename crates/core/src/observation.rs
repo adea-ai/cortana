@@ -26,7 +26,7 @@ pub const MAX_CANDIDATE_EXPORT_LIMIT: usize = 10_000;
 pub const MAX_CANDIDATE_RESPONSE_BYTES: usize = 1024 * 1024;
 pub const MAX_CANDIDATE_TTL: Duration = Duration::days(7);
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, schemars::JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum ObservationKind {
     HarnessScratchpad,
@@ -58,7 +58,7 @@ impl ObservationKind {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, schemars::JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum CandidateSensitivity {
     Normal,
@@ -87,7 +87,7 @@ impl CandidateSensitivity {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct ObservationCandidateInput {
     pub observation_kind: String,
     pub content_type: String,
@@ -107,7 +107,7 @@ pub struct ObservationCandidateInput {
     pub expires_at: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct ObservationCandidate {
     pub id: String,
     pub observation_kind: String,

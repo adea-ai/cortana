@@ -95,7 +95,7 @@ pub struct Store {
     memory_max_active: Arc<AtomicUsize>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, schemars::JsonSchema)]
 pub struct StoreStats {
     pub documents: i64,
     pub chunks: i64,
@@ -108,7 +108,7 @@ pub struct StoreStats {
     pub sync_runs: Vec<SourceSyncStats>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, schemars::JsonSchema)]
 pub struct ConsolidationJobReview {
     pub status: String,
     pub decision: String,
@@ -123,14 +123,14 @@ pub struct ConsolidationJobReview {
     pub supporting_memory_ids: Vec<String>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, schemars::JsonSchema)]
 pub struct MemoryCandidateReview {
     #[serde(flatten)]
     pub candidate: ObservationCandidate,
     pub consolidation: Option<ConsolidationJobReview>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, schemars::JsonSchema)]
 pub struct BoundedMemoryCandidates<T> {
     pub candidates: Vec<T>,
     pub truncated: bool,
@@ -138,13 +138,13 @@ pub struct BoundedMemoryCandidates<T> {
 
 const CANDIDATE_PAGE_RESPONSE_OVERHEAD_BYTES: usize = 64;
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, schemars::JsonSchema)]
 pub struct PublicAclSummary {
     pub project: String,
     pub documents: usize,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, schemars::JsonSchema)]
 pub struct SourceStats {
     pub source: String,
     pub project: String,
@@ -153,7 +153,7 @@ pub struct SourceStats {
     pub latest_updated_at: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, schemars::JsonSchema)]
 pub struct SourceSyncStats {
     pub source: String,
     pub project: String,
@@ -171,7 +171,7 @@ pub struct SourceSyncStats {
     pub budget_seconds: i64,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, schemars::JsonSchema)]
 pub struct AuditEvent {
     pub timestamp: String,
     pub principal: String,
@@ -183,7 +183,7 @@ pub struct AuditEvent {
     pub latency_ms: i64,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, schemars::JsonSchema)]
 pub struct DocumentSummary {
     pub id: String,
     pub source: String,
@@ -214,7 +214,7 @@ pub struct DocumentGraphMetadata {
     pub entities: Vec<String>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, schemars::JsonSchema)]
 pub struct DocumentReference {
     pub id: String,
     pub source: String,
@@ -225,7 +225,7 @@ pub struct DocumentReference {
     pub project: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, schemars::JsonSchema)]
 pub struct DocumentDetail {
     #[serde(flatten)]
     pub summary: DocumentSummary,

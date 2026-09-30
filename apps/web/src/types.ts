@@ -369,6 +369,10 @@ export type BrainStatus = {
   query_cache_entries: number
   query_cache_hits: number
   answers_total: number
+  searches_total: number
+  contexts_total: number
+  errors_total: number
+  uptime_seconds: number
   retrieval_fallbacks_total?: number
   query: {
     mode: 'extractive' | 'synthesized'
@@ -760,6 +764,49 @@ export type AnswerResponse = {
   } | null
 }
 
+export type ReflectDerivedRepresentation = {
+  id: string
+  contract_version: string
+  kind: string
+  project: string
+  scope: string
+  statement: string
+  confidence: number
+  supporting_memory_ids: string[]
+  contradicting_memory_ids: string[]
+  acl: string[]
+  memory_revision: number
+  freshness: string
+  citation_authority: boolean
+  provenance: {
+    engine_version: string
+    input_revision: number
+    support_digest: string
+  }
+}
+
+export type ReflectMemoryRelation = {
+  id: string
+  contract_version: string
+  kind: string
+  project: string
+  scope: string
+  subject: string
+  predicate: string
+  object: string
+  confidence: number
+  supporting_memory_ids: string[]
+  acl: string[]
+  memory_revision: number
+  freshness: string
+  citation_authority: boolean
+  provenance: {
+    engine_version: string
+    input_revision: number
+    support_digest: string
+  }
+}
+
 export type ReflectResponse = {
   contract_version: string
   request_digest: string
@@ -798,6 +845,8 @@ export type ReflectResponse = {
     supporting_memory_ids: string[]
     approval_required: boolean
   }>
+  derived_representations: ReflectDerivedRepresentation[]
+  memory_relations: ReflectMemoryRelation[]
   evidence_ids: string[]
   metrics: {
     memories_considered: number
@@ -927,6 +976,7 @@ export type DerivedMemoryResponse = {
   memory_revision: number
   canonical_memory_mutated: false
   recomputed: true
+  inputs_considered: number
   representations: Array<{
     id: string
     kind: string

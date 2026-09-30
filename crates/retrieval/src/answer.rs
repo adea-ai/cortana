@@ -41,13 +41,13 @@ pub struct AnswerRequest {
     pub source: Option<String>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct QueryPlan {
     pub queries: Vec<String>,
     pub model_generated: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct AnswerResponse {
     #[serde(default = "default_api_contract_version")]
     pub contract_version: String,
@@ -81,7 +81,7 @@ fn default_retrieval_mode() -> String {
     "hybrid".into()
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, schemars::JsonSchema)]
 pub struct QueryRuntimeStatus {
     pub mode: String,
     pub model: Option<String>,

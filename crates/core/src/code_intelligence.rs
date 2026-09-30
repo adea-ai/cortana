@@ -23,7 +23,7 @@ use crate::model::Document;
 pub const CODE_INDEX_CONTRACT_VERSION: &str = "cortana.code-index.v1";
 pub const BOUNDED_PARSER_VERSION: &str = "cortana.bounded-parser.v2";
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 pub struct RepositoryIdentity {
     pub repository_id: String,
     pub display_name: String,
@@ -227,7 +227,7 @@ pub fn is_generated_or_vendor(path: &Path) -> (bool, bool) {
     (generated, vendor)
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Language {
     Rust,
@@ -316,7 +316,7 @@ impl Default for ParseLimits {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ParseStatus {
     Complete,
@@ -327,7 +327,7 @@ pub enum ParseStatus {
     TimedOut,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 pub struct SourceSpan {
     pub start_byte: usize,
     pub end_byte: usize,
@@ -335,7 +335,7 @@ pub struct SourceSpan {
     pub end_line: usize,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum SymbolKind {
     Module,
@@ -350,14 +350,14 @@ pub enum SymbolKind {
     Variable,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum SymbolRole {
     Definition,
     Declaration,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 pub struct CodeSymbol {
     pub id: String,
     pub name: String,
@@ -377,7 +377,7 @@ pub struct CodeSymbol {
     pub generated: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum RelationKind {
     Import,
@@ -391,7 +391,7 @@ pub enum RelationKind {
     Override,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum RelationOrigin {
     DirectSyntax,
@@ -402,7 +402,7 @@ pub enum RelationOrigin {
     Ambiguous,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct CodeRelation {
     pub id: String,
     pub kind: RelationKind,
@@ -421,7 +421,7 @@ pub struct CodeRelation {
     pub dynamic: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct ParseOutput {
     pub contract_version: String,
     pub parser_version: String,
@@ -434,14 +434,14 @@ pub struct ParseOutput {
     pub relations: Vec<CodeRelation>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct SymbolSearchHit {
     pub symbol: CodeSymbol,
     pub exact: bool,
     pub ambiguous: bool,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 pub struct CodeSymbolFilters {
     pub repository_id: Option<String>,
     pub revision: Option<String>,
@@ -450,7 +450,7 @@ pub struct CodeSymbolFilters {
     pub qualified_name: Option<String>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct RelationPage {
     pub relations: Vec<CodeRelation>,
     pub next_cursor: Option<String>,
@@ -470,7 +470,7 @@ pub enum RelationQuery {
     Impact,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, schemars::JsonSchema)]
 struct RelationCursor {
     /// Keyset anchor: pagination resumes after this relation id, so a
     /// concurrent re-derivation between pages shifts positions without

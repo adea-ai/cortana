@@ -12,7 +12,7 @@ pub const CONTEXT_CONTRACT_VERSION: &str = "cortana.context.v1";
 pub const RETRIEVAL_CONTRACT_VERSION: &str = "cortana.retrieval.v2";
 pub const API_CONTRACT_VERSION: &str = "cortana.api.v1";
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum EntityLifecycle {
     Active,
@@ -30,7 +30,7 @@ pub enum EntityLifecycle {
     Deleted,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 pub struct CanonicalEntityRef {
     pub contract_version: String,
     pub entity_type: String,
@@ -38,14 +38,14 @@ pub struct CanonicalEntityRef {
     pub revision: u64,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize, schemars::JsonSchema)]
 pub struct DegradationState {
     pub code: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub detail: Option<String>,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, schemars::JsonSchema)]
 pub struct ContextMetadata {
     pub contract_version: String,
     pub created_at: String,

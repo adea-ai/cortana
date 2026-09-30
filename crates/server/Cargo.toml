@@ -17,6 +17,7 @@ chrono.workspace = true
 dirs.workspace = true
 reqwest.workspace = true
 rusqlite.workspace = true
+schemars.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tempfile.workspace = true

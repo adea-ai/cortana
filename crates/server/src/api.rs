@@ -390,7 +390,7 @@ struct CodeRelationQuery {
     limit: usize,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, schemars::JsonSchema)]
 struct CodeSymbolResponse {
     contract_version: &'static str,
     corpus_revision: u64,
@@ -399,7 +399,7 @@ struct CodeSymbolResponse {
     results: Vec<crate::code_intelligence::SymbolSearchHit>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, schemars::JsonSchema)]
 struct CodeRelationResponse {
     contract_version: &'static str,
     corpus_revision: u64,
@@ -541,13 +541,13 @@ fn default_memory_candidate_limit() -> usize {
     100
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, schemars::JsonSchema)]
 struct MemoryForgetResponse {
     id: String,
     forgotten: bool,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, schemars::JsonSchema)]
 struct Health {
     status: &'static str,
 }
@@ -556,7 +556,7 @@ fn is_false(value: &bool) -> bool {
     !*value
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, schemars::JsonSchema)]
 struct Status {
     status: &'static str,
     #[serde(skip_serializing_if = "is_false")]
@@ -607,14 +607,14 @@ struct GraphParams {
     include_derived: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 struct EncodedDocumentCursor {
     updated_at: String,
     id: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 struct EncodedGraphCursor {
     contract_version: String,
@@ -624,13 +624,13 @@ struct EncodedGraphCursor {
     id: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, schemars::JsonSchema)]
 struct DocumentListResponse {
     documents: Vec<DocumentSummary>,
     next_cursor: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, schemars::JsonSchema)]
 struct GraphNode {
     contract_version: &'static str,
     id: GraphNodeId,
@@ -649,7 +649,7 @@ struct GraphNode {
     derived: Option<GraphDerivedMetadata>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, schemars::JsonSchema)]
 struct GraphDerivedMetadata {
     representation_contract_version: String,
     derivation_version: String,
@@ -659,7 +659,7 @@ struct GraphDerivedMetadata {
     citation_authority: bool,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, schemars::JsonSchema)]
 struct GraphResponse {
     contract_version: &'static str,
     corpus_revision: u64,
@@ -672,7 +672,7 @@ struct GraphResponse {
     derivation: GraphDerivationStatus,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, schemars::JsonSchema)]
 struct GraphResponseLimits {
     page_size: usize,
     max_nodes: usize,
@@ -680,7 +680,7 @@ struct GraphResponseLimits {
     max_response_bytes: usize,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, schemars::JsonSchema)]
 struct GraphDerivationStatus {
     version: &'static str,
     mode: &'static str,
@@ -691,7 +691,7 @@ struct GraphDerivationStatus {
     failures: Vec<String>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, schemars::JsonSchema)]
 struct IngestionStatus {
     #[serde(skip)]
     data_dir: std::path::PathBuf,
@@ -1158,7 +1158,7 @@ async fn list_documents(
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, schemars::JsonSchema)]
 struct AuthReloadResponse {
     reloaded: bool,
     requires_token: bool,
@@ -8160,5 +8160,69 @@ mod tests {
             .await
             .expect("admin personal read response");
         assert_eq!(admin_personal_read.status(), StatusCode::OK);
+    }
+}
+
+/// Pins the wire schemas the web hand-mirrors in `apps/web/src/types.ts`.
+///
+/// `schema_for!` generates each wire type's JSON Schema from the Rust
+/// definition; the committed fixture is the contract the bun test
+/// (`scripts/wire-schema-contract.test.mjs`) asserts the hand-mirror
+/// against. When a wire type changes intentionally, re-run with
+/// `CORTANA_REGEN_WIRE_SCHEMAS=1` to regenerate the fixture and update the
+/// hand-mirror in the same commit.
+#[cfg(test)]
+mod wire_schema_snapshots {
+    use super::{IngestionStatus, Status};
+    use cortana_core::context::ContextBundle;
+    use cortana_core::derived::DerivedMemoryResponse;
+    use cortana_retrieval::answer::AnswerResponse;
+    use cortana_retrieval::reflection::ReflectResponse;
+    use schemars::Schema;
+    use std::collections::BTreeMap;
+
+    #[test]
+    fn wire_schema_fixture_matches_the_rust_types() {
+        let mut schemas: BTreeMap<String, Schema> = BTreeMap::new();
+        schemas.insert(
+            "ContextBundle".to_string(),
+            schemars::schema_for!(ContextBundle),
+        );
+        schemas.insert(
+            "DerivedMemoryResponse".to_string(),
+            schemars::schema_for!(DerivedMemoryResponse),
+        );
+        schemas.insert(
+            "ReflectResponse".to_string(),
+            schemars::schema_for!(ReflectResponse),
+        );
+        schemas.insert(
+            "AnswerResponse".to_string(),
+            schemars::schema_for!(AnswerResponse),
+        );
+        schemas.insert("BrainStatus".to_string(), schemars::schema_for!(Status));
+        schemas.insert(
+            "IngestionStatus".to_string(),
+            schemars::schema_for!(IngestionStatus),
+        );
+
+        let serialized = serde_json::to_string_pretty(&schemas)
+            .expect("wire schema map serializes");
+        let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/fixtures/wire-schemas.json");
+
+        if std::env::var("CORTANA_REGEN_WIRE_SCHEMAS").is_ok_and(|v| v == "1") {
+            std::fs::write(&fixture_path, &serialized)
+                .expect("wire schema fixture is writable");
+            return;
+        }
+
+        let committed = std::fs::read_to_string(&fixture_path)
+            .expect("committed wire schema fixture exists; re-run with CORTANA_REGEN_WIRE_SCHEMAS=1 to regenerate");
+        assert_eq!(
+            committed.trim(),
+            serialized.trim(),
+            "wire schema fixture is stale; re-run with CORTANA_REGEN_WIRE_SCHEMAS=1 and review the types.ts hand-mirror diff"
+        );
     }
 }

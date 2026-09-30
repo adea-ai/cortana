@@ -22,7 +22,7 @@ impl GraphContract {
     pub const MAX_EDGES_PER_EXPANSION: usize = 400;
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum NodeKind {
     Workspace,
@@ -56,7 +56,7 @@ impl NodeKind {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, schemars::JsonSchema)]
 #[serde(transparent)]
 pub struct GraphNodeId(String);
 
@@ -87,7 +87,7 @@ impl fmt::Display for GraphNodeId {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum EdgeKind {
     Contains,
@@ -142,7 +142,7 @@ impl EdgeKind {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum EdgeOrigin {
     Explicit,
@@ -150,7 +150,7 @@ pub enum EdgeOrigin {
     Inferred,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, schemars::JsonSchema)]
 pub struct RelationshipSupport {
     pub record_ids: Vec<String>,
     pub invalidation_keys: Vec<String>,
@@ -173,7 +173,7 @@ impl RelationshipSupport {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, schemars::JsonSchema)]
 pub struct GraphEdge {
     pub contract_version: &'static str,
     pub source: GraphNodeId,

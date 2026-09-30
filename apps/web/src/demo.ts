@@ -143,6 +143,7 @@ export const demoDerivedMemories: DerivedMemoryResponse = {
   memory_revision: 1,
   canonical_memory_mutated: false,
   recomputed: true,
+  inputs_considered: 3,
   representations: [
     {
       id: 'demo-derived-memory',
@@ -167,6 +168,10 @@ export const demoMemoryClassification: MemoryCandidateClassification = {
 
 export const demoStatus: BrainStatus = {
   status: 'ok',
+  uptime_seconds: 86_400,
+  searches_total: 971,
+  contexts_total: 328,
+  errors_total: 2,
   embedding_fingerprint: 'openai-compatible:Qwen/Qwen3-Embedding-0.6B:1024',
   embedding_cache_entries: 42891,
   embedding_cache_hits: 10642,
