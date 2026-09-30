@@ -8218,9 +8218,14 @@ mod wire_schema_snapshots {
 
         let committed = std::fs::read_to_string(&fixture_path)
             .expect("committed wire schema fixture exists; re-run with CORTANA_REGEN_WIRE_SCHEMAS=1 to regenerate");
+        // Compare parsed values: pretty-print array layout can legitimately
+        // differ between serde_json builds, while the content is the contract.
+        let committed_value: serde_json::Value =
+            serde_json::from_str(&committed).expect("committed fixture is valid JSON");
+        let serialized_value: serde_json::Value =
+            serde_json::from_str(&serialized).expect("serialized schemas are valid JSON");
         assert_eq!(
-            committed.trim(),
-            serialized.trim(),
+            committed_value, serialized_value,
             "wire schema fixture is stale; re-run with CORTANA_REGEN_WIRE_SCHEMAS=1 and review the types.ts hand-mirror diff"
         );
     }
