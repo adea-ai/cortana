@@ -39,7 +39,7 @@ impl Default for MemoryDefaults {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, schemars::JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum MemoryKind {
     Episodic,
@@ -77,7 +77,7 @@ impl MemoryKind {
 /// Semantic content type. `working` remains a compatibility alias for a
 /// semantic record with a working retention tier; it is intentionally not a
 /// fifth content type.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, schemars::JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum MemoryContentType {
     Episodic,
@@ -109,7 +109,7 @@ impl MemoryContentType {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, schemars::JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum MemoryRetentionTier {
     Working,
@@ -135,7 +135,7 @@ impl MemoryRetentionTier {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, schemars::JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum MemoryScope {
     Session,
@@ -239,7 +239,7 @@ impl MemoryAxes {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct MemoryInput {
     pub kind: String,
     pub project: String,
@@ -266,7 +266,7 @@ pub struct MemoryInput {
     pub valid_until: Option<String>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct MemoryRecord {
     pub id: String,
     pub kind: String,
@@ -292,7 +292,7 @@ pub struct MemoryRecord {
     pub updated_at: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct MemorySearchResult {
     #[serde(flatten)]
     pub memory: MemoryRecord,
@@ -305,7 +305,7 @@ pub struct MemorySearchResult {
     pub relevance_score: f64,
 }
 
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Default, Serialize, schemars::JsonSchema)]
 pub struct MemoryStats {
     /// Active and currently valid memories available to recall.
     pub active: i64,

@@ -69,6 +69,7 @@ function client(): MemoryReviewClient & {
         memory_revision: 4,
         canonical_memory_mutated: false,
         recomputed: true,
+        inputs_considered: 2,
         representations: [
           {
             id: 'derived-1',

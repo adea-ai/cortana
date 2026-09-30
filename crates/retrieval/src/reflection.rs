@@ -154,7 +154,7 @@ pub struct ReflectionInputs<'a> {
     pub memory_revision: u64,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ReflectStatus {
     Completed,
@@ -164,7 +164,7 @@ pub enum ReflectStatus {
     DeadlineExceeded,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, schemars::JsonSchema)]
 pub struct ProviderOutcome {
     pub policy: ProviderPolicy,
     pub selected: String,
@@ -173,39 +173,39 @@ pub struct ProviderOutcome {
     pub detail: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, schemars::JsonSchema)]
 pub struct ReflectClaim {
     pub text: String,
     pub supporting_memory_ids: Vec<String>,
     pub supporting_evidence_ids: Vec<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, schemars::JsonSchema)]
 pub struct ReflectPattern {
     pub statement: String,
     pub supporting_memory_ids: Vec<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, schemars::JsonSchema)]
 pub struct ReflectTension {
     pub statement: String,
     pub supporting_memory_ids: Vec<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, schemars::JsonSchema)]
 pub struct ReflectChronology {
     pub observed_at: String,
     pub title: String,
     pub memory_id: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, schemars::JsonSchema)]
 pub struct ReflectRecommendation {
     pub statement: String,
     pub supporting_memory_ids: Vec<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, schemars::JsonSchema)]
 pub struct ProposedReflectCandidate {
     pub project: String,
     pub title: String,
@@ -218,7 +218,7 @@ pub struct ProposedReflectCandidate {
     pub approval_required: bool,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, schemars::JsonSchema)]
 pub struct ReflectMetrics {
     pub memories_considered: usize,
     pub memories_included: usize,
@@ -229,7 +229,7 @@ pub struct ReflectMetrics {
     pub canonical_memory_mutated: bool,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, schemars::JsonSchema)]
 pub struct ReflectResponse {
     pub contract_version: String,
     pub request_digest: String,
@@ -266,7 +266,7 @@ pub trait ReflectionProvider: Send + Sync {
     ) -> Result<ProviderReflection, String>;
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq, schemars::JsonSchema)]
 pub struct ProviderReflection {
     pub claims: Vec<ReflectClaim>,
     pub patterns: Vec<ReflectPattern>,

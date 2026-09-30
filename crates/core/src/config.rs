@@ -32,7 +32,7 @@ const SUPPORTED_SOURCE_KINDS: &[&str] = &[
     "external",
 ];
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct Config {
     #[serde(default = "default_data_dir")]
     pub data_dir: PathBuf,
@@ -60,13 +60,13 @@ pub struct Config {
     pub environment: HashMap<String, String>,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct RuntimeConfig {
     #[serde(default)]
     pub env_file: Option<PathBuf>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct WorkspaceConfig {
     pub id: String,
     pub name: String,
@@ -76,7 +76,7 @@ pub struct WorkspaceConfig {
     pub color: Option<String>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct EmbeddingConfig {
     #[serde(default = "default_embedding_url")]
     pub base_url: String,
@@ -96,7 +96,7 @@ pub struct EmbeddingConfig {
     pub service: EmbeddingServiceConfig,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct EmbeddingServiceConfig {
     #[serde(default)]
     pub command: Vec<String>,
@@ -106,7 +106,7 @@ pub struct EmbeddingServiceConfig {
     pub memory_limit_mb: u64,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct IngestionConfig {
     #[serde(default = "default_ingestion_max_documents")]
     pub max_documents_per_source: usize,
@@ -126,7 +126,7 @@ pub struct IngestionConfig {
     pub sync_freshness_hours: u64,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct QueryConfig {
     #[serde(default)]
     pub synthesis_enabled: bool,
@@ -175,7 +175,7 @@ pub struct QueryConfig {
     pub cache_ttl_seconds: u64,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct MemoryConfig {
     #[serde(default = "default_memory_max_active")]
     pub max_active: usize,
@@ -185,7 +185,7 @@ pub struct MemoryConfig {
     pub default_importance: f32,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct KnowledgeGraphConfig {
     /// Released edge derivations. Omitting one disables only that projection;
     /// canonical documents, memories, and stored provenance remain unchanged.
@@ -227,7 +227,7 @@ impl Default for MemoryConfig {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct AuthConfig {
     #[serde(default = "default_audit_max_events")]
     pub audit_max_events: usize,
@@ -242,7 +242,7 @@ pub struct AuthConfig {
     pub principal_expiry: HashMap<String, String>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct AuthTokenConfig {
     pub principal: String,
     pub token_env: String,
@@ -252,7 +252,7 @@ pub struct AuthTokenConfig {
     pub acl: Vec<String>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct ConnectorConfig {
     #[serde(default = "default_connector_command")]
     pub command: Vec<String>,
@@ -260,7 +260,7 @@ pub struct ConnectorConfig {
     pub timeout_seconds: u64,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct SourceConfig {
     pub name: String,
     pub kind: String,
@@ -421,7 +421,7 @@ impl Default for QueryConfig {
 /// The bounded retrieval policy derived from `QueryConfig`. It lives in
 /// `config` rather than `retrieval` so configuration can produce the type
 /// without an upward dependency into the retrieval engine.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, schemars::JsonSchema)]
 pub struct RetrievalTuning {
     pub candidate_multiplier: usize,
     pub semantic_weight: f32,

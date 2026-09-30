@@ -484,6 +484,7 @@ dependencies = [
  "libc",
  "reqwest",
  "rusqlite",
+ "schemars",
  "serde",
  "serde_json",
  "sha2",

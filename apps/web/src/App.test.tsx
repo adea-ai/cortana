@@ -467,6 +467,8 @@ test('Reflect presents grounded reflection separately from ordinary search', asy
       ],
       chronology: [],
       proposed_candidates: [],
+      derived_representations: [],
+      memory_relations: [],
       evidence_ids: [],
       metrics: {
         memories_considered: 1,

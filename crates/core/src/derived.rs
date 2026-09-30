@@ -21,7 +21,7 @@ pub const MAX_DERIVED_INPUTS: usize = 100;
 pub const MAX_DERIVED_REPRESENTATIONS: usize = 64;
 pub const MAX_DERIVED_RELATIONS: usize = 256;
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, schemars::JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum DerivedKind {
     Experience,
@@ -30,7 +30,7 @@ pub enum DerivedKind {
     Belief,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, schemars::JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum RelationKind {
     SubjectPredicateObject,
@@ -41,14 +41,14 @@ pub enum RelationKind {
     Supersession,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, schemars::JsonSchema)]
 pub struct DerivationProvenance {
     pub engine_version: String,
     pub input_revision: u64,
     pub support_digest: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, schemars::JsonSchema)]
 pub struct DerivedRepresentation {
     pub id: String,
     pub contract_version: String,
@@ -68,7 +68,7 @@ pub struct DerivedRepresentation {
     pub provenance: DerivationProvenance,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, schemars::JsonSchema)]
 pub struct MemoryRelation {
     pub id: String,
     pub contract_version: String,
@@ -87,7 +87,7 @@ pub struct MemoryRelation {
     pub provenance: DerivationProvenance,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, schemars::JsonSchema)]
 pub struct DerivedMemoryResponse {
     pub contract_version: String,
     pub derivation_version: String,

@@ -1,0 +1,2115 @@
+{
+  "AnswerResponse": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "AnswerResponse",
+    "type": "object",
+    "properties": {
+      "answer": {
+        "type": "string"
+      },
+      "cached": {
+        "type": "boolean"
+      },
+      "contract_version": {
+        "type": "string",
+        "default": "cortana.api.v1"
+      },
+      "corpus_revision": {
+        "type": "integer",
+        "format": "uint64",
+        "default": 0,
+        "minimum": 0
+      },
+      "degradation": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/DegradationState"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "evidence": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/Evidence"
+        }
+      },
+      "latency_ms": {
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
+      },
+      "memories": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/MemorySearchResult"
+        }
+      },
+      "memory_revision": {
+        "type": ["integer", "null"],
+        "format": "uint64",
+        "default": null,
+        "minimum": 0
+      },
+      "mode": {
+        "type": "string"
+      },
+      "plan": {
+        "$ref": "#/$defs/QueryPlan"
+      },
+      "query": {
+        "type": "string"
+      },
+      "retrieval_degraded": {
+        "type": "boolean",
+        "default": false
+      },
+      "retrieval_mode": {
+        "type": "string",
+        "default": "hybrid"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": ["query", "answer", "evidence", "plan", "mode", "cached", "latency_ms", "warnings"],
+    "$defs": {
+      "DegradationState": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "detail": {
+            "type": ["string", "null"]
+          }
+        },
+        "required": ["code"]
+      },
+      "Evidence": {
+        "type": "object",
+        "properties": {
+          "chunk_id": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "lexical_rank": {
+            "type": ["integer", "null"],
+            "format": "uint",
+            "minimum": 0
+          },
+          "metadata": {
+            "description": "Source-owned, non-secret provenance copied from the canonical document.\nCode documents use this for repository and revision identity."
+          },
+          "score": {
+            "type": "number",
+            "format": "float"
+          },
+          "semantic_rank": {
+            "type": ["integer", "null"],
+            "format": "uint",
+            "minimum": 0
+          },
+          "source": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "uri": {
+            "type": ["string", "null"]
+          }
+        },
+        "required": ["chunk_id", "source", "source_id", "title", "content", "score", "updated_at"]
+      },
+      "MemorySearchResult": {
+        "type": "object",
+        "properties": {
+          "acl": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "format": "float"
+          },
+          "content": {
+            "type": "string"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "dedupe_key": {
+            "type": ["string", "null"]
+          },
+          "id": {
+            "type": "string"
+          },
+          "importance": {
+            "type": "number",
+            "format": "float"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "lexical_score": {
+            "description": "Raw SQLite FTS5 score. Lower values are better; retained for\ndiagnostics and backwards-compatible clients.",
+            "type": "number",
+            "format": "double"
+          },
+          "observed_at": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          },
+          "provenance": true,
+          "relevance_score": {
+            "description": "Bounded, higher-is-better score used to order native-memory recall.\nThis combines query coverage, lexical relevance, memory salience, and\nfreshness without contacting a provider or loading the corpus.",
+            "type": "number",
+            "format": "double"
+          },
+          "retention_tier": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "supersedes_id": {
+            "type": ["string", "null"]
+          },
+          "title": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "valid_from": {
+            "type": "string"
+          },
+          "valid_until": {
+            "type": ["string", "null"]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "content_type",
+          "retention_tier",
+          "scope",
+          "project",
+          "title",
+          "content",
+          "source",
+          "source_id",
+          "confidence",
+          "importance",
+          "status",
+          "acl",
+          "provenance",
+          "observed_at",
+          "valid_from",
+          "created_at",
+          "updated_at",
+          "lexical_score",
+          "relevance_score"
+        ]
+      },
+      "QueryPlan": {
+        "type": "object",
+        "properties": {
+          "model_generated": {
+            "type": "boolean"
+          },
+          "queries": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["queries", "model_generated"]
+      }
+    }
+  },
+  "BrainStatus": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Status",
+    "type": "object",
+    "properties": {
+      "answers_total": {
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
+      },
+      "chunks": {
+        "type": "integer",
+        "format": "int64"
+      },
+      "contexts_total": {
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
+      },
+      "documents": {
+        "type": "integer",
+        "format": "int64"
+      },
+      "embedding_cache_entries": {
+        "type": "integer",
+        "format": "int64"
+      },
+      "embedding_cache_hits": {
+        "type": "integer",
+        "format": "int64"
+      },
+      "embedding_fingerprint": {
+        "type": ["string", "null"]
+      },
+      "errors_total": {
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
+      },
+      "ingestion": {
+        "$ref": "#/$defs/IngestionStatus"
+      },
+      "memory": {
+        "$ref": "#/$defs/MemoryStats"
+      },
+      "query": {
+        "$ref": "#/$defs/QueryRuntimeStatus"
+      },
+      "query_cache_entries": {
+        "type": "integer",
+        "format": "int64"
+      },
+      "query_cache_hits": {
+        "type": "integer",
+        "format": "int64"
+      },
+      "retrieval_fallbacks_total": {
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
+      },
+      "searches_total": {
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
+      },
+      "sources": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/SourceStats"
+        }
+      },
+      "stats_age_seconds": {
+        "type": ["integer", "null"],
+        "format": "uint64",
+        "minimum": 0
+      },
+      "stats_stale": {
+        "type": "boolean"
+      },
+      "stats_warning": {
+        "type": ["string", "null"]
+      },
+      "status": {
+        "type": "string"
+      },
+      "sync_runs": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/SourceSyncStats"
+        }
+      },
+      "uptime_seconds": {
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
+      },
+      "workspaces": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/WorkspaceConfig"
+        }
+      }
+    },
+    "required": [
+      "status",
+      "stats_stale",
+      "uptime_seconds",
+      "searches_total",
+      "contexts_total",
+      "answers_total",
+      "errors_total",
+      "retrieval_fallbacks_total",
+      "query",
+      "ingestion",
+      "workspaces",
+      "memory",
+      "documents",
+      "chunks",
+      "embedding_cache_entries",
+      "embedding_cache_hits",
+      "query_cache_entries",
+      "query_cache_hits",
+      "sources",
+      "sync_runs"
+    ],
+    "$defs": {
+      "ConfiguredSourceStatus": {
+        "description": "Safe, non-secret source configuration shared by the HTTP status API and the\nMCP `brain_status` tool. This deliberately omits credential paths,\nenvironment variable names, tokens, and connector arguments.",
+        "type": "object",
+        "properties": {
+          "acl": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "authorization": {
+            "$ref": "#/$defs/SourceAuthorizationSummary"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "max_bytes": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "max_documents": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "max_duration_seconds": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "name": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "validation": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SourceValidationSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "source",
+          "kind",
+          "project",
+          "enabled",
+          "acl",
+          "max_documents",
+          "max_bytes",
+          "max_duration_seconds",
+          "authorization"
+        ]
+      },
+      "IngestionStatus": {
+        "type": "object",
+        "properties": {
+          "configured_sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/ConfiguredSourceStatus"
+            }
+          },
+          "max_bytes_per_source": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "max_documents_per_source": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "max_duration_seconds": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "mode": {
+            "type": "string"
+          },
+          "request_concurrency": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "scheduled": {
+            "type": "boolean"
+          },
+          "sync_freshness_hours": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "validation_max_age_hours": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "validation_state_error": {
+            "type": ["string", "null"]
+          }
+        },
+        "required": [
+          "mode",
+          "scheduled",
+          "max_documents_per_source",
+          "max_bytes_per_source",
+          "max_duration_seconds",
+          "request_concurrency",
+          "validation_max_age_hours",
+          "sync_freshness_hours",
+          "configured_sources"
+        ]
+      },
+      "MemoryStats": {
+        "type": "object",
+        "properties": {
+          "active": {
+            "description": "Active and currently valid memories available to recall.",
+            "type": "integer",
+            "format": "int64"
+          },
+          "expired": {
+            "description": "Active records whose validity window has elapsed. They remain in the\nstore for export/audit history but are not eligible for recall.",
+            "type": "integer",
+            "format": "int64"
+          },
+          "retracted": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "superseded": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": ["active", "expired", "retracted", "superseded", "total"]
+      },
+      "QueryRuntimeStatus": {
+        "type": "object",
+        "properties": {
+          "answer_timeout_seconds": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "cache_ttl_seconds": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "max_planned_queries": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "mode": {
+            "type": "string"
+          },
+          "model": {
+            "type": ["string", "null"]
+          },
+          "reranker_enabled": {
+            "type": "boolean"
+          },
+          "result_limit": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "retrieval_limit": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "retrieval_ranking_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode",
+          "max_planned_queries",
+          "retrieval_limit",
+          "result_limit",
+          "cache_ttl_seconds",
+          "answer_timeout_seconds",
+          "retrieval_ranking_version",
+          "reranker_enabled"
+        ]
+      },
+      "SourceAuthorizationMethod": {
+        "type": "string",
+        "enum": ["none", "token", "google_oauth", "github_oauth", "discord_rpc", "slack_oauth"]
+      },
+      "SourceAuthorizationSummary": {
+        "type": "object",
+        "properties": {
+          "authorized": {
+            "type": "boolean"
+          },
+          "method": {
+            "$ref": "#/$defs/SourceAuthorizationMethod"
+          },
+          "setup_required": {
+            "type": "boolean"
+          }
+        },
+        "required": ["method", "setup_required", "authorized"]
+      },
+      "SourceStats": {
+        "type": "object",
+        "properties": {
+          "chunks": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "documents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "latest_updated_at": {
+            "type": ["string", "null"]
+          },
+          "project": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": ["source", "project", "documents", "chunks"]
+      },
+      "SourceSyncStats": {
+        "type": "object",
+        "properties": {
+          "budget_bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "budget_documents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "budget_seconds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "bytes": {
+            "type": ["integer", "null"],
+            "format": "int64"
+          },
+          "completed_at": {
+            "type": ["string", "null"]
+          },
+          "deleted": {
+            "type": ["integer", "null"],
+            "format": "int64"
+          },
+          "documents": {
+            "type": ["integer", "null"],
+            "format": "int64"
+          },
+          "progress_bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "progress_documents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "progress_updated_at": {
+            "type": ["string", "null"]
+          },
+          "project": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "project",
+          "status",
+          "started_at",
+          "progress_documents",
+          "progress_bytes",
+          "budget_documents",
+          "budget_bytes",
+          "budget_seconds"
+        ]
+      },
+      "SourceValidationSummary": {
+        "type": "object",
+        "properties": {
+          "age_seconds": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "bytes": {
+            "type": ["integer", "null"],
+            "format": "uint64",
+            "minimum": 0
+          },
+          "complete": {
+            "description": "Whether the validation covered the entire source within its limits.\n`false` marks a bounded sample that may authorize only equally bounded\nnon-reconciling runs; `None` means the record's completeness is unknown\nand cannot authorize recurring or full-corpus sync.",
+            "type": ["boolean", "null"]
+          },
+          "documents": {
+            "type": ["integer", "null"],
+            "format": "uint",
+            "minimum": 0
+          },
+          "error": {
+            "type": ["string", "null"]
+          },
+          "error_category": {
+            "type": ["string", "null"]
+          },
+          "fresh": {
+            "type": "boolean"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "max_bytes": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "max_documents": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "max_seconds": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "project": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "validated_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "project",
+          "kind",
+          "status",
+          "validated_at",
+          "fresh",
+          "age_seconds",
+          "max_documents",
+          "max_bytes",
+          "max_seconds"
+        ]
+      },
+      "WorkspaceConfig": {
+        "type": "object",
+        "properties": {
+          "account_label": {
+            "type": ["string", "null"],
+            "default": null
+          },
+          "color": {
+            "type": ["string", "null"],
+            "default": null
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "name"]
+      }
+    }
+  },
+  "ContextBundle": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "ContextBundle",
+    "type": "object",
+    "properties": {
+      "canonical_digest": {
+        "type": "string"
+      },
+      "context": {
+        "type": "string"
+      },
+      "context_bundle_id": {
+        "type": "string"
+      },
+      "contract_version": {
+        "type": "string"
+      },
+      "corpus_revision": {
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
+      },
+      "created_at": {
+        "type": "string"
+      },
+      "degradation": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/DegradationState"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "embedding_fingerprint": {
+        "type": ["string", "null"]
+      },
+      "evidence": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/Evidence"
+        }
+      },
+      "memories": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/MemorySearchResult"
+        }
+      },
+      "memory_revision": {
+        "type": ["integer", "null"],
+        "format": "uint64",
+        "minimum": 0
+      },
+      "metrics": {
+        "$ref": "#/$defs/ContextMetrics"
+      },
+      "privacy_scope_digest": {
+        "type": "string"
+      },
+      "query": {
+        "type": "string"
+      },
+      "retrieval_contract_version": {
+        "type": "string"
+      },
+      "retrieval_mode": {
+        "type": "string"
+      },
+      "retrieval_warning": {
+        "type": ["string", "null"]
+      },
+      "token_budget": {
+        "type": "integer",
+        "format": "uint",
+        "minimum": 0
+      }
+    },
+    "required": [
+      "contract_version",
+      "context_bundle_id",
+      "canonical_digest",
+      "created_at",
+      "token_budget",
+      "query",
+      "context",
+      "evidence",
+      "metrics",
+      "retrieval_mode",
+      "corpus_revision",
+      "retrieval_contract_version",
+      "privacy_scope_digest"
+    ],
+    "$defs": {
+      "ContextMetrics": {
+        "type": "object",
+        "properties": {
+          "estimated_tokens": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "included": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "max_tokens": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "memories_included": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "memories_omitted": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "memories_retrieved": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "omitted": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "reduced_tokens": {
+            "description": "Tokens omitted by context budgeting and formatting overhead.",
+            "type": "integer",
+            "format": "uint",
+            "default": 0,
+            "minimum": 0
+          },
+          "reduction_ratio": {
+            "description": "Bounded source-to-context reduction ratio in the range 0.0–1.0.",
+            "type": "number",
+            "format": "float",
+            "default": 0.0
+          },
+          "retrieved": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "source_tokens": {
+            "description": "Estimated tokens in the untruncated evidence/memory payload before\ncontext budgeting. This is a size metric only; no content is emitted.",
+            "type": "integer",
+            "format": "uint",
+            "default": 0,
+            "minimum": 0
+          }
+        },
+        "required": [
+          "retrieved",
+          "included",
+          "omitted",
+          "memories_retrieved",
+          "memories_included",
+          "memories_omitted",
+          "estimated_tokens",
+          "max_tokens"
+        ]
+      },
+      "DegradationState": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "detail": {
+            "type": ["string", "null"]
+          }
+        },
+        "required": ["code"]
+      },
+      "Evidence": {
+        "type": "object",
+        "properties": {
+          "chunk_id": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "lexical_rank": {
+            "type": ["integer", "null"],
+            "format": "uint",
+            "minimum": 0
+          },
+          "metadata": {
+            "description": "Source-owned, non-secret provenance copied from the canonical document.\nCode documents use this for repository and revision identity."
+          },
+          "score": {
+            "type": "number",
+            "format": "float"
+          },
+          "semantic_rank": {
+            "type": ["integer", "null"],
+            "format": "uint",
+            "minimum": 0
+          },
+          "source": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "uri": {
+            "type": ["string", "null"]
+          }
+        },
+        "required": ["chunk_id", "source", "source_id", "title", "content", "score", "updated_at"]
+      },
+      "MemorySearchResult": {
+        "type": "object",
+        "properties": {
+          "acl": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "format": "float"
+          },
+          "content": {
+            "type": "string"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "dedupe_key": {
+            "type": ["string", "null"]
+          },
+          "id": {
+            "type": "string"
+          },
+          "importance": {
+            "type": "number",
+            "format": "float"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "lexical_score": {
+            "description": "Raw SQLite FTS5 score. Lower values are better; retained for\ndiagnostics and backwards-compatible clients.",
+            "type": "number",
+            "format": "double"
+          },
+          "observed_at": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          },
+          "provenance": true,
+          "relevance_score": {
+            "description": "Bounded, higher-is-better score used to order native-memory recall.\nThis combines query coverage, lexical relevance, memory salience, and\nfreshness without contacting a provider or loading the corpus.",
+            "type": "number",
+            "format": "double"
+          },
+          "retention_tier": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "supersedes_id": {
+            "type": ["string", "null"]
+          },
+          "title": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "valid_from": {
+            "type": "string"
+          },
+          "valid_until": {
+            "type": ["string", "null"]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "content_type",
+          "retention_tier",
+          "scope",
+          "project",
+          "title",
+          "content",
+          "source",
+          "source_id",
+          "confidence",
+          "importance",
+          "status",
+          "acl",
+          "provenance",
+          "observed_at",
+          "valid_from",
+          "created_at",
+          "updated_at",
+          "lexical_score",
+          "relevance_score"
+        ]
+      }
+    }
+  },
+  "DerivedMemoryResponse": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "DerivedMemoryResponse",
+    "type": "object",
+    "properties": {
+      "canonical_memory_mutated": {
+        "type": "boolean"
+      },
+      "contract_version": {
+        "type": "string"
+      },
+      "derivation_version": {
+        "type": "string"
+      },
+      "inputs_considered": {
+        "type": "integer",
+        "format": "uint",
+        "minimum": 0
+      },
+      "memory_revision": {
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
+      },
+      "recomputed": {
+        "type": "boolean"
+      },
+      "relations": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/MemoryRelation"
+        }
+      },
+      "representations": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/DerivedRepresentation"
+        }
+      }
+    },
+    "required": [
+      "contract_version",
+      "derivation_version",
+      "memory_revision",
+      "canonical_memory_mutated",
+      "recomputed",
+      "inputs_considered",
+      "representations",
+      "relations"
+    ],
+    "$defs": {
+      "DerivationProvenance": {
+        "type": "object",
+        "properties": {
+          "engine_version": {
+            "type": "string"
+          },
+          "input_revision": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "support_digest": {
+            "type": "string"
+          }
+        },
+        "required": ["engine_version", "input_revision", "support_digest"]
+      },
+      "DerivedKind": {
+        "type": "string",
+        "enum": ["experience", "observation", "mental-model", "belief"]
+      },
+      "DerivedRepresentation": {
+        "type": "object",
+        "properties": {
+          "acl": {
+            "description": "Exact intersection of supporting record ACLs; a join with no common\nACL label is omitted rather than widened.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "citation_authority": {
+            "type": "boolean"
+          },
+          "confidence": {
+            "type": "number",
+            "format": "float"
+          },
+          "contract_version": {
+            "type": "string"
+          },
+          "contradicting_memory_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "freshness": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/$defs/DerivedKind"
+          },
+          "memory_revision": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "project": {
+            "type": "string"
+          },
+          "provenance": {
+            "$ref": "#/$defs/DerivationProvenance"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "statement": {
+            "type": "string"
+          },
+          "supporting_memory_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "contract_version",
+          "kind",
+          "project",
+          "scope",
+          "statement",
+          "confidence",
+          "supporting_memory_ids",
+          "contradicting_memory_ids",
+          "acl",
+          "memory_revision",
+          "freshness",
+          "citation_authority",
+          "provenance"
+        ]
+      },
+      "MemoryRelation": {
+        "type": "object",
+        "properties": {
+          "acl": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "citation_authority": {
+            "type": "boolean"
+          },
+          "confidence": {
+            "type": "number",
+            "format": "float"
+          },
+          "contract_version": {
+            "type": "string"
+          },
+          "freshness": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/$defs/RelationKind"
+          },
+          "memory_revision": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "object": {
+            "type": "string"
+          },
+          "predicate": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          },
+          "provenance": {
+            "$ref": "#/$defs/DerivationProvenance"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "supporting_memory_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "contract_version",
+          "kind",
+          "project",
+          "scope",
+          "subject",
+          "predicate",
+          "object",
+          "confidence",
+          "supporting_memory_ids",
+          "acl",
+          "memory_revision",
+          "freshness",
+          "citation_authority",
+          "provenance"
+        ]
+      },
+      "RelationKind": {
+        "type": "string",
+        "enum": [
+          "subject-predicate-object",
+          "temporal",
+          "causal",
+          "reinforcement",
+          "contradiction",
+          "supersession"
+        ]
+      }
+    }
+  },
+  "IngestionStatus": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "IngestionStatus",
+    "type": "object",
+    "properties": {
+      "configured_sources": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/ConfiguredSourceStatus"
+        }
+      },
+      "max_bytes_per_source": {
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
+      },
+      "max_documents_per_source": {
+        "type": "integer",
+        "format": "uint",
+        "minimum": 0
+      },
+      "max_duration_seconds": {
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
+      },
+      "mode": {
+        "type": "string"
+      },
+      "request_concurrency": {
+        "type": "integer",
+        "format": "uint",
+        "minimum": 0
+      },
+      "scheduled": {
+        "type": "boolean"
+      },
+      "sync_freshness_hours": {
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
+      },
+      "validation_max_age_hours": {
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
+      },
+      "validation_state_error": {
+        "type": ["string", "null"]
+      }
+    },
+    "required": [
+      "mode",
+      "scheduled",
+      "max_documents_per_source",
+      "max_bytes_per_source",
+      "max_duration_seconds",
+      "request_concurrency",
+      "validation_max_age_hours",
+      "sync_freshness_hours",
+      "configured_sources"
+    ],
+    "$defs": {
+      "ConfiguredSourceStatus": {
+        "description": "Safe, non-secret source configuration shared by the HTTP status API and the\nMCP `brain_status` tool. This deliberately omits credential paths,\nenvironment variable names, tokens, and connector arguments.",
+        "type": "object",
+        "properties": {
+          "acl": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "authorization": {
+            "$ref": "#/$defs/SourceAuthorizationSummary"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "max_bytes": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "max_documents": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "max_duration_seconds": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "name": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "validation": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SourceValidationSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "source",
+          "kind",
+          "project",
+          "enabled",
+          "acl",
+          "max_documents",
+          "max_bytes",
+          "max_duration_seconds",
+          "authorization"
+        ]
+      },
+      "SourceAuthorizationMethod": {
+        "type": "string",
+        "enum": ["none", "token", "google_oauth", "github_oauth", "discord_rpc", "slack_oauth"]
+      },
+      "SourceAuthorizationSummary": {
+        "type": "object",
+        "properties": {
+          "authorized": {
+            "type": "boolean"
+          },
+          "method": {
+            "$ref": "#/$defs/SourceAuthorizationMethod"
+          },
+          "setup_required": {
+            "type": "boolean"
+          }
+        },
+        "required": ["method", "setup_required", "authorized"]
+      },
+      "SourceValidationSummary": {
+        "type": "object",
+        "properties": {
+          "age_seconds": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "bytes": {
+            "type": ["integer", "null"],
+            "format": "uint64",
+            "minimum": 0
+          },
+          "complete": {
+            "description": "Whether the validation covered the entire source within its limits.\n`false` marks a bounded sample that may authorize only equally bounded\nnon-reconciling runs; `None` means the record's completeness is unknown\nand cannot authorize recurring or full-corpus sync.",
+            "type": ["boolean", "null"]
+          },
+          "documents": {
+            "type": ["integer", "null"],
+            "format": "uint",
+            "minimum": 0
+          },
+          "error": {
+            "type": ["string", "null"]
+          },
+          "error_category": {
+            "type": ["string", "null"]
+          },
+          "fresh": {
+            "type": "boolean"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "max_bytes": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "max_documents": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "max_seconds": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "project": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "validated_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "project",
+          "kind",
+          "status",
+          "validated_at",
+          "fresh",
+          "age_seconds",
+          "max_documents",
+          "max_bytes",
+          "max_seconds"
+        ]
+      }
+    }
+  },
+  "ReflectResponse": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "ReflectResponse",
+    "type": "object",
+    "properties": {
+      "chronology": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/ReflectChronology"
+        }
+      },
+      "claims": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/ReflectClaim"
+        }
+      },
+      "contract_version": {
+        "type": "string"
+      },
+      "derived_representations": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/DerivedRepresentation"
+        }
+      },
+      "evidence_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "memory_relations": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/MemoryRelation"
+        }
+      },
+      "memory_revision": {
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
+      },
+      "metrics": {
+        "$ref": "#/$defs/ReflectMetrics"
+      },
+      "objective": {
+        "type": "string"
+      },
+      "patterns": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/ReflectPattern"
+        }
+      },
+      "privacy_scope_digest": {
+        "type": "string"
+      },
+      "project": {
+        "type": ["string", "null"]
+      },
+      "proposed_candidates": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/ProposedReflectCandidate"
+        }
+      },
+      "provider": {
+        "$ref": "#/$defs/ProviderOutcome"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/ReflectRecommendation"
+        }
+      },
+      "request_digest": {
+        "type": "string"
+      },
+      "status": {
+        "$ref": "#/$defs/ReflectStatus"
+      },
+      "tensions": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/ReflectTension"
+        }
+      }
+    },
+    "required": [
+      "contract_version",
+      "request_digest",
+      "status",
+      "objective",
+      "privacy_scope_digest",
+      "memory_revision",
+      "provider",
+      "claims",
+      "patterns",
+      "tensions",
+      "chronology",
+      "recommendations",
+      "proposed_candidates",
+      "derived_representations",
+      "memory_relations",
+      "evidence_ids",
+      "metrics"
+    ],
+    "$defs": {
+      "DerivationProvenance": {
+        "type": "object",
+        "properties": {
+          "engine_version": {
+            "type": "string"
+          },
+          "input_revision": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "support_digest": {
+            "type": "string"
+          }
+        },
+        "required": ["engine_version", "input_revision", "support_digest"]
+      },
+      "DerivedKind": {
+        "type": "string",
+        "enum": ["experience", "observation", "mental-model", "belief"]
+      },
+      "DerivedRepresentation": {
+        "type": "object",
+        "properties": {
+          "acl": {
+            "description": "Exact intersection of supporting record ACLs; a join with no common\nACL label is omitted rather than widened.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "citation_authority": {
+            "type": "boolean"
+          },
+          "confidence": {
+            "type": "number",
+            "format": "float"
+          },
+          "contract_version": {
+            "type": "string"
+          },
+          "contradicting_memory_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "freshness": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/$defs/DerivedKind"
+          },
+          "memory_revision": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "project": {
+            "type": "string"
+          },
+          "provenance": {
+            "$ref": "#/$defs/DerivationProvenance"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "statement": {
+            "type": "string"
+          },
+          "supporting_memory_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "contract_version",
+          "kind",
+          "project",
+          "scope",
+          "statement",
+          "confidence",
+          "supporting_memory_ids",
+          "contradicting_memory_ids",
+          "acl",
+          "memory_revision",
+          "freshness",
+          "citation_authority",
+          "provenance"
+        ]
+      },
+      "MemoryRelation": {
+        "type": "object",
+        "properties": {
+          "acl": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "citation_authority": {
+            "type": "boolean"
+          },
+          "confidence": {
+            "type": "number",
+            "format": "float"
+          },
+          "contract_version": {
+            "type": "string"
+          },
+          "freshness": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/$defs/RelationKind"
+          },
+          "memory_revision": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "object": {
+            "type": "string"
+          },
+          "predicate": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          },
+          "provenance": {
+            "$ref": "#/$defs/DerivationProvenance"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "supporting_memory_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "contract_version",
+          "kind",
+          "project",
+          "scope",
+          "subject",
+          "predicate",
+          "object",
+          "confidence",
+          "supporting_memory_ids",
+          "acl",
+          "memory_revision",
+          "freshness",
+          "citation_authority",
+          "provenance"
+        ]
+      },
+      "ProposedReflectCandidate": {
+        "type": "object",
+        "properties": {
+          "approval_required": {
+            "description": "A transport must call the explicit memory retain/remember operation.",
+            "type": "boolean"
+          },
+          "content": {
+            "type": "string"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          },
+          "retention_tier": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "supporting_memory_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project",
+          "title",
+          "content",
+          "content_type",
+          "retention_tier",
+          "scope",
+          "supporting_memory_ids",
+          "approval_required"
+        ]
+      },
+      "ProviderOutcome": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": ["string", "null"]
+          },
+          "policy": {
+            "$ref": "#/$defs/ProviderPolicy"
+          },
+          "selected": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": ["policy", "selected", "status"]
+      },
+      "ProviderPolicy": {
+        "oneOf": [
+          {
+            "description": "Use only the deterministic local implementation.",
+            "type": "string",
+            "const": "deterministic-only"
+          },
+          {
+            "description": "Try a configured provider, then return the deterministic result if it\nis unavailable or returns an invalid/ungrounded response.",
+            "type": "string",
+            "const": "prefer-provider"
+          },
+          {
+            "description": "A provider is required; unavailable or failed providers return no\nsynthesized result and an explicit outcome.",
+            "type": "string",
+            "const": "require-provider"
+          }
+        ]
+      },
+      "ReflectChronology": {
+        "type": "object",
+        "properties": {
+          "memory_id": {
+            "type": "string"
+          },
+          "observed_at": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": ["observed_at", "title", "memory_id"]
+      },
+      "ReflectClaim": {
+        "type": "object",
+        "properties": {
+          "supporting_evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "supporting_memory_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": ["text", "supporting_memory_ids", "supporting_evidence_ids"]
+      },
+      "ReflectMetrics": {
+        "type": "object",
+        "properties": {
+          "canonical_memory_mutated": {
+            "type": "boolean"
+          },
+          "estimated_tokens": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "evidence_considered": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "evidence_included": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "memories_considered": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "memories_included": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "memory_revision": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "memories_considered",
+          "memories_included",
+          "evidence_considered",
+          "evidence_included",
+          "estimated_tokens",
+          "memory_revision",
+          "canonical_memory_mutated"
+        ]
+      },
+      "ReflectPattern": {
+        "type": "object",
+        "properties": {
+          "statement": {
+            "type": "string"
+          },
+          "supporting_memory_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["statement", "supporting_memory_ids"]
+      },
+      "ReflectRecommendation": {
+        "type": "object",
+        "properties": {
+          "statement": {
+            "type": "string"
+          },
+          "supporting_memory_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["statement", "supporting_memory_ids"]
+      },
+      "ReflectStatus": {
+        "type": "string",
+        "enum": [
+          "completed",
+          "fallback",
+          "provider_unavailable",
+          "provider_failed",
+          "deadline_exceeded"
+        ]
+      },
+      "ReflectTension": {
+        "type": "object",
+        "properties": {
+          "statement": {
+            "type": "string"
+          },
+          "supporting_memory_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["statement", "supporting_memory_ids"]
+      },
+      "RelationKind": {
+        "type": "string",
+        "enum": [
+          "subject-predicate-object",
+          "temporal",
+          "causal",
+          "reinforcement",
+          "contradiction",
+          "supersession"
+        ]
+      }
+    }
+  }
+}

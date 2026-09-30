@@ -13,7 +13,7 @@ const CHARS_PER_TOKEN: usize = 4;
 pub const MIN_CONTEXT_TOKENS: usize = 256;
 pub const MAX_CONTEXT_TOKENS: usize = 64_000;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct ContextBundle {
     pub contract_version: String,
     pub context_bundle_id: String,
@@ -40,7 +40,7 @@ pub struct ContextBundle {
     pub privacy_scope_digest: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct ContextMetrics {
     pub retrieved: usize,
     pub included: usize,
@@ -62,7 +62,7 @@ pub struct ContextMetrics {
     pub reduction_ratio: f32,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, schemars::JsonSchema)]
 struct CanonicalBundle<'a> {
     contract_version: &'a str,
     token_budget: usize,
