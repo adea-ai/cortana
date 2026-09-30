@@ -464,7 +464,10 @@ export function M7ApplicationNavigation(props: {
                 <span class="block truncate text-sm font-medium">
                   {activeWorkspace()?.name ?? 'Choose workspace'}
                 </span>
-                <span class="block truncate text-xs text-muted-foreground">Workspace</span>
+                {/* The active trigger sits on the sidebar accent fill, where
+                    muted ink drops under 4.5:1; the caption stays readable by
+                    sharing the row's foreground. */}
+                <span class="block truncate text-xs text-foreground">Workspace</span>
               </span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" sideOffset={6} class="min-w-56">
