@@ -104,8 +104,10 @@ test('host launch requires the packaged process to survive the startup window', 
       executable: process.execPath,
       args: [app],
       env: buildIsolatedEnvironment({ root, configPath: join(root, 'config.toml') }),
-      stableMs: 1_000,
-      timeoutMs: 3_000,
+      // Include VM startup under CI load before collecting the fixture stderr.
+      // The longer window also proves the process remains alive beyond boot.
+      stableMs: 3_000,
+      timeoutMs: 6_000,
     })
     expect(result).toMatchObject({ status: 'passed', process: 'started-and-stopped' })
     expect(result.stderr).toContain('host-launch-fixture')
