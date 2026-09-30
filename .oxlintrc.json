@@ -1,22 +1,12 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": [
-    "typescript",
-    "unicorn",
-    "oxc",
-    "import",
-    "promise",
-    "jsx-a11y"
-  ],
+  "plugins": ["typescript", "unicorn", "oxc", "import", "promise", "jsx-a11y"],
   "categories": {
     "correctness": "error",
     "suspicious": "error",
     "perf": "warn"
   },
-  "jsPlugins": [
-    "@shadcn/lint",
-    "@adea-ai/ui/lint"
-  ],
+  "jsPlugins": ["@shadcn/lint", "@adea-ai/ui/lint"],
   "settings": {
     "shadcn": {
       "note": "Project classes are defined in apps/web/src/shadcn.css. See .agents/skills/shadcn for the full component rules (composition, forms, icons, chat)."
@@ -62,18 +52,11 @@
         ],
         "patterns": [
           {
-            "group": [
-              "@base-ui/*",
-              "@base-ui-components/*",
-              "@radix-ui/*",
-              "radix-*"
-            ],
+            "group": ["@base-ui/*", "@base-ui-components/*", "@radix-ui/*", "radix-*"],
             "message": "Primitives are Kobalte via components/shadcn/*; no direct primitive imports."
           },
           {
-            "group": [
-              "@kobalte/*"
-            ],
+            "group": ["@kobalte/*"],
             "message": "Prefer components/shadcn/* wrappers over direct Kobalte imports."
           }
         ]
@@ -106,13 +89,7 @@
     "shadcn/no-restyle": [
       "error",
       {
-        "deny": [
-          "color",
-          "typography",
-          "shape",
-          "effects",
-          "motion"
-        ],
+        "deny": ["color", "typography", "shape", "effects", "motion"],
         "contracts": [
           {
             "pattern": "^Alert$",
@@ -134,31 +111,13 @@
           },
           {
             "pattern": "^Empty$",
-            "allow": [
-              "layout",
-              "spacing",
-              "border"
-            ],
-            "deny": [
-              "color",
-              "typography",
-              "effects",
-              "motion"
-            ]
+            "allow": ["layout", "spacing", "border"],
+            "deny": ["color", "typography", "effects", "motion"]
           },
           {
             "pattern": "^Tabs$",
-            "allow": [
-              "layout",
-              "spacing",
-              "border-b"
-            ],
-            "deny": [
-              "color",
-              "typography",
-              "effects",
-              "motion"
-            ]
+            "allow": ["layout", "spacing", "border-b"],
+            "deny": ["color", "typography", "effects", "motion"]
           },
           {
             "pattern": "^Badge$",
@@ -340,9 +299,7 @@
       }
     },
     {
-      "files": [
-        "apps/web/src/components/RendererErrorBoundary.tsx"
-      ],
+      "files": ["apps/web/src/components/RendererErrorBoundary.tsx"],
       "rules": {
         "shadcn/no-inline-styles": "off"
       }
@@ -383,10 +340,5 @@
       }
     }
   ],
-  "ignorePatterns": [
-    "node_modules/**",
-    "apps/web/dist/**",
-    "coverage/**",
-    "target/**"
-  ]
+  "ignorePatterns": ["node_modules/**", "apps/web/dist/**", "coverage/**", "target/**"]
 }
