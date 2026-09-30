@@ -11,6 +11,7 @@ COPY package.json bun.lock bunfig.toml ./
 # The container serves the web app; keep the Tauri workspace out of this install.
 COPY apps/web/package.json apps/web/package.json
 RUN bun install --frozen-lockfile
+COPY .oxlintrc.json ./
 COPY apps/web apps/web
 COPY scripts/check-web-ui-contract.mjs scripts/check-web-ui-contract.mjs
 COPY scripts/check-web-bundle-budget.mjs scripts/check-web-bundle-budget.mjs

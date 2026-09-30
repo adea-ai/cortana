@@ -76,13 +76,13 @@ async function searchProducesAnswerWithEvidence(context) {
 
   const answer = page.locator('article.answer-view')
   await answer.waitFor({ state: 'visible', timeout: JOURNEY_TIMEOUT_MS })
-  // The evidence cards repeat the query as their own heading, so allow
-  // multiple matches and scope to the first.
   await answer
-    .getByRole('heading', { name: query })
-    .first()
+    .getByRole('heading', { name: query, exact: true, level: 1 })
     .waitFor({ state: 'visible', timeout: JOURNEY_TIMEOUT_MS })
-  const evidenceCount = await answer.locator('.answer-source').count()
+  // Evidence is rendered as shared cards with a citation button, not a local
+  // `.answer-source` wrapper. The numbered accessible name identifies each
+  // actual cited passage while excluding plan and navigation controls.
+  const evidenceCount = await answer.getByRole('button', { name: /^\[\d+\]/ }).count()
   ensure(evidenceCount > 0, 'the answer view rendered without any evidence items')
   ensure(
     (await answer.textContent())?.includes('cited passages'),
@@ -95,7 +95,11 @@ async function searchProducesAnswerWithEvidence(context) {
 
 async function openDocumentAndCopyCitation(context) {
   const page = await openDemoApp(context)
-  await page.locator('button.document-node').first().click()
+  await page.getByRole('button', { name: 'Actions' }).click()
+  await page.getByRole('menuitem', { name: 'Open sources', exact: true }).click()
+  const firstDocument = page.getByRole('option').first()
+  await firstDocument.waitFor({ state: 'visible', timeout: JOURNEY_TIMEOUT_MS })
+  await firstDocument.click()
   const documentView = page.locator('article.canonical-document')
   await documentView.waitFor({ state: 'visible', timeout: JOURNEY_TIMEOUT_MS })
   const title = ((await documentView.getByRole('heading').first().textContent()) ?? '').trim()
