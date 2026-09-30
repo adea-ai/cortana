@@ -8206,14 +8206,13 @@ mod wire_schema_snapshots {
             schemars::schema_for!(IngestionStatus),
         );
 
-        let serialized = serde_json::to_string_pretty(&schemas)
-            .expect("wire schema map serializes");
+        let serialized =
+            serde_json::to_string_pretty(&schemas).expect("wire schema map serializes");
         let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../tests/fixtures/wire-schemas.json");
 
         if std::env::var("CORTANA_REGEN_WIRE_SCHEMAS").is_ok_and(|v| v == "1") {
-            std::fs::write(&fixture_path, &serialized)
-                .expect("wire schema fixture is writable");
+            std::fs::write(&fixture_path, &serialized).expect("wire schema fixture is writable");
             return;
         }
 
