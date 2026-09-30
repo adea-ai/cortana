@@ -25,17 +25,17 @@
     },
     "apps/desktop": {
       "name": "@cortana/desktop",
-      "version": "0.61.3", // x-release-please-version
+      "version": "0.61.3",
       "devDependencies": {
         "@tauri-apps/cli": "^2.11.4",
       },
     },
     "apps/web": {
       "name": "@cortana/web",
-      "version": "0.61.3", // x-release-please-version
+      "version": "0.61.3",
       "dependencies": {
         "@adea-ai/themes": "0.6.3",
-        "@adea-ai/ui": "0.78.0",
+        "@adea-ai/ui": "0.79.0",
         "@fontsource-variable/geist": "^5.3.0",
         "@kobalte/core": "^0.13.14",
         "@tauri-apps/api": "^2.11.1",
@@ -933,6 +933,8 @@
 
     "@adea-ai/ui/@adea-ai/themes": ["@adea-ai/themes@0.8.0", "", {}, "sha512-Ci8LbCFZS6PCk09ZB/aktC0kMu21y4eulCJyPLKfd9ReuL+BjJj/635JAz6iZSP4SCmWqnJlJ4jgMsnxSZeCRg=="],
 
+    "@cortana/web/@adea-ai/ui": ["@adea-ai/ui@0.79.0", "", { "dependencies": { "@adea-ai/themes": "^0.8.0", "@corvu/calendar": "^0.1.2", "@corvu/drawer": "^0.2.4", "@corvu/otp-field": "^0.1.4", "@corvu/resizable": "^0.2.5", "@fontsource-variable/geist": "^5.3.0", "@fontsource-variable/geist-mono": "^5.3.0", "@fontsource-variable/jetbrains-mono": "^5.3.0", "@fontsource-variable/space-grotesk": "^5.3.0", "@kobalte/core": "^0.13.14", "class-variance-authority": "^0.7.1", "cmdk-solid": "^1.2.0", "cn": "^0.4.0", "lucide-solid": "^1.48.0", "solid-motionone": "^1.0.4", "tw-animate-css": "^1.4.0" }, "peerDependencies": { "chart.js": "^4.5.1", "embla-carousel": "^8.6.0", "embla-carousel-solid": "^8.6.0", "solid-chartjs": "^1.3.11", "solid-js": "^1.9.0" }, "optionalPeers": ["chart.js", "embla-carousel", "embla-carousel-solid", "solid-chartjs"] }, "sha512-lJZN2s/T3Ozxv21tYzG1gmk92AO8Yiq/M3U6/CieJq1RK1HjQbHq3zTxZh2R5fDCDqU2H2dSQBIRcBelzdHMNQ=="],
+
     "@eslint-community/eslint-utils/eslint-visitor-keys": ["eslint-visitor-keys@3.4.3", "", {}, "sha512-wpc+LXeiyiisxPlEkUzU6svyS1frIO3Mgxj1fdy7Pm8Ygzguax2N3Fa/D/ag1WqbOprdI+uY6wMUl8/a2G+iag=="],
 
     "@eslint/config-helpers/@eslint/core": ["@eslint/core@1.2.1", "", { "dependencies": { "@types/json-schema": "^7.0.15" } }, "sha512-MwcE1P+AZ4C6DWlpin/OmOA54mmIZ/+xZuJiQd4SyB29oAJjN30UW9wkKNptW2ctp4cEsvhlLY/CsQ1uoHDloQ=="],
@@ -974,6 +976,8 @@
     "solid-transition-size/@corvu/utils": ["@corvu/utils@0.3.2", "", { "dependencies": { "@floating-ui/dom": "^1.6.7" }, "peerDependencies": { "solid-js": "^1.8" } }, "sha512-ZWlyWEE8qV9+CB9OAyo2bTrZGXQN9ZeM+JfYv89zoR+lRACKTDuoOZEdiyL8Uc7U5dUSH1uTqKhTTnaHWb+wZA=="],
 
     "tinyglobby/picomatch": ["picomatch@4.0.5", "", {}, "sha512-RvwwcruNjI1ncT5xRakeyS9Lf8lcItv34KD+aif+VH9kduAyfYBipGh12274xtenIPZ119/R9BdTBa8gAwSh0A=="],
+
+    "@cortana/web/@adea-ai/ui/@adea-ai/themes": ["@adea-ai/themes@0.8.0", "", {}, "sha512-Ci8LbCFZS6PCk09ZB/aktC0kMu21y4eulCJyPLKfd9ReuL+BjJj/635JAz6iZSP4SCmWqnJlJ4jgMsnxSZeCRg=="],
 
     "@tailwindcss/node/lightningcss/lightningcss-android-arm64": ["lightningcss-android-arm64@1.32.0", "", { "os": "android", "cpu": "arm64" }, "sha512-YK7/ClTt4kAK0vo6w3X+Pnm0D2cf2vPHbhOXdoNti1Ga0al1P4TBZhwjATvjNwLEBCnKvjJc2jQgHXH0NEwlAg=="],
 
