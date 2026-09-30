@@ -6,7 +6,7 @@
     "suspicious": "error",
     "perf": "warn"
   },
-  "jsPlugins": ["@shadcn/lint"],
+  "jsPlugins": ["@shadcn/lint", "@adea-ai/ui/lint"],
   "settings": {
     "shadcn": {
       "note": "Project classes are defined in apps/web/src/shadcn.css. See .agents/skills/shadcn for the full component rules (composition, forms, icons, chat)."
@@ -269,9 +269,35 @@
         ]
       }
     ],
-    "shadcn/require-static-classes": "error"
+    "shadcn/require-static-classes": "error",
+    "adea/no-raw-interactive-elements": "error",
+    "adea/no-primitive-library-imports": "error",
+    "adea/no-interactive-wrappers": "error"
   },
   "overrides": [
+    {
+      "files": [
+        "apps/web/src/App.tsx",
+        "apps/web/src/components/MemoryReview.tsx",
+        "apps/web/src/components/RendererErrorBoundary.tsx",
+        "apps/web/src/components/SettingsView.tsx",
+        "apps/web/src/components/SourcePanel.tsx",
+        "apps/web/src/components/VirtualDocumentList.tsx",
+        "apps/web/src/components/Workspace.tsx",
+        "apps/web/src/components/settings/AccessSection.tsx",
+        "apps/web/src/components/settings/AdvancedSettingsSection.tsx",
+        "apps/web/src/components/settings/ProviderSections.tsx",
+        "apps/web/src/components/settings/SourceSettingsWorkflow.tsx",
+        "apps/web/src/components/settings/WorkspaceSection.tsx",
+        "apps/web/src/components/settings/label.tsx",
+        "apps/web/src/components/shadcn/sidebar.tsx"
+      ],
+      "rules": {
+        "adea/no-raw-interactive-elements": "off",
+        "adea/no-primitive-library-imports": "off",
+        "adea/no-interactive-wrappers": "off"
+      }
+    },
     {
       "files": ["apps/web/src/components/RendererErrorBoundary.tsx"],
       "rules": {

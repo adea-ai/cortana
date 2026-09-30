@@ -1592,10 +1592,8 @@ function CortanaApplication() {
       (document.activeElement instanceof HTMLElement && document.activeElement !== document.body
         ? document.activeElement
         : searchRef.current)
-    // cmdk-solid's Dialog never forwards onCloseAutoFocus to Kobalte, so the
-    // content restores focus to whatever held it when it mounted — focus the
-    // origin explicitly or a keyboard open from a blurred page restores to
-    // <body> and the next Escape leaves no anchor.
+    // Give keyboard invocation from a blurred page a real opener. The shared
+    // dialog's close-autofocus hook returns to this recorded search/menu anchor.
     commandPaletteOriginRef.current?.focus()
     setCommandPaletteMounted(true)
     setCommandPaletteOpen(true)

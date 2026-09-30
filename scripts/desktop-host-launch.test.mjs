@@ -1,6 +1,7 @@
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { execFileSync } from 'node:child_process'
 
 import { expect, test } from 'bun:test'
 
@@ -100,9 +101,15 @@ test('host launch requires the packaged process to survive the startup window', 
       "process.stderr.write('host-launch-fixture\\n'); setTimeout(() => {}, 5000)\n"
     )
     chmodSync(app, 0o755)
+    // The fixture is a Node program. Under `bun test`, process.execPath is
+    // Bun, whose cold startup can outlast this one-second survival window in
+    // an isolated HOME. Use the project's required Node runtime without
+    // weakening the startup or output assertions.
+    const executable = execFileSync('node', ['-p', 'process.execPath'], { encoding: 'utf8' }).trim()
     const result = await runHostLaunch({
-      executable: process.execPath,
+      executable,
       args: [app],
+      cwd: root,
       env: buildIsolatedEnvironment({ root, configPath: join(root, 'config.toml') }),
       // Include VM startup under CI load before collecting the fixture stderr.
       // The longer window also proves the process remains alive beyond boot.
@@ -111,6 +118,25 @@ test('host launch requires the packaged process to survive the startup window', 
     })
     expect(result).toMatchObject({ status: 'passed', process: 'started-and-stopped' })
     expect(result.stderr).toContain('host-launch-fixture')
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('host launch rejects a process that exits before the startup window', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'cortana-host-early-exit-test-'))
+  try {
+    const executable = execFileSync('node', ['-p', 'process.execPath'], { encoding: 'utf8' }).trim()
+    await expect(
+      runHostLaunch({
+        executable,
+        args: ['-e', 'process.exit(0)'],
+        cwd: root,
+        env: buildIsolatedEnvironment({ root, configPath: join(root, 'config.toml') }),
+        stableMs: 1_000,
+        timeoutMs: 3_000,
+      })
+    ).rejects.toThrow('exited before stable startup')
   } finally {
     rmSync(root, { recursive: true, force: true })
   }

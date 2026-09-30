@@ -5,6 +5,7 @@
     "": {
       "name": "cortana-workspace",
       "devDependencies": {
+        "@adea-ai/ui": "0.83.1",
         "@axe-core/playwright": "^4.13.0",
         "@babel/core": "^7.28.0",
         "@babel/preset-typescript": "^7.27.0",
