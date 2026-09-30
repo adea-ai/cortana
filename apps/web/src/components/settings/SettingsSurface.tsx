@@ -1,388 +1,50 @@
-import {
-  children as resolveChildren,
-  createContext,
-  createMemo,
-  splitProps,
-  useContext,
-  type ComponentProps,
-  type JSX,
-} from 'solid-js'
-
-import { cn } from '../../lib/utils'
-
+import { RadioGroup } from '@adea-ai/ui/components/ui/radio-group'
 import {
   Accordion,
   AccordionContent,
-  AccordionItem,
   AccordionTrigger,
+  AccordionItem,
 } from '@adea-ai/ui/components/ui/accordion'
-import { Alert } from '@adea-ai/ui/components/ui/alert'
-import { Card } from '@adea-ai/ui/components/ui/card'
-import { Checkbox } from '@adea-ai/ui/components/ui/checkbox'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@adea-ai/ui/components/ui/tabs'
 import {
   Field,
+  FieldSet,
+  FieldGroup,
+  FieldLegend,
+  FieldLabel,
   FieldDescription,
   FieldError,
-  FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSet,
-} from './field'
-import { Input } from '@adea-ai/ui/components/ui/input'
-import { RadioGroup, RadioGroupItem } from '@adea-ai/ui/components/ui/radio-group'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@adea-ai/ui/components/ui/select'
-
-/**
- * The wrapper's option records, collected from the native-option-style children
- * sections still pass in. Shared Select renders its listbox from the options
- * prop through itemComponent, so the records only feed the model and the rows.
- */
-type SelectOptionValue = { value: string; label: string; disabled?: boolean }
-import { Switch } from '@adea-ai/ui/components/ui/switch'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@adea-ai/ui/components/ui/tabs'
-import { Textarea } from '@adea-ai/ui/components/ui/textarea'
-
-export { VariantButton as SettingsButton } from '../cortana/VariantButton'
-
-export function SettingsSurfaceProvider(props: { children: JSX.Element }) {
-  return props.children as JSX.Element
+} from '@adea-ai/ui/components/ui/field'
+import { Alert } from '@adea-ai/ui/components/ui/alert'
+import { Card } from '@adea-ai/ui/components/ui/card'
+export {
+  Card as SettingsCard,
+  Alert as SettingsAlert,
+  Field as SettingsField,
+  FieldGroup as SettingsFieldGroup,
+  FieldSet as SettingsFieldSet,
+  FieldLegend as SettingsFieldLegend,
+  FieldLabel as SettingsFieldLabel,
+  FieldDescription as SettingsFieldDescription,
+  FieldError as SettingsFieldError,
+  TabsContent as SettingsTabsContent,
+  TabsTrigger as SettingsTabsTrigger,
+  AccordionItem as SettingsAccordionItem,
+  AccordionTrigger as SettingsAccordionTrigger,
+  AccordionContent as SettingsAccordionContent,
 }
 
-/** Shared between Field and the settings controls it wraps: the first control
-    inside a Field claims the generated control id plus describedby/invalid. */
-export const FieldControlContext = createContext<{
-  id: string
-  describedBy: () => string | undefined
-  invalid: () => boolean
-  taken: boolean
-  claim: () => boolean
-} | null>(null)
-
-function claimFieldControl() {
-  const field = useContext(FieldControlContext)
-  if (!field) return null
-  return field.claim() ? field : null
+export {
+  RadioGroup as SettingsRadioGroup,
+  Tabs as SettingsTabs,
+  TabsList as SettingsTabsList,
+  Accordion as SettingsAccordion,
 }
 
-export function SettingsInput(props: ComponentProps<'input'>) {
-  const field = claimFieldControl()
-  const [local, rest] = splitProps(props, ['id', 'aria-describedby', 'aria-invalid'])
-  return (
-    <Input
-      id={local.id ?? field?.id}
-      aria-describedby={local['aria-describedby'] ?? field?.describedBy()}
-      aria-invalid={local['aria-invalid'] ?? (field?.invalid() || undefined)}
-      {...rest}
-    />
-  )
-}
-
-export function SettingsTextarea(props: ComponentProps<'textarea'>) {
-  const field = claimFieldControl()
-  const [local, rest] = splitProps(props, ['id', 'aria-describedby', 'aria-invalid'])
-  return (
-    <Textarea
-      id={local.id ?? field?.id}
-      aria-describedby={local['aria-describedby'] ?? field?.describedBy()}
-      aria-invalid={local['aria-invalid'] ?? (field?.invalid() || undefined)}
-      {...rest}
-    />
-  )
-}
-
-export function SettingsCard(props: ComponentProps<'div'>) {
-  return <Card {...props} />
-}
-
-export function SettingsAlert(
-  props: ComponentProps<'div'> & { variant?: 'default' | 'destructive' }
-) {
-  const [local, rest] = splitProps(props, ['variant'])
-  return <Alert variant={local.variant ?? 'default'} {...rest} />
-}
-
-export function SettingsField(props: ComponentProps<'div'>) {
-  return <Field {...props} />
-}
-
-export function SettingsFieldGroup(props: ComponentProps<'div'>) {
-  return <FieldGroup {...props} />
-}
-
-export function SettingsFieldSet(props: ComponentProps<'fieldset'>) {
-  return <FieldSet {...props} />
-}
-
-export function SettingsFieldLegend(props: ComponentProps<'legend'>) {
-  return <FieldLegend {...props} />
-}
-
-export function SettingsFieldLabel(props: ComponentProps<'label'>) {
-  return <FieldLabel {...props} />
-}
-
-export function SettingsFieldDescription(props: ComponentProps<'p'>) {
-  return <FieldDescription {...props} />
-}
-
-export function SettingsFieldError(props: ComponentProps<'div'>) {
-  return <FieldError {...props} />
-}
-
-/** Minimal event shape settings callers read after a checked change. */
-type CheckedChangeEvent = {
-  target: { checked: boolean; value?: string }
-  currentTarget: { checked: boolean; value?: string }
-}
-
-/** Minimal event shape settings callers read after a value change. */
-type ValueChangeEvent = {
-  target: { value: string }
-  currentTarget: { value: string }
-}
-
-export function SettingsCheckbox(
-  props: Omit<ComponentProps<'input'>, 'type' | 'onChange'> & {
-    onChange?: (event: CheckedChangeEvent) => void
-  }
-) {
-  const field = claimFieldControl()
-  return (
-    <Checkbox
-      id={props.id ?? field?.id}
-      name={props.name}
-      checked={Boolean(props.checked)}
-      disabled={props.disabled}
-      required={props.required}
-      aria-label={props['aria-label']}
-      aria-describedby={props['aria-describedby'] ?? field?.describedBy()}
-      aria-invalid={props['aria-invalid'] ?? (field?.invalid() || undefined)}
-      title={props.title}
-      onChange={(checked: boolean) => {
-        props.onChange?.({
-          target: { checked },
-          currentTarget: { checked },
-        })
-      }}
-    />
-  )
-}
-
-export function SettingsSwitch(
-  props: Omit<ComponentProps<'input'>, 'type' | 'onChange'> & {
-    onChange?: (event: CheckedChangeEvent) => void
-  }
-) {
-  const field = claimFieldControl()
-  return (
-    <Switch
-      id={props.id ?? field?.id}
-      name={props.name}
-      checked={Boolean(props.checked)}
-      disabled={props.disabled}
-      required={props.required}
-      aria-label={props['aria-label']}
-      aria-describedby={props['aria-describedby'] ?? field?.describedBy()}
-      aria-invalid={props['aria-invalid'] ?? (field?.invalid() || undefined)}
-      title={props.title}
-      onChange={(checked: boolean) => {
-        props.onChange?.({
-          target: { checked },
-          currentTarget: { checked },
-        })
-      }}
-    />
-  )
-}
-
-export function SettingsRadioGroup(
-  props: ComponentProps<'div'> & {
-    value: string
-    onValueChange: (value: string) => void
-  }
-) {
-  const [local, rest] = splitProps(props, ['value', 'onValueChange', 'children', 'onChange'])
-  return (
-    <RadioGroup value={local.value} onChange={local.onValueChange} {...rest}>
-      {local.children}
-    </RadioGroup>
-  )
-}
-
-export function SettingsRadio(props: Omit<ComponentProps<'input'>, 'type'>) {
-  const field = claimFieldControl()
-  return (
-    <RadioGroupItem
-      value={String(props.value ?? '')}
-      disabled={props.disabled}
-      aria-label={props['aria-label']}
-      aria-describedby={props['aria-describedby'] ?? field?.describedBy()}
-    />
-  )
-}
-
-export function SettingsTabs(
-  props: ComponentProps<'div'> & { value: string; onValueChange: (value: string) => void }
-) {
-  const [local, rest] = splitProps(props, ['value', 'onValueChange', 'children', 'onChange'])
-  return (
-    <Tabs value={local.value} onChange={local.onValueChange} {...rest}>
-      {local.children}
-    </Tabs>
-  )
-}
-
-export function SettingsTabsList(props: ComponentProps<'div'> & { variant?: 'default' | 'line' }) {
-  const [local, rest] = splitProps(props, ['variant'])
-  // The shared TabsList styles by appearance: the old pill default is its
-  // segmented look, the old line is its underline.
-  return <TabsList appearance={local.variant === 'line' ? 'underline' : 'segmented'} {...rest} />
-}
-
-export function SettingsTabsTrigger(
-  props: Omit<ComponentProps<'button'>, 'type'> & { value: string }
-) {
-  const [local, rest] = splitProps(props, ['value'])
-  return <TabsTrigger value={local.value} {...rest} />
-}
-
-export function SettingsTabsContent(props: ComponentProps<'div'> & { value: string }) {
-  const [local, rest] = splitProps(props, ['value'])
-  return <TabsContent value={local.value} {...rest} />
-}
-
-export function SettingsAccordion(props: {
-  class?: string
-  /** Allow more than one section of the same group open at once. */
-  multiple?: boolean
-  collapsible?: boolean
-  children: JSX.Element
-}) {
-  // Kobalte's Accordion defaults to a single, non-collapsible selection, which
-  // makes an opened section impossible to close again. Settings disclosures are
-  // independent, so they collapse when their trigger is activated twice.
-  return (
-    <Accordion
-      class={props.class}
-      multiple={props.multiple ?? false}
-      collapsible={props.collapsible ?? true}
-    >
-      {props.children}
-    </Accordion>
-  )
-}
-
-export function SettingsAccordionItem(props: {
-  value: string
-  class?: string
-  children: JSX.Element
-}) {
-  return (
-    <AccordionItem value={props.value} class={props.class}>
-      {props.children}
-    </AccordionItem>
-  )
-}
-
-export function SettingsAccordionTrigger(props: { class?: string; children: JSX.Element }) {
-  return <AccordionTrigger class={props.class}>{props.children}</AccordionTrigger>
-}
-
-export function SettingsAccordionContent(props: { class?: string; children: JSX.Element }) {
-  return <AccordionContent class={props.class}>{props.children}</AccordionContent>
-}
-
-function collectOptions(nodes: unknown[], out: SelectOptionValue[]) {
-  for (const node of nodes) {
-    if (Array.isArray(node)) {
-      collectOptions(node, out)
-    } else if (node instanceof HTMLOptionElement) {
-      out.push({
-        value: node.value,
-        label: node.textContent ?? node.value,
-        disabled: node.disabled,
-      })
-    } else if (node instanceof Element || node instanceof DocumentFragment) {
-      collectOptions(Array.from(node.childNodes), out)
-    }
-  }
-}
-
-export function SettingsSelect(
-  props: Omit<ComponentProps<'select'>, 'onChange'> & {
-    onChange?: (event: ValueChangeEvent) => void
-  }
-) {
-  const field = claimFieldControl()
-  const [local] = splitProps(props, [
-    'children',
-    'onChange',
-    'value',
-    'disabled',
-    'name',
-    'required',
-    'id',
-    'class',
-    'aria-label',
-    'aria-describedby',
-    'aria-invalid',
-    'title',
-    'style',
-  ])
-
-  const options = createMemo<SelectOptionValue[]>(() => {
-    const out: SelectOptionValue[] = []
-    collectOptions(resolveChildren(() => local.children).toArray(), out)
-    return out
-  })
-
-  return (
-    <Select<SelectOptionValue>
-      options={options()}
-      optionValue="value"
-      optionTextValue="label"
-      optionDisabled="disabled"
-      itemComponent={(itemProps) => (
-        <SelectItem item={itemProps.item}>{itemProps.item.rawValue.label}</SelectItem>
-      )}
-      value={options().find((option) => String(option.value) === String(local.value ?? '')) ?? null}
-      disabled={local.disabled}
-      name={local.name}
-      required={local.required}
-      onChange={(option) => {
-        // Kobalte re-emits selection when the collection rebuilds, including
-        // transient null echoes; skip them and no-op repeats so updates do
-        // not feed a render loop or blank the controlled value.
-        if (option == null) return
-        const next = String(option.value ?? '')
-        if (next === String(local.value ?? '')) return
-        local.onChange?.({
-          target: { value: next },
-          currentTarget: { value: next },
-        })
-      }}
-    >
-      <SelectTrigger
-        id={local.id ?? field?.id}
-        // Kobalte's trigger stops at aria-haspopup; the combobox role is what
-        // assistive tech and this app's queries key on.
-        role="combobox"
-        class={cn('w-full border-border bg-background shadow-xs', local.class)}
-        aria-label={local['aria-label']}
-        aria-describedby={local['aria-describedby'] ?? field?.describedBy()}
-        aria-invalid={local['aria-invalid'] ?? (field?.invalid() || undefined)}
-        title={local.title}
-        style={local.style}
-      >
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent />
-    </Select>
-  )
-}
+export { Input as SettingsInput } from '@adea-ai/ui/components/ui/input'
+export { Textarea as SettingsTextarea } from '@adea-ai/ui/components/ui/textarea'
+export { Checkbox as SettingsCheckbox } from '@adea-ai/ui/components/ui/checkbox'
+export { Switch as SettingsSwitch } from '@adea-ai/ui/components/ui/switch'
+export { RadioGroupItem as SettingsRadio } from '@adea-ai/ui/components/ui/radio-group'
+export { NativeSelect as SettingsSelect } from '@adea-ai/ui/components/ui/native-select'
+export { ActionButton as SettingsButton } from '@adea-ai/ui/components/composites/action-button'

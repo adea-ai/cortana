@@ -1,3 +1,4 @@
+import { TextLink } from '@adea-ai/ui/components/ui/text-link'
 import { For, type JSX } from 'solid-js'
 
 export function SafeMarkdown(incoming: { text: string }) {
@@ -98,9 +99,9 @@ function parseInlineMarkdown(value: string): JSX.Element[] {
       const url = safeMarkdownUrl(link[2])
       if (url) {
         nodes.push(
-          <a href={url} target="_blank" rel="noreferrer">
+          <TextLink href={url} target="_blank" rel="noreferrer">
             {link[1]}
-          </a>
+          </TextLink>
         )
       } else {
         nodes.push(<span>{part}</span>)

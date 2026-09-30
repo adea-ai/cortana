@@ -1,12 +1,8 @@
-import {
-  AlertTriangle,
-  CircleStop,
-  ExternalLink,
-  LoaderCircle,
-  Play,
-  RefreshCw,
-} from 'lucide-solid'
-import { createEffect, createSignal, onCleanup, type JSX } from 'solid-js'
+import { Spinner } from '@adea-ai/ui/components/ui/spinner'
+import { Progress } from '@adea-ai/ui/components/ui/progress'
+import { AlertDescription } from '@adea-ai/ui/components/ui/alert'
+import { CircleStop, ExternalLink, Play, RefreshCw } from 'lucide-solid'
+import { createEffect, createSignal, onCleanup } from 'solid-js'
 
 import {
   cancelDesktopUpdate,
@@ -149,6 +145,7 @@ export function UpdatesSection(incoming: {
     update()?.phase !== 'installed'
   return (
     <SettingsSection
+      bodyLayout="content"
       title="Updates"
       description="Cortana checks the fixed GitHub release feed and verifies signed Tauri artifacts in the native process before installation."
     >
@@ -171,31 +168,49 @@ export function UpdatesSection(incoming: {
         <div class="service-actions">
           {updateInFlight() && (
             <Button
+              tooltip={'Stop downloading or installing this update.'}
               variant="secondary"
+              size="sm"
               type="button"
               disabled={update()?.phase === 'cancelling'}
               onClick={() => void cancel()}
             >
-              <CircleStop size={14} />
+              <CircleStop size={14} aria-hidden="true" />
               {update()?.phase === 'cancelling' ? 'Cancelling…' : 'Cancel update'}
             </Button>
           )}
           <Button
+            tooltip="Check now"
             variant="secondary"
+            size="sm"
             type="button"
             disabled={Boolean(busy()) || updateInFlight()}
             onClick={() => void check()}
           >
-            {busy() === 'check' ? <LoaderCircle class="spin" size={14} /> : <RefreshCw size={14} />}
+            {busy() === 'check' ? (
+              <Spinner size="sm" label={false} />
+            ) : (
+              <RefreshCw size={14} aria-hidden="true" />
+            )}
             Check now
           </Button>
           <Button
-            variant="primary"
+            tooltip={
+              update()?.restart_required || update()?.phase === 'installed'
+                ? 'Restart Cortana to finish applying the installed update.'
+                : 'Download and install the available update, then restart Cortana.'
+            }
+            variant="default"
+            size="sm"
             type="button"
             disabled={!canInstall() || Boolean(busy()) || updateInFlight()}
             onClick={() => void install()}
           >
-            {updateInFlight() ? <LoaderCircle class="spin" size={14} /> : <Play size={14} />}
+            {updateInFlight() ? (
+              <Spinner size="sm" label={false} />
+            ) : (
+              <Play size={14} aria-hidden="true" />
+            )}
             {update()?.restart_required || update()?.phase === 'installed'
               ? 'Restart required'
               : 'Install and restart'}
@@ -203,20 +218,13 @@ export function UpdatesSection(incoming: {
         </div>
       </SettingsCard>
       {percent() !== null && (
-        <div class="update-progress" role="progressbar" aria-valuenow={percent()!}>
-          <i
-            style={
-              {
-                '--update-progress': `${percent()}%`,
-              } as JSX.CSSProperties
-            }
-          />
-          <span>{percent()}% downloaded</span>
-        </div>
+        <Progress value={percent()!} label={`${percent()}% downloaded`} hideValue />
       )}
       {(error() || update()?.error) && (
         <SettingsAlert class="safety-note error" variant="destructive" role="alert">
-          <AlertTriangle size={16} /> <span>{error() || update()?.error}</span>
+          <AlertDescription>
+            <span>{error() || update()?.error}</span>
+          </AlertDescription>
         </SettingsAlert>
       )}
       {update()?.release_notes && (
@@ -231,12 +239,14 @@ export function UpdatesSection(incoming: {
       </div>
       {update() && (
         <Button
+          tooltip="View Cortana source on GitHub"
           variant="ghost"
+          size="sm"
           type="button"
           class="link-button"
           onClick={() => void openProject()}
         >
-          View Cortana source on GitHub <ExternalLink size={13} />
+          View Cortana source on GitHub <ExternalLink size={13} aria-hidden="true" />
         </Button>
       )}
     </SettingsSection>

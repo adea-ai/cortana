@@ -1,14 +1,15 @@
-import { Pause, Play, RefreshCw, Search, ShieldCheck } from 'lucide-solid'
+import { ListRow } from '@adea-ai/ui/components/composites/list-row'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@adea-ai/ui/components/ui/tooltip'
+import { VirtualWindow } from '@adea-ai/ui/components/layout/virtual-window'
 import {
-  createComputed,
-  createEffect,
-  createSignal,
-  For,
-  onCleanup,
-  Show,
-  type ComponentProps,
-  type JSX,
-} from 'solid-js'
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from '@adea-ai/ui/components/ui/accordion'
+import { Label } from '@adea-ai/ui/components/ui/label'
+import { Pause, Play, RefreshCw, Search, ShieldCheck } from 'lucide-solid'
+import { createComputed, createEffect, createSignal, For, onCleanup, Show } from 'solid-js'
 
 import {
   actOnMemoryCandidate,
@@ -30,14 +31,13 @@ import type {
 } from '../types'
 import { virtualRange } from '../virtualization'
 import { Alert, AlertDescription } from '@adea-ai/ui/components/ui/alert'
-import { StatusBadge, type StatusTone } from './cortana/status-badge'
-import { VariantButton as MemoryButton } from './cortana/VariantButton'
+import { StatusChip, type StatusTone } from '@adea-ai/ui/components/ui/status-chip'
+import { ActionButton as MemoryButton } from '@adea-ai/ui/components/composites/action-button'
 import { Card } from '@adea-ai/ui/components/ui/card'
-import { cn } from '@/lib/utils'
 
 import { Checkbox } from '@adea-ai/ui/components/ui/checkbox'
 import { Input } from '@adea-ai/ui/components/ui/input'
-import { FeedbackState } from './cortana/feedback-state'
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription } from '@adea-ai/ui/components/ui/empty'
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 import { Textarea } from '@adea-ai/ui/components/ui/textarea'
 import { Toggle } from '@adea-ai/ui/components/ui/toggle'
@@ -52,18 +52,6 @@ type QueueView =
   | 'expired'
   | 'failed'
   | 'dead-letter'
-
-function MemoryInput(props: ComponentProps<'input'>) {
-  return <Input {...props} />
-}
-
-function MemoryTextarea(props: ComponentProps<'textarea'>) {
-  return <Textarea {...props} />
-}
-
-function MemoryCard(props: ComponentProps<'div'>) {
-  return <Card class="memory-card-compact" {...props} />
-}
 
 export type MemoryReviewClient = {
   listCandidates: (project?: string, query?: string, status?: string) => Promise<MemoryCandidate[]>
@@ -87,36 +75,36 @@ function MemoryPolicy(props: {
   const patch = (next: Partial<MemoryReviewPolicy>) => props.onChange({ ...props.policy, ...next })
   return (
     <div class="memory-policy" aria-label="Memory retention policy">
-      <label>
+      <Label>
         Working ceiling (days)
-        <MemoryInput
+        <Input
           type="number"
           min={1}
           max={7}
           value={props.policy.maxWorkingDays}
           onInput={(event) => patch({ maxWorkingDays: Number(event.target.value) })}
         />
-      </label>
-      <label>
+      </Label>
+      <Label>
         Durable ceiling (days)
-        <MemoryInput
+        <Input
           type="number"
           min={1}
           max={3650}
           value={props.policy.maxDurableDays}
           onInput={(event) => patch({ maxDurableDays: Number(event.target.value) })}
         />
-      </label>
-      <label>
+      </Label>
+      <Label>
         Candidate expiry (days)
-        <MemoryInput
+        <Input
           type="number"
           min={1}
           max={7}
           value={props.policy.candidateExpiryDays}
           onInput={(event) => patch({ candidateExpiryDays: Number(event.target.value) })}
         />
-      </label>
+      </Label>
       <p>
         Candidate processing is manual. Automatic retention and recurring processing remain
         disabled.
@@ -155,52 +143,45 @@ function CandidateQueue(props: {
         aria-busy={props.loading}
         onScroll={(event) => props.onScroll(event.currentTarget.scrollTop)}
       >
-        <div
-          class="memory-virtual-space"
-          style={{ '--virtual-total-height': `${props.range.totalHeight}px` } as JSX.CSSProperties}
-        >
-          <div
-            class="memory-virtual-window"
-            style={{ '--virtual-offset': `${props.range.offsetTop}px` } as JSX.CSSProperties}
-          >
-            <For each={props.filtered.slice(props.range.start, props.range.end)}>
-              {(candidate) => (
-                <MemoryCard
-                  role="listitem"
-                  class={cn(
-                    'memory-candidate-row',
-                    props.selectedId === candidate.id && 'selected'
-                  )}
+        <VirtualWindow totalSize={props.range.totalHeight} offset={props.range.offsetTop}>
+          <For each={props.filtered.slice(props.range.start, props.range.end)}>
+            {(candidate) => (
+              <Card role="listitem" class="memory-candidate-row">
+                <Checkbox
+                  aria-label={`Select ${candidate.title}`}
+                  checked={props.selectedIds.has(candidate.id)}
+                  onChange={(checked: boolean) => updateSelection(candidate, checked)}
+                />
+                <ListRow
+                  as="button"
+                  type="button"
+                  tooltip={`${candidate.title}, ${queueStatus(candidate)}`}
+                  selected={props.selectedId === candidate.id}
+                  aria-label={`${candidate.title}, ${queueStatus(candidate)}`}
+                  onClick={() => props.onSelect(candidate.id)}
+                  description={candidate.content}
+                  class="min-w-0 w-full text-left"
                 >
-                  <Checkbox
-                    aria-label={`Select ${candidate.title}`}
-                    checked={props.selectedIds.has(candidate.id)}
-                    onChange={(checked: boolean) => updateSelection(candidate, checked)}
-                  />
-                  <MemoryButton
-                    variant="ghost"
-                    type="button"
-                    aria-current={props.selectedId === candidate.id}
-                    aria-label={`${candidate.title}, ${queueStatus(candidate)}`}
-                    onClick={() => props.onSelect(candidate.id)}
-                  >
-                    <strong>{candidate.title}</strong>
-                    <span>{candidate.content}</span>
-                  </MemoryButton>
-                  <StatusBadge tone={QUEUE_TONES[queueStatus(candidate)]}>
-                    {queueStatus(candidate)}
-                  </StatusBadge>
-                </MemoryCard>
-              )}
-            </For>
-          </div>
-        </div>
+                  {candidate.title}
+                </ListRow>
+                <StatusChip
+                  tone={QUEUE_TONES[queueStatus(candidate)]}
+                  label={queueStatus(candidate)}
+                  role="status"
+                />
+              </Card>
+            )}
+          </For>
+        </VirtualWindow>
         <Show when={!props.loading && props.filtered.length === 0}>
-          <FeedbackState
-            kind="empty"
-            title="No candidates match this view"
-            description="Adjust the search text or switch the status view to see other candidates."
-          />
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>No candidates match this view</EmptyTitle>
+              <EmptyDescription>
+                Adjust the search text or switch the status view to see other candidates.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         </Show>
       </div>
       <Show when={props.selectedIds.size > 0}>
@@ -209,16 +190,20 @@ function CandidateQueue(props: {
             {props.selectedIds.size}/{MAX_BULK_ACTIONS} selected
           </span>
           <MemoryButton
+            tooltip="Reject selected"
             type="button"
             variant="secondary"
+            size="sm"
             disabled={props.busy}
             onClick={() => props.onBulk('reject', [...props.selectedIds])}
           >
             Reject selected
           </MemoryButton>
           <MemoryButton
+            tooltip="Redact selected"
             type="button"
             variant="secondary"
+            size="sm"
             disabled={props.busy}
             onClick={() => props.onBulk('redact', [...props.selectedIds])}
           >
@@ -447,47 +432,74 @@ export function MemoryReview(props: {
           <MemoryButton
             type="button"
             variant="secondary"
+            size="sm"
             disabled={busy() || !canControl()}
-            title={canControl() ? undefined : 'Owner authorization is required'}
+            tooltip={
+              !canControl()
+                ? 'Owner authorization is required.'
+                : busy()
+                  ? 'Wait for the current memory operation to finish.'
+                  : paused()
+                    ? 'Resume consolidation of reviewed memory candidates.'
+                    : 'Pause consolidation while reviewing memory candidates.'
+            }
             onClick={() => void togglePause()}
           >
-            {paused() ? <Play size={14} /> : <Pause size={14} />}
+            {paused() ? (
+              <Play size={14} aria-hidden="true" />
+            ) : (
+              <Pause size={14} aria-hidden="true" />
+            )}
             {paused() ? 'Resume consolidation' : 'Pause consolidation'}
           </MemoryButton>
           <MemoryButton
+            tooltip={
+              loading()
+                ? 'Wait for the current memory refresh to finish.'
+                : 'Reload memory candidates and retention state.'
+            }
             type="button"
             variant="secondary"
+            size="sm"
             disabled={loading()}
             onClick={() => void refresh()}
           >
-            {loading() ? <Spinner /> : <RefreshCw size={14} />} Refresh
+            {loading() ? <Spinner /> : <RefreshCw size={14} aria-hidden="true" />} Refresh
           </MemoryButton>
         </div>
       </header>
 
       <MemoryPolicy policy={policy()} onChange={setPolicy} />
       <div class="memory-review-filters">
-        <label class="memory-review-search">
+        <Label class="memory-review-search">
           <Search size={14} aria-hidden="true" />
           <span class="sr-only">Search memory candidates</span>
-          <MemoryInput
+          <Input
             type="search"
             aria-label="Search memory candidates"
             value={query()}
             onInput={(event) => setQuery(event.target.value)}
             placeholder="Search candidate content, project, or source"
           />
-        </label>
+        </Label>
         <div class="memory-status-tabs" role="group" aria-label="Candidate status views">
           <For each={QUEUE_VIEWS}>
             {(status) => (
-              <Toggle
-                size="xs"
-                pressed={view() === status}
-                onChange={(pressed) => pressed && setView(status)}
-              >
-                {status.replace('-', ' ')}
-              </Toggle>
+              <Tooltip>
+                <TooltipTrigger
+                  as={Toggle}
+                  size="xs"
+                  pressed={view() === status}
+                  onChange={(pressed: boolean) => pressed && setView(status)}
+                >
+                  {status.replace('-', ' ')}
+                </TooltipTrigger>
+                <TooltipContent>
+                  {status === 'all'
+                    ? 'Show every memory candidate status'
+                    : `Show ${status.replace('-', ' ')} memory candidates`}
+                </TooltipContent>
+              </Tooltip>
             )}
           </For>
         </div>
@@ -563,20 +575,20 @@ function CandidateDetail(props: {
           <h4>{selected().title}</h4>
           {props.editing ? (
             <div class="memory-edit-fields">
-              <label>
+              <Label>
                 Proposed title
-                <MemoryInput
+                <Input
                   value={props.editTitle}
                   onInput={(event) => props.onTitle(event.target.value)}
                 />
-              </label>
-              <label>
+              </Label>
+              <Label>
                 Proposed content
-                <MemoryTextarea
+                <Textarea
                   value={props.editContent}
                   onInput={(event) => props.onContent(event.target.value)}
                 />
-              </label>
+              </Label>
             </div>
           ) : (
             <p>{selected().content}</p>
@@ -585,7 +597,7 @@ function CandidateDetail(props: {
           <Show
             when={selected().status === 'pending'}
             fallback={
-              <p class="memory-explanation">
+              <p>
                 This candidate is terminal. Its stored outcome is shown above; no new classification
                 or action was run.
               </p>
@@ -685,10 +697,10 @@ function CandidateMetadata(props: {
         )}
       </Show>
       <Show when={props.classification}>
-        <p class="memory-explanation">{props.classification!.explanation}</p>
+        <p>{props.classification!.explanation}</p>
       </Show>
       <Show when={!props.classification && props.selected.consolidation}>
-        <p class="memory-explanation">
+        <p>
           {props.selected.consolidation!.explanation ??
             `Stored policy decision ${props.selected.consolidation!.decision} ended as ${props.selected.consolidation!.status}`}
           {props.selected.consolidation!.memory_id
@@ -700,18 +712,22 @@ function CandidateMetadata(props: {
           .
         </p>
       </Show>
-      <details>
-        <summary>Provenance and support</summary>
-        <pre>{JSON.stringify(props.selected.provenance, null, 2)}</pre>
-        <p>
-          Supporting memories:{' '}
-          {(
-            props.classification?.supporting_memory_ids ??
-            props.selected.consolidation?.supporting_memory_ids ??
-            []
-          ).join(', ') || 'None'}
-        </p>
-      </details>
+      <Accordion collapsible>
+        <AccordionItem value="details">
+          <AccordionTrigger>Provenance and support</AccordionTrigger>
+          <AccordionContent>
+            <pre>{JSON.stringify(props.selected.provenance, null, 2)}</pre>
+            <p>
+              Supporting memories:{' '}
+              {(
+                props.classification?.supporting_memory_ids ??
+                props.selected.consolidation?.supporting_memory_ids ??
+                []
+              ).join(', ') || 'None'}
+            </p>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </>
   )
 }
@@ -727,18 +743,34 @@ function CandidateActions(props: {
 }) {
   return (
     <div class="memory-candidate-actions">
-      <MemoryButton type="button" disabled={props.busy} onClick={() => props.onAction('approve')}>
-        <ShieldCheck size={14} /> Approve canonical memory
+      <MemoryButton
+        tooltip="Approve canonical memory"
+        variant="secondary"
+        size="sm"
+        type="button"
+        disabled={props.busy}
+        onClick={() => props.onAction('approve')}
+      >
+        <ShieldCheck size={14} aria-hidden="true" /> Approve canonical memory
       </MemoryButton>
       <Show
         when={props.editing}
         fallback={
-          <MemoryButton type="button" variant="secondary" onClick={() => props.onEditing(true)}>
+          <MemoryButton
+            tooltip="Edit and approve"
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => props.onEditing(true)}
+          >
             Edit and approve
           </MemoryButton>
         }
       >
         <MemoryButton
+          tooltip="Confirm edit and approve"
+          variant="secondary"
+          size="sm"
           type="button"
           disabled={props.busy || !props.editTitle.trim() || !props.editContent.trim()}
           onClick={() =>
@@ -752,16 +784,20 @@ function CandidateActions(props: {
         </MemoryButton>
       </Show>
       <MemoryButton
+        tooltip="Keep working"
         type="button"
         variant="secondary"
+        size="sm"
         disabled={props.busy}
         onClick={() => props.onAction('working')}
       >
         Keep working
       </MemoryButton>
       <MemoryButton
+        tooltip="Review and supersede"
         type="button"
         variant="secondary"
+        size="sm"
         disabled={props.busy}
         onClick={() => props.onAction('supersede')}
       >
@@ -769,8 +805,10 @@ function CandidateActions(props: {
       </MemoryButton>
       <Show when={props.retryable}>
         <MemoryButton
+          tooltip="Retry the last failed request."
           type="button"
           variant="secondary"
+          size="sm"
           disabled={props.busy}
           onClick={() => props.onAction('retry')}
         >
@@ -778,16 +816,20 @@ function CandidateActions(props: {
         </MemoryButton>
       </Show>
       <MemoryButton
+        tooltip="Reject"
         type="button"
         variant="secondary"
+        size="sm"
         disabled={props.busy}
         onClick={() => props.onAction('reject')}
       >
         Reject
       </MemoryButton>
       <MemoryButton
+        tooltip="Redact"
         type="button"
         variant="secondary"
+        size="sm"
         disabled={props.busy}
         onClick={() => props.onAction('redact')}
       >
@@ -843,13 +885,13 @@ function MemoryLayers(props: { canonical: AgentMemory[]; derived: DerivedMemoryR
 }
 
 const QUEUE_TONES: Record<Exclude<QueueView, 'all'>, StatusTone> = {
-  pending: 'busy',
+  pending: 'info',
   approved: 'success',
   'auto-retained': 'success',
-  rejected: 'error',
-  failed: 'error',
-  'dead-letter': 'error',
-  expired: 'offline',
+  rejected: 'danger',
+  failed: 'danger',
+  'dead-letter': 'danger',
+  expired: 'neutral',
 }
 
 function queueStatus(candidate: MemoryCandidate): Exclude<QueueView, 'all'> {

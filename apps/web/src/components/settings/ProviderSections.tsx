@@ -1,9 +1,14 @@
-import { LoaderCircle, RefreshCw } from 'lucide-solid'
+import { Spinner } from '@adea-ai/ui/components/ui/spinner'
+import {
+  Alert as SharedFeedbackAlert,
+  AlertDescription as SharedFeedbackDescription,
+} from '@adea-ai/ui/components/ui/alert'
+import { Label } from '@adea-ai/ui/components/ui/label'
+import { RefreshCw } from 'lucide-solid'
 import {
   createEffect,
   createSignal,
   createUniqueId,
-  For,
   lazy,
   mergeProps,
   Suspense,
@@ -262,7 +267,7 @@ function ProviderSection<T extends ProviderValue>(incoming: {
         <SettingsCombobox
           id={modelFieldId}
           aria-label="Model catalog"
-          class="settings-model-control"
+
           value={modelMode() === 'catalog' ? props.provider.model : 'custom'}
           choices={[
             ...activeCatalog(),
@@ -307,7 +312,7 @@ function ProviderSection<T extends ProviderValue>(incoming: {
       <Select
         id={modelFieldId}
         aria-label="Model catalog"
-        class="settings-model-control"
+
         value={props.provider.model}
         required
         onChange={(event) =>
@@ -316,11 +321,11 @@ function ProviderSection<T extends ProviderValue>(incoming: {
             model: event.target.value,
           })
         }
-      >
-        <For each={dropdownCatalog()}>
-          {(candidate) => <option value={candidate.value}>{candidate.label}</option>}
-        </For>
-      </Select>
+        options={dropdownCatalog().map((candidate) => ({
+          value: candidate.value,
+          label: candidate.label,
+        }))}
+      />
     </Field>
   )
   const modelControls = (
@@ -332,20 +337,26 @@ function ProviderSection<T extends ProviderValue>(incoming: {
           : modelSelect()}
       <div class="model-refresh">
         <Button
+          tooltip={`Refresh ${props.title} models from provider`}
           variant="secondary"
+          size="sm"
           type="button"
           aria-label={`Refresh ${props.title} models from provider`}
           disabled={props.modelsLoading}
           onClick={props.onRefreshModels}
         >
-          {props.modelsLoading ? <LoaderCircle class="spin" size={14} /> : <RefreshCw size={14} />}{' '}
+          {props.modelsLoading ? (
+            <Spinner size="sm" label={false} />
+          ) : (
+            <RefreshCw size={14} aria-hidden="true" />
+          )}{' '}
           Refresh models
         </Button>
       </div>
       {props.modelsError && (
-        <p class="settings-inline-error" role="alert">
-          {props.modelsError}
-        </p>
+        <SharedFeedbackAlert variant="destructive" role="alert" class="my-2">
+          <SharedFeedbackDescription>{props.modelsError}</SharedFeedbackDescription>
+        </SharedFeedbackAlert>
       )}
       {props.advertisedModels && props.advertisedModels.length > 0 && (
         <small class="model-note">
@@ -357,11 +368,10 @@ function ProviderSection<T extends ProviderValue>(incoming: {
     </div>
   )
   return (
-    <SettingsSection title={props.title} description={props.description}>
+    <SettingsSection bodyLayout="content" title={props.title} description={props.description}>
       <SettingsFieldGroup class="form-grid">
         <Field label="Provider">
           <Select
-            class="settings-provider-control"
             value={props.provider.provider}
             onChange={(event) => {
               const nextProvider = event.target.value as 'local' | 'cloud'
@@ -380,13 +390,14 @@ function ProviderSection<T extends ProviderValue>(incoming: {
                 base_url,
               })
             }}
-          >
-            <option value="local">Local</option>
-            <option value="cloud">Cloud</option>
-          </Select>
+            options={[
+              { value: 'local', label: 'Local' },
+              { value: 'cloud', label: 'Cloud' },
+            ]}
+          />
         </Field>
         {modelControls}
-        <Field label="OpenAI-compatible endpoint" wide>
+        <Field label="OpenAI-compatible endpoint" class="col-span-full">
           <Input
             type="url"
             value={props.provider.base_url}
@@ -513,14 +524,14 @@ export function QuerySection(incoming: {
       modelControl="select"
       modelCatalog={[]}
     >
-      <label class="toggle-row">
+      <Label class="toggle-row">
         <SettingsSwitch
           aria-label="Enable answer synthesis"
           checked={props.settings.query.synthesis_enabled}
-          onChange={(event) =>
+          onChange={(checked: boolean) =>
             setQuery({
               ...props.settings.query,
-              synthesis_enabled: event.target.checked,
+              synthesis_enabled: checked,
             })
           }
         />
@@ -530,7 +541,7 @@ export function QuerySection(incoming: {
             Uses retrieved evidence and validates citation indices before returning an answer.
           </small>
         </span>
-      </label>
+      </Label>
       <SettingsFieldGroup class="form-grid compact">
         <NumberField
           label="Planned queries"

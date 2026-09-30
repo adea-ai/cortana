@@ -1,3 +1,4 @@
+import { isActionDisabled } from './test/actionState'
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
 import { cleanup, fireEvent, render, screen, waitFor } from 'solid-testing-library'
 import userEvent from '@testing-library/user-event'
@@ -283,7 +284,7 @@ test('discord chooser refuses to discover unsaved changes and surfaces failures'
   const discoverButton = screen.getByRole('button', {
     name: /Discover channels/,
   }) as HTMLButtonElement
-  expect(discoverButton.disabled).toBe(true)
+  expect(isActionDisabled(discoverButton)).toBe(true)
   fireEvent.click(discoverButton)
   expect(state.discoverCalls).toEqual([])
 

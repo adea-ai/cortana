@@ -1,10 +1,16 @@
+import { Spinner } from '@adea-ai/ui/components/ui/spinner'
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from '@adea-ai/ui/components/ui/accordion'
 import {
   AlertTriangle,
   CheckCircle2,
   CircleStop,
   CircleX,
   Inbox,
-  LoaderCircle,
   RefreshCw,
   Settings,
 } from 'lucide-solid'
@@ -14,12 +20,13 @@ import { describeSyncRunProgress } from '@/operations'
 import { describeSourceJobProgress, recentCompletedJobs } from '@/sourceJobs'
 import type { BrainStatus, DesktopSourceJob, SourceSyncSummary } from '@/types'
 import { Alert, AlertDescription, AlertTitle } from '@adea-ai/ui/components/ui/alert'
-import { Badge } from '@adea-ai/ui/components/ui/badge'
-import { Button } from '@adea-ai/ui/components/ui/button'
+import { StatusChip } from '@adea-ai/ui/components/ui/status-chip'
+import { ActionButton as Button } from '@adea-ai/ui/components/composites/action-button'
 import {
   Card,
   CardAction,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from '@adea-ai/ui/components/ui/card'
@@ -51,18 +58,18 @@ function statusBadge(status: SourceSyncSummary['status'] | DesktopSourceJob['sta
       : status === 'cancelling'
         ? 'Cancelling…'
         : status[0].toUpperCase() + status.slice(1)
-  const variant =
+  const tone =
     status === 'failed' || status === 'cancelled' || status === 'budget_exceeded'
-      ? 'destructive'
+      ? 'danger'
       : status === 'succeeded'
-        ? 'secondary'
-        : 'outline'
-  return <Badge variant={variant}>{label}</Badge>
+        ? 'success'
+        : 'info'
+  return <StatusChip tone={tone} label={label} />
 }
 
 function statusIcon(status: SourceSyncSummary['status'] | DesktopSourceJob['status']) {
   if (status === 'running' || status === 'cancelling') {
-    return <LoaderCircle class="size-4 animate-spin" aria-hidden="true" />
+    return <Spinner size="md" label={false} />
   }
   if (status === 'succeeded') return <CheckCircle2 class="size-4" aria-hidden="true" />
   if (status === 'cancelled') return <CircleX class="size-4" aria-hidden="true" />
@@ -86,11 +93,11 @@ function ActivityEmpty(props: {
   onOpenSettings: () => void
 }) {
   return (
-    <Empty class="min-h-72 border">
+    <Empty class="min-h-72">
       <EmptyHeader>
         <EmptyMedia variant="icon">
           {props.loading ? (
-            <LoaderCircle class="animate-spin" aria-hidden="true" />
+            <Spinner size="md" label={false} />
           ) : props.error ? (
             <AlertTriangle aria-hidden="true" />
           ) : (
@@ -114,11 +121,15 @@ function ActivityEmpty(props: {
       <EmptyContent>
         <div class="flex flex-wrap justify-center gap-2">
           <Show when={props.error && props.onRetryStatus}>
-            <Button variant="outline" onClick={props.onRetryStatus}>
+            <Button tooltip="Retry status" variant="outline" onClick={props.onRetryStatus}>
               <RefreshCw aria-hidden="true" /> Retry status
             </Button>
           </Show>
-          <Button variant="outline" onClick={props.onOpenSettings}>
+          <Button
+            tooltip="Review configuration and resolve setup requirements."
+            variant="outline"
+            onClick={props.onOpenSettings}
+          >
             <Settings aria-hidden="true" /> Open settings
           </Button>
         </div>
@@ -134,22 +145,24 @@ function SyncActivityCard(props: { run: SourceSyncSummary }) {
       ? Math.min(100, Math.round((documents() / props.run.budget_documents) * 100))
       : null
   return (
-    <Card class="activity-card-compact">
-      <CardHeader class="activity-card-header">
-        <CardTitle class="activity-card-title-line">
-          {statusIcon(props.run.status)}
-          <span class="truncate">{props.run.source}</span>
-          <span class="activity-card-meta">
-            {props.run.project} · started {new Date(props.run.started_at).toLocaleString()}
-          </span>
-        </CardTitle>
-        <CardAction>{statusBadge(props.run.status)}</CardAction>
+    <Card>
+      <CardHeader>
+        <div class="flex min-w-0 items-start justify-between gap-3">
+          <div data-activity-card-copy="" class="flex min-w-0 flex-1 flex-col gap-2">
+            <CardTitle class="activity-card-title-line">
+              {statusIcon(props.run.status)}
+              <span class="min-w-0 break-words">{props.run.source}</span>
+            </CardTitle>
+            <CardDescription class="break-words">
+              {props.run.project} · started {new Date(props.run.started_at).toLocaleString()}
+            </CardDescription>
+          </div>
+          <CardAction>{statusBadge(props.run.status)}</CardAction>
+        </div>
       </CardHeader>
       <CardContent class="activity-card-content">
         <div class="activity-card-detail-row">
-          <p class="activity-card-summary text-sm text-muted-foreground">
-            {describeSyncRunProgress(props.run)}
-          </p>
+          <p class="m-0 text-sm text-muted-foreground">{describeSyncRunProgress(props.run)}</p>
           <div class="activity-card-status-row">
             <Show when={props.run.status === 'running'}>
               <Progress
@@ -178,24 +191,26 @@ function SourceJobCard(props: { job: DesktopSourceJob; onCancel?: (id: string) =
   const started = () => new Date(props.job.started_at_unix_seconds * 1000)
   const running = () => props.job.status === 'running' || props.job.status === 'cancelling'
   return (
-    <Card class="activity-card-compact">
-      <CardHeader class="activity-card-header">
-        <CardTitle class="activity-card-title-line">
-          {statusIcon(props.job.status)}
-          <span class="truncate">
-            {props.job.source} · {sourceOperationLabel(props.job.operation)}
-          </span>
-          <span class="activity-card-meta">
-            {props.job.project} · started {started().toLocaleString()}
-          </span>
-        </CardTitle>
-        <CardAction>{statusBadge(props.job.status)}</CardAction>
+    <Card>
+      <CardHeader>
+        <div class="flex min-w-0 items-start justify-between gap-3">
+          <div data-activity-card-copy="" class="flex min-w-0 flex-1 flex-col gap-2">
+            <CardTitle class="activity-card-title-line">
+              {statusIcon(props.job.status)}
+              <span class="min-w-0 break-words">
+                {props.job.source} · {sourceOperationLabel(props.job.operation)}
+              </span>
+            </CardTitle>
+            <CardDescription class="break-words">
+              {props.job.project} · started {started().toLocaleString()}
+            </CardDescription>
+          </div>
+          <CardAction>{statusBadge(props.job.status)}</CardAction>
+        </div>
       </CardHeader>
       <CardContent class="activity-card-content">
         <div class="activity-card-detail-row">
-          <p class="activity-card-summary text-sm text-muted-foreground">
-            {describeSourceJobProgress(props.job)}
-          </p>
+          <p class="m-0 text-sm text-muted-foreground">{describeSourceJobProgress(props.job)}</p>
           <div class="activity-card-status-row">
             <Show when={running()}>
               <Progress
@@ -214,6 +229,7 @@ function SourceJobCard(props: { job: DesktopSourceJob; onCancel?: (id: string) =
             </Show>
             <Show when={props.onCancel && running()}>
               <Button
+                tooltip={`Cancel ${props.job.project} ${props.job.source} ${props.job.operation}`}
                 variant="outline"
                 size="xs"
                 disabled={props.job.status === 'cancelling'}
@@ -226,12 +242,16 @@ function SourceJobCard(props: { job: DesktopSourceJob; onCancel?: (id: string) =
           </div>
         </div>
         <Show when={props.job.log}>
-          <details class="activity-card-log rounded-md border p-2 text-xs">
-            <summary class="cursor-pointer font-medium">View job log</summary>
-            <pre class="mt-2 overflow-auto whitespace-pre-wrap text-muted-foreground">
-              {props.job.log}
-            </pre>
-          </details>
+          <Accordion collapsible class="activity-card-log p-2">
+            <AccordionItem value="details">
+              <AccordionTrigger>View job log</AccordionTrigger>
+              <AccordionContent>
+                <pre class="mt-2 overflow-auto whitespace-pre-wrap text-muted-foreground">
+                  {props.job.log}
+                </pre>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </Show>
       </CardContent>
     </Card>
@@ -252,7 +272,12 @@ export function M7ActivityInbox(props: M7ActivityInboxProps) {
     attention().length === 0 && activeJobs().length === 0 && completedJobs().length === 0
 
   return (
-    <main id="main-content" class="utility-view m7-utility-view" data-m7-activity-inbox>
+    <main
+      tabIndex={-1}
+      id="main-content"
+      class="utility-view m7-utility-view"
+      data-m7-activity-inbox
+    >
       <header class="utility-header">
         <div>
           <span class="eyebrow">Attention</span>
@@ -269,7 +294,12 @@ export function M7ActivityInbox(props: M7ActivityInboxProps) {
             <Show when={props.onRetrySourceJobs}>
               {/* The shared Alert has no action slot; the retry rides inside it. */}
               <div class="activity-alert-action">
-                <Button variant="outline" size="xs" onClick={props.onRetrySourceJobs}>
+                <Button
+                  tooltip="Retry the last failed request."
+                  variant="outline"
+                  size="xs"
+                  onClick={props.onRetrySourceJobs}
+                >
                   Retry
                 </Button>
               </div>
@@ -284,7 +314,12 @@ export function M7ActivityInbox(props: M7ActivityInboxProps) {
             <Show when={props.onRetryStatus}>
               {/* The shared Alert has no action slot; the retry rides inside it. */}
               <div class="activity-alert-action">
-                <Button variant="outline" size="xs" onClick={props.onRetryStatus}>
+                <Button
+                  tooltip="Retry the last failed request."
+                  variant="outline"
+                  size="xs"
+                  onClick={props.onRetryStatus}
+                >
                   Retry
                 </Button>
               </div>
@@ -305,7 +340,7 @@ export function M7ActivityInbox(props: M7ActivityInboxProps) {
           <div class="flex flex-col gap-6">
             <Show when={attention().length}>
               <section class="flex flex-col gap-3" aria-labelledby="m7-sync-attention">
-                <h2 id="m7-sync-attention" class="font-heading text-base font-medium">
+                <h2 id="m7-sync-attention" class="font-sans text-base font-medium">
                   Sync attention
                 </h2>
                 <div class="activity-card-grid">
@@ -315,7 +350,7 @@ export function M7ActivityInbox(props: M7ActivityInboxProps) {
             </Show>
             <Show when={activeJobs().length}>
               <section class="flex flex-col gap-3" aria-labelledby="m7-active-source-jobs">
-                <h2 id="m7-active-source-jobs" class="font-heading text-base font-medium">
+                <h2 id="m7-active-source-jobs" class="font-sans text-base font-medium">
                   Active source jobs
                 </h2>
                 <div class="activity-card-grid">
@@ -327,7 +362,7 @@ export function M7ActivityInbox(props: M7ActivityInboxProps) {
             </Show>
             <Show when={completedJobs().length}>
               <section class="flex flex-col gap-3" aria-labelledby="m7-recent-source-jobs">
-                <h2 id="m7-recent-source-jobs" class="font-heading text-base font-medium">
+                <h2 id="m7-recent-source-jobs" class="font-sans text-base font-medium">
                   Recent source jobs
                 </h2>
                 <div class="activity-card-grid">
@@ -338,7 +373,11 @@ export function M7ActivityInbox(props: M7ActivityInboxProps) {
           </div>
         </Show>
         <div class="utility-actions">
-          <Button variant="outline" onClick={props.onOpenSettings}>
+          <Button
+            tooltip="Manage ingestion in settings"
+            variant="outline"
+            onClick={props.onOpenSettings}
+          >
             <Settings aria-hidden="true" /> Manage ingestion in settings
           </Button>
         </div>

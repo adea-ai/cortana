@@ -592,6 +592,18 @@ async function run() {
         /50 loaded/.test(await largeExplorerHeading.textContent()),
         'large document fixture did not begin with a bounded page'
       )
+      // Rows can mount before their request settles and the scroller is measured.
+      // Exercise pagination only when the visible list accepts another page.
+      await largePage.waitForFunction(() => {
+        const list = document.querySelector('[role="listbox"][aria-label="Documents"]')
+        return (
+          list instanceof HTMLElement &&
+          list.getAttribute('aria-busy') === 'false' &&
+          list.clientHeight > 0 &&
+          list.scrollHeight > list.clientHeight
+        )
+      })
+      await largePage.evaluate(() => document.fonts.ready)
       await largeDocumentList.evaluate((element) => {
         element.scrollTop = element.scrollHeight
         element.dispatchEvent(new Event('scroll', { bubbles: true }))

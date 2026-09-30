@@ -1,4 +1,4 @@
-import { AlertTriangle } from 'lucide-solid'
+import { AlertDescription } from '@adea-ai/ui/components/ui/alert'
 
 import type { DesktopSettings } from '../../types'
 import { NumberField, SettingsSection, type SettingsSectionProps } from './SettingsLayout'
@@ -16,6 +16,7 @@ export function IngestionSection(incoming: SettingsSectionProps) {
     }))
   return (
     <SettingsSection
+      bodyLayout="content"
       title="Ingestion safety budgets"
       description="These hard limits protect the machine even when a connector returns more data than expected. Scheduled sync remains opt-in."
     >
@@ -89,11 +90,12 @@ export function IngestionSection(incoming: SettingsSectionProps) {
         />
       </SettingsFieldGroup>
       <SettingsAlert class="safety-note">
-        <AlertTriangle size={16} />
-        <span>
-          Saving these values does not start a sync. Source authorization and bounded sync controls
-          are managed separately.
-        </span>
+        <AlertDescription>
+          <span>
+            Saving these values does not start a sync. Source authorization and bounded sync
+            controls are managed separately.
+          </span>
+        </AlertDescription>
       </SettingsAlert>
     </SettingsSection>
   )

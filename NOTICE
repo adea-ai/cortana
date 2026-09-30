@@ -8,7 +8,7 @@ The web application incorporates the shared UI and theme packages listed below,
 each distributed under the Apache License, Version 2.0. The full published
 notices record their design, component, and palette provenance.
 
-# @adea-ai/themes 0.6.3 published notice
+# @adea-ai/themes 0.8.1 published notice
 
 Copyright 2026 0xPlayerOne
 
@@ -60,9 +60,9 @@ palette.
 
 | Family | Project | Licence | Vendored values |
 | --- | --- | --- | --- |
-| Adea (defaults) | this package | Apache-2.0 plus donor terms below | composed from the two donors below |
-| Slate | https://github.com/adea-ai/adea | Apache-2.0 | first-party semantic and terminal roles carried forward from the product |
-| High Contrast | https://github.com/adea-ai/adea | Apache-2.0 | first-party semantic and terminal roles carried forward from the product |
+| Adea (defaults) | this package | Apache-2.0 plus donor terms below | composed from GitHub's palette (below) |
+| Aardvark | https://github.com/mbadolato/iTerm2-Color-Schemes | MIT | via the chain above |
+| GitHub | https://github.com/primer/primitives | MIT | via the chain above |
 | Nord | https://github.com/nordtheme/nord | MIT | via the chain above |
 | Catppuccin | https://github.com/catppuccin/catppuccin | MIT | via the chain above |
 | Tokyo Night | https://github.com/folke/tokyonight.nvim | Apache-2.0 | via the chain above |
@@ -168,7 +168,7 @@ is blended toward the palette's own foreground, which is recorded on the entry a
 reported on every build. No colour is ever invented: every value in the catalogue is
 a value from the palette it is attributed to, viewed at a different brightness.
 
-# @adea-ai/ui 0.83.1 published notice
+# @adea-ai/ui 0.87.0 published notice
 
 Copyright 2026 0xPlayerOne
 
@@ -562,3 +562,63 @@ Redux and Framer Motion ownership. Relevant test contracts come from
 `website/src/test/rowDisclosure.test.tsx`; compiled and Solid packed consumers are
 exercised in headless Chromium, WebKit and native Node SSR. Full runtime projection,
 durable application storage and production Chat adoption remain host-owned gates.
+
+## Floating preview geometry translated from t3code
+
+`packages/ui/src/components/layout/floating-preview/model.ts` translates the
+host-independent fitting, clamping, obstacle-avoidance and aspect-preserving
+resize behavior from `apps/web/src/components/preview/previewMiniPlayerLayout.ts`
+and its tests in t3code, issue #422, pinned at revision
+`77bca8b2d76a1f42552e5eee7d277fcb1160347a`.
+
+    MIT License
+
+    Copyright (c) 2026 T3 Tools Inc.
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+
+The shared component owns reusable geometry and pointer/keyboard controls only.
+T3 runtime state, streaming, Electron services, native picture-in-picture,
+notifications and content rendering are not included.
+
+## Catalog browser translated from KiroCrew (issue #425 selected unit)
+
+`packages/ui/src/components/composites/catalog-browser/` translates the
+category, search, discover/installed, result-detail and focus-return composition
+from `website/src/pages/apps/DiscoverPage.tsx` and
+`website/src/components/appstore/CategoryRail.tsx`, pinned at KiroCrew revision
+`283e136c0f902e965a535a7c9548c57c7504fed0`.
+
+    Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+    This product includes software developed at Amazon.com, Inc.
+    (https://www.amazon.com/). Licensed under the Apache License, Version 2.0.
+
+The translated presentation keeps stable host-ordered categories, discover and
+installed views, bounded category expansion, native search, item details, and
+focus return to the selected result. `CatalogDetail` supplies a shared summary,
+action and section frame; hosts own verified records, filtering, installed
+truth, permissions, recovery, install effects and detail copy. The nearest
+donor behavior tests are `website/playwright/apps.spec.ts` and
+`website/src/test/appstoreCategories.test.ts`.
+
+KiroCrew's React/runtime, catalog transport, account and entitlement state,
+installation/execution authority, provider data and app-specific services are
+excluded. Its distinct `/apps/library` core-app launchpad is also excluded:
+this selected unit is the external verified plugin marketplace adapter, while
+Adea's #757 App Library remains a separate core-view and rail-management flow.

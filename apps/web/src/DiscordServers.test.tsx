@@ -1,3 +1,4 @@
+import { isActionDisabled } from './test/actionState'
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
 import { cleanup, fireEvent, render, screen, waitFor } from 'solid-testing-library'
 import userEvent from '@testing-library/user-event'
@@ -227,7 +228,7 @@ test('discord server chooser refuses to discover unsaved changes and surfaces fa
   const discoverButton = screen.getByRole('button', {
     name: /Discover servers/,
   }) as HTMLButtonElement
-  expect(discoverButton.disabled).toBe(true)
+  expect(isActionDisabled(discoverButton)).toBe(true)
   fireEvent.click(discoverButton)
   expect(state.discoverCalls).toEqual([])
 
@@ -372,11 +373,11 @@ test('discord authorize action stays hidden until OAuth paths are saved', async 
   await waitFor(() => expect(state.savedUpdates).toHaveLength(1))
   await waitFor(() =>
     expect(
-      (
+      isActionDisabled(
         screen.getByRole('button', {
           name: 'Authorize',
         }) as HTMLButtonElement
-      ).disabled
+      )
     ).toBe(false)
   )
   expect(state.saved?.sources[0].token_path).toBe(

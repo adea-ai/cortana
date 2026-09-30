@@ -1,3 +1,4 @@
+import { isActionDisabled } from './test/actionState'
 import { act } from './test/act'
 import { afterEach, expect, mock, test } from 'bun:test'
 import { cleanup, fireEvent, render, screen, waitFor, within } from 'solid-testing-library'
@@ -243,6 +244,8 @@ test('the shadcn renderer composes the real application shell and state', async 
       name: 'Inbox',
     })
   )
+  // The loading surface must preserve the main landmark too.
+  expect(screen.getByRole('main').id).toBe('main-content')
   // The activity inbox renders through async effects; a single macrotask
   // flush races it under parallel CI load, so wait for the heading.
   await waitFor(
@@ -263,6 +266,102 @@ test('the shadcn renderer composes the real application shell and state', async 
       })
       .getAttribute('aria-current')
   ).toBe('page')
+})
+test('knowledge splitters keep their keyboard sizing and persist panel widths', async () => {
+  const storedWidths = window.localStorage.getItem('cortana.pane-widths')
+  window.localStorage.setItem('cortana.pane-widths', JSON.stringify({ source: 270, context: 350 }))
+  window.innerWidth = 1280
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    const sourceSplitter = screen.getByRole('separator', { name: 'Resize sources panel' })
+    expect(screen.queryByRole('separator', { name: 'Resize context panel' })).toBeNull()
+    expect(sourceSplitter.getAttribute('aria-orientation')).toBe('vertical')
+    const before = Number(sourceSplitter.getAttribute('aria-valuenow'))
+    fireEvent.keyDown(sourceSplitter, { key: 'ArrowRight' })
+    await waitFor(() =>
+      expect(Number(sourceSplitter.getAttribute('aria-valuenow'))).toBeGreaterThan(before)
+    )
+    const widths = JSON.parse(window.localStorage.getItem('cortana.pane-widths') ?? '{}') as {
+      source: number
+      context: number
+    }
+    expect(widths.source).toBeGreaterThan(270)
+    expect(widths.context).toBe(350)
+  } finally {
+    if (storedWidths === null) window.localStorage.removeItem('cortana.pane-widths')
+    else window.localStorage.setItem('cortana.pane-widths', storedWidths)
+  }
+})
+test('wide knowledge layout exposes an accessible context splitter', async () => {
+  const storedWidths = window.localStorage.getItem('cortana.pane-widths')
+  window.localStorage.setItem('cortana.pane-widths', JSON.stringify({ source: 270, context: 350 }))
+  window.innerWidth = 1440
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    const contextSplitter = screen.getByRole('separator', { name: 'Resize context panel' })
+    const before = Number(contextSplitter.getAttribute('aria-valuenow'))
+    fireEvent.keyDown(contextSplitter, { key: 'ArrowLeft' })
+    await waitFor(() =>
+      expect(Number(contextSplitter.getAttribute('aria-valuenow'))).toBeLessThan(before)
+    )
+    const widths = JSON.parse(window.localStorage.getItem('cortana.pane-widths') ?? '{}') as {
+      context: number
+    }
+    expect(widths.context).toBeGreaterThan(350)
+  } finally {
+    if (storedWidths === null) window.localStorage.removeItem('cortana.pane-widths')
+    else window.localStorage.setItem('cortana.pane-widths', storedWidths)
+  }
+})
+test('mobile knowledge panels stay in Sheet boundaries without desktop splitters', async () => {
+  window.innerWidth = 320
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  expect(screen.queryByRole('separator', { name: 'Resize sources panel' })).toBeNull()
+  expect(screen.queryByRole('separator', { name: 'Resize context panel' })).toBeNull()
+  expect(document.querySelector('[data-slot="app-shell-content"]')).not.toBeNull()
+})
+test('source settings focus handoff completes after the mobile sources sheet closes', async () => {
+  window.innerWidth = 320
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+
+  fireEvent.pointerDown(screen.getByRole('button', { name: 'Actions' }))
+  fireEvent.pointerUp(await screen.findByRole('menuitem', { name: 'Open sources' }))
+  await screen.findByRole('dialog', { name: 'Sources and documents' })
+  fireEvent.click(await screen.findByRole('button', { name: 'Source settings' }))
+  await waitFor(() =>
+    expect(screen.queryByRole('dialog', { name: 'Sources and documents' })).toBeNull()
+  )
+  await waitFor(() => {
+    const settings = document.querySelector('main.settings-view:not([aria-busy])')
+    // Check identity without serializing the entire DOM on a retry.
+    expect(settings !== null && document.activeElement === settings).toBe(true)
+  })
+})
+test('a pending settings focus retry yields to newer keyboard input', async () => {
+  window.innerWidth = 1440
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+
+  fireEvent.pointerDown(screen.getByRole('button', { name: 'Actions' }))
+  fireEvent.pointerUp(await screen.findByRole('menuitem', { name: 'Open sources' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Source settings' }))
+
+  const settings = document.querySelector('main.settings-view')
+  expect(settings).not.toBeNull()
+  // Model the transient aria-busy placeholder while the lazy settings view mounts.
+  settings!.setAttribute('aria-busy', 'true')
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 20)))
+  expect(document.activeElement).not.toBe(settings)
+
+  fireEvent.keyDown(document, { key: 'Tab' })
+  settings!.removeAttribute('aria-busy')
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 30)))
+
+  expect(document.activeElement === settings).toBe(false)
 })
 test('mobile navigation dismisses after selecting the current destination', async () => {
   window.innerWidth = 320
@@ -392,7 +491,7 @@ test('Reflect presents grounded reflection separately from ordinary search', asy
   const reflectButton = screen.getByRole('button', {
     name: 'Reflect on this objective',
   })
-  await waitFor(() => expect(reflectButton.hasAttribute('disabled')).toBe(false))
+  await waitFor(() => expect(isActionDisabled(reflectButton)).toBe(false))
   fireEvent.click(reflectButton)
   await waitFor(() => expect(state.reflectionCalls).toHaveLength(1))
   expect(state.reflectionCalls[0]?.objective).toBe('Review launch risk')
@@ -1146,4 +1245,16 @@ test('returning to a document scope restores the cached page while revalidating'
       })
     ).toBeTruthy()
   )
+})
+
+test('system actions live in the header while the status bar contains readouts', async () => {
+  render(() => <App />)
+  const trigger = await screen.findByRole('button', { name: 'System status' })
+  const footer = screen.getByRole('contentinfo', { name: 'Application status' })
+  expect(footer.querySelector('button')).toBeNull()
+  expect(screen.queryByRole('button', { name: 'View index metrics' })).toBeNull()
+  fireEvent.click(trigger)
+  fireEvent.click(await screen.findByRole('button', { name: 'View index metrics' }))
+  expect(await screen.findByRole('heading', { name: 'Index', level: 1 })).toBeTruthy()
+  await waitFor(() => expect(trigger.getAttribute('aria-expanded')).toBe('false'))
 })

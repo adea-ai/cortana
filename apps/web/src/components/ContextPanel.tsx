@@ -1,14 +1,20 @@
+import {
+  Alert as SharedFeedbackAlert,
+  AlertDescription as SharedFeedbackDescription,
+} from '@adea-ai/ui/components/ui/alert'
+import { ListRow } from '@adea-ai/ui/components/composites/list-row'
 import { Check, Copy, RefreshCw, X } from 'lucide-solid'
 import { For, Show } from 'solid-js'
 
 import { cn } from '@/lib/utils'
+import { createMediaQuery } from '@/lib/mediaQuery'
 
 import type { AnswerResponse, BrainStatus, ContextBundle, Evidence } from '../types'
 import { codeRevisionLabel } from '../codeEvidence'
 import { useClipboardCopy } from '../useClipboardCopy'
 import { Alert, AlertDescription } from '@adea-ai/ui/components/ui/alert'
 import { Badge } from '@adea-ai/ui/components/ui/badge'
-import { VariantButton as ActionButton } from './cortana/VariantButton'
+import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
 import { Card } from '@adea-ai/ui/components/ui/card'
 import { ScrollArea } from '@adea-ai/ui/components/ui/scroll-area'
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
@@ -29,6 +35,7 @@ export function ContextPanel(props: {
   onSelect: (index: number) => void
   onClose: () => void
 }) {
+  const compact = createMediaQuery(() => '(max-width: 1280px)')
   const { copied, copyError, copy } = useClipboardCopy(
     () => props.serverContext?.context ?? props.context
   )
@@ -40,25 +47,28 @@ export function ContextPanel(props: {
     >
       <div class="context-heading">
         <strong>Agent context</strong>
-        <ActionButton
-          variant="icon"
-          aria-label="Close agent context"
-          tooltip="Close agent context"
-          class=""
-          onClick={props.onClose}
-        >
-          <X size={17} />
-        </ActionButton>
+        <Show when={compact()}>
+          <ActionButton
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Close agent context"
+            tooltip="Close agent context"
+
+            onClick={props.onClose}
+          >
+            <X size={17} aria-hidden="true" />
+          </ActionButton>
+        </Show>
       </div>
       <ScrollArea class="context-scroll">
-        <Card class="query-summary">
+        <Card class="gap-2 px-4">
           <span>Query</span>
           <p>{props.query}</p>
         </Card>
         <Show when={props.answer}>
           {(answer) => (
             <section class="retrieval-diagnostics">
-              <span class="section-title">Retrieval diagnostics</span>
+              <span class="text-sm font-medium">Retrieval diagnostics</span>
               <dl>
                 <div>
                   <dt>Mode</dt>
@@ -90,19 +100,19 @@ export function ContextPanel(props: {
         <div class="evidence-list">
           <For each={props.evidence}>
             {(item, index) => (
-              <ActionButton
-                variant="ghost"
+              <ListRow
+                as="button"
                 type="button"
-                class={cn(props.selected === index() && 'selected')}
+                selected={props.selected === index()}
+                tooltip={`Inspect evidence: ${item.title}`}
                 onClick={() => props.onSelect(index())}
+                leading={<span>{index() + 1}</span>}
+                description={codeRevisionLabel(item) ?? undefined}
+                trailing={<time>{new Date(item.updated_at).toLocaleDateString()}</time>}
+                class="w-full text-left"
               >
-                <span>{index() + 1}</span>
-                <strong>{item.title}</strong>
-                <Show when={codeRevisionLabel(item)}>
-                  <small>{codeRevisionLabel(item)}</small>
-                </Show>
-                <time>{new Date(item.updated_at).toLocaleDateString()}</time>
-              </ActionButton>
+                {item.title}
+              </ListRow>
             )}
           </For>
         </div>
@@ -114,31 +124,25 @@ export function ContextPanel(props: {
           <div class="evidence-list">
             <For each={props.serverContext!.memories}>
               {(memory) => (
-                <div class="utility-item">
-                  <div class="utility-item-main">
-                    <strong>{memory.title}</strong>
-                    <time>
-                      {memory.content_type ?? memory.kind} · {memory.retention_tier ?? 'durable'} ·{' '}
-                      {memory.scope ?? 'workspace'} · {memory.project} · confidence{' '}
-                      {memory.confidence.toFixed(2)}
-                      {memory.valid_until
-                        ? ` · expires ${new Date(memory.valid_until).toLocaleDateString()}`
-                        : ''}
-                    </time>
-                  </div>
-                </div>
+                <ListRow
+                  description={`${memory.content_type ?? memory.kind} · ${memory.retention_tier ?? 'durable'} · ${memory.scope ?? 'workspace'} · ${memory.project} · confidence ${memory.confidence.toFixed(2)}${memory.valid_until ? ` · expires ${new Date(memory.valid_until).toLocaleDateString()}` : ''}`}
+                >
+                  {memory.title}
+                </ListRow>
               )}
             </For>
           </div>
         </Show>
         <Show when={props.serverContext?.degradation}>
-          <p class="context-error" role="status">
-            Degraded retrieval:{' '}
-            {props.serverContext!.degradation!.detail || props.serverContext!.degradation!.code}
-          </p>
+          <SharedFeedbackAlert variant="warning" role="status" class="my-2">
+            <SharedFeedbackDescription>
+              Degraded retrieval:{' '}
+              {props.serverContext!.degradation!.detail || props.serverContext!.degradation!.code}
+            </SharedFeedbackDescription>
+          </SharedFeedbackAlert>
         </Show>
         <section class="provenance">
-          <span class="section-title">Embedding</span>
+          <span class="text-sm font-medium">Embedding</span>
           <p>{props.status?.embedding_fingerprint ?? 'unavailable'}</p>
           <Show when={props.serverContext?.context_bundle_id}>
             <p>Bundle {props.serverContext!.context_bundle_id!.slice(0, 16)}…</p>
@@ -149,17 +153,19 @@ export function ContextPanel(props: {
           </p>
         </section>
         <section class="server-context">
-          <span class="section-title">Agent integration bundle</span>
+          <span class="text-sm font-medium">Agent integration bundle</span>
           <p>
             Build the exact bounded context returned by the HTTP and MCP query layer for this
             workspace scope.
           </p>
           <ActionButton
+            tooltip={'Retrieve a bounded workspace context bundle for agent integrations.'}
             variant="secondary"
+            size="sm"
             disabled={props.contextLoading}
             onClick={props.onRetrieveContext}
           >
-            {props.contextLoading ? <Spinner /> : <RefreshCw size={15} />}
+            {props.contextLoading ? <Spinner /> : <RefreshCw size={15} aria-hidden="true" />}
             {props.serverContext
               ? 'Refresh MCP-equivalent context'
               : 'Build MCP-equivalent context'}
@@ -194,13 +200,18 @@ export function ContextPanel(props: {
       </ScrollArea>
       <div class="copy-area">
         <ActionButton
-          variant="primary"
+          variant="default"
+          size="sm"
           aria-label="Copy agent context"
           tooltip="Copy agent context"
-          class=""
+
           onClick={() => void copy()}
         >
-          {copied() ? <Check size={17} /> : <Copy size={17} />}
+          {copied() ? (
+            <Check size={17} aria-hidden="true" />
+          ) : (
+            <Copy size={17} aria-hidden="true" />
+          )}
           {copied()
             ? 'Context copied'
             : props.serverContext

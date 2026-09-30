@@ -1,3 +1,4 @@
+import { isActionDisabled } from './test/actionState'
 import { act } from './test/act'
 import { createSignal } from 'solid-js'
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
@@ -439,19 +440,19 @@ test('a shared active source job locks source actions until it finishes', async 
   // empty row gave no hint that anything existed or why it was unavailable.
   for (const label of ['Test connection', 'Initial sync', 'Remove work-code']) {
     expect(
-      (
+      isActionDisabled(
         screen.getByRole('button', {
           name: label,
         }) as HTMLButtonElement
-      ).disabled
+      )
     ).toBe(true)
   }
   expect(
-    (
+    isActionDisabled(
       screen.getByRole('button', {
         name: 'Add source',
       }) as HTMLButtonElement
-    ).disabled
+    )
   ).toBe(false)
   expect((screen.getByLabelText(/^Source name/) as HTMLInputElement).disabled).toBe(true)
   expect(screen.queryByLabelText('Workspace')).toBeNull()
@@ -532,18 +533,18 @@ test('an active source job locks only that source configuration', async () => {
   const personalName = screen.getByLabelText(/^Source name/) as HTMLInputElement
   expect(personalName.disabled).toBe(false)
   expect(
-    (
+    isActionDisabled(
       screen.getByRole('button', {
         name: 'Remove personal-notes',
       }) as HTMLButtonElement
-    ).disabled
+    )
   ).toBe(false)
   expect(
-    (
+    isActionDisabled(
       screen.getByRole('button', {
         name: 'Add source',
       }) as HTMLButtonElement
-    ).disabled
+    )
   ).toBe(false)
 })
 test('initial sync plans a fixed budget and displays the native limits', async () => {
@@ -747,11 +748,11 @@ test('a plan without validation coverage gates the start behind budget validatio
       expect(screen.getByText(/latest validation used smaller limits/)).toBeTruthy()
     )
     expect(
-      (
+      isActionDisabled(
         screen.getByRole('button', {
           name: 'Start initial sync',
         }) as HTMLButtonElement
-      ).disabled
+      )
     ).toBe(true)
     fireEvent.click(
       screen.getByRole('button', {
@@ -967,7 +968,7 @@ test('source-job cancellation disables duplicate clicks while native cancellatio
       name: /Cancel/,
     })
     fireEvent.click(cancel)
-    await waitFor(() => expect((cancel as HTMLButtonElement).disabled).toBe(true))
+    await waitFor(() => expect(isActionDisabled(cancel as HTMLButtonElement)).toBe(true))
     expect(state.cancelCalls).toHaveLength(1)
     fireEvent.click(cancel)
     expect(state.cancelCalls).toHaveLength(1)

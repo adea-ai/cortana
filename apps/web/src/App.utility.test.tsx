@@ -1,3 +1,4 @@
+import { isActionDisabled } from './test/actionState'
 import { act } from './test/act'
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
 import { cleanup, fireEvent, render, screen, waitFor, within } from 'solid-testing-library'
@@ -188,8 +189,8 @@ test('every sidebar destination is enabled and the persistent search remains ava
   await renderApp()
   for (const label of RAIL_LABELS) {
     const button = railButton(label)
-    expect(button.hasAttribute('disabled')).toBe(false)
-    expect(button.getAttribute('data-slot')).toBe('sidebar-menu-button')
+    expect(isActionDisabled(button)).toBe(false)
+    expect(button.tagName).toBe('BUTTON')
   }
   expect(screen.getByLabelText('Search your knowledge')).toBeTruthy()
 })
@@ -359,7 +360,7 @@ test('Graph expands to full width and hides the source and context panels', asyn
 
   // The tablet document layout keeps sources inline and context in its Sheet.
   expect(document.querySelector('.source-panel')).toBeTruthy()
-  expect(screen.queryByText('Agent context')).toBeNull()
+  expect(screen.queryByText('Agent context')?.textContent ?? null).toBeNull()
   fireEvent.click(railButton('Graph'))
   await waitFor(() =>
     expect(
@@ -371,8 +372,8 @@ test('Graph expands to full width and hides the source and context panels', asyn
 
   // Full-screen graph: no source panel, no context panel, no workspace tabs,
   // and the shell marks the layout so the graph spans the full width.
-  expect(document.querySelector('.source-panel')).toBeNull()
-  expect(screen.queryByText('Agent context')).toBeNull()
+  expect(document.querySelector('.source-panel')?.tagName ?? null).toBeNull()
+  expect(screen.queryByText('Agent context')?.textContent ?? null).toBeNull()
   expect(
     screen.queryByRole('tab', {
       name: 'Graph',
@@ -401,10 +402,10 @@ test('Graph expands to full width and hides the source and context panels', asyn
       })
     ).toBeTruthy()
   )
-  expect(document.querySelector('.source-panel')).toBeNull()
+  expect(document.querySelector('.source-panel')?.tagName ?? null).toBeNull()
   fireEvent.click(railButton('Knowledge'))
   await waitFor(() => expect(document.querySelector('.source-panel')).toBeTruthy())
-  expect(screen.queryByText('Agent context')).toBeNull()
+  expect(screen.queryByText('Agent context')?.textContent ?? null).toBeNull()
 })
 test('graph and timeline evidence actions open the selected source', async () => {
   state.answer = () => Promise.resolve(answerResponse)
@@ -789,7 +790,7 @@ test('shadcn Inbox shares the responsive utility-page spacing contract', () => {
   expect(inbox?.querySelector('.activity-card-grid')).toBeTruthy()
   expect(inbox?.querySelector('.activity-card-title-line')).toBeTruthy()
   expect(inbox?.querySelector('.activity-card-detail-row')).toBeTruthy()
-  expect(inbox?.querySelector('[data-slot="card-description"]')).toBeNull()
+  expect(inbox?.querySelector('[data-slot="card-description"]')?.textContent).toContain('started')
   expect(inbox?.querySelector('.max-w-5xl')).toBeNull()
 })
 test('Inbox does not claim clean sync history while runtime status is unavailable', () => {
@@ -925,11 +926,11 @@ test('Inbox keeps a cancelling source job visibly in progress until it exits', (
   ))
   expect(screen.getByText('Cancelling…')).toBeTruthy()
   expect(
-    screen
-      .getByRole('button', {
+    isActionDisabled(
+      screen.getByRole('button', {
         name: 'Cancel work work-code trial-sync',
       })
-      .hasAttribute('disabled')
+    )
   ).toBe(true)
 })
 test('Index renders live BrainStatus metrics and a truthful loading empty state', async () => {
@@ -1190,8 +1191,8 @@ test('search history arrows navigate previous and next queries', async () => {
   const next = screen.getByRole('button', {
     name: 'Next search query',
   })
-  expect(previous.getAttribute('disabled')).toBeNull()
-  expect(next.getAttribute('disabled')).not.toBeNull()
+  expect(isActionDisabled(previous)).toBe(false)
+  expect(isActionDisabled(next)).toBe(true)
   fireEvent.click(previous)
   await waitFor(() =>
     expect(
@@ -1202,7 +1203,7 @@ test('search history arrows navigate previous and next queries', async () => {
     ).toBeTruthy()
   )
   expect((input as HTMLInputElement).value).toBe('release cadence')
-  expect(next.getAttribute('disabled')).toBeNull()
+  expect(isActionDisabled(next)).toBe(false)
   fireEvent.click(next)
   await waitFor(() =>
     expect(

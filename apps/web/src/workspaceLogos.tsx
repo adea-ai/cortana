@@ -1,6 +1,5 @@
-import { createMemo, createSignal, onCleanup, onMount, Show } from 'solid-js'
-
-import { cn } from '@/lib/utils'
+import { EntityIcon } from '@adea-ai/ui/components/ui/entity-icon'
+import { createMemo, createSignal, onCleanup, onMount } from 'solid-js'
 
 import type { WorkspaceSettings } from './types'
 import { LOGO_EVENT, readWorkspaceLogo } from './workspaceLogoStore'
@@ -18,7 +17,7 @@ export function WorkspaceLogo(props: {
     version()
     return readWorkspaceLogo(props.workspace.id)
   })
-  const size = () => props.size ?? 'medium'
+  const size = () => (({ small: 'xs', medium: 'md', large: 'xl' }) as const)[props.size ?? 'medium']
 
   onMount(() => {
     const refresh = () => setVersion((current) => current + 1)
@@ -28,31 +27,12 @@ export function WorkspaceLogo(props: {
   })
 
   return (
-    <Show
-      when={logo()}
-      fallback={
-        <span
-          class={cn(
-            `workspace-logo workspace-logo--${size()}`,
-            size() === 'small' && 'workspace-picker-mark'
-          )}
-          aria-hidden="true"
-        >
-          {(props.workspace.name.trim()[0] || '?').toUpperCase()}
-        </span>
-      }
-    >
-      {(source) => (
-        <img
-          class={cn(
-            `workspace-logo workspace-logo--${size()}`,
-            size() === 'small' && 'workspace-picker-mark'
-          )}
-          src={source()}
-          alt=""
-          aria-hidden="true"
-        />
-      )}
-    </Show>
+    <EntityIcon
+      data-workspace-logo=""
+      name={props.workspace.name.trim() || '?'}
+      src={logo() ?? undefined}
+      size={size()}
+      aria-hidden="true"
+    />
   )
 }

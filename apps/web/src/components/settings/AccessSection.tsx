@@ -1,3 +1,4 @@
+import { Label } from '@adea-ai/ui/components/ui/label'
 import { KeyRound, Plus, Trash2 } from 'lucide-solid'
 import { For } from 'solid-js'
 
@@ -63,6 +64,7 @@ export function AccessSection(
     })
   return (
     <SettingsSection
+      bodyLayout="content"
       title="Agent access"
       description="Create named bearer principals with least-privilege scopes and workspace ACL labels. Token values are write-only and never return to the renderer."
     >
@@ -74,12 +76,13 @@ export function AccessSection(
               // principals render in settings order
               <SettingsCard class="principal-card">
                 <header>
-                  <KeyRound size={16} />
+                  <KeyRound size={16} aria-hidden="true" />
                   <strong>{principal.principal || `Principal ${index() + 1}`}</strong>
                   <Button
-                    variant="danger"
+                    variant="destructive"
+                    size="sm"
                     type="button"
-                    class=""
+
                     aria-label={`Remove ${principal.principal}`}
                     tooltip={`Remove ${principal.principal}`}
                     onClick={() =>
@@ -97,7 +100,7 @@ export function AccessSection(
                       )
                     }
                   >
-                    <Trash2 size={15} />
+                    <Trash2 size={15} aria-hidden="true" />
                   </Button>
                 </header>
                 <SettingsFieldGroup class="form-grid">
@@ -140,7 +143,9 @@ export function AccessSection(
                     />
                     {secret?.configured && !props.clearedSecrets.has(principal.token_env) && (
                       <Button
-                        variant="danger"
+                        tooltip="Clear stored token"
+                        variant="destructive"
+                        size="sm"
                         onClick={() =>
                           applyConfirmed(
                             confirm(
@@ -171,20 +176,20 @@ export function AccessSection(
                 <div class="scope-options">
                   <For each={['query', 'status', 'admin'] as const}>
                     {(scope) => (
-                      <label>
+                      <Label>
                         <SettingsCheckbox
                           aria-label={`${scope} scope for ${principal.principal}`}
                           checked={principal.scopes.includes(scope)}
-                          onChange={(event) =>
+                          onChange={(checked: boolean) =>
                             change(index(), {
-                              scopes: event.target.checked
+                              scopes: checked
                                 ? [...principal.scopes, scope]
                                 : principal.scopes.filter((value) => value !== scope),
                             })
                           }
                         />
                         {scope}
-                      </label>
+                      </Label>
                     )}
                   </For>
                 </div>
@@ -193,8 +198,8 @@ export function AccessSection(
           }}
         </For>
       </div>
-      <Button variant="secondary" onClick={add}>
-        <Plus size={15} /> Add principal
+      <Button tooltip="Add principal" variant="secondary" size="sm" onClick={add}>
+        <Plus size={15} aria-hidden="true" /> Add principal
       </Button>
       <p class="settings-note">
         Settings take effect after the server restarts. Desktop requests select a matching private

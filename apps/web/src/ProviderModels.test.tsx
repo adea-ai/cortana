@@ -189,7 +189,6 @@ test('a current model that is not advertised falls back to the custom field unch
   expect(modelCatalog().textContent).toContain('provider-custom-embedding')
 })
 test('selecting an advertised model updates the provider settings', async () => {
-  const user = userEvent.setup()
   state.settings.embedding.model = 'text-embedding-3-small'
   await renderEmbeddingSettings()
   fireEvent.click(
@@ -198,11 +197,7 @@ test('selecting an advertised model updates the provider settings', async () => 
     })
   )
   await openEmbeddingCatalog()
-  await user.click(
-    screen.getByRole('option', {
-      name: 'text-embedding-3-large',
-    })
-  )
+  fireEvent.change(modelCatalog(), { target: { value: 'text-embedding-3-large' } })
   await waitFor(() => expect(modelCatalog().textContent).toContain('text-embedding-3-large'))
   fireEvent.click(
     screen.getByRole('button', {

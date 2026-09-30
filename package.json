@@ -20,7 +20,7 @@
     "format:check": "oxfmt --check .",
     "format:write": "oxfmt .",
     "fmt": "oxfmt .",
-    "lint": "oxlint --deny-warnings",
+    "lint": "bun scripts/check-web-ui-contract.mjs && oxlint --deny-warnings",
     "docs:check": "uv run python scripts/check-docs-consistency.py",
     "test": "bun scripts/run-js-tests.mjs",
     "test:unit": "node scripts/run-unit-lanes.mjs",
@@ -32,12 +32,12 @@
     "typecheck": "bun run --cwd apps/web typecheck"
   },
   "devDependencies": {
-    "@adea-ai/ui": "0.83.1",
+    "@adea-ai/ui": "0.87.0",
     "@axe-core/playwright": "^4.13.0",
     "@babel/core": "^7.28.0",
     "@babel/preset-typescript": "^7.27.0",
     "@happy-dom/global-registrator": "^20.11.1",
-    "@shadcn/lint": "^0.1.1",
+    "@shadcn/lint": "^0.2.0",
     "@testing-library/dom": "^10.4.1",
     "@types/bun": "^1.4.0",
     "babel-preset-solid": "^1.9.15",

@@ -1,3 +1,4 @@
+import { isActionDisabled } from './test/actionState'
 import { act } from './test/act'
 import { afterEach, expect, mock, test } from 'bun:test'
 import { cleanup, fireEvent, render, screen, waitFor, within } from 'solid-testing-library'
@@ -736,7 +737,7 @@ test('shadcn settings compose generated source controls', async () => {
     })
   )
   expect(document.querySelector('[data-slot="input"]')).toBeTruthy()
-  expect(document.querySelector('[role="combobox"]')).toBeTruthy()
+  expect(screen.getAllByRole('combobox').length).toBeGreaterThan(0)
   expect(document.querySelector('[role="switch"]')).toBeTruthy()
   expect(document.querySelectorAll('button').length).toBeGreaterThan(0)
   expect(
@@ -838,6 +839,25 @@ test('shadcn disabled source switch keeps its assignment explanation', async () 
     ).getAttribute('title')
   ).toBe('Assign this source to a workspace before enabling it')
 })
+test('a source without a workspace requires an explicit assignment instead of selecting the first workspace', async () => {
+  render(() => (
+    <SettingsView
+      desktopSettings={{
+        ...desktopSettings,
+        sources: [{ ...workSource, name: 'unscoped-source', project: '', enabled: false }],
+      }}
+      initialSection="sources"
+      onSaved={() => undefined}
+    />
+  ))
+  fireEvent.click(await screen.findByRole('tab', { name: /Needs assignment/ }))
+  const workspace = (await screen.findByRole('combobox', {
+    name: 'Workspace for unscoped-source',
+  })) as HTMLSelectElement
+  expect(workspace.value).toBe('')
+  expect(workspace.selectedOptions[0]?.textContent).toBe('Choose a workspace')
+  expect(workspace.selectedOptions[0]?.disabled).toBe(true)
+})
 test('secret replacement after a confirmed clear submits the replacement instead of a clear', async () => {
   const originalConfirm = window.confirm
   const tokenEnv = 'CORTANA_AGENT_TOKEN'
@@ -923,11 +943,11 @@ test('cancelling principal removal leaves the access draft unchanged', async () 
     )
     expect(screen.getByDisplayValue('desktop-agent')).toBeTruthy()
     expect(
-      (
+      isActionDisabled(
         screen.getByRole('button', {
           name: 'Save changes',
         }) as HTMLButtonElement
-      ).disabled
+      )
     ).toBe(true)
   } finally {
     window.confirm = originalConfirm
@@ -1040,7 +1060,7 @@ test('desktop setup does not query documents before the control plane is ready',
     await waitFor(() => expect(screen.getByText('Index online')).toBeTruthy())
     await waitFor(() =>
       expect(
-        screen.getByRole('button', {
+        getSystemAction({
           name: 'Open service health',
         })
       ).toBeTruthy()
@@ -1180,7 +1200,7 @@ test('desktop settings navigation opens the audit trail and renders both event s
   // Desktop chrome: version and updates shortcut live in the footer.
   await waitFor(() =>
     expect(
-      screen.getByRole('button', {
+      getSystemAction({
         name: updatesButtonName,
       })
     ).toBeTruthy()
@@ -1201,7 +1221,7 @@ test('desktop settings navigation opens the audit trail and renders both event s
     name: 'Save changes',
   })
   expect(save).toBeTruthy()
-  expect(save.hasAttribute('disabled')).toBe(true)
+  expect(isActionDisabled(save)).toBe(true)
   fireEvent.submit(document.getElementById('settings-form')!)
   expect(state.saveSettingsCalls).toBe(0)
 
@@ -1259,7 +1279,7 @@ test('audit trail export downloads exactly the loaded redacted events as JSON', 
     render(() => <App />)
     await waitFor(() =>
       expect(
-        screen.getByRole('button', {
+        getSystemAction({
           name: updatesButtonName,
         })
       ).toBeTruthy()
@@ -1323,7 +1343,7 @@ test('advanced settings export is blocked while draft is dirty', async () => {
   render(() => <App />)
   await waitFor(() =>
     expect(
-      screen.getByRole('button', {
+      getSystemAction({
         name: updatesButtonName,
       })
     ).toBeTruthy()
@@ -1352,13 +1372,13 @@ test('advanced settings export is blocked while draft is dirty', async () => {
   const exportButton = await screen.findByRole('button', {
     name: 'Export',
   })
-  expect(exportButton.hasAttribute('disabled')).toBe(true)
+  expect(isActionDisabled(exportButton)).toBe(true)
   fireEvent.click(exportButton)
   expect(state.exportDesktopSettingsCalls).toBe(0)
   const saveChanges = screen.getByRole('button', {
     name: 'Save changes',
   })
-  expect(saveChanges.hasAttribute('disabled')).toBe(false)
+  expect(isActionDisabled(saveChanges)).toBe(false)
   expect(state.saveSettingsCalls).toBe(0)
 })
 test('advanced settings export shows redacted notice and calls the export bridge when clean', async () => {
@@ -1371,7 +1391,7 @@ test('advanced settings export shows redacted notice and calls the export bridge
   render(() => <App />)
   await waitFor(() =>
     expect(
-      screen.getByRole('button', {
+      getSystemAction({
         name: updatesButtonName,
       })
     ).toBeTruthy()
@@ -1393,7 +1413,7 @@ test('advanced settings export shows redacted notice and calls the export bridge
   const exportButton = await screen.findByRole('button', {
     name: 'Export',
   })
-  expect(exportButton.hasAttribute('disabled')).toBe(false)
+  expect(isActionDisabled(exportButton)).toBe(false)
   fireEvent.click(exportButton)
   await waitFor(() => {
     const status = screen.getByRole('status') as HTMLElement
@@ -1412,7 +1432,7 @@ test('advanced settings exports an explicit workspace set as a derived vault', a
     render(() => <App />)
     await waitFor(() =>
       expect(
-        screen.getByRole('button', {
+        getSystemAction({
           name: updatesButtonName,
         })
       ).toBeTruthy()
@@ -1477,7 +1497,7 @@ test('advanced import preview cancellation keeps draft values unchanged', async 
     render(() => <App />)
     await waitFor(() =>
       expect(
-        screen.getByRole('button', {
+        getSystemAction({
           name: updatesButtonName,
         })
       ).toBeTruthy()
@@ -1514,11 +1534,11 @@ test('advanced import preview cancellation keeps draft values unchanged', async 
     await waitFor(() => expect(state.importDesktopSettingsCalls).toBe(1))
     expect(dataDir.value).toBe('/tmp/dirty-draft')
     expect(
-      screen
-        .getByRole('button', {
+      isActionDisabled(
+        screen.getByRole('button', {
           name: 'Save changes',
         })
-        .hasAttribute('disabled')
+      )
     ).toBe(false)
     await flushDesktopBootstrap()
   } finally {
@@ -1539,7 +1559,7 @@ test('advanced settings import preview applies as unsaved draft and requires exp
     render(() => <App />)
     await waitFor(() =>
       expect(
-        screen.getByRole('button', {
+        getSystemAction({
           name: updatesButtonName,
         })
       ).toBeTruthy()
@@ -1577,7 +1597,7 @@ test('advanced settings import preview applies as unsaved draft and requires exp
     const saveChanges = screen.getByRole('button', {
       name: 'Save changes',
     })
-    expect(saveChanges.hasAttribute('disabled')).toBe(false)
+    expect(isActionDisabled(saveChanges)).toBe(false)
     fireEvent.click(saveChanges)
     await waitFor(() => expect(state.saveSettingsCalls).toBe(1))
     expect(state.lastSettingsUpdate?.runtime.data_dir).toBe('/tmp/imported-runtime-dir')
@@ -1631,7 +1651,7 @@ test('updates require confirmation before invoking native installation', async (
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
     fireEvent.click(
-      screen.getByRole('button', {
+      getSystemAction({
         name: updatesButtonName,
       })
     )
@@ -1680,7 +1700,7 @@ test('updates surface native install failures while retaining retryable update s
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
     fireEvent.click(
-      screen.getByRole('button', {
+      getSystemAction({
         name: updatesButtonName,
       })
     )
@@ -1717,7 +1737,7 @@ test('updates can cancel native installation and retain a retryable state', asyn
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
     fireEvent.click(
-      screen.getByRole('button', {
+      getSystemAction({
         name: updatesButtonName,
       })
     )
@@ -1769,7 +1789,7 @@ test('desktop shell surfaces service health without native memory details', asyn
   render(() => <App />)
   await waitFor(() =>
     expect(
-      screen.getByRole('button', {
+      getSystemAction({
         name: 'Open service health',
       })
     ).toBeTruthy()
@@ -1786,7 +1806,7 @@ test('desktop Help links use the native external URL bridge', async () => {
     ).toBeTruthy()
   )
   await openSidebarDestination('Help')
-  const documentation = screen.getByRole('link', {
+  const documentation = await screen.findByRole('link', {
     name: /Documentation/,
   })
   fireEvent.click(documentation)
@@ -1806,7 +1826,7 @@ test('desktop Help links surface native browser failures', async () => {
   )
   await openSidebarDestination('Help')
   fireEvent.click(
-    screen.getByRole('link', {
+    await screen.findByRole('link', {
       name: /Documentation/,
     })
   )
@@ -1825,7 +1845,7 @@ test('desktop Help project action surfaces native browser failures', async () =>
   )
   await openSidebarDestination('Help')
   fireEvent.click(
-    screen.getByRole('button', {
+    await screen.findByRole('button', {
       name: 'Open project page',
     })
   )
@@ -1841,7 +1861,7 @@ test('desktop shell does not present a stale service report after refresh failur
     />
   ))
   expect(screen.getByText('Services: unavailable')).toBeTruthy()
-  const health = screen.getByRole('button', {
+  const health = getSystemAction({
     name: 'Open service health',
   })
   expect(health.getAttribute('aria-label')).toBeTruthy()
@@ -2011,7 +2031,7 @@ test('embedding model field supports preset catalog with custom fallback', async
       name: /Model catalog/,
     })
     expect(catalog.textContent).toContain('Qwen/Qwen3-Embedding-0.6B')
-    expect(catalog.getAttribute('role')).toBe('combobox')
+    expect(catalog.tagName).toBe('SELECT')
   } finally {
     state.settings = originalSettings
   }
@@ -2417,11 +2437,11 @@ test('workspace controls protect scopes assigned to sources', async () => {
       )[0]
     )
     expect(
-      (
+      isActionDisabled(
         screen.getByRole('button', {
           name: 'Remove Work',
         }) as HTMLButtonElement
-      ).disabled
+      )
     ).toBe(true)
     const workScope = (screen.getAllByLabelText(/Scope ID/) as HTMLInputElement[]).find(
       (input) => input.value === 'work'
@@ -2539,16 +2559,16 @@ test('source actions stay visible while the settings form has unsaved changes', 
     )
     const actions = ['Test connection', 'Initial sync']
     for (const label of actions) {
-      expect((screen.getByRole('button', { name: label }) as HTMLButtonElement).disabled).toBe(
-        false
-      )
+      expect(
+        isActionDisabled(screen.getByRole('button', { name: label }) as HTMLButtonElement)
+      ).toBe(false)
     }
     // Making the form dirty used to remove every per-source action, leaving an
     // empty row with no hint that anything was missing.
     fireEvent.click(await screen.findByLabelText('Enable work-code'))
     await waitFor(() =>
       expect(
-        (screen.getByRole('button', { name: 'Save changes' }) as HTMLButtonElement).disabled
+        isActionDisabled(screen.getByRole('button', { name: 'Save changes' }) as HTMLButtonElement)
       ).toBe(false)
     )
     // The action stays reachable: hidden-while-dirty was the bug. (The initial
@@ -2688,7 +2708,7 @@ test('workspace settings keep 25 workspaces searchable and keyboard-operable', a
     const add = await screen.findByRole('button', {
       name: 'Add workspace',
     })
-    expect(add.hasAttribute('disabled')).toBe(false)
+    expect(isActionDisabled(add)).toBe(false)
     const search = screen.getByLabelText('Find workspace') as HTMLInputElement
     fireEvent.input(search, {
       target: {
@@ -2748,11 +2768,11 @@ test('settings warns before discarding dirty changes', async () => {
       },
     })
     expect(
-      screen
-        .getByRole('button', {
+      isActionDisabled(
+        screen.getByRole('button', {
           name: 'Save changes',
         })
-        .hasAttribute('disabled')
+      )
     ).toBe(false)
     fireEvent.click(
       screen.getByRole('button', {
@@ -2836,11 +2856,11 @@ test('settings can discard a draft without leaving the control plane', async () 
       })
     ).toBeNull()
     expect(
-      screen
-        .getByRole('button', {
+      isActionDisabled(
+        screen.getByRole('button', {
           name: 'Save changes',
         })
-        .hasAttribute('disabled')
+      )
     ).toBe(true)
     fireEvent.click(
       screen.getByRole('button', {
@@ -2922,13 +2942,13 @@ test('the footer updates shortcut opens the updates section directly', async () 
   render(() => <App />)
   await waitFor(() =>
     expect(
-      screen.getByRole('button', {
+      getSystemAction({
         name: updatesButtonName,
       })
     ).toBeTruthy()
   )
   fireEvent.click(
-    screen.getByRole('button', {
+    getSystemAction({
       name: updatesButtonName,
     })
   )
@@ -2965,7 +2985,7 @@ test('updates section renders release markdown safely', async () => {
   try {
     render(() => <App />)
     fireEvent.click(
-      screen.getByRole('button', {
+      getSystemAction({
         name: /· Updates/,
       })
     )
@@ -2989,7 +3009,7 @@ test('updates section renders release markdown safely', async () => {
       })
     )
     expect(
-      screen.getByRole('heading', {
+      await screen.findByRole('heading', {
         name: 'Release Notes',
       })
     ).toBeTruthy()
@@ -3029,7 +3049,7 @@ test('the footer updates shortcut respects unsaved settings changes', async () =
       },
     })
     fireEvent.click(
-      screen.getByRole('button', {
+      getSystemAction({
         name: updatesButtonName,
       })
     )
@@ -3286,9 +3306,9 @@ test('source settings quarantine legacy scopes and offer workspace assignment', 
     )
     const assignmentAlert = screen
       .getAllByRole('alert')
-      .find((alert) => alert.className.includes('source-unassigned-note'))!
+      .find((alert) => alert.textContent?.includes('uses the legacy'))!
     expect(assignmentAlert.textContent).toContain('uses the legacy community scope')
-    expect(assignmentAlert.className).toContain('source-unassigned-note')
+    expect(assignmentAlert.getAttribute('data-slot')).toBe('alert')
     expect(screen.getByRole('switch').getAttribute('aria-disabled')).toBe('true')
     expect(
       screen.queryByRole('button', {
@@ -3304,6 +3324,10 @@ test('source settings quarantine legacy scopes and offer workspace assignment', 
       name: /Workspace for community-discord/,
     })
     expect(workspace.textContent).toContain('Unassigned: community')
+    expect((workspace as HTMLSelectElement).value).toBe('community')
+    expect((workspace as HTMLSelectElement).selectedOptions[0]?.textContent).toBe(
+      'Unassigned: community'
+    )
   } finally {
     state.settings = originalSettings
   }
@@ -3529,28 +3553,27 @@ test('settings uses the shared catalogue default and exposes theme controls per 
   })
   await user.click(workspaceTheme)
   expect(
-    await screen.findByRole('option', {
+    within(workspaceTheme).getByRole('option', {
       name: 'Aardvark Ink',
     })
   ).toBeTruthy()
   expect(
-    screen.getByRole('option', {
+    within(workspaceTheme).getByRole('option', {
       name: 'Dracula',
     })
   ).toBeTruthy()
   expect(
-    screen.getByRole('option', {
+    within(workspaceTheme).getByRole('option', {
       name: 'Everforest',
     })
   ).toBeTruthy()
   expect(
-    screen.getByRole('option', {
+    within(workspaceTheme).getByRole('option', {
       name: 'Gruvbox',
     })
   ).toBeTruthy()
 })
 test('workspace theme controls persist and apply per workspace', async () => {
-  const user = userEvent.setup()
   render(() => <App />)
   await waitFor(() =>
     expect(
@@ -3572,26 +3595,12 @@ test('workspace theme controls persist and apply per workspace', async () => {
       name: 'Workspaces',
     })
   )
-  await user.click(
-    await screen.findByRole('combobox', {
-      name: /Theme for Work/,
-    })
-  )
-  await user.click(
-    await screen.findByRole('option', {
-      name: 'Catppuccin Macchiato',
-    })
-  )
-  await user.click(
-    await screen.findByRole('combobox', {
-      name: /Theme for Personal/,
-    })
-  )
-  await user.click(
-    await screen.findByRole('option', {
-      name: 'Rosé Pine Moon',
-    })
-  )
+  fireEvent.change(await screen.findByRole('combobox', { name: /Theme for Work/ }), {
+    target: { value: 'catppuccin-macchiato' },
+  })
+  fireEvent.change(await screen.findByRole('combobox', { name: /Theme for Personal/ }), {
+    target: { value: 'rosepine-moon' },
+  })
   expect(JSON.parse(window.localStorage.getItem('cortana.workspace-themes.v1') || '{}')).toEqual({
     work: 'catppuccin-macchiato',
     personal: 'rosepine-moon',
@@ -4027,15 +4036,15 @@ test('the collapsed rail labels the workspace row with its own mark', async () =
   const row = screen.getByRole('button', {
     name: 'Switch workspace',
   })
-  fireEvent.mouseEnter(row)
+  fireEvent.pointerEnter(row)
   const hint = await waitFor(() => {
-    const node = document.querySelector('[data-slot="sidebar-menu-hint"]')
+    const node = document.querySelector('[data-slot="side-rail-tip"]')
     expect(node).not.toBeNull()
     return node as HTMLElement
   })
   // Every rail label carries the row's own mark; for this row that is the
   // workspace logo rather than a lucide glyph.
-  expect(hint.querySelector('.workspace-logo')).not.toBeNull()
+  expect(hint.querySelector('[data-workspace-logo]')).not.toBeNull()
   expect(hint.textContent).toContain('Workspace:')
 })
 test('the utilities menu opens the identity dialog with the packaged version', async () => {
@@ -4232,7 +4241,7 @@ test('services settings permits restore with an installed but idle backup job an
     const restore = screen.getByRole('button', {
       name: 'Restore database',
     })
-    expect(restore.hasAttribute('disabled')).toBe(false)
+    expect(isActionDisabled(restore)).toBe(false)
     fireEvent.click(restore)
     await waitFor(() => expect(state.databaseRestoreCalls).toBe(1))
     expect(screen.getByText(/Database restored to \/tmp\/cortana-backup\.sqlite3/)).toBeTruthy()
@@ -4254,11 +4263,11 @@ test('services settings permits restore with an installed but idle backup job an
     )
     await waitFor(() =>
       expect(
-        screen
-          .getByRole('button', {
+        isActionDisabled(
+          screen.getByRole('button', {
             name: 'Restore database',
           })
-          .hasAttribute('disabled')
+        )
       ).toBe(true)
     )
     expect(state.databaseRestoreCalls).toBe(1)
@@ -4387,7 +4396,7 @@ test('successful service actions clear a stale shell service error immediately',
       })
     )
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    const serviceHealth = await screen.findByRole('button', {
+    const serviceHealth = await findSystemAction({
       name: 'Open service health',
     })
     expect(serviceHealth.textContent).toContain('Services:')
@@ -4509,19 +4518,21 @@ test('service activity survives leaving Settings while a native action is runnin
         name: 'Restart all',
       })
     )
+    openSystemStatus()
     await waitFor(() => expect(screen.getByText('Service: restart core services…')).toBeTruthy())
     fireEvent.click(
       screen.getByRole('button', {
         name: 'Knowledge',
       })
     )
+    openSystemStatus()
     await waitFor(() => expect(screen.getByText('Service: restart core services…')).toBeTruthy())
     resolveAction?.(installedServiceReport)
     await waitFor(() =>
       expect(screen.getByText('Service: restart core services · done')).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      getSystemAction({
         name: 'Open service activity',
       })
     )
@@ -4551,11 +4562,12 @@ test('shell restores the latest durable service activity from native status', as
   }
   try {
     render(() => <App />)
+    openSystemStatus()
     await waitFor(() =>
       expect(screen.getByText('Service: restart embedding · failed')).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      getSystemAction({
         name: 'Open service activity',
       })
     )
@@ -4598,12 +4610,14 @@ test('readiness activity survives leaving Settings while a scan is running', asy
         name: 'Run readiness scan',
       })
     )
+    openSystemStatus()
     await waitFor(() => expect(screen.getByText('Readiness: scanning…')).toBeTruthy())
     fireEvent.click(
       screen.getByRole('button', {
         name: 'Knowledge',
       })
     )
+    openSystemStatus()
     await waitFor(() => expect(screen.getByText('Readiness: scanning…')).toBeTruthy())
     await act(async () => {
       resolveScan?.({
@@ -4616,9 +4630,10 @@ test('readiness activity survives leaving Settings while a scan is running', asy
       })
       await Promise.resolve()
     })
+    openSystemStatus()
     await waitFor(() => expect(screen.getByText('Readiness: ready')).toBeTruthy())
     fireEvent.click(
-      screen.getByRole('button', {
+      getSystemAction({
         name: 'Open readiness activity',
       })
     )
@@ -4679,7 +4694,7 @@ test('successful first-launch readiness scan releases the scan control', async (
     const scan = await screen.findByRole('button', {
       name: 'Run again',
     })
-    expect(scan.hasAttribute('disabled')).toBe(false)
+    expect(isActionDisabled(scan)).toBe(false)
   } finally {
     state.settings = originalSettings
     state.readinessScan = originalScan
@@ -4856,6 +4871,7 @@ test('completed installers trigger one shell-owned post-install readiness scan',
       completed_at_unix_seconds: 1785000010,
       exit_code: 0,
     }
+    openSystemStatus()
     await waitFor(() => expect(screen.getByText('Readiness: ready')).toBeTruthy(), {
       timeout: 2_500,
     })
@@ -5103,9 +5119,10 @@ test('installer progress survives settings section changes', async () => {
       })
     )
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    openSystemStatus()
     expect(screen.getByText('Install: uv · running')).toBeTruthy()
     fireEvent.click(
-      screen.getByRole('button', {
+      getSystemAction({
         name: 'Open installer status for uv',
       })
     )
@@ -5350,7 +5367,7 @@ test('a failed source toggle restart is reported with a manual recovery path', a
     )
     // The status bar keeps the failed activity visible and links to Services.
     expect(
-      screen.getByRole('button', {
+      getSystemAction({
         name: 'Open service activity',
       })
     ).toBeTruthy()
@@ -5461,11 +5478,11 @@ test('services settings disables aggregate actions when the platform backend is 
     await waitFor(() => expect(screen.getByText(/not supported on macos/)).toBeTruthy())
     for (const label of ['Start all', 'Stop all', 'Restart all']) {
       expect(
-        screen
-          .getByRole('button', {
+        isActionDisabled(
+          screen.getByRole('button', {
             name: label,
           })
-          .hasAttribute('disabled')
+        )
       ).toBe(true)
     }
   } finally {
@@ -5580,7 +5597,7 @@ test('Google authorization accepts a token path supplied through the configured 
     const authorize = await screen.findByRole('button', {
       name: 'Authorize',
     })
-    expect(authorize.hasAttribute('disabled')).toBe(false)
+    expect(isActionDisabled(authorize)).toBe(false)
   } finally {
     state.settings = originalSettings
   }
@@ -5594,7 +5611,7 @@ test('running source jobs stay visible in the shell after leaving the settings v
       sources: [workSource],
     }
     render(() => <App />)
-    await screen.findByRole('button', {
+    await findSystemAction({
       name: updatesButtonName,
     })
 
@@ -5630,10 +5647,7 @@ test('running source jobs stay visible in the shell after leaving the settings v
     const validationJob = (await screen.findByText('Connection check · running')).closest(
       '.source-validation-job'
     )
-    expect(validationJob?.querySelector('.status-glyph')?.className).toContain('pending')
-    expect(validationJob?.querySelector('.status-glyph')?.getAttribute('aria-label')).toBe(
-      'In progress'
-    )
+    expect(validationJob?.querySelector('[role=img][aria-label="In progress"]')).toBeTruthy()
 
     // Leaving the settings view must not hide the running job: the status
     // bar indicator and the read-only source-panel strip keep it visible.
@@ -5644,7 +5658,7 @@ test('running source jobs stay visible in the shell after leaving the settings v
     )
     await screen.findByLabelText('Search your knowledge')
     expect(await screen.findByText('1 active source job')).toBeTruthy()
-    const activeJobs = await screen.findByRole('button', {
+    const activeJobs = await findSystemAction({
       name: 'Open active source jobs',
     })
     expect(activeJobs).toBeTruthy()
@@ -5662,7 +5676,7 @@ test('running source jobs stay visible in the shell after leaving the settings v
       name: 'Cancel work work-code connection-check',
     })
     fireEvent.click(cancel)
-    await waitFor(() => expect((cancel as HTMLButtonElement).disabled).toBe(true))
+    await waitFor(() => expect(isActionDisabled(cancel as HTMLButtonElement)).toBe(true))
   } finally {
     window.confirm = originalConfirm
     state.settings = desktopSettings
@@ -5727,7 +5741,7 @@ test('completed source jobs refresh source health without waiting for the status
 })
 test('local runtime section opens active secret file path in desktop', async () => {
   render(() => <App />)
-  await screen.findByRole('button', {
+  await findSystemAction({
     name: updatesButtonName,
   })
   await openSidebarDestination('Settings')
@@ -5751,3 +5765,16 @@ test('local runtime section opens active secret file path in desktop', async () 
     await screen.findByText('Opened the active secret file in your default application.')
   ).toBeTruthy()
 })
+
+function openSystemStatus() {
+  const trigger = screen.queryByRole('button', { name: 'System status' })
+  if (trigger && trigger.getAttribute('aria-expanded') !== 'true') fireEvent.click(trigger)
+}
+function getSystemAction(options: { name: string | RegExp }) {
+  openSystemStatus()
+  return screen.getByRole('button', options)
+}
+function findSystemAction(options: { name: string | RegExp }) {
+  openSystemStatus()
+  return screen.findByRole('button', options)
+}

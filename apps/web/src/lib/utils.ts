@@ -1,1 +1,1 @@
-export { cn } from 'cn'
+export { cn } from '@adea-ai/ui/lib/utils'

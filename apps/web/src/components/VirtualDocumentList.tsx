@@ -1,3 +1,4 @@
+import { VirtualWindow } from '@adea-ai/ui/components/layout/virtual-window'
 import { FileText } from 'lucide-solid'
 import {
   createComputed,
@@ -7,16 +8,14 @@ import {
   For,
   onCleanup,
   onMount,
-  type JSX,
 } from 'solid-js'
-
-import { cn } from '@/lib/utils'
 
 import type { BrainDocumentSummary } from '../types'
 import { virtualRange } from '../virtualization'
-import { Button } from '@adea-ai/ui/components/ui/button'
+import { ListRow } from '@adea-ai/ui/components/composites/list-row'
+import { ScrollArea } from '@adea-ai/ui/components/ui/scroll-area'
 
-const ROW_HEIGHT = 32
+const DEFAULT_ROW_HEIGHT = 28
 
 export function VirtualDocumentList(props: {
   documents: BrainDocumentSummary[]
@@ -28,6 +27,9 @@ export function VirtualDocumentList(props: {
   onLoadMore: () => void
 }) {
   let viewportRef: HTMLDivElement | undefined
+  let rowRef: HTMLButtonElement | undefined
+  let rowObserver: ResizeObserver | undefined
+  const [rowHeight, setRowHeight] = createSignal(DEFAULT_ROW_HEIGHT)
   let loadRequested = false
   let pendingScrollTop = 0
   let scrollFrame: number | null = null
@@ -39,20 +41,32 @@ export function VirtualDocumentList(props: {
       0,
       props.documents.findIndex((document) => document.id === props.selectedDocument)
     )
+  const [keyboardFocused, setKeyboardFocused] = createSignal(false)
   const [activeIndex, setActiveIndex] = createSignal(0)
 
   const range = createMemo(() =>
-    virtualRange(props.documents.length, scrollTop(), viewportHeight(), ROW_HEIGHT)
+    virtualRange(props.documents.length, scrollTop(), viewportHeight(), rowHeight())
   )
 
   // Keep the keyboard cursor aligned with the external selection.
   createComputed(() => setActiveIndex(selectedIndex()))
 
+  function measureRow() {
+    const height = rowRef?.getBoundingClientRect().height
+    if (height && height > 0) setRowHeight(height)
+  }
+
   onMount(() => {
     const observer = new ResizeObserver(([entry]) => setViewportHeight(entry.contentRect.height))
     observer.observe(viewportRef!)
+    rowObserver = new ResizeObserver(measureRow)
+    if (rowRef) rowObserver.observe(rowRef)
+    measureRow()
     onCleanup(() => {
       observer.disconnect()
+      rowObserver?.disconnect()
+      rowRef = undefined
+      rowObserver = undefined
       if (scrollFrame !== null) window.cancelAnimationFrame(scrollFrame)
       if (prefetchTimer !== null) window.clearTimeout(prefetchTimer)
     })
@@ -82,11 +96,15 @@ export function VirtualDocumentList(props: {
     props.onPrefetch?.(props.documents[next].id)
     const viewport = viewportRef!
     if (!viewport) return
-    const top = next * ROW_HEIGHT
+    const top = next * rowHeight()
     if (top < viewport.scrollTop) viewport.scrollTop = top
-    else if (top + ROW_HEIGHT > viewport.scrollTop + viewport.clientHeight) {
-      viewport.scrollTop = top + ROW_HEIGHT - viewport.clientHeight
+    else if (top + rowHeight() > viewport.scrollTop + viewport.clientHeight) {
+      viewport.scrollTop = top + rowHeight() - viewport.clientHeight
     }
+    // Keyboard navigation must mount the active option in the same update;
+    // waiting for a scroll event leaves aria-activedescendant pointing away
+    // from the rendered window until the next animation frame.
+    setScrollTop(viewport.scrollTop)
   }
 
   function handleKeyDown(event: KeyboardEvent) {
@@ -101,7 +119,7 @@ export function VirtualDocumentList(props: {
   }
 
   return (
-    <div
+    <ScrollArea
       ref={(el) => (viewportRef = el)}
       class="virtual-document-list"
       role="listbox"
@@ -114,6 +132,8 @@ export function VirtualDocumentList(props: {
       }
       tabIndex={0}
       onKeyDown={handleKeyDown}
+      onFocus={() => setKeyboardFocused(true)}
+      onBlur={() => setKeyboardFocused(false)}
       onScroll={(event) => {
         const viewport = event.currentTarget
         // Trackpad and touch scrolling can fire at 120Hz+; coalesce each
@@ -129,56 +149,57 @@ export function VirtualDocumentList(props: {
           props.hasMore &&
           !props.loading &&
           !loadRequested &&
-          viewport.scrollTop + viewport.clientHeight >= viewport.scrollHeight - ROW_HEIGHT * 4
+          viewport.scrollTop + viewport.clientHeight >= viewport.scrollHeight - rowHeight() * 4
         ) {
           loadRequested = true
           props.onLoadMore()
         }
       }}
     >
-      <div
-        class="virtual-document-space"
-        style={{ '--virtual-total-height': `${range().totalHeight}px` } as JSX.CSSProperties}
-      >
-        <div
-          class="virtual-document-window"
-          style={{ '--virtual-offset': `${range().offsetTop}px` } as JSX.CSSProperties}
-        >
-          <For each={props.documents.slice(range().start, range().end)}>
-            {(document, offset) => {
-              const index = () => range().start + offset()
-              return (
-                <Button
-                  id={`document-option-${document.id}`}
-                  role="option"
-                  tabIndex={-1}
-                  aria-selected={props.selectedDocument === document.id}
-                  class={cn(
-                    'document-node',
-                    props.selectedDocument === document.id && 'selected-document',
-                    activeIndex() === index() && 'keyboard-active'
-                  )}
-                  style={{ '--virtual-row-height': `${ROW_HEIGHT}px` } as JSX.CSSProperties}
-                  onMouseEnter={() => {
-                    setActiveIndex(index())
-                    scheduleHoverPrefetch(document.id)
-                  }}
-                  onFocus={() => setActiveIndex(index())}
-                  onClick={() => props.onSelect(document.id)}
-                  title={`${document.title} · ${document.source}`}
-                  variant="ghost"
-                  size="xs"
-                  data-m7-document-row=""
-                >
-                  <FileText size={14} />
-                  <span>{document.title}</span>
-                  <small>{document.source}</small>
-                </Button>
-              )
-            }}
-          </For>
-        </div>
-      </div>
-    </div>
+      <VirtualWindow totalSize={range().totalHeight} offset={range().offsetTop}>
+        <For each={props.documents.slice(range().start, range().end)}>
+          {(document, offset) => {
+            const index = () => range().start + offset()
+            return (
+              <ListRow
+                as="button"
+                type="button"
+                ref={(el: HTMLButtonElement) => {
+                  rowRef = el
+                  rowObserver?.disconnect()
+                  rowObserver?.observe(el)
+                  // Refs run before the row is attached and attributes are applied.
+                  queueMicrotask(measureRow)
+                }}
+                id={`document-option-${document.id}`}
+                role="option"
+                tabIndex={-1}
+                aria-selected={props.selectedDocument === document.id}
+                selected={
+                  keyboardFocused()
+                    ? activeIndex() === index()
+                    : props.selectedDocument === document.id
+                }
+                aria-current={props.selectedDocument === document.id ? 'true' : undefined}
+                dense
+                leading={<FileText aria-hidden="true" />}
+                trailing={<span class="max-w-16 truncate text-xs">{document.source}</span>}
+                class="w-full text-left"
+                onMouseEnter={() => {
+                  setActiveIndex(index())
+                  scheduleHoverPrefetch(document.id)
+                }}
+                onFocus={() => setActiveIndex(index())}
+                onClick={() => props.onSelect(document.id)}
+                tooltip={`Open ${document.title} from ${document.source}`}
+                data-m7-document-row=""
+              >
+                {document.title}
+              </ListRow>
+            )
+          }}
+        </For>
+      </VirtualWindow>
+    </ScrollArea>
   )
 }

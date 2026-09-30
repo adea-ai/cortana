@@ -3,8 +3,9 @@ name: M7 visual evidence
 on:
   pull_request:
     branches: [main]
-    types: [ready_for_review]
+    types: [ready_for_review, synchronize]
     paths:
+      - '.github/workflows/m7-visual-evidence.yml'
       - 'apps/web/**'
       - 'scripts/capture-m7-visuals.mjs'
       - 'bun.lock'
@@ -20,9 +21,13 @@ concurrency:
 
 jobs:
   capture:
-    name: Capture and audit
+    name: Capture and audit (${{ matrix.browser }})
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
     timeout-minutes: 20
     steps:
       - name: Checkout exact revision
@@ -36,8 +41,8 @@ jobs:
           bun-version: 1.4.0
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      - name: Install Chromium
-        run: bunx playwright install --with-deps chromium
+      - name: Install browser
+        run: bunx playwright install --with-deps ${{ matrix.browser }}
       - name: Build production renderer
         run: bun run --cwd apps/web build
       - name: Serve production renderer
@@ -55,6 +60,7 @@ jobs:
           bun scripts/capture-m7-visuals.mjs
           --base-url http://127.0.0.1:4173
           --output artifacts/m7-shadcn/final
+          --browser ${{ matrix.browser }}
       - name: Stop deterministic renderer
         if: always()
         run: kill "$VITE_PID" 2>/dev/null || true
@@ -62,7 +68,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: m7-visual-evidence-${{ github.sha }}
+          name: m7-visual-evidence-${{ matrix.browser }}-${{ github.sha }}
           path: |
             artifacts/m7-shadcn
             ${{ runner.temp }}/cortana-vite.log

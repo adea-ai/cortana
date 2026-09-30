@@ -175,6 +175,14 @@ At minimum:
 
 If a check cannot run, state the exact reason. A skipped check is not a passing check.
 
+## Shared web UI and theme
+
+- In `apps/web`, import components from `@adea-ai/ui/components/*`, shared helpers from `@adea-ai/ui/lib/*`, and the theme stylesheet from `@adea-ai/ui/theme.css`. Do not recreate shared components, generic class helpers, or variants locally.
+- Use shared controls for interactive elements. Do not import or re-export the bare shared `Button`; use `ActionButton` or an interactive `ListRow` for actions. Every app-rendered shared `ActionButton` (including aliases, local re-exports, and values passed through an `as` prop) and every interactive `ListRow` (`as="button"`, `as="a"`, or with `onClick`) must have a helpful explicit `tooltip` prop; punctuation-only placeholders and prop spreads do not satisfy this help contract. Shared compound controls such as `SideRail` own their own help. A semantic shared `FieldSet` needs a shared `FieldLegend` child or explicit `aria-label`/`aria-labelledby`; use the shared `FieldGroup` for layout-only grouping. Do not add raw interactive HTML controls (including `<details>` and `<summary>`) or dynamically select native controls.
+- Let `@adea-ai/ui` own theme tokens and shared component visuals. App CSS may style native domain content and layout with shared tokens; it must not redefine theme tokens or visually restyle shared components through custom classes or `data-slot` selectors. Do not set padding or block sizing on shared controls; choose their shared size variant. Keep width and flex placement in the app layout, and keep a shared control's root display mode; put grid/block/flex arrangement on an inner domain wrapper. A contextual `display: none` may hide a shared control when needed.
+- Do not use JSX inline styles or `classList` in the application; use shared layout primitives for geometry and static object-form classes for conditional classes. Do not weaken shared UI rules in overrides or add class exemptions. See `docs/web-ui-standards.md` for the detailed contract.
+- Run `bun scripts/check-web-ui-contract.mjs`, `bun test scripts/check-web-ui-contract.test.mjs`, and `bunx oxlint --deny-warnings apps/web/src` when changing the web UI or its contract.
+
 ## Tests and coverage
 
 - Add or update tests for behavior changes and regressions.
@@ -217,19 +225,3 @@ Branch/PR:
 ```
 
 Use exact command names and outcomes. Mention external changes separately from local changes, and distinguish completed work from recommendations.
-
-## Shared UI enforcement (mandatory)
-
-The oxlint config loads `@adea-ai/ui/lint` — the design system's own plugin — and
-its rules are errors:
-
-- `adea/no-raw-interactive-elements` — `button`, `input`, `textarea`, `select`,
-  `option` and `label` are composed from the shared primitives
-  (`@adea-ai/ui/components/ui/*`), never written as raw markup. When the rule
-  fires, the fix is the primitive it names — not a suppression.
-- `adea/no-primitive-library-imports` — Kobalte and the other primitive libraries
-  are the design system's internal affair. Import the exported component.
-
-Code that predates the rules is exempted **by path** in one override block in
-`.oxlintrc.json`. That block is a ratchet: it only shrinks. Adding a file to it is
-a reviewed change with a stated reason, never a convenience.

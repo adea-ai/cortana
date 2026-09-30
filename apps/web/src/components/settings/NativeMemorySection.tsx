@@ -1,3 +1,4 @@
+import { AlertDescription } from '@adea-ai/ui/components/ui/alert'
 import type { DesktopSettings } from '../../types'
 import { MemoryReview } from '../MemoryReview'
 import { Field, SettingsSection, type SettingsSectionProps } from './SettingsLayout'
@@ -19,12 +20,15 @@ export function NativeMemorySection(
     }))
   return (
     <SettingsSection
+      bodyLayout="content"
       title="Native agentic memory"
       description="Cortana keeps operational memory in its own private local store. Memory is explicit, scoped, auditable, and protected by the local data-directory permissions."
     >
       <SettingsAlert class="safety-note" role="status">
-        Knowledge documents remain source-backed. Agents may explicitly remember, recall, and redact
-        bounded records through the native MCP, HTTP, or CLI interfaces.
+        <AlertDescription>
+          Knowledge documents remain source-backed. Agents may explicitly remember, recall, and
+          redact bounded records through the native MCP, HTTP, or CLI interfaces.
+        </AlertDescription>
       </SettingsAlert>
       <SettingsFieldGroup class="form-grid">
         <Field label="Maximum active memories" hint="bounded local record count">

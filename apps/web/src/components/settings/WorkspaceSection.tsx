@@ -1,6 +1,12 @@
-import { ArrowDown, ArrowUp, LoaderCircle, Plus, Search, Trash2, Upload } from 'lucide-solid'
+import { Spinner } from '@adea-ai/ui/components/ui/spinner'
+import {
+  Alert as SharedFeedbackAlert,
+  AlertDescription as SharedFeedbackDescription,
+} from '@adea-ai/ui/components/ui/alert'
+import { InputGroup, InputGroupInput, InputGroupAddon } from '@adea-ai/ui/components/ui/input-group'
+import { ArrowDown, ArrowUp, Plus, Search, Trash2, Upload } from 'lucide-solid'
 import { useTheme } from '@adea-ai/ui/components/theme'
-import { createSignal, For, Index } from 'solid-js'
+import { createSignal, Index } from 'solid-js'
 
 import { DEFAULT_THEME, themeDisplayName, type ThemeMode } from '../../theme'
 import type { DesktopSettings, WorkspaceSettings } from '../../types'
@@ -163,6 +169,7 @@ export function WorkspaceSection(incoming: {
     })
   return (
     <SettingsSection
+      bodyLayout="content"
       title="Workspaces"
       description="Create isolated query scopes and assign each source or account to one workspace. Workspace logos stay local to this Desktop profile and never enter the index or portable settings export."
     >
@@ -170,18 +177,20 @@ export function WorkspaceSection(incoming: {
         <Field
           label="Find workspace"
           hint={`${visibleWorkspaces().length} of ${props.settings.workspaces.length} shown`}
-          wide
+          class="col-span-full"
         >
-          <div class="settings-search-input">
-            <Search size={14} aria-hidden="true" />
-            <Input
+          <InputGroup>
+            <InputGroupAddon>
+              <Search aria-hidden="true" />
+            </InputGroupAddon>
+            <InputGroupInput
               type="search"
               value={workspaceQuery()}
               onInput={(event) => setWorkspaceQuery(event.target.value)}
               placeholder="Search name, ID, or account label"
               autocomplete="off"
             />
-          </div>
+          </InputGroup>
         </Field>
       )}
       <div class={`workspace-settings-grid workspace-settings-grid--${visibleWorkspaces().length}`}>
@@ -201,6 +210,7 @@ export function WorkspaceSection(incoming: {
                   </div>
                   <Button
                     variant="ghost"
+                    size="sm"
                     type="button"
                     aria-label={`Upload logo for ${workspace().name}`}
                     disabled={logoLoading() === workspace().id}
@@ -212,9 +222,9 @@ export function WorkspaceSection(incoming: {
                     onClick={() => workspaceLogoInput(workspace().id)?.click()}
                   >
                     {logoLoading() === workspace().id ? (
-                      <LoaderCircle class="spin" size={14} aria-label="Saving workspace logo" />
+                      <Spinner size="sm" label="Saving workspace logo" />
                     ) : (
-                      <Upload size={14} />
+                      <Upload size={14} aria-hidden="true" />
                     )}
                   </Button>
                   <Input
@@ -234,28 +244,31 @@ export function WorkspaceSection(incoming: {
                     <div class="workspace-order-actions">
                       <Button
                         variant="ghost"
+                        size="sm"
                         type="button"
                         aria-label={`Move ${workspace().name} up`}
                         disabled={index() === 0}
                         tooltip="Move workspace up"
                         onClick={() => moveWorkspace(index(), -1)}
                       >
-                        <ArrowUp size={15} />
+                        <ArrowUp size={15} aria-hidden="true" />
                       </Button>
                       <Button
                         variant="ghost"
+                        size="sm"
                         type="button"
                         aria-label={`Move ${workspace().name} down`}
                         disabled={index() === props.settings.workspaces.length - 1}
                         tooltip="Move workspace down"
                         onClick={() => moveWorkspace(index(), 1)}
                       >
-                        <ArrowDown size={15} />
+                        <ArrowDown size={15} aria-hidden="true" />
                       </Button>
                       <Button
-                        variant="danger"
+                        variant="destructive"
+                        size="sm"
                         type="button"
-                        class=""
+
                         aria-label={`Remove ${workspace().name}`}
                         disabled={hasWorkspaceSources(workspace().id)}
                         tooltip={
@@ -278,7 +291,7 @@ export function WorkspaceSection(incoming: {
                           )
                         }
                       >
-                        <Trash2 size={15} />
+                        <Trash2 size={15} aria-hidden="true" />
                       </Button>
                     </div>
                   )}
@@ -308,14 +321,13 @@ export function WorkspaceSection(incoming: {
                         }))
                         writeWorkspaceThemePreference(workspace().id, next)
                       }}
-                    >
-                      <For each={themes.filter((theme) => theme.appearance === 'dark')}>
-                        {(theme) => <option value={theme.id}>{themeDisplayName(theme)}</option>}
-                      </For>
-                    </Select>
+                      options={themes
+                        .filter((theme) => theme.appearance === 'dark')
+                        .map((theme) => ({ value: theme.id, label: themeDisplayName(theme) }))}
+                    />
                   </Field>
                 </div>
-                <SettingsAccordion class="workspace-advanced-details">
+                <SettingsAccordion collapsible>
                   <SettingsAccordionItem value={`workspace-${workspace().id}`}>
                     <SettingsAccordionTrigger>Advanced workspace details</SettingsAccordionTrigger>
                     <SettingsAccordionContent class="workspace-advanced-fields">
@@ -361,12 +373,13 @@ export function WorkspaceSection(incoming: {
         </Index>
       </div>
       {logoError() && (
-        <p class="settings-inline-error" role="alert">
-          {logoError()}
-        </p>
+        <SharedFeedbackAlert variant="destructive" role="alert" class="my-2">
+          <SharedFeedbackDescription>{logoError()}</SharedFeedbackDescription>
+        </SharedFeedbackAlert>
       )}
       <Button
         variant="secondary"
+        size="sm"
         type="button"
         disabled={props.settings.workspaces.length >= MAX_WORKSPACES}
         tooltip={
@@ -376,7 +389,7 @@ export function WorkspaceSection(incoming: {
         }
         onClick={addWorkspace}
       >
-        <Plus size={15} /> Add workspace
+        <Plus size={15} aria-hidden="true" /> Add workspace
       </Button>
     </SettingsSection>
   )
