@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.61.4](https://github.com/adea-ai/cortana/compare/v0.61.3...v0.61.4) (2026-09-30)
+
+
+### Maintenance
+
+* **code-foundry:** upgrade runtime to v1.36.4 ([#2419](https://github.com/adea-ai/cortana/issues/2419)) ([9c097d0](https://github.com/adea-ai/cortana/commit/9c097d047d85f3b4bc4b288c64ed067145b8aa96))
+
+## [0.61.3](https://github.com/adea-ai/cortana/compare/v0.61.2...v0.61.3) (2026-09-30)
+
+
+### Bug Fixes
+
+* capture-palette-diagnostic ([#2411](https://github.com/adea-ai/cortana/issues/2411)) ([dec0b2b](https://github.com/adea-ai/cortana/commit/dec0b2bc77a8a2fa6f0aa3fbc12e6f8419691e80))
+* **container:** drop the stale patches/ COPY ([#2418](https://github.com/adea-ai/cortana/issues/2418)) ([e37fba4](https://github.com/adea-ai/cortana/commit/e37fba47ba17ee246edc53ca969bc472ef55e69a))
+
+
+### Maintenance
+
+* **web:** adopt @adea-ai/ui 0.77.0 ([#2413](https://github.com/adea-ai/cortana/issues/2413)) ([7f43629](https://github.com/adea-ai/cortana/commit/7f43629dcdbaf08fd485e095572159c5fb4d522d))
+
 ## [0.61.2](https://github.com/adea-ai/cortana/compare/v0.61.1...v0.61.2) (2026-09-29)
 
 
