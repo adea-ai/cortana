@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.63.0](https://github.com/adea-ai/cortana/compare/v0.62.0...v0.63.0) (2026-09-30)
+
+
+### Features
+
+* **web:** pin the wire schemas with schemars snapshots ([#2388](https://github.com/adea-ai/cortana/issues/2388)) ([#2426](https://github.com/adea-ai/cortana/issues/2426)) ([5b3d2e5](https://github.com/adea-ai/cortana/commit/5b3d2e5ed18015a1a5e81bd59667ddfc232499e1))
+
 ## [0.62.0](https://github.com/adea-ai/cortana/compare/v0.61.6...v0.62.0) (2026-09-30)
 
 
