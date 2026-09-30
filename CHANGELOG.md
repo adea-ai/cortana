@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.61.5](https://github.com/adea-ai/cortana/compare/v0.61.4...v0.61.5) (2026-09-30)
+
+
+### Bug Fixes
+
+* validate shared UI checkpoint against the published library ([#2421](https://github.com/adea-ai/cortana/issues/2421)) ([9bf8be4](https://github.com/adea-ai/cortana/commit/9bf8be422e55dad724abdf8d50bfa4ffafb721a7))
+
 ## [0.61.4](https://github.com/adea-ai/cortana/compare/v0.61.3...v0.61.4) (2026-09-30)
 
 
