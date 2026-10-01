@@ -1,6 +1,6 @@
 {
   "name": "@cortana/web",
-  "version": "0.63.3",
+  "version": "0.63.4",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,7 +10,7 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@adea-ai/themes": "0.8.2",
+    "@adea-ai/themes": "0.8.6",
     "@adea-ai/ui": "0.89.2",
     "@tauri-apps/api": "^2.11.1",
     "lucide-solid": "^1.46.0",

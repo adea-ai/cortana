@@ -2,7 +2,7 @@
 
 # The static web bundle is target-independent. Both build tools must match the
 # build host, including when the benchmark emulates an ARM64 runtime image.
-FROM --platform=$BUILDPLATFORM oven/bun:1.4.0-slim AS bun-runtime
+FROM --platform=$BUILDPLATFORM oven/bun:1.4.2-slim AS bun-runtime
 
 FROM --platform=$BUILDPLATFORM node:22-bookworm-slim AS web-builder
 COPY --from=bun-runtime /usr/local/bin/bun /usr/local/bin/bun
