@@ -2,6 +2,7 @@ use std::sync::{
     Arc, Mutex,
     atomic::{AtomicBool, Ordering},
 };
+use std::time::Duration;
 
 use serde::Serialize;
 use tauri_plugin_updater::{Error as UpdaterError, Update, UpdaterExt};
@@ -83,8 +84,8 @@ impl UpdaterState {
         // Keep the observable state fail-closed even when the updater plugin
         // cannot be initialized (for example in a headless test runtime). The
         // previous `?` returned while leaving the snapshot stuck at `checking`.
-        let result = match app.updater() {
-            Ok(updater) => updater.check().await,
+        let updater = match app.updater() {
+            Ok(updater) => updater,
             Err(error) => {
                 let error = format!("initialize signed updater: {error}");
                 self.update_snapshot(|snapshot| {
@@ -92,6 +93,24 @@ impl UpdaterState {
                     snapshot.error = Some(error.clone());
                 });
                 return Err(error);
+            }
+        };
+
+        // Transient fetch failures (release-publishing races, GitHub
+        // propagation, network blips) resolve on retry, so the observable
+        // phase stays `checking` across attempts and the error only surfaces
+        // after the backoff is exhausted.
+        let mut attempt = 0;
+        let result = loop {
+            let result = updater.check().await;
+            match &result {
+                Err(error) if is_retryable(error) && attempt + 1 < UPDATE_CHECK_ATTEMPTS => {
+                    let delay = UPDATE_CHECK_RETRY_DELAYS[attempt.min(UPDATE_CHECK_RETRY_DELAYS.len() - 1)];
+                    attempt += 1;
+                    tokio::time::sleep(delay).await;
+                    continue;
+                }
+                _ => break result,
             }
         };
 
@@ -408,6 +427,26 @@ fn is_target_unavailable(error: &UpdaterError) -> bool {
     )
 }
 
+/// Transient failures resolve on retry: the `releases/latest/download`
+/// endpoint 404s for the whole window between a release being cut and its
+/// `latest.json` manifest landing (the desktop assets build minutes behind
+/// the tag), and GitHub propagation plus ordinary network blips produce
+/// one-off fetch failures. Permanent failures — a bad signature, a semver
+/// or serialization error, an unsupported platform — would fail identically
+/// on retry, so they surface immediately.
+fn is_retryable(error: &UpdaterError) -> bool {
+    matches!(
+        error,
+        UpdaterError::ReleaseNotFound
+            | UpdaterError::Reqwest(_)
+            | UpdaterError::Io(_)
+            | UpdaterError::Network(_)
+    )
+}
+
+const UPDATE_CHECK_ATTEMPTS: usize = 3;
+const UPDATE_CHECK_RETRY_DELAYS: [Duration; 2] = [Duration::from_secs(2), Duration::from_secs(5)];
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -578,5 +617,22 @@ mod tests {
         });
 
         assert!(completed, "cancellation must release the in-flight waiter");
+    }
+}
+
+#[cfg(test)]
+mod retry_classification {
+    use super::*;
+
+    #[test]
+    fn release_not_found_is_retryable() {
+        let error = UpdaterError::ReleaseNotFound;
+        assert!(is_retryable(&error));
+    }
+
+    #[test]
+    fn permanent_failures_surface_immediately() {
+        assert!(!is_retryable(&UpdaterError::EmptyEndpoints));
+        assert!(!is_retryable(&UpdaterError::UnsupportedOs));
     }
 }
