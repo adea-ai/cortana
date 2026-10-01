@@ -26,7 +26,11 @@
         "minHeight": 680,
         "center": true,
         "resizable": true,
-        "titleBarStyle": "Transparent",
+        "titleBarStyle": "Overlay",
+        "trafficLightPosition": {
+          "x": 20,
+          "y": 18
+        },
         "hiddenTitle": true,
         "theme": "Dark"
       }

@@ -215,12 +215,29 @@ const utilityItems: UtilityItem[] = [
   },
 ]
 
+/*
+ * macOS desktop windows merge the title bar into the top bar: Tauri's Overlay
+ * title bar style floats the traffic lights over the strip, so the strip
+ * reserves their space and carries the window drag region. Every control in
+ * the bar is a real widget, so clicks keep working; the empty track around
+ * them is what drags. Browser tabs and non-mac desktop windows keep their
+ * normal chrome and skip both.
+ */
+const macTitlebarChrome = () => isDesktopApp && navigator.userAgent.includes('Mac')
+
 export function M7ApplicationHeader(props: M7HeaderProps) {
   const actionsRef = { current: null as HTMLButtonElement | null }
   const [systemOpen, setSystemOpen] = createSignal(false)
   const navigation = useCortanaNavigation()
+  const titlebar = macTitlebarChrome()
   return (
-    <TopBar class="m7-application-header" glass>
+    <TopBar
+      class="m7-application-header"
+      glass
+      draggable={titlebar}
+      macosInset={titlebar}
+      {...(titlebar ? { 'data-tauri-drag-region': '' } : {})}
+    >
       <TopBarSection class="m7-header-leading">
         <Button
           tooltip="Toggle navigation"
@@ -590,7 +607,13 @@ export function M7ApplicationNavigation(props: {
 
   const desktopRail = () => (
     <SideRail id="m7-primary-navigation" collapsed={collapsed()} aria-label="Primary navigation">
-      <SideRailHeader>
+      {/*
+       * The window's title strip spans the full width above this rail, so the
+       * rail has no header row of its own. The workspace switcher lives as the
+       * first content row instead — same trigger, same collapsed-rail flyout,
+       * one row below the strip.
+       */}
+      <SideRailContent>
         <DropdownMenu modal={false} open={workspaceMenuOpen()} onOpenChange={setWorkspaceMenuOpen}>
           <DropdownMenuTrigger
             as={SideRailButton}
@@ -624,8 +647,8 @@ export function M7ApplicationNavigation(props: {
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
-      </SideRailHeader>
-      <SideRailContent>{destinations()}</SideRailContent>
+        {destinations()}
+      </SideRailContent>
       <SideRailFooter>
         <SideRailItem
           as="button"
