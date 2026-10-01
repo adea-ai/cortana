@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.63.3](https://github.com/adea-ai/cortana/compare/v0.63.2...v0.63.3) (2026-10-01)
+
+
+### Bug Fixes
+
+* **deps:** update adea-ai design system ([#2427](https://github.com/adea-ai/cortana/issues/2427)) ([b219ba4](https://github.com/adea-ai/cortana/commit/b219ba4d76fe1f602e4ff32a07efc922928cfaf6))
+
+
+### Maintenance
+
+* open Renovate PRs as drafts, group majors, and retire Dependabot ([#2437](https://github.com/adea-ai/cortana/issues/2437)) ([eb5c46d](https://github.com/adea-ai/cortana/commit/eb5c46d3183622ea1f27b347ffb50bd43d0c594f))
+
 ## [0.63.2](https://github.com/adea-ai/cortana/compare/v0.63.1...v0.63.2) (2026-10-01)
 
 
