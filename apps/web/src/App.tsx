@@ -1983,6 +1983,9 @@ function CortanaApplication() {
             onOpenHistory={() => navigate('conversations')}
             onOpenContext={openContextPanel}
             onOpenCommands={openCommandPalette}
+            workspaces={workspaces()}
+            workspace={effectiveWorkspace()}
+            onWorkspaceChange={chooseWorkspace}
             workspaceName={
               workspaces().find((item) => item.id === effectiveWorkspace())?.name ?? 'Workspace'
             }

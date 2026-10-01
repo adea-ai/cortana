@@ -4030,22 +4030,19 @@ test('services settings reuses the shell service snapshot without a duplicate po
   )
   expect(state.getDesktopServicesCalls).toBe(1)
 })
-test('the collapsed rail labels the workspace row with its own mark', async () => {
+test('the title bar carries the workspace picker with its own mark', async () => {
   render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-  const row = screen.getByRole('button', {
+  // The workspace picker lives in the title strip now; the rail carries
+  // destinations only.
+  const picker = screen.getByRole('button', {
     name: 'Switch workspace',
   })
-  fireEvent.pointerEnter(row)
-  const hint = await waitFor(() => {
-    const node = document.querySelector('[data-slot="side-rail-tip"]')
-    expect(node).not.toBeNull()
-    return node as HTMLElement
-  })
-  // Every rail label carries the row's own mark; for this row that is the
-  // workspace logo rather than a lucide glyph.
-  expect(hint.querySelector('[data-workspace-logo]')).not.toBeNull()
-  expect(hint.textContent).toContain('Workspace:')
+  expect(picker.closest('[data-slot="top-bar"]')).not.toBeNull()
+  expect(picker.querySelector('[data-workspace-logo]')).not.toBeNull()
+  expect(
+    document.querySelector('#m7-primary-navigation [aria-label="Switch workspace"]')
+  ).toBeNull()
 })
 test('the mac title strip is a drag region clear of the traffic lights', async () => {
   // Tauri's Overlay title bar floats the traffic lights over the top bar, so
@@ -4070,12 +4067,10 @@ test('the mac title strip is a drag region clear of the traffic lights', async (
     expect(bar!.className).toContain('window-drag')
     expect(bar!.className).toContain('window-inset-macos')
     // The rail sits below the strip, so it has no header row of its own; the
-    // workspace switcher is the rail's first content row.
+    // workspace picker is part of the strip itself.
     expect(document.querySelector('[data-slot="side-rail-header"]')).toBeNull()
     expect(
-      screen
-        .getByRole('button', { name: 'Switch workspace' })
-        .closest('[data-slot="side-rail-content"]')
+      screen.getByRole('button', { name: 'Switch workspace' }).closest('[data-slot="top-bar"]')
     ).not.toBeNull()
   } finally {
     delete (window.navigator as { userAgent?: string }).userAgent
