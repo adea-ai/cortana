@@ -2,7 +2,7 @@
 
 # The static web bundle is target-independent. Both build tools must match the
 # build host, including when the benchmark emulates an ARM64 runtime image.
-FROM --platform=$BUILDPLATFORM oven/bun:1.4.0-slim AS bun-runtime
+FROM --platform=$BUILDPLATFORM oven/bun:1.4.2-slim AS bun-runtime
 
 FROM --platform=$BUILDPLATFORM node:22-bookworm-slim AS web-builder
 COPY --from=bun-runtime /usr/local/bin/bun /usr/local/bin/bun
@@ -21,7 +21,7 @@ RUN cd apps/web \
     && node ../../node_modules/vite/bin/vite.js build \
     && bun ../../scripts/check-web-bundle-budget.mjs
 
-FROM rust:1.88-bookworm AS rust-builder
+FROM rust:1.98-bookworm AS rust-builder
 ARG TARGETARCH
 WORKDIR /src
 COPY Cargo.toml Cargo.lock ./
@@ -71,7 +71,7 @@ RUN --mount=type=cache,id=cargo-registry-${TARGETARCH},target=/usr/local/cargo/r
     cargo build --release --locked --bin cortana \
     && cp /src/target/release/cortana /usr/local/bin/cortana
 
-FROM python:3.11-slim-bookworm AS runtime
+FROM python:3.14-slim-bookworm AS runtime
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends ca-certificates curl tini \
