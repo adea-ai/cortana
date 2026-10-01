@@ -154,53 +154,34 @@ Tokens and authorization codes never enter renderer state, logs, command output,
 
 Provider setup links are selected by native code from a fixed allowlist and opened in the system
 browser; the renderer cannot supply a URL. File and folder selection also stays native. The
-renderer requests one of four fixed picker kinds—source directory, OAuth client JSON, Google
-token destination, or GitHub token destination—and receives a validated absolute path. It has no
+renderer requests one of four fixed picker kinds: source directory, OAuth client JSON, Google
+token destination, or GitHub token destination. It receives a validated absolute path and has no
 general filesystem permission.
 
 ## Web UI component strategy
 
-shadcn/ui is the authoritative component and visual system for the React/Vite webview. Cortana owns
-the generated component source in `apps/web`; the registry is an upstream source, not a runtime
-service or opaque package boundary. The checked-in `components.json` records the selected shadcn
-style, primitive base, icon library, aliases, and Tailwind CSS entrypoint so every component is
-generated and updated consistently.
+The Desktop webview reuses the SolidJS/Vite app in `apps/web`. It consumes the published
+`@adea-ai/ui` and `@adea-ai/themes` packages for shared components and themes. At this source
+revision, their exact versions are pinned in the manifests and `bun.lock`; the current component,
+theme, styling, and consumer-validation contract lives in [Web UI standards](web-ui-standards.md).
 
-Tailwind CSS and semantic shadcn theme variables own application styling. Colors, typography,
-radii, spacing, focus, error, warning, success, destructive, muted, surface, and chart treatments
-must use semantic tokens rather than raw values or page-local variants. The twelve supported Cortana
-themes map to that same token contract; Graphite is the fixed fallback and each workspace may select
-its own theme. A theme may change values, but it may not fork component markup or interaction
-behavior. Layout utilities may compose components, while component color and typography remain in the
-component variants and theme contract.
+The shared UI package owns accessible controls, compound components, component visuals, fonts,
+typography, spacing variants, and shared semantic tokens. The theme package owns the published
+palette catalogue and provenance. Cortana owns domain screens and behavior for its sources,
+documents, graph, memory, and operations. App CSS may arrange domain content using shared tokens,
+but it does not redefine theme tokens or restyle shared controls. Workspace theme selection uses
+variants from the shared catalogue without forking component markup or interaction behavior.
 
-Every ordinary control and surface must use the corresponding shared primitive: Button and form
-controls for actions and input; Field and FieldGroup for form structure; Card for grouped content;
-Sidebar, Tabs, Breadcrumb, and ScrollArea for navigation; Dialog, AlertDialog, Sheet, Popover,
-DropdownMenu, Select, Tooltip, and Command for layered interaction; and Alert, Badge, Empty,
-Skeleton, Spinner, Progress, Separator, and toast for status and feedback. Components are composed
-instead of copied into page-specific markup. Destructive actions use an explicit destructive
-variant and confirmation where the operation requires it. Icon-only actions have accessible names,
-and dialogs, sheets, and drawers always expose programmatic titles.
-
-The graph canvas, virtualized document list, native title-bar integration, and other renderer-specific
-surfaces may keep custom rendering where no shadcn primitive fits. Their surrounding controls,
+Renderer-specific domain surfaces such as the graph canvas, virtualized document list, and native
+title-bar integration may use custom rendering where no shared component fits. Their controls,
 loading and error states, menus, overlays, typography, focus behavior, and responsive layout still
-use the shared system. Custom components belong above the primitives and may not recreate a second
-button, form, card, menu, tab, tooltip, dialog, or status language.
+follow the shared consumer contract. The typed native-command boundary, Tauri capability set,
+credential handling, and source and service approval gates remain independent of that component
+ownership.
 
-The wholesale migration is delivered behind a temporary renderer feature flag so foundation and
-surface slices can merge without exposing a mixed production UI. Completion requires enabling the
-new renderer by default, removing the flag, deleting superseded component and CSS contracts, and
-proving that no ordinary surface falls back to the legacy system or browser-native chrome. The
-migration must not widen the Tauri capability set, move credentials into renderer state, change
-the typed native-command boundary, or weaken source and service approval gates.
-
-Each migrated workflow requires focused component coverage plus matched before/after screenshots.
-The final packaged acceptance record must cover supported themes, 320, 768, 1024, and 1440 CSS-pixel
-widths, keyboard-only operation, 200% zoom, reduced motion, loading/empty/error states, overlays,
-and the operating-system webviews named by the Desktop support policy. Source tests and a successful
-web build do not substitute for visual and packaged interaction evidence.
+Web UI validation requirements are maintained in [Web UI standards](web-ui-standards.md).
+Packaged interaction and operating-system acceptance evidence remains governed by the
+[Desktop UX audit](desktop-ux-audit.md); a source build alone is not packaged-product evidence.
 
 ## Workspaces and settings
 
