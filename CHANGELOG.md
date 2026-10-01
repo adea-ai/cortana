@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.63.5](https://github.com/adea-ai/cortana/compare/v0.63.4...v0.63.5) (2026-10-01)
+
+
+### Bug Fixes
+
+* **deps:** update external non-major dependencies ([#2431](https://github.com/adea-ai/cortana/issues/2431)) ([83219b5](https://github.com/adea-ai/cortana/commit/83219b5ff203a290e3d590cb893d66f2e6846077))
+
 ## [0.63.4](https://github.com/adea-ai/cortana/compare/v0.63.3...v0.63.4) (2026-10-01)
 
 
