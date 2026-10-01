@@ -266,46 +266,51 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
          * and is instantly dismissed).
          */}
         <Show when={props.workspaces && props.onWorkspaceChange}>
-          <DropdownMenu
-            modal={false}
-            open={workspaceMenuOpen()}
-            onOpenChange={setWorkspaceMenuOpen}
-          >
-            <DropdownMenuTrigger
-              as={Button}
-              variant="ghost"
-              size="sm"
-              tooltip={`Workspace: ${activeWorkspace()?.name ?? 'Choose workspace'}`}
-              aria-label="Switch workspace"
+          {/* Mobile switches workspaces through the sheet's rows; the strip
+              picker yields the search cluster its width back on small
+              screens. */}
+          <div class="hidden md:block">
+            <DropdownMenu
+              modal={false}
+              open={workspaceMenuOpen()}
+              onOpenChange={setWorkspaceMenuOpen}
             >
-              <WorkspaceGlyph workspace={activeWorkspace()} size="small" />
-              <span class="hidden min-w-0 max-w-40 truncate md:inline">
-                {activeWorkspace()?.name ?? 'Choose workspace'}
-              </span>
-              <ChevronDown aria-hidden="true" class="size-3.5 text-muted-foreground" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" sideOffset={6} class="min-w-56">
-              <DropdownMenuGroup>
-                <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
-                <DropdownMenuRadioGroup
-                  value={props.workspace}
-                  onChange={(value: unknown) => {
-                    setWorkspaceMenuOpen(false)
-                    props.onWorkspaceChange?.(value as string)
-                  }}
-                >
-                  <For each={props.workspaces}>
-                    {(item) => (
-                      <DropdownMenuRadioItem value={item.id} closeOnSelect>
-                        <WorkspaceLogo workspace={item} size="small" />
-                        {item.name}
-                      </DropdownMenuRadioItem>
-                    )}
-                  </For>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <DropdownMenuTrigger
+                as={Button}
+                variant="ghost"
+                size="sm"
+                tooltip={`Workspace: ${activeWorkspace()?.name ?? 'Choose workspace'}`}
+                aria-label="Switch workspace"
+              >
+                <WorkspaceGlyph workspace={activeWorkspace()} size="small" />
+                <span class="hidden min-w-0 max-w-40 truncate md:inline">
+                  {activeWorkspace()?.name ?? 'Choose workspace'}
+                </span>
+                <ChevronDown aria-hidden="true" class="size-3.5 text-muted-foreground" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" sideOffset={6} class="min-w-56">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
+                  <DropdownMenuRadioGroup
+                    value={props.workspace}
+                    onChange={(value: unknown) => {
+                      setWorkspaceMenuOpen(false)
+                      props.onWorkspaceChange?.(value as string)
+                    }}
+                  >
+                    <For each={props.workspaces}>
+                      {(item) => (
+                        <DropdownMenuRadioItem value={item.id} closeOnSelect>
+                          <WorkspaceLogo workspace={item} size="small" />
+                          {item.name}
+                        </DropdownMenuRadioItem>
+                      )}
+                    </For>
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </Show>
         <div class="m7-header-context hidden min-w-0 items-center gap-1 sm:flex">
           <div class="flex items-center gap-1" role="group" aria-label="Search history">
