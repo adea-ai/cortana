@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.63.2](https://github.com/adea-ai/cortana/compare/v0.63.1...v0.63.2) (2026-10-01)
+
+
+### Bug Fixes
+
+* **desktop:** retry transient update-check failures before surfacing ([#2434](https://github.com/adea-ai/cortana/issues/2434)) ([26d7e37](https://github.com/adea-ai/cortana/commit/26d7e37c2b420a7341eeb27fbef2e19a84d9134d))
+
 ## [0.63.1](https://github.com/adea-ai/cortana/compare/v0.63.0...v0.63.1) (2026-09-30)
 
 
