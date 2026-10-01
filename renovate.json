@@ -15,6 +15,28 @@
   },
   "packageRules": [
     {
+      "description": "Cargo crates are pinned deliberately and the committed Cargo.lock is the source of truth: a manifest-only bump desyncs the lock and fails resolution in every cargo-touching lane at once (reqwest 0.12 → 0.13 failed Format, Lint, Type-Check, Build, Unit, Desktop and both container builds together). Cargo upgrades are their own reviewed change.",
+      "matchManagers": ["cargo"],
+      "enabled": false
+    },
+    {
+      "description": "The rust toolchain pin (mise) gates every lane at once under a compiler the repository has not shipped with; upgrades are their own reviewed change, not a grouped bump.",
+      "matchManagers": ["mise"],
+      "matchPackageNames": ["rust"],
+      "enabled": false
+    },
+    {
+      "description": "The rust builder and python runtime images compile and run the product under pinned toolchains; image jumps (rust 1.88 → 1.98, python 3.11 → 3.14) are their own reviewed change, not a grouped bump.",
+      "matchManagers": ["docker"],
+      "matchPackageNames": ["/^rust/", "/^python/"],
+      "enabled": false
+    },
+    {
+      "description": "The vendored third_party tree is pinned by name to the upstream revision it copies; its manifests must not move independently.",
+      "matchPaths": ["third_party/**"],
+      "enabled": false
+    },
+    {
       "description": "Every @adea-ai/* package rides one branch: the shared design system moves as a unit and the version pins are updated in place. The full validation suite — including the M7 capture-and-audit lane — runs when a human marks the draft ready; a held PR is a finding for the theme migration, not a chore.",
       "groupName": "adea-ai design system",
       "separateMajorMinor": true,
