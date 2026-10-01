@@ -618,13 +618,20 @@ async function auditAccessibility(page, label) {
 
         const collapsedSidebar = page.locator('#m7-primary-navigation[data-collapsed="true"]')
         await collapsedSidebar.waitFor()
+        // The merged title bar spans the full window width and the rail starts
+        // flush under it: the strip owns the row the window controls sit in,
+        // and no gutter may open between the strip's bottom edge and the rail.
         await page.waitForFunction(() => {
           const sidebar = document.querySelector('#m7-primary-navigation[data-collapsed="true"]')
           const header = document.querySelector('.m7-production-shell [data-slot="top-bar"]')
           if (!sidebar || !header) return false
           const sidebarBox = sidebar.getBoundingClientRect()
           const headerBox = header.getBoundingClientRect()
-          return Math.abs(sidebarBox.right - headerBox.left) <= 1
+          return (
+            headerBox.x <= 1 &&
+            Math.abs(headerBox.x + headerBox.width - window.innerWidth) <= 1 &&
+            Math.abs(sidebarBox.y - headerBox.y - headerBox.height) <= 1
+          )
         })
         const [sidebarBox, headerBox] = await Promise.all([
           collapsedSidebar.boundingBox(),
@@ -633,9 +640,12 @@ async function auditAccessibility(page, label) {
         if (
           !sidebarBox ||
           !headerBox ||
-          Math.abs(sidebarBox.x + sidebarBox.width - headerBox.x) > 1
+          headerBox.x > 1 ||
+          Math.abs(sidebarBox.y - headerBox.y - headerBox.height) > 1
         ) {
-          throw new Error('Collapsed desktop sidebar leaves an empty layout gutter')
+          throw new Error(
+            'Collapsed desktop sidebar must start flush under the full-width title strip'
+          )
         }
       }
 
