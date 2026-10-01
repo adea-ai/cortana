@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.64.0](https://github.com/adea-ai/cortana/compare/v0.63.5...v0.64.0) (2026-10-01)
+
+
+### Features
+
+* **desktop:** merge the top app bar into the macos title bar ([#2440](https://github.com/adea-ai/cortana/issues/2440)) ([bb34e1a](https://github.com/adea-ai/cortana/commit/bb34e1a0d277bb7c9cb87f17b0daef40f91288d8))
+
 ## [0.63.5](https://github.com/adea-ai/cortana/compare/v0.63.4...v0.63.5) (2026-10-01)
 
 
