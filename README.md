@@ -15,10 +15,10 @@ It is not an unrestricted crawler, implicit backup service, agent harness, or ho
 
 Cortana separates three authorities and one derived output:
 
-- **Evidence** — source-backed documents, messages, notes, calendar records, and code. Evidence retains stable source identity, provenance, workspace scope, update time, and ACLs.
-- **Native memory** — bounded conclusions deliberately retained by a user or authorized agent. Memory has its own provenance, confidence, importance, expiry, supersession, redaction, and revision lifecycle.
-- **External task state** — harness scratchpads, Adea ProjectState, Control Plane ContextPackages, workflow checkpoints, and conversation history remain owned by their respective systems.
-- **ContextBundle** — a disposable, token-bounded compilation of authorized evidence and relevant memory for one query or objective.
+- **Evidence** includes source-backed documents, messages, notes, calendar records, and code. Each item retains stable source identity, provenance, workspace scope, update time, and ACLs.
+- **Native memory** stores bounded conclusions deliberately retained by a user or authorized agent. It has its own provenance, confidence, importance, expiry, supersession, redaction, and revision lifecycle.
+- **External task state** includes harness scratchpads, Adea ProjectState, Control Plane ContextPackages, workflow checkpoints, and conversation history. Each remains owned by its respective system.
+- **ContextBundle** is a disposable, token-bounded compilation of authorized evidence and relevant memory for one query or objective.
 
 The governing rule is:
 
@@ -61,10 +61,10 @@ Cortana combines semantic vector retrieval with SQLite FTS5 lexical retrieval, q
 
 The public memory operations are:
 
-- `remember` — retain one bounded provenance-bearing conclusion;
-- `recall` — retrieve authorized active memory;
-- `forget` — redact one memory while preserving a minimal tombstone;
-- `export_memory` — export bounded visible records and tombstones.
+- `remember`: retain one bounded provenance-bearing conclusion;
+- `recall`: retrieve authorized active memory;
+- `forget`: redact one memory while preserving a minimal tombstone;
+- `export_memory`: export bounded visible records and tombstones.
 
 Semantic, episodic, procedural, and preference describe durable content types. Working state is short-lived and normally expiry-bounded. Source ingestion never silently becomes native memory, and memory never satisfies source-citation requirements.
 

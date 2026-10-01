@@ -106,13 +106,13 @@ validation as permission for reconciliation or recurring sync.
 
 ## After the first query
 
-- [Desktop guide](../apps/desktop/README.md) — settings, services, tray behavior, updates, and
+- [Desktop guide](../apps/desktop/README.md): settings, services, tray behavior, updates, and
   native boundaries.
-- [Ingestion guide](ingestion.md) — source-specific authorization, budgets, cursors, ACLs, and
+- [Ingestion guide](ingestion.md): source-specific authorization, budgets, cursors, ACLs, and
   reconciliation.
-- [Query guide](query.md) — context bundles, synthesis, embeddings, cache behavior, and fallback.
-- [Agent integrations](integrations.md) — install the skill and connect MCP, HTTP, or CLI clients.
-- [Operations guide](operations.md) — readiness, backups, recovery, authentication, and service
+- [Query guide](query.md): context bundles, synthesis, embeddings, cache behavior, and fallback.
+- [Agent integrations](integrations.md): install the skill and connect MCP, HTTP, or CLI clients.
+- [Operations guide](operations.md): readiness, backups, recovery, authentication, and service
   management.
 
 The shortest safe success criterion is: the app launches, one source passes **Test connection**,
