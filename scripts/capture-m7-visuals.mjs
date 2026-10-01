@@ -53,6 +53,28 @@ async function openPage(theme, width, state = 'configured') {
     theme
   )
   const page = await context.newPage()
+  const rawWaitForFunction = page.waitForFunction.bind(page)
+  page.waitForFunction = (...callArgs) => {
+    const frames = (new Error().stack ?? '')
+      .split('\n')
+      .filter((line) => line.includes('capture-m7-visuals.mjs:'))
+      .map((line) => line.trim().slice(0, 90))
+    const caller = frames.find((line) => !line.includes(':58:')) ?? frames[0]
+    console.log(`WFF-CALL ${caller}`)
+    return rawWaitForFunction(...callArgs).catch(async (error) => {
+      let focusState = 'unavailable'
+      try {
+        focusState = await page.evaluate(() => {
+          const a = document.activeElement
+          return `${a?.tagName} [${(a?.getAttribute('aria-label') ?? a?.textContent ?? '').toString().slice(0, 40)}]`
+        })
+      } catch {}
+      console.log(
+        `WFF-FAIL ${caller} focus=${focusState} console=${JSON.stringify(consoleErrors.slice(0, 3))}`
+      )
+      throw error
+    })
+  }
   page.setDefaultTimeout(60_000)
   page.on('console', (message) => {
     if (message.type() === 'error') {
