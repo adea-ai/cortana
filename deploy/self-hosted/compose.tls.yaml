@@ -3,7 +3,7 @@ services:
     ports: !reset []
 
   caddy:
-    image: caddy:2.10.2-alpine
+    image: caddy:2.11.4-alpine
     restart: unless-stopped
     depends_on:
       cortana:
