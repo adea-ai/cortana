@@ -2921,14 +2921,6 @@ body,
   color: var(--muted-foreground);
 }
 
-/* The rail's utilities menu follows the account menu in the sibling shell: a
-   roomier list than the default dropdown (15rem wide, 0.75rem radius, 2.25rem
-   rows) with muted icons that ink up on the highlighted row. */
-.m7-utilities-menu {
-  min-width: 15rem;
-  padding: 0.4rem;
-}
-
 .m7-source-panel {
   border-right-color: var(--border);
   background: var(--card);

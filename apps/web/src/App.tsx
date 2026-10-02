@@ -1,4 +1,5 @@
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
+import { Alert, AlertDescription } from '@adea-ai/ui/components/ui/alert'
 import { FileText } from 'lucide-solid'
 import {
   lazy,
@@ -22,6 +23,9 @@ import {
   getDesktopServices,
   getDesktopSettings,
   getDesktopUpdate,
+  checkDesktopUpdate,
+  installDesktopUpdate,
+  cancelDesktopUpdate,
   getDocument,
   getDocuments,
   getContext,
@@ -35,7 +39,7 @@ import {
   scanDesktopReadiness,
   isDemoMode,
   isDesktopApp,
-  openDesktopProject,
+  openDesktopUrl,
   startDesktopSourceAuthorization,
 } from './api'
 import { isGraphEdgeKind, isGraphEdgeOrigin } from './graphResponse'
@@ -71,6 +75,8 @@ import { Workspace, type WorkspaceTab } from './components/Workspace'
 import { ActionButton as Button } from '@adea-ai/ui/components/composites/action-button'
 import { StatusChip } from '@adea-ai/ui/components/ui/status-chip'
 import { StatusBarItem } from '@adea-ai/ui/components/layout/status-bar'
+import { UpdateDialog } from '@adea-ai/ui/components/composites/update-dialog'
+import type { UpdateAdapter, UpdateState } from '@adea-ai/ui/components/composites/update-dialog'
 import { buildAgentContext, estimateTokens } from './context'
 import { embeddingLabel } from './operations'
 import {
@@ -138,9 +144,9 @@ const SettingsView = lazy(() =>
     default: module.SettingsView,
   }))
 )
-const loadAboutDialog = () => import('./components/m7/M7AboutDialog')
-const M7AboutDialog = lazy(() =>
-  loadAboutDialog().then((module) => ({ default: module.M7AboutDialog }))
+const loadAboutDialog = () => import('@adea-ai/ui/components/composites/about-dialog')
+const AboutDialog = lazy(() =>
+  loadAboutDialog().then((module) => ({ default: module.AboutDialog }))
 )
 const loadCommandPalette = () => import('./components/m7/M7CommandPalette')
 const M7CommandPalette = lazy(() =>
@@ -176,6 +182,33 @@ function searchScope(nextSource: string, nextWorkspace: string, query: string) {
 }
 function contextScope(nextQuery: string, nextWorkspace: string, nextSource: string) {
   return `${nextWorkspace}\u0000${nextSource}\u0000${nextQuery}`
+}
+function toUpdateState(update: DesktopUpdate): UpdateState {
+  return {
+    phase: update.phase,
+    currentVersion: update.current_version,
+    availableVersion: update.available_version,
+    changelog: update.changelog,
+    releaseNotes: update.release_notes,
+    releaseDate: update.release_date,
+    downloadedBytes: update.downloaded_bytes,
+    totalBytes: update.total_bytes,
+    error: update.error,
+    releaseUrl: update.github_url,
+    restartRequired: update.restart_required,
+  }
+}
+function openExternal(url: string): Promise<void> {
+  if (isDesktopApp) return openDesktopUrl(url)
+  window.open(url, '_blank', 'noopener,noreferrer')
+  return Promise.resolve()
+}
+function cortanaFeedbackUrl(version: string | undefined, platform: 'desktop' | 'web') {
+  const params = new URLSearchParams({
+    template: 'feedback.yml',
+    context: `App: Cortana\nVersion: ${version || 'unavailable'}\nPlatform: ${platform}`,
+  })
+  return `https://github.com/adea-ai/adea/issues/new?${params.toString()}`
 }
 const paneWidthsStorageKey = 'cortana.pane-widths'
 
@@ -309,9 +342,49 @@ function CortanaApplication() {
     'readiness' | 'services' | 'updates' | 'sources' | 'memory'
   >('readiness')
   const [aboutOpen, setAboutOpen] = createSignal(false)
+  const [aboutDialogMounted, setAboutDialogMounted] = createSignal(false)
+  const [updateDialogOpen, setUpdateDialogOpen] = createSignal(false)
+  const [updateDialogMounted, setUpdateDialogMounted] = createSignal(false)
+  const [feedbackError, setFeedbackError] = createSignal('')
+  const aboutOpenerRef: { current: HTMLElement | undefined } = { current: undefined }
+  const updateDialogOpenerRef: { current: HTMLElement | undefined } = { current: undefined }
   const [settingsDirty, setSettingsDirty] = createSignal(false)
   const [installerJob, setInstallerJob] = createSignal<DesktopInstallJob | null>(null)
   const [desktopUpdate, setDesktopUpdate] = createSignal<DesktopUpdate | null>(null)
+  const readUpdateState = async () => {
+    const update = await getDesktopUpdate()
+    setDesktopUpdate(update)
+    return toUpdateState(update)
+  }
+  const checkUpdateState = async () => {
+    const update = await checkDesktopUpdate()
+    setDesktopUpdate(update)
+    return toUpdateState(update)
+  }
+  const updateAdapter: UpdateAdapter = {
+    getStatus: readUpdateState,
+    check: checkUpdateState,
+    install: async (expectedVersion) => {
+      if (
+        !window.confirm(
+          `Install signed Cortana ${expectedVersion} and restart the Desktop app?\n\nThe native updater will verify the release signature before installation.`
+        )
+      ) {
+        return desktopUpdate() ? toUpdateState(desktopUpdate()!) : readUpdateState()
+      }
+      const update = await installDesktopUpdate(expectedVersion, true)
+      setDesktopUpdate(update)
+      return toUpdateState(update)
+    },
+    cancel: async () => {
+      const update = await cancelDesktopUpdate()
+      setDesktopUpdate(update)
+      return toUpdateState(update)
+    },
+    openExternal: (url: string) => openExternal(url),
+    isDesktopRuntime: () => isDesktopApp,
+    pollIntervalMs: 500,
+  }
   const [desktopReadiness, setDesktopReadiness] = createSignal<DesktopReadiness | null>(null)
   const [readinessActivity, setReadinessActivity] = createSignal<DesktopReadinessActivity | null>(
     null
@@ -1619,10 +1692,32 @@ function CortanaApplication() {
     setView('knowledge')
     focusWhenReady(() => searchRef.current, true)
   }
-  function openSettingsSection(section: 'updates' | 'services') {
+  function openAboutDialog(opener?: HTMLButtonElement) {
+    aboutOpenerRef.current = opener
+    setAboutDialogMounted(true)
+    setAboutOpen(true)
+  }
+  function openUpdateDialog(opener?: HTMLButtonElement) {
     if (!canLeaveSettings()) return
-    setSettingsSection(section)
-    setView('settings')
+    updateDialogOpenerRef.current = opener
+    setUpdateDialogMounted(true)
+    setUpdateDialogOpen(true)
+  }
+  async function openFeedback(opener?: HTMLButtonElement) {
+    void opener
+    if (!canLeaveSettings()) return
+    try {
+      await openExternal(
+        cortanaFeedbackUrl(desktopInfo()?.desktop_version, isDesktopApp ? 'desktop' : 'web')
+      )
+      setFeedbackError('')
+    } catch (caught: unknown) {
+      setFeedbackError(
+        caught instanceof Error
+          ? `Could not open the Cortana feedback form: ${caught.message}. Please try again.`
+          : 'Could not open the Cortana feedback form. Please try again.'
+      )
+    }
   }
   function focusDocumentFilter() {
     if (!canLeaveSettings()) return
@@ -2010,8 +2105,10 @@ function CortanaApplication() {
                 workspaceTab: workspaceTab(),
                 onNavigate: navigate,
                 onOpenGraph: openGraph,
-                onOpenSettingsSection: openSettingsSection,
-                onOpenAbout: () => setAboutOpen(true),
+                onOpenAbout: openAboutDialog,
+                onOpenHelp: () => navigate('help'),
+                onOpenFeedback: openFeedback,
+                onOpenUpdates: openUpdateDialog,
               }}
               workspaces={workspaces()}
               workspace={effectiveWorkspace()}
@@ -2019,6 +2116,13 @@ function CortanaApplication() {
             />
           }
           <AppShellBody>
+            <Show when={feedbackError()}>
+              {(message) => (
+                <Alert variant="destructive" role="alert">
+                  <AlertDescription>{message()}</AlertDescription>
+                </Alert>
+              )}
+            </Show>
             <AppShellContent class="m7-app-content">
               {view() === 'settings' ? (
                 <Suspense
@@ -2046,6 +2150,7 @@ function CortanaApplication() {
                     onReadinessScan={runReadinessScan}
                     desktopUpdate={desktopUpdate() ?? undefined}
                     onDesktopUpdate={setDesktopUpdate}
+                    onOpenUpdates={openUpdateDialog}
                     services={desktopServices()}
                     onServices={(nextServices) => {
                       setDesktopServices(nextServices)
@@ -2370,21 +2475,37 @@ function CortanaApplication() {
                     onOpenSettings={() =>
                       openSettingsAt(view() === 'index' ? 'sources' : 'services')
                     }
-                    onOpenProject={() => openDesktopProject()}
                     onCancelSourceJob={cancelSourceJob}
                   />
                 </Suspense>
               )}
-              <Show when={aboutOpen()}>
+              <Show when={aboutDialogMounted()}>
                 <Suspense>
-                  <M7AboutDialog
-                    open
-                    onClose={() => setAboutOpen(false)}
+                  <AboutDialog
+                    open={aboutOpen()}
+                    onOpenChange={setAboutOpen}
+                    appName="Cortana"
+                    appIcon="/app-icon.svg"
                     version={desktopInfo()?.desktop_version}
                     platform={isDesktopApp ? 'desktop' : 'web'}
-                    desktopAvailable={isDesktopApp}
+                    copyright="Copyright © 2026 Cortana contributors"
+                    sourceUrl="https://github.com/adea-ai/cortana"
+                    openExternal={openExternal}
+                    restoreFocusRef={() => aboutOpenerRef.current}
                   />
                 </Suspense>
+              </Show>
+              <Show when={updateDialogMounted()}>
+                <UpdateDialog
+                  adapter={updateAdapter}
+                  appName="Cortana"
+                  appIcon="/app-icon.svg"
+                  fallbackVersion={desktopInfo()?.desktop_version}
+                  changelog={desktopUpdate()?.changelog}
+                  open={updateDialogOpen()}
+                  onOpenChange={setUpdateDialogOpen}
+                  restoreFocusRef={() => updateDialogOpenerRef.current}
+                />
               </Show>
               <Show when={commandPaletteMounted()}>
                 <Suspense>

@@ -37,7 +37,7 @@ impl Default for UpdateSnapshot {
             available_version: None,
             release_date: None,
             release_notes: None,
-            changelog: bounded(CHANGELOG, MAX_RELEASE_NOTES_CHARS),
+            changelog: CHANGELOG.to_string(),
             github_url: GITHUB_URL,
             phase: "idle",
             downloaded_bytes: 0,
@@ -105,7 +105,8 @@ impl UpdaterState {
             let result = updater.check().await;
             match &result {
                 Err(error) if is_retryable(error) && attempt + 1 < UPDATE_CHECK_ATTEMPTS => {
-                    let delay = UPDATE_CHECK_RETRY_DELAYS[attempt.min(UPDATE_CHECK_RETRY_DELAYS.len() - 1)];
+                    let delay =
+                        UPDATE_CHECK_RETRY_DELAYS[attempt.min(UPDATE_CHECK_RETRY_DELAYS.len() - 1)];
                     attempt += 1;
                     tokio::time::sleep(delay).await;
                     continue;
@@ -452,11 +453,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn snapshot_is_bounded_and_contains_release_metadata() {
+    fn snapshot_contains_full_changelog_and_release_metadata() {
         let snapshot = UpdateSnapshot::default();
         assert_eq!(snapshot.current_version, env!("CARGO_PKG_VERSION"));
         assert_eq!(snapshot.github_url, GITHUB_URL);
-        assert!(snapshot.changelog.len() <= MAX_RELEASE_NOTES_CHARS);
+        assert_eq!(snapshot.changelog, CHANGELOG);
+        assert!(snapshot.changelog.len() > MAX_RELEASE_NOTES_CHARS);
         assert_eq!(bounded("cortana", 4), "cort");
     }
 
