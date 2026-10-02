@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.66.0](https://github.com/adea-ai/cortana/compare/v0.65.4...v0.66.0) (2026-10-02)
+
+
+### Features
+
+* **desktop:** update channel opt-in and dev builds of main ([#2481](https://github.com/adea-ai/cortana/issues/2481)) ([5b1c88c](https://github.com/adea-ai/cortana/commit/5b1c88c6ed7e1bef944c3727881b4f4f8c26aabc))
+
 ## [0.65.4](https://github.com/adea-ai/cortana/compare/v0.65.3...v0.65.4) (2026-10-02)
 
 
