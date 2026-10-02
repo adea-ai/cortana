@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.65.3](https://github.com/adea-ai/cortana/compare/v0.65.2...v0.65.3) (2026-10-02)
+
+
+### Maintenance
+
+* **deps:** update dependency code-foundry to v1.41.0 ([#2476](https://github.com/adea-ai/cortana/issues/2476)) ([59cc17c](https://github.com/adea-ai/cortana/commit/59cc17cdac83d68f37da345b19c8048193886c8f))
+
 ## [0.65.2](https://github.com/adea-ai/cortana/compare/v0.65.1...v0.65.2) (2026-10-02)
 
 
