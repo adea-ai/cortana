@@ -76,7 +76,7 @@ RUN --mount=type=cache,id=cargo-registry-${TARGETARCH},target=/usr/local/cargo/r
     cargo build --release --locked --bin cortana \
     && cp /src/target/release/cortana /usr/local/bin/cortana
 
-FROM python:3.11-slim-bookworm AS runtime
+FROM python:3.14-slim-bookworm AS runtime
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends ca-certificates curl tini \
