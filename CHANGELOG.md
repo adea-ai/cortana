@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.65.0](https://github.com/adea-ai/cortana/compare/v0.64.2...v0.65.0) (2026-10-02)
+
+
+### Features
+
+* **desktop:** share app support surfaces ([#2460](https://github.com/adea-ai/cortana/issues/2460)) ([ee95b0b](https://github.com/adea-ai/cortana/commit/ee95b0bb840747f340f3b7f9cf0955db0ef53148))
+
+
+### Maintenance
+
+* **code-foundry:** upgrade runtime to v1.41.0 ([#2466](https://github.com/adea-ai/cortana/issues/2466)) ([dd1e20b](https://github.com/adea-ai/cortana/commit/dd1e20b2e28e1b5131bfca157f6bb2e97dd57dfe))
+* **deps:** adopt @adea-ai/ui 0.97.7 ([#2465](https://github.com/adea-ai/cortana/issues/2465)) ([38802cf](https://github.com/adea-ai/cortana/commit/38802cf4f239e828376607096c0b251c4fb9a615))
+* **deps:** update external non-major dependencies ([#2464](https://github.com/adea-ai/cortana/issues/2464)) ([4364a78](https://github.com/adea-ai/cortana/commit/4364a78046102470ec6812e406cc030701cbe1e0))
+
 ## [0.64.2](https://github.com/adea-ai/cortana/compare/v0.64.1...v0.64.2) (2026-10-02)
 
 
