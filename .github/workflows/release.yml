@@ -3,6 +3,24 @@ name: Code Foundry Release
 on:
   push:
     branches: [main]
+  schedule:
+    # Batch Release Please to one window per day at 12:23 UTC (8:23am AST),
+    # 23 minutes after adea's window so the shared automation token's budget
+    # never sees both repos' bursts at once. Merges accumulate into a single
+    # version pull request and a single release-assets build; a window with
+    # nothing unreleased is a cheap no-op. Every push used to merge its own
+    # version PR on sight, which is how a single evening produced three
+    # releases (0.65.0–0.65.2).
+    #
+    # The window doubles as the pre-release cadence: the published release is
+    # flagged as a GitHub pre-release (see mark-prerelease below) and the
+    # batch-soak promoter (promote-stable.yml) decides when it goes stable.
+    #
+    # This schedule is hand-maintained: a code-foundry runtime upgrade
+    # regenerates this file and silently reverts to per-merge releases (the
+    # v1.41.0 rollout #2476 did exactly that to the earlier four-window
+    # batching). After an upgrade, re-check this block.
+    - cron: '23 12 * * *'
   workflow_dispatch:
     inputs:
       release-while-paused:
@@ -26,7 +44,15 @@ jobs:
     # qualification below only executes when a release (or a stuck draft) needs
     # it. Version pull requests keep flowing even when the candidate is broken;
     # publication stays gated on qualification success in the stage job.
-    if: vars.CI_BILLING_PAUSED != 'true' || (github.event_name == 'workflow_dispatch' && inputs['release-while-paused'] == true)
+    #
+    # A plain push to main no longer runs the pipeline: ordinary merges wait
+    # for the scheduled window. Only the `chore(main): release …` squash
+    # itself (the version pull request merging) triggers publication on push,
+    # which is also what makes an out-of-band release possible — merging the
+    # pending version PR by hand publishes immediately.
+    if: >-
+      (vars.CI_BILLING_PAUSED != 'true' || (github.event_name == 'workflow_dispatch' && inputs['release-while-paused'] == true)) &&
+      (github.event_name != 'push' || startsWith(github.event.head_commit.message, 'chore(main): release '))
     uses: 0xPlayerOne/code-foundry/.github/workflows/release.yml@v1.41.0
     with:
       billing-pause-bypass: ${{ github.event_name == 'workflow_dispatch' && inputs['release-while-paused'] == true }}
@@ -44,3 +70,46 @@ jobs:
     secrets:
       CODE_FOUNDRY_TOKEN: ${{ secrets.CODE_FOUNDRY_TOKEN }}
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  mark-prerelease:
+    name: Mark the release a pre-release
+    # The daily release publishes as a pre-release: it stays invisible to the
+    # stable feed (GitHub's releases/latest skips pre-releases) until the
+    # batch-soak promoter flips the flag. This runs in PARALLEL with the
+    # release job, not after it: the release object can exist before the
+    # pipeline finishes, and a failed (unqualified) pipeline is exactly when
+    # a build must not be stable-visible. A workflow_dispatch run has no head
+    # commit to parse, so a hand-dispatched release — the hotfix path — stays
+    # stable immediately, which is what a hotfix wants.
+    if: >-
+      github.event_name == 'push' && startsWith(github.event.head_commit.message, 'chore(main): release ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    steps:
+      - name: Flag the freshly published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_SUBJECT: ${{ github.event.head_commit.message }}
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^chore(main): release \([0-9][0-9.]*\).*$/\1/p' <<<"$COMMIT_SUBJECT")"
+          if [[ -z "$version" ]]; then
+            echo "No release version in the head commit subject; nothing to mark." >&2
+            exit 0
+          fi
+          tag="v${version}"
+          # The release object appears when Release Please merges the version
+          # pull request inside the pipeline above, so poll for it rather
+          # than racing it.
+          for _ in $(seq 1 50); do
+            if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --prerelease
+              echo "Marked $tag as a pre-release; promote-stable.yml owns it from here."
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::release $tag did not appear within 25 minutes; it is stable-visible — flip it manually or investigate the release job" >&2
+          exit 1
