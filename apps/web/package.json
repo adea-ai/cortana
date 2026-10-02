@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@adea-ai/themes": "0.8.6",
-    "@adea-ai/ui": "0.89.2",
+    "@adea-ai/ui": "0.95.7",
     "@tauri-apps/api": "^2.11.1",
     "lucide-solid": "^1.46.0",
     "simple-icons": "^16.28.0",
