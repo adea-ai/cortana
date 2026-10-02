@@ -2,8 +2,10 @@
 
 The supported self-hosted profile runs the same Cortana binary, SQLite store, ContextBundle,
 memory, MCP, HTTP, and CLI contracts as Local. It is a user-controlled single node for a private
-workstation, home server, or Linux VPS. It is not managed hosting, multi-writer SQLite, cross-device
-brain synchronization, team tenancy, or a remote connector fleet.
+workstation, home server, or Linux VPS. The repository implements an opt-in, owner-operated relay
+path for cross-device sync, as described in [ADR 0008](architecture/0008-local-relay.md); check the
+[release history](releases.md) before relying on that path in a packaged build. Self-hosted remains distinct from
+managed hosting, multi-writer SQLite, team tenancy, and a remote connector fleet.
 
 ## Requirements and measured baseline
 
@@ -61,15 +63,22 @@ Use `Authorization: Bearer $CORTANA_OWNER_TOKEN` for authenticated probes. `/hea
 Logs go to Docker's bounded JSON log driver.
 
 - Backup: `docker compose exec cortana cortana --config /etc/cortana/config.toml backup --keep 14`.
-  Copy a verified snapshot off-host after creation.
-- Verify: `docker compose exec cortana cortana --config /etc/cortana/config.toml verify` and verify
-  the off-host snapshot separately before relying on it.
-- Restore: stop Cortana, retain the current data volume, run the documented `restore --force`
-  command against a verified snapshot in a one-off container, then start and probe readiness.
+  This creates a full SQLite snapshot and checks its integrity. Record the creating release beside
+  the file, then copy the snapshot off-host.
+- Verify the active database with
+  `docker compose exec cortana cortana --config /etc/cortana/config.toml verify`.
+  Verify the off-host snapshot separately with `cortana verify /path/to/snapshot.sqlite3` before
+  relying on it. These commands check SQLite integrity only; they do not test whether a different
+  Cortana release can open the database.
+- Restore: stop Cortana, retain the current data volume, and run `restore --force` in a one-off
+  container using the release that created the snapshot. Start that release and probe readiness.
+  Restore copies the SQLite database; it does not negotiate a backup format or schema version.
 - Update: create and verify a backup, pin the new release tag, pull, recreate, and run provider
   conformance before deleting the old image.
 - Rollback: stop, restore the pre-update snapshot if a migration changed the database, pin the prior
-  release tag, recreate, and rerun conformance. Never start old and new versions on one volume.
+  release tag, recreate, and rerun conformance. Backward compatibility is not guaranteed. If the
+  target release differs from the one that created a snapshot, test a separate copy on a disposable
+  volume before restoring production data. Never start old and new versions on one volume.
 - Restart: write a synthetic memory with a dedupe key, restart the container or host, then recall it
   and compare its ID/revision. The M8 reference drill preserved the same memory ID across restart.
 - Corruption: run `verify` against a disposable known-invalid fixture. It must fail closed with

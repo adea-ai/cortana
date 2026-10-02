@@ -162,19 +162,24 @@ Do not expose the owner-local CLI as a multi-tenant authorization surface. Share
 
 ## Backups
 
-Use the supported online SQLite snapshot operation.
+Use the supported online SQLite snapshot operation. `cortana backup` creates a consistent snapshot
+of the full database, including canonical records, memories, ACL and revision metadata, derived
+indexes, and cache tables as stored at backup time. Configuration files and credentials held outside
+SQLite are not included and must be preserved separately. The command runs SQLite's integrity check
+but does not create a versioned archive envelope or embed an application/schema version.
 
 A backup procedure must:
 
-- produce a consistent snapshot;
-- include required canonical data, memories, ACLs, revisions, and security configuration references;
-- exclude or separately handle replaceable caches according to the contract;
-- record application/schema version;
-- use owner-restricted storage;
-- verify the snapshot independently;
+- keep snapshots in owner-restricted storage and record the creating Cortana release alongside
+  each file, because the command does not embed that metadata;
+- preserve the configuration and credential material needed to operate the restored installation
+  through a separate owner-controlled backup process;
+- verify any off-host copy independently before relying on it;
 - retain enough history for rollback under the configured policy.
 
-Backup success and backup verification are distinct.
+The command reports success only after its snapshot passes SQLite integrity verification. That check
+confirms SQLite can read the database pages; it does not confirm that a particular Cortana release
+can open the schema. Backup creation and compatibility with a restore target are separate checks.
 
 ## Restore
 
@@ -183,11 +188,19 @@ Restore is destructive and confirmation-gated.
 Before restore:
 
 - stop or quiesce mutating writers;
-- verify the input;
-- verify compatibility;
+- run `cortana verify /path/to/snapshot.sqlite3` on the input;
+- identify the Cortana release that created the snapshot and the release that will open it;
 - check disk space and permissions;
 - create a recovery copy of the active data;
 - record the intended target and rollback path.
+
+Backup files are plain SQLite databases. The current verifier checks SQLite integrity, and restore
+copies the database into place; neither step negotiates application or schema versions. On the next
+open, `Store::open` applies the schema additions and backfills implemented by that Cortana release.
+There is no reverse-migration path or general forward/backward compatibility guarantee. Prefer the
+release that created the snapshot. If you need to use another release, restore a copy into a separate
+disposable data directory and confirm that it opens and passes readiness before replacing the
+active data.
 
 After restore:
 
@@ -199,7 +212,9 @@ After restore:
 - run readiness;
 - retain audit evidence.
 
-A corrupt, incompatible, symlinked, or incomplete backup must fail before replacing active data.
+Restore rejects symlinked inputs and snapshots that fail SQLite integrity verification before
+copying them. A structurally valid database that the target release cannot open may pass that
+check, so compatibility must be checked with the target release against a disposable copy first.
 
 ## Updates
 
