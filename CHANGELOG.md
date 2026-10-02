@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.65.2](https://github.com/adea-ai/cortana/compare/v0.65.1...v0.65.2) (2026-10-02)
+
+
+### Bug Fixes
+
+* bound unit lanes and js test groups so a wedged lane fails fast ([#2471](https://github.com/adea-ai/cortana/issues/2471)) ([7f6e210](https://github.com/adea-ai/cortana/commit/7f6e210f8e132bb1b38ed93347858b4ee4708f72))
+
+
+### Maintenance
+
+* **deps:** adopt @adea-ai/ui 0.99.0 ([#2473](https://github.com/adea-ai/cortana/issues/2473)) ([1f51db7](https://github.com/adea-ai/cortana/commit/1f51db766bb0d2ecbdee0725568b6539bb107dc7))
+
 ## [0.65.1](https://github.com/adea-ai/cortana/compare/v0.65.0...v0.65.1) (2026-10-02)
 
 
