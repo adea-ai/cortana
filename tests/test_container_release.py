@@ -360,7 +360,7 @@ class ConfigurationTests(unittest.TestCase):
             "FROM --platform=$BUILDPLATFORM oven/bun:1.4.2-slim AS bun-runtime", dockerfile
         )
         self.assertIn(
-            "FROM --platform=$BUILDPLATFORM node:22-bookworm-slim AS web-builder", dockerfile
+            "FROM --platform=$BUILDPLATFORM node:24-bookworm-slim AS web-builder", dockerfile
         )
         self.assertNotIn("COPY apps/desktop/package.json", dockerfile)
         dockerignore = (ROOT / ".dockerignore").read_text()
