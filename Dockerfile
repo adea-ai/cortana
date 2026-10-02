@@ -21,7 +21,7 @@ RUN cd apps/web \
     && node ../../node_modules/vite/bin/vite.js build \
     && bun ../../scripts/check-web-bundle-budget.mjs
 
-FROM rust:1.88-bookworm AS rust-builder
+FROM rust:1.98-bookworm AS rust-builder
 ARG TARGETARCH
 WORKDIR /src
 # reqwest 0.13's rustls (aws-lc-rs) compiles its vendored C with CMake,
@@ -76,7 +76,7 @@ RUN --mount=type=cache,id=cargo-registry-${TARGETARCH},target=/usr/local/cargo/r
     cargo build --release --locked --bin cortana \
     && cp /src/target/release/cortana /usr/local/bin/cortana
 
-FROM python:3.11-slim-bookworm AS runtime
+FROM python:3.14-slim-bookworm AS runtime
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends ca-certificates curl tini \

@@ -2,6 +2,8 @@
 
 Cortana consumes the published `@adea-ai/ui` and `@adea-ai/themes` packages. The shared UI library owns controls, compound components, accessibility behavior, typography, spacing variants, fonts, and semantic tokens. Themes owns the palette catalogue and provenance. Cortana owns source, document, graph, memory, and operational behavior.
 
+At this source revision, the root and web manifests pin `@adea-ai/ui` to `0.89.2`, and the web manifest pins `@adea-ai/themes` to `0.8.6`; `bun.lock` resolves those exact published versions. Keep this version note synchronized with both manifests and the lockfile when dependencies change.
+
 ## Component ownership
 
 Use canonical subpaths so lint can identify each component; root-barrel imports are rejected. Keep the root lint dependency and web UI dependency at the same version. Import shared components from `@adea-ai/ui/components/*` and utilities from `@adea-ai/ui/lib/*`. Do not import or re-export the bare `Button` from `ui/button`; use `ActionButton` or an interactive `ListRow` for actions. Pure re-exports of the supported shared API may preserve application terminology. Generic components, control wrappers, variants, class utilities, and accessible control implementations belong in the shared library. Use shared ListGroup/ListRow for utility and evidence lists, Kbd for keyboard keys, Badge for metadata pills, and Table for configuration tables; native anchors, keyboard keys, progress indicators, meters, and tables are rejected. Add missing capabilities there and consume a published version; do not copy implementation files into Cortana or add local package aliases.

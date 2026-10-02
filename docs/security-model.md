@@ -54,7 +54,8 @@ revealing whether a hidden record exists.
 
 Audit events contain principal, operation, scope labels, outcome, bounded result count, and latency;
 they do not contain query text, document content, memory content, tokens, or private absolute paths.
-Backups are owner-only files and must pass verify/restore drills before being trusted. A suspected
+Backups are owner-only SQLite snapshots. Verification checks SQLite integrity, while a restore drill
+with the target Cortana release checks whether that release can open the database. A suspected
 credential compromise requires revoke/rotate, auth reload, audit review, backup review, and a clean
 release/restore decision. Hosted deployment requires a separate tenancy and incident ADR; the
 future-mode boundary is defined in [ADR 0003](architecture/0003-multi-device-and-managed-modes.md)

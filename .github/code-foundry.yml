@@ -1,7 +1,11 @@
 version: 1
 profile: application
 languages: rust,python,typescript
-features: all
+features: validation,release,draft-pr
+# Dependency updates are Renovate-only: grouped draft PRs from the org
+# runner in adea-ai/ui. The updater key stops sync from re-rendering
+# .github/dependabot.yml regardless of the features selection.
+dependency_updater: renovate
 codeql: auto
 dependency_review: auto
 package_manager: bun

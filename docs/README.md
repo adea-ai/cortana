@@ -17,14 +17,14 @@ Cortana documentation is divided by authority. Each document should define one d
 | Agent setup and interface use                           | [Integrations](integrations.md)                                                                                                   |
 | Desktop architecture and privilege boundary             | [Desktop architecture](desktop-architecture.md)                                                                                   |
 | Desktop packaged-product acceptance                     | [Desktop UX audit](desktop-ux-audit.md)                                                                                           |
-| Shared web component and styling contract               | [Web UI standards](web-ui-standards.md)                                                                                           |
-| Desktop shadcn migration baseline and architecture      | [Desktop shadcn migration record](desktop-shadcn-migration.md)                                                                    |
+| Current shared web UI and theme consumer contract       | [Web UI standards](web-ui-standards.md)                                                                                           |
+| Historical M7 shadcn migration evidence                 | [Desktop shadcn migration record](desktop-shadcn-migration.md)                                                                    |
 | Services, readiness, backup, restore, and recovery      | [Operations](operations.md)                                                                                                       |
 | Derived Obsidian-compatible Markdown export             | [Derived Obsidian vault](obsidian-vault.md)                                                                                       |
 | Evaluation methods and evidence                         | [Evaluation](evaluation.md)                                                                                                       |
 | Planning and documentation ownership                    | [Planning and tracking](planning.md)                                                                                              |
 | Architecture diagrams                                   | [Architecture](architecture/)                                                                                                     |
-| Future multi-device and managed modes                   | [ADR 0003](architecture/0003-multi-device-and-managed-modes.md)                                                                   |
+| Multi-device sync and managed-mode boundaries           | [ADR 0003](architecture/0003-multi-device-and-managed-modes.md)                                                                   |
 | Managed and multi-device threat model                   | [Managed threat model](architecture/managed-threat-model.md)                                                                      |
 | Canonical entities and persistence                      | [Core entity contract](contracts/core-entities.md)                                                                                |
 | Structured retrieval units                              | [Structured chunking](chunking.md)                                                                                                |

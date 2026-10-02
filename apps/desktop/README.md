@@ -1,9 +1,10 @@
 # Cortana Desktop
 
 Cortana Desktop is the Tauri 2 control plane for the independently runnable Cortana runtime.
-It reuses the React/Vite workspace in `apps/web`, ships the matching Cortana core binary as a
-platform-specific sidecar, and talks to the local owner-only API through narrow Rust commands.
-The renderer has no arbitrary shell or filesystem capability.
+It reuses the SolidJS/Vite workspace in `apps/web`, which consumes the published `@adea-ai/ui` and
+`@adea-ai/themes` packages for shared components and themes. Desktop ships the matching Cortana core
+binary as a platform-specific sidecar and talks to the local owner-only API through narrow Rust
+commands. The renderer has no arbitrary shell or filesystem capability.
 
 Source setup is explicit and non-ingesting. The source editor can open fixed official provider
 setup pages, pick source/token/client paths through native dialogs, authorize saved Google sources
