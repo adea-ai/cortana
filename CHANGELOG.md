@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.64.1](https://github.com/adea-ai/cortana/compare/v0.64.0...v0.64.1) (2026-10-02)
+
+
+### CI
+
+* batch Release Please to four windows per day ([#2448](https://github.com/adea-ai/cortana/issues/2448)) ([0b08c98](https://github.com/adea-ai/cortana/commit/0b08c98d68d00e1944335ec765143a1b356db2d0))
+
+
+### Maintenance
+
+* **deps:** adopt reqwest 0.13 ([#2452](https://github.com/adea-ai/cortana/issues/2452)) ([884eaf8](https://github.com/adea-ai/cortana/commit/884eaf8d6e07621162ab59adf50fec733c102eed))
+* **web:** adopt @adea-ai/ui 0.95.7 ([#2451](https://github.com/adea-ai/cortana/issues/2451)) ([c88c5a8](https://github.com/adea-ai/cortana/commit/c88c5a8da11d8cbf5d24f6f4fdac23b413d10b87))
+
 ## [0.64.0](https://github.com/adea-ai/cortana/compare/v0.63.5...v0.64.0) (2026-10-01)
 
 
