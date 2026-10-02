@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.64.2](https://github.com/adea-ai/cortana/compare/v0.64.1...v0.64.2) (2026-10-02)
+
+
+### Bug Fixes
+
+* **renovate:** replace the retired docker manager with dockerfile and docker-compose ([#2459](https://github.com/adea-ai/cortana/issues/2459)) ([7ce281c](https://github.com/adea-ai/cortana/commit/7ce281c32853aa04d8b5a2a9e20d5c2c93d342b2))
+
+
+### Documentation
+
+* clarify backup compatibility and deployment scope ([#2442](https://github.com/adea-ai/cortana/issues/2442)) ([d053337](https://github.com/adea-ai/cortana/commit/d053337c5110b8fb7d7630abb779ee6fda9b8c2f))
+
+
+### Maintenance
+
+* **build:** move the rust toolchain to 1.98.1 ([#2453](https://github.com/adea-ai/cortana/issues/2453)) ([5d76a54](https://github.com/adea-ai/cortana/commit/5d76a54fb728448b182debd3e6fd789c81bb970b))
+* **container:** move the runtime image to python 3.14 ([#2454](https://github.com/adea-ai/cortana/issues/2454)) ([09381c0](https://github.com/adea-ai/cortana/commit/09381c0ea9579661ffff8bf0acf812612c81d662))
+* **deps:** update external major dependencies (major) ([#2462](https://github.com/adea-ai/cortana/issues/2462)) ([3707335](https://github.com/adea-ai/cortana/commit/37073354d52ddb50c7b057b60848cc527ffbfdfa))
+* make dependency updates Renovate-only and drop Dependabot ([#2456](https://github.com/adea-ai/cortana/issues/2456)) ([4aec651](https://github.com/adea-ai/cortana/commit/4aec6516d709e80561a31897e8510515c980a196))
+* **test:** migrate the solid test transform to babel 8 ([#2455](https://github.com/adea-ai/cortana/issues/2455)) ([d2d4397](https://github.com/adea-ai/cortana/commit/d2d4397d1496639989f13480607fb93078dd51a2))
+
 ## [0.64.1](https://github.com/adea-ai/cortana/compare/v0.64.0...v0.64.1) (2026-10-02)
 
 
