@@ -14,7 +14,7 @@
         "@testing-library/dom": "^10.4.1",
         "@types/bun": "^1.4.0",
         "babel-preset-solid": "^1.9.15",
-        "code-foundry": "1.40.0",
+        "code-foundry": "1.41.0",
         "oxfmt": "^0.71.0",
         "oxlint": "^1.83.0",
         "playwright": "^1.63.0",
@@ -26,14 +26,14 @@
     },
     "apps/desktop": {
       "name": "@cortana/desktop",
-      "version": "0.64.2", // x-release-please-version
+      "version": "0.64.2",
       "devDependencies": {
         "@tauri-apps/cli": "^2.11.4",
       },
     },
     "apps/web": {
       "name": "@cortana/web",
-      "version": "0.64.2", // x-release-please-version
+      "version": "0.64.2",
       "dependencies": {
         "@adea-ai/themes": "0.8.8",
         "@adea-ai/ui": "0.97.7",
@@ -488,7 +488,7 @@
 
     "cn": ["cn@0.4.0", "", { "bin": { "cn": "bin/cn.mjs" } }, "sha512-qOAeUhPwPzBxx6jaeQdo646XIKliKHc2j1ZF7Ngb1o0pJZKH5gq8FkA0aVdUdPFUDXNXyUCXpCtoJISo6dhizg=="],
 
-    "code-foundry": ["code-foundry@1.40.0", "", { "bin": { "code-foundry": "src/cli.mjs" } }, "sha512-yhLCth/tXnuTXGu2guMECryBjEr94LElnLx+hAWHRBkp1OrMHUrGHVmp9c0ZcYbV0HOcdo/1Y8fann2BMOpDWQ=="],
+    "code-foundry": ["code-foundry@1.41.0", "", { "bin": { "code-foundry": "src/cli.mjs" } }, "sha512-qQYTci/QXhxDifnwUWoaET24PxHq+A5u0KLx2l4o8UJn4HJBIIUJKgPcfGOVYE9W2/LpvWU5OHPgVoOzReAELA=="],
 
     "color-convert": ["color-convert@2.0.1", "", { "dependencies": { "color-name": "~1.1.4" } }, "sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ=="],
 
