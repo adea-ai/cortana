@@ -83,6 +83,26 @@ const exclusiveNames = new Set([
 const groups = buildTestGroups(tests, isolatedNames)
 const maxParallel = resolveMaxParallel(groups.length)
 
+// Group output is buffered until the group's bun process closes, so a group
+// wedged in bun's transform/import phase (outside `--timeout`'s reach) hung
+// invisibly until the whole 30-minute job ceiling. The per-group ceiling makes
+// that a fast failure that names the group's files and dumps their partial
+// output. Five minutes is far above any healthy group wall — the whole js lane
+// normally settles in under 150 seconds.
+const groupTimeoutMs = Number(process.env.JS_GROUP_TIMEOUT_MS ?? 300_000)
+
+// Bun spawns its own worker processes, and a signal to the direct child does
+// not reach them — the orphan keeps the output pipe open and `close` never
+// fires, which is exactly how a timeout fails to fail. Spawn each group as
+// its own process-group leader so signals reach the whole tree.
+const signalTree = (child, signal) => {
+  try {
+    if (child.pid) process.kill(-child.pid, signal)
+  } catch {
+    child.kill(signal)
+  }
+}
+
 function runGroup(group) {
   const labels = group.map((test) => relative(root, join(root, test)))
   const started = performance.now()
@@ -91,6 +111,7 @@ function runGroup(group) {
       cwd: root,
       env: process.env,
       stdio: ['ignore', 'pipe', 'pipe'],
+      detached: true,
     })
     let stdout = ''
     let stderr = ''
@@ -100,7 +121,19 @@ function runGroup(group) {
     child.stderr.on('data', (chunk) => {
       stderr += chunk
     })
+    let timedOut = false
+    const killTimer = setTimeout(() => {
+      timedOut = true
+      console.error(
+        `JavaScript test group exceeded ${(groupTimeoutMs / 1000).toFixed(0)}s: ${labels.join(', ')}`
+      )
+      signalTree(child, 'SIGTERM')
+      // SIGKILL cannot be caught or ignored, so group close is guaranteed to
+      // fire even when the wedged tree swallows SIGTERM.
+      setTimeout(() => signalTree(child, 'SIGKILL'), 5_000)
+    }, groupTimeoutMs)
     child.once('error', (error) => {
+      clearTimeout(killTimer)
       resolveResult({
         labels,
         code: 1,
@@ -109,9 +142,11 @@ function runGroup(group) {
       })
     })
     child.once('close', (code) => {
+      clearTimeout(killTimer)
       resolveResult({
         labels,
-        code: code ?? 1,
+        code: timedOut ? 1 : (code ?? 1),
+        timedOut,
         output: `${stdout}${stderr}`,
         durationMs: performance.now() - started,
       })
@@ -128,7 +163,10 @@ for (const batch of scheduleGroups(groups, maxParallel, exclusiveNames)) {
 }
 
 for (const result of results) {
-  console.log(`\n▶ ${result.labels.join(' + ')} (${(result.durationMs / 1000).toFixed(2)}s)`)
+  const timeoutMark = result.timedOut ? ' — TIMED OUT, partial output follows' : ''
+  console.log(
+    `\n▶ ${result.labels.join(' + ')} (${(result.durationMs / 1000).toFixed(2)}s)${timeoutMark}`
+  )
   if (result.output) process.stdout.write(result.output)
   if (result.code !== 0) {
     console.error(`JavaScript test group failed: ${result.labels.join(', ')}`)
