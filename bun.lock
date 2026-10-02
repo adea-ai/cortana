@@ -5,7 +5,7 @@
     "": {
       "name": "cortana-workspace",
       "devDependencies": {
-        "@adea-ai/ui": "0.97.7",
+        "@adea-ai/ui": "0.98.0",
         "@axe-core/playwright": "^4.13.0",
         "@babel/core": "^8.0.6",
         "@babel/preset-typescript": "^8.0.1",
@@ -26,17 +26,17 @@
     },
     "apps/desktop": {
       "name": "@cortana/desktop",
-      "version": "0.64.2", // x-release-please-version
+      "version": "0.64.2",
       "devDependencies": {
         "@tauri-apps/cli": "^2.11.4",
       },
     },
     "apps/web": {
       "name": "@cortana/web",
-      "version": "0.64.2", // x-release-please-version
+      "version": "0.64.2",
       "dependencies": {
-        "@adea-ai/themes": "0.8.8",
-        "@adea-ai/ui": "0.97.7",
+        "@adea-ai/themes": "0.8.9",
+        "@adea-ai/ui": "0.98.0",
         "@tauri-apps/api": "^2.11.1",
         "lucide-solid": "^1.46.0",
         "simple-icons": "^16.28.0",
@@ -56,9 +56,9 @@
     "qs": "6.16.0",
   },
   "packages": {
-    "@adea-ai/themes": ["@adea-ai/themes@0.8.8", "", {}, "sha512-CfIpeXH67/UGDaOtT22dK6lUR2DruAP16sq1u65ctXpiiDhWNVeslS6tVbL/67mivZsfLMOJGCqdexwqOFm0vw=="],
+    "@adea-ai/themes": ["@adea-ai/themes@0.8.9", "", {}, "sha512-X/8ul/xv1wHgLsHzfXjVyPvCZnBHketJfWTN118+0iF8hy6LX0h25J3K9La4zac/FiIiFaaKXAsSxnNxuGjH0A=="],
 
-    "@adea-ai/ui": ["@adea-ai/ui@0.97.7", "", { "dependencies": { "@adea-ai/themes": "^0.8.0", "@corvu/calendar": "^0.1.2", "@corvu/drawer": "^0.2.4", "@corvu/otp-field": "^0.1.4", "@corvu/resizable": "^0.2.5", "@fontsource-variable/geist": "^5.3.0", "@fontsource-variable/geist-mono": "^5.3.0", "@fontsource-variable/jetbrains-mono": "^5.3.0", "@fontsource-variable/space-grotesk": "^5.3.0", "@kobalte/core": "^0.13.14", "class-variance-authority": "^0.7.1", "cmdk-solid": "^1.2.0", "cn": "^0.4.0", "lucide-solid": "^1.48.0", "solid-motionone": "^1.0.4", "tw-animate-css": "^1.4.0" }, "peerDependencies": { "chart.js": "^4.5.1", "embla-carousel": "^8.6.0", "embla-carousel-solid": "^8.6.0", "solid-chartjs": "^1.3.11", "solid-js": "^1.9.0" }, "optionalPeers": ["chart.js", "embla-carousel", "embla-carousel-solid", "solid-chartjs"] }, "sha512-d+mDqjixXoLI+gBTbhx1NgdgmlucZr7Vfhchx6sDXAalSJgjwh6bZzVCRBKATRbpbhpne+CVlkK0CITgSYLAkw=="],
+    "@adea-ai/ui": ["@adea-ai/ui@0.98.0", "", { "dependencies": { "@adea-ai/themes": "^0.8.0", "@corvu/calendar": "^0.1.2", "@corvu/drawer": "^0.2.4", "@corvu/otp-field": "^0.1.4", "@corvu/resizable": "^0.2.5", "@fontsource-variable/geist": "^5.3.0", "@fontsource-variable/geist-mono": "^5.3.0", "@fontsource-variable/jetbrains-mono": "^5.3.0", "@fontsource-variable/space-grotesk": "^5.3.0", "@kobalte/core": "^0.13.14", "class-variance-authority": "^0.7.1", "cmdk-solid": "^1.2.0", "cn": "^0.4.0", "lucide-solid": "^1.48.0", "solid-motionone": "^1.0.4", "tw-animate-css": "^1.4.0" }, "peerDependencies": { "chart.js": "^4.5.1", "embla-carousel": "^8.6.0", "embla-carousel-solid": "^8.6.0", "solid-chartjs": "^1.3.11", "solid-js": "^1.9.0" }, "optionalPeers": ["chart.js", "embla-carousel", "embla-carousel-solid", "solid-chartjs"] }, "sha512-SIyjRt5yjJzdQ6Mq2KpXgwUsiX6+yxr8EcXwXxhWMsaPv32xJo9KKa1yeGnf71RbxWwTanjUNbDzn+XseTh7rQ=="],
 
     "@axe-core/playwright": ["@axe-core/playwright@4.13.0", "", { "dependencies": { "axe-core": "~4.13.0" }, "peerDependencies": { "playwright-core": ">= 1.0.0" } }, "sha512-6YLx+kxXu5GJceG4ozFg+33a2EMTdjYwWGloJ3sb9Kta5pp+ZNS53uxGVog5JetIY8s++P5UrtX+cri+u0VAVg=="],
 
