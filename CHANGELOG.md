@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.65.1](https://github.com/adea-ai/cortana/compare/v0.65.0...v0.65.1) (2026-10-02)
+
+
+### Maintenance
+
+* **deps:** adopt @adea-ai/themes 0.8.9 ([#2468](https://github.com/adea-ai/cortana/issues/2468)) ([81899dc](https://github.com/adea-ai/cortana/commit/81899dc4638c447a2f24a3e63a4c5f704144b886))
+
 ## [0.65.0](https://github.com/adea-ai/cortana/compare/v0.64.2...v0.65.0) (2026-10-02)
 
 
