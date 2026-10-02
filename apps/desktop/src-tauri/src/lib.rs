@@ -920,6 +920,24 @@ fn desktop_update_status(updater: State<'_, updater::UpdaterState>) -> updater::
 }
 
 #[tauri::command]
+fn desktop_update_channel<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+) -> Result<String, String> {
+    Ok(updater::read_channel(&app).as_str().to_string())
+}
+
+#[tauri::command]
+fn desktop_update_channel_save<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    channel: String,
+) -> Result<String, String> {
+    let parsed = updater::UpdateChannel::parse(&channel)
+        .ok_or_else(|| "unknown update channel".to_string())?;
+    updater::save_channel(&app, parsed)?;
+    Ok(parsed.as_str().to_string())
+}
+
+#[tauri::command]
 async fn desktop_update_check<R: tauri::Runtime>(
     app: tauri::AppHandle<R>,
     updater: State<'_, updater::UpdaterState>,
@@ -1619,6 +1637,8 @@ pub fn run() {
             desktop_database_backup,
             desktop_database_restore,
             desktop_update_status,
+            desktop_update_channel,
+            desktop_update_channel_save,
             desktop_update_check,
             desktop_update_install,
             desktop_update_cancel,
@@ -1843,6 +1863,8 @@ mod tests {
                 desktop_database_restore,
                 desktop_embedding_generation_migrate,
                 desktop_update_check,
+                desktop_update_channel,
+                desktop_update_channel_save,
                 desktop_update_install,
                 desktop_update_cancel,
                 desktop_update_status,

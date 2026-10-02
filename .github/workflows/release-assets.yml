@@ -9,10 +9,18 @@ on:
         description: Existing GitHub release tag
         required: true
         type: string
+      version_override:
+        description: Build version to inject (dev builds; for example 0.65.3-dev.7). Leave empty to build the checked-out source version.
+        required: false
+        type: string
 
 permissions:
   contents: write
 
+# Dev releases carry a -dev.N tag whose version the source never names; the
+# release:published event path builds the checked-out source version, so the
+# dev lane skips that event for dev tags and builds them through an explicit
+# dispatch with version_override instead (see dev-build.yml).
 jobs:
   binaries:
     name: Binary / ${{ matrix.target }}
@@ -26,13 +34,21 @@ jobs:
             target: x86_64-unknown-linux-gnu
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
+    if: ${{ !(github.event_name == 'release' && contains(github.event.release.tag_name, '-dev.')) }}
     env:
       RELEASE_TAG: ${{ inputs.tag || github.event.release.tag_name }}
+      VERSION_OVERRIDE: ${{ inputs.version_override }}
     steps:
       - name: Checkout release
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.RELEASE_TAG }}
+      - name: Apply the dev version override
+        if: env.VERSION_OVERRIDE != ''
+        run: |
+          set -euo pipefail
+          python3 scripts/apply-dev-version.py "${VERSION_OVERRIDE}"
+          grep -q "\"${VERSION_OVERRIDE}\"" apps/desktop/src-tauri/tauri.conf.json
       - name: Install Rust target
         run: rustup target add "${{ matrix.target }}"
       - name: Install Bun
@@ -108,8 +124,10 @@ jobs:
             target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
+    if: ${{ !(github.event_name == 'release' && contains(github.event.release.tag_name, '-dev.')) }}
     env:
       RELEASE_TAG: ${{ inputs.tag || github.event.release.tag_name }}
+      VERSION_OVERRIDE: ${{ inputs.version_override }}
       GITHUB_TOKEN: ${{ github.token }}
       # Ad-hoc macOS bundles are an emergency compatibility path for the
       # existing local Desktop install. Keep it opt-in at the repository level
@@ -123,6 +141,12 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.RELEASE_TAG }}
+      - name: Apply the dev version override
+        if: env.VERSION_OVERRIDE != ''
+        run: |
+          set -euo pipefail
+          python3 scripts/apply-dev-version.py "${VERSION_OVERRIDE}"
+          grep -q "\"${VERSION_OVERRIDE}\"" apps/desktop/src-tauri/tauri.conf.json
       - name: Install Tauri system dependencies
         if: runner.os == 'Linux'
         run: |

@@ -259,6 +259,27 @@ export async function cancelDesktopUpdate(): Promise<DesktopUpdate> {
   return parseDesktopUpdate(await invokeDesktop<DesktopUpdate>('desktop_update_cancel'))
 }
 
+export type DesktopUpdateChannel = 'stable' | 'pre-release' | 'dev'
+
+export async function getDesktopUpdateChannel(): Promise<DesktopUpdateChannel> {
+  if (!isDesktopApp) return 'stable'
+  const channel = await invokeDesktop<string>('desktop_update_channel')
+  return isUpdateChannel(channel) ? channel : 'stable'
+}
+
+export async function saveDesktopUpdateChannel(
+  channel: DesktopUpdateChannel
+): Promise<DesktopUpdateChannel> {
+  if (!isDesktopApp) throw new Error('Updates are available in Cortana Desktop')
+  const saved = await invokeDesktop<string>('desktop_update_channel_save', { channel })
+  if (!isUpdateChannel(saved)) throw new Error('unknown update channel')
+  return saved
+}
+
+function isUpdateChannel(value: unknown): value is DesktopUpdateChannel {
+  return value === 'stable' || value === 'pre-release' || value === 'dev'
+}
+
 export async function getRuntimeAudit(limit = 100): Promise<AuditEvent[]> {
   if (!isDesktopApp) throw new Error('Audit is available in Cortana Desktop')
   return parseAuditEvents(await invokeDesktop<AuditEvent[]>('brain_audit', { limit }))
