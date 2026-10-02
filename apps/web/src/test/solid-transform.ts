@@ -20,7 +20,9 @@ plugin({
         configFile: false,
         sourceMaps: 'inline',
         presets: [
-          [presetTypescript, { isTSX: true, allExtensions: true }],
+          // preset-typescript 8 dropped .isTSX/.allExtensions: JSX detection
+          // is filename-based, and the onLoad filter only sees .tsx paths.
+          presetTypescript,
           [presetSolid, { generate: 'dom', hydratable: false }],
         ],
       })
