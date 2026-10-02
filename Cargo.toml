@@ -35,7 +35,7 @@ fs2 = "0.4"
 futures-util = "0.3"
 ignore = "0.4"
 open = "5.3"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.13", default-features = false, features = ["json", "form", "rustls"] }
 rmcp = { version = "3.0", features = ["client", "macros", "server", "transport-io"] }
 rusqlite = { version = "0.40", features = ["backup", "bundled"] }
 schemars = { version = "1.0", features = ["chrono04"] }
@@ -63,7 +63,7 @@ libc = "0.2"
 
 [package]
 name = "cortana"
-version = "0.63.3"
+version = "0.64.1"
 edition.workspace = true
 rust-version.workspace = true
 description = "Local-first, agent-native second brain with configurable ingestion and hybrid retrieval"

@@ -24,7 +24,7 @@ runs:
         restore-keys: |
           ${{ runner.os }}-${{ runner.arch }}-desktop-sccache-v1-
     - name: Install sccache
-      uses: taiki-e/install-action@cb33e69fad06166ca28a42b2575e4dadabf62ee8 # v2
+      uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2
       with:
         tool: sccache
     - name: Wrap rustc with sccache

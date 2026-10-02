@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.64.1](https://github.com/adea-ai/cortana/compare/v0.64.0...v0.64.1) (2026-10-02)
+
+
+### CI
+
+* batch Release Please to four windows per day ([#2448](https://github.com/adea-ai/cortana/issues/2448)) ([0b08c98](https://github.com/adea-ai/cortana/commit/0b08c98d68d00e1944335ec765143a1b356db2d0))
+
+
+### Maintenance
+
+* **deps:** adopt reqwest 0.13 ([#2452](https://github.com/adea-ai/cortana/issues/2452)) ([884eaf8](https://github.com/adea-ai/cortana/commit/884eaf8d6e07621162ab59adf50fec733c102eed))
+* **web:** adopt @adea-ai/ui 0.95.7 ([#2451](https://github.com/adea-ai/cortana/issues/2451)) ([c88c5a8](https://github.com/adea-ai/cortana/commit/c88c5a8da11d8cbf5d24f6f4fdac23b413d10b87))
+
+## [0.64.0](https://github.com/adea-ai/cortana/compare/v0.63.5...v0.64.0) (2026-10-01)
+
+
+### Features
+
+* **desktop:** merge the top app bar into the macos title bar ([#2440](https://github.com/adea-ai/cortana/issues/2440)) ([bb34e1a](https://github.com/adea-ai/cortana/commit/bb34e1a0d277bb7c9cb87f17b0daef40f91288d8))
+
+## [0.63.5](https://github.com/adea-ai/cortana/compare/v0.63.4...v0.63.5) (2026-10-01)
+
+
+### Bug Fixes
+
+* **deps:** update external non-major dependencies ([#2431](https://github.com/adea-ai/cortana/issues/2431)) ([83219b5](https://github.com/adea-ai/cortana/commit/83219b5ff203a290e3d590cb893d66f2e6846077))
+
+## [0.63.4](https://github.com/adea-ai/cortana/compare/v0.63.3...v0.63.4) (2026-10-01)
+
+
+### Maintenance
+
+* **deps:** update adea-ai themes to 0.8.6 ([#2441](https://github.com/adea-ai/cortana/issues/2441)) ([3257cab](https://github.com/adea-ai/cortana/commit/3257cabf60da473f3e527d740f697a4da4a57a89))
+
 ## [0.63.3](https://github.com/adea-ai/cortana/compare/v0.63.2...v0.63.3) (2026-10-01)
 
 

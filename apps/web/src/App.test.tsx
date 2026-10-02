@@ -412,8 +412,10 @@ test('mobile navigation lists workspaces as rows rather than a hidden menu', asy
   const sheet = await openMobileRail()
   // A dropdown opened inside the modal sheet lands outside its aria-hidden
   // subtree, so the sheet lists the workspaces as rows instead of a trigger.
+  // The workspace picker itself moved into the title bar, which is why the
+  // assertion is scoped to the sheet rather than the screen.
   expect(
-    screen.queryByRole('button', {
+    within(sheet).queryByRole('button', {
       name: 'Switch workspace',
     })
   ).toBeNull()

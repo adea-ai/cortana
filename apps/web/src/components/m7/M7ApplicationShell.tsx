@@ -18,6 +18,7 @@ import {
   ArrowLeft,
   ArrowRight,
   BookOpenText,
+  ChevronDown,
   CircleHelp,
   Info,
   Database,
@@ -142,6 +143,10 @@ export type M7HeaderProps = {
   onOpenContext: (origin?: HTMLElement | null) => void
   onOpenCommands: (origin?: HTMLElement | null) => void
   workspaceName: string
+  /** The workspace list behind the title bar's workspace picker. */
+  workspaces?: WorkspaceOption[]
+  workspace?: string
+  onWorkspaceChange?: (workspace: string) => void
   location: string
   systemActions?: JSX.Element
 }
@@ -215,12 +220,31 @@ const utilityItems: UtilityItem[] = [
   },
 ]
 
+/*
+ * macOS desktop windows merge the title bar into the top bar: Tauri's Overlay
+ * title bar style floats the traffic lights over the strip, so the strip
+ * reserves their space and carries the window drag region. Every control in
+ * the bar is a real widget, so clicks keep working; the empty track around
+ * them is what drags. Browser tabs and non-mac desktop windows keep their
+ * normal chrome and skip both.
+ */
+const macTitlebarChrome = () => isDesktopApp && navigator.userAgent.includes('Mac')
+
 export function M7ApplicationHeader(props: M7HeaderProps) {
   const actionsRef = { current: null as HTMLButtonElement | null }
   const [systemOpen, setSystemOpen] = createSignal(false)
+  const [workspaceMenuOpen, setWorkspaceMenuOpen] = createSignal(false)
   const navigation = useCortanaNavigation()
+  const titlebar = macTitlebarChrome()
+  const activeWorkspace = () => props.workspaces?.find((item) => item.id === props.workspace)
   return (
-    <TopBar class="m7-application-header" glass>
+    <TopBar
+      class="m7-application-header"
+      glass
+      draggable={titlebar}
+      macosInset={titlebar}
+      {...(titlebar ? { 'data-tauri-drag-region': '' } : {})}
+    >
       <TopBarSection class="m7-header-leading">
         <Button
           tooltip="Toggle navigation"
@@ -234,6 +258,60 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
         >
           <PanelLeftIcon aria-hidden="true" />
         </Button>
+        {/*
+         * The workspace picker lives in the title strip: the strip is the
+         * window's title bar, and with the rail's own header row gone there is
+         * no rail slot whose rendering context keeps this dropdown's
+         * pointer-open reliable (a trigger inside the rail's scroller opens
+         * and is instantly dismissed).
+         */}
+        <Show when={props.workspaces && props.onWorkspaceChange}>
+          {/* Mobile switches workspaces through the sheet's rows; the strip
+              picker yields the search cluster its width back on small
+              screens. */}
+          <div class="hidden md:block">
+            <DropdownMenu
+              modal={false}
+              open={workspaceMenuOpen()}
+              onOpenChange={setWorkspaceMenuOpen}
+            >
+              <DropdownMenuTrigger
+                as={Button}
+                variant="ghost"
+                size="sm"
+                tooltip={`Workspace: ${activeWorkspace()?.name ?? 'Choose workspace'}`}
+                aria-label="Switch workspace"
+              >
+                <WorkspaceGlyph workspace={activeWorkspace()} size="small" />
+                <span class="hidden min-w-0 max-w-40 truncate md:inline">
+                  {activeWorkspace()?.name ?? 'Choose workspace'}
+                </span>
+                <ChevronDown aria-hidden="true" class="size-3.5 text-muted-foreground" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" sideOffset={6} class="min-w-56">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
+                  <DropdownMenuRadioGroup
+                    value={props.workspace}
+                    onChange={(value: unknown) => {
+                      setWorkspaceMenuOpen(false)
+                      props.onWorkspaceChange?.(value as string)
+                    }}
+                  >
+                    <For each={props.workspaces}>
+                      {(item) => (
+                        <DropdownMenuRadioItem value={item.id} closeOnSelect>
+                          <WorkspaceLogo workspace={item} size="small" />
+                          {item.name}
+                        </DropdownMenuRadioItem>
+                      )}
+                    </For>
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </Show>
         <div class="m7-header-context hidden min-w-0 items-center gap-1 sm:flex">
           <div class="flex items-center gap-1" role="group" aria-label="Search history">
             <Button
@@ -465,7 +543,6 @@ export function M7ApplicationNavigation(props: {
   onWorkspaceChange: (workspace: string) => void
 }) {
   const activeWorkspace = () => props.workspaces.find((item) => item.id === props.workspace)
-  const [workspaceMenuOpen, setWorkspaceMenuOpen] = createSignal(false)
   const [utilitiesMenuOpen, setUtilitiesMenuOpen] = createSignal(false)
   const currentView = () => props.navigation.view
   const visibleUtilityItems = () => utilityItems.filter((item) => !item.desktopOnly || isDesktopApp)
@@ -590,41 +667,11 @@ export function M7ApplicationNavigation(props: {
 
   const desktopRail = () => (
     <SideRail id="m7-primary-navigation" collapsed={collapsed()} aria-label="Primary navigation">
-      <SideRailHeader>
-        <DropdownMenu modal={false} open={workspaceMenuOpen()} onOpenChange={setWorkspaceMenuOpen}>
-          <DropdownMenuTrigger
-            as={SideRailButton}
-            label={`Workspace: ${activeWorkspace()?.name ?? 'Choose workspace'}`}
-            aria-label="Switch workspace"
-          >
-            <WorkspaceGlyph workspace={activeWorkspace()} size="small" />
-            <span class="min-w-0 flex-1 truncate text-left text-sm font-medium group-data-[collapsed=true]/rail:sr-only">
-              {activeWorkspace()?.name ?? 'Choose workspace'}
-            </span>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" sideOffset={6} class="min-w-56">
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
-              <DropdownMenuRadioGroup
-                value={props.workspace}
-                onChange={(value: unknown) => {
-                  setWorkspaceMenuOpen(false)
-                  props.onWorkspaceChange(value as string)
-                }}
-              >
-                <For each={props.workspaces}>
-                  {(item) => (
-                    <DropdownMenuRadioItem value={item.id} closeOnSelect>
-                      <WorkspaceLogo workspace={item} size="small" />
-                      {item.name}
-                    </DropdownMenuRadioItem>
-                  )}
-                </For>
-              </DropdownMenuRadioGroup>
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SideRailHeader>
+      {/*
+       * The window's title strip spans the full width above this rail, and the
+       * workspace picker lives in that strip (see M7ApplicationHeader): the
+       * rail carries destinations only.
+       */}
       <SideRailContent>{destinations()}</SideRailContent>
       <SideRailFooter>
         <SideRailItem

@@ -2,7 +2,7 @@
 
 # The static web bundle is target-independent. Both build tools must match the
 # build host, including when the benchmark emulates an ARM64 runtime image.
-FROM --platform=$BUILDPLATFORM oven/bun:1.4.0-slim AS bun-runtime
+FROM --platform=$BUILDPLATFORM oven/bun:1.4.2-slim AS bun-runtime
 
 FROM --platform=$BUILDPLATFORM node:22-bookworm-slim AS web-builder
 COPY --from=bun-runtime /usr/local/bin/bun /usr/local/bin/bun
@@ -24,6 +24,11 @@ RUN cd apps/web \
 FROM rust:1.88-bookworm AS rust-builder
 ARG TARGETARCH
 WORKDIR /src
+# reqwest 0.13's rustls (aws-lc-rs) compiles its vendored C with CMake,
+# which the base image does not carry.
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends cmake \
+    && rm -rf /var/lib/apt/lists/*
 COPY Cargo.toml Cargo.lock ./
 COPY crates/core/Cargo.toml crates/core/Cargo.toml
 COPY crates/retrieval/Cargo.toml crates/retrieval/Cargo.toml

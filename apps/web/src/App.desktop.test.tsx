@@ -4030,22 +4030,60 @@ test('services settings reuses the shell service snapshot without a duplicate po
   )
   expect(state.getDesktopServicesCalls).toBe(1)
 })
-test('the collapsed rail labels the workspace row with its own mark', async () => {
+test('the title bar carries the workspace picker with its own mark', async () => {
   render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-  const row = screen.getByRole('button', {
+  // The workspace picker lives in the title strip now; the rail carries
+  // destinations only.
+  const picker = screen.getByRole('button', {
     name: 'Switch workspace',
   })
-  fireEvent.pointerEnter(row)
-  const hint = await waitFor(() => {
-    const node = document.querySelector('[data-slot="side-rail-tip"]')
-    expect(node).not.toBeNull()
-    return node as HTMLElement
+  expect(picker.closest('[data-slot="top-bar"]')).not.toBeNull()
+  expect(picker.querySelector('[data-workspace-logo]')).not.toBeNull()
+  expect(
+    document.querySelector('#m7-primary-navigation [aria-label="Switch workspace"]')
+  ).toBeNull()
+})
+test('the mac title strip is a drag region clear of the traffic lights', async () => {
+  // Tauri's Overlay title bar floats the traffic lights over the top bar, so
+  // the strip must reserve their width and carry the drag region — while the
+  // controls inside it keep receiving clicks.
+  const prototype = Object.getPrototypeOf(window.navigator)
+  const original = Object.getOwnPropertyDescriptor(
+    Object.getPrototypeOf(window.navigator),
+    'userAgent'
+  )
+  Object.defineProperty(window.navigator, 'userAgent', {
+    configurable: true,
+    value:
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15',
   })
-  // Every rail label carries the row's own mark; for this row that is the
-  // workspace logo rather than a lucide glyph.
-  expect(hint.querySelector('[data-workspace-logo]')).not.toBeNull()
-  expect(hint.textContent).toContain('Workspace:')
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    const bar = document.querySelector('[data-slot="top-bar"]') as HTMLElement | null
+    expect(bar).not.toBeNull()
+    expect(bar!.hasAttribute('data-tauri-drag-region')).toBe(true)
+    expect(bar!.className).toContain('window-drag')
+    expect(bar!.className).toContain('window-inset-macos')
+    // The rail sits below the strip, so it has no header row of its own; the
+    // workspace picker is part of the strip itself.
+    expect(document.querySelector('[data-slot="side-rail-header"]')).toBeNull()
+    expect(
+      screen.getByRole('button', { name: 'Switch workspace' }).closest('[data-slot="top-bar"]')
+    ).not.toBeNull()
+  } finally {
+    delete (window.navigator as { userAgent?: string }).userAgent
+    if (original) Object.defineProperty(prototype, 'userAgent', original)
+  }
+})
+test('non-mac desktop windows keep their native chrome', async () => {
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  const bar = document.querySelector('[data-slot="top-bar"]') as HTMLElement | null
+  expect(bar).not.toBeNull()
+  expect(bar!.hasAttribute('data-tauri-drag-region')).toBe(false)
+  expect(bar!.className).not.toContain('window-inset-macos')
 })
 test('the utilities menu opens the identity dialog with the packaged version', async () => {
   render(() => <App />)
