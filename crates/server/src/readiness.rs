@@ -631,6 +631,9 @@ mod tests {
 
     #[async_trait::async_trait]
     impl Embedder for EventuallyReadyEmbedder {
+        // try_update (the fetch_update rename) needs Rust 1.98, above the
+        // workspace MSRV of 1.88, so keep the deprecated spelling until then.
+        #[allow(deprecated)]
         async fn embed(&self, _input: &[String]) -> anyhow::Result<Vec<Vec<f32>>> {
             if self
                 .remaining_failures
