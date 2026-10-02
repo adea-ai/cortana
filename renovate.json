@@ -26,8 +26,8 @@
       "enabled": false
     },
     {
-      "description": "The rust builder and python runtime images compile and run the product under pinned toolchains; image jumps (rust 1.88 → 1.98, python 3.11 → 3.14) are their own reviewed change, not a grouped bump.",
-      "matchManagers": ["docker"],
+      "description": "The rust builder and python runtime images compile and run the product under pinned toolchains; image jumps (rust 1.88 → 1.98, python 3.11 → 3.14) are their own reviewed change, not a grouped bump. Renovate split the retired `docker` manager into `dockerfile` and `docker-compose`.",
+      "matchManagers": ["dockerfile", "docker-compose"],
       "matchPackageNames": ["/^rust/", "/^python/"],
       "enabled": false
     },
