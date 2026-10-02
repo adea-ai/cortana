@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.65.4](https://github.com/adea-ai/cortana/compare/v0.65.3...v0.65.4) (2026-10-02)
+
+
+### CI
+
+* batch releases daily, publish pre-releases, and gate stable on a soak ([#2478](https://github.com/adea-ai/cortana/issues/2478)) ([df1573c](https://github.com/adea-ai/cortana/commit/df1573c7386cee312ece8ed50b1a7c177f669cec))
+
+
+### Maintenance
+
+* **code-foundry:** upgrade runtime to v1.42.0 ([#2479](https://github.com/adea-ai/cortana/issues/2479)) ([47ce23a](https://github.com/adea-ai/cortana/commit/47ce23a0381bdcf6e679ce3cda2de27bfe5fd412))
+
 ## [0.65.3](https://github.com/adea-ai/cortana/compare/v0.65.2...v0.65.3) (2026-10-02)
 
 
