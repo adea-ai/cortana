@@ -4,7 +4,7 @@ use std::sync::{
 };
 use std::time::Duration;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri_plugin_updater::{Error as UpdaterError, Update, UpdaterExt};
 use tokio::sync::{Mutex as AsyncMutex, Notify};
 
@@ -84,10 +84,24 @@ impl UpdaterState {
         // Keep the observable state fail-closed even when the updater plugin
         // cannot be initialized (for example in a headless test runtime). The
         // previous `?` returned while leaving the snapshot stuck at `checking`.
-        let updater = match app.updater() {
+        // The configured channel resolves an explicit endpoint: the plugin
+        // reads that release's signed manifest instead of the stable feed.
+        // Opt-in channels never fall back to stable on resolution failure —
+        // the check fails so the user sees the channel is unreachable.
+        let updater = match channel_endpoint(app).await {
+            Ok(Some(endpoint)) => app
+                .updater_builder()
+                .endpoints(vec![endpoint])
+                .and_then(|builder| builder.build())
+                .map_err(|error| format!("initialize signed updater: {error}")),
+            Ok(None) => app
+                .updater()
+                .map_err(|error| format!("initialize signed updater: {error}")),
+            Err(error) => Err(error),
+        };
+        let updater = match updater {
             Ok(updater) => updater,
             Err(error) => {
-                let error = format!("initialize signed updater: {error}");
                 self.update_snapshot(|snapshot| {
                     snapshot.phase = "failed";
                     snapshot.error = Some(error.clone());
@@ -448,6 +462,159 @@ fn is_retryable(error: &UpdaterError) -> bool {
 const UPDATE_CHECK_ATTEMPTS: usize = 3;
 const UPDATE_CHECK_RETRY_DELAYS: [Duration; 2] = [Duration::from_secs(2), Duration::from_secs(5)];
 
+// ── Update channels ────────────────────────────────────────────────────────
+//
+// Stable (the default) reads the moving `releases/latest/download/latest.json`
+// manifest configured in tauri.conf.json. The opt-in channels resolve their
+// newest release through the GitHub API and read that release's signed
+// manifest: the API only discovers the tag, and every signature check the
+// updater plugin applies stays intact. Opt-in channels never fall back to
+// stable — an install that chose dev must not be offered stable releases
+// when its channel is unreachable; it reports the failure instead.
+
+/// The update channel an installation follows.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum UpdateChannel {
+    #[default]
+    Stable,
+    PreRelease,
+    Dev,
+}
+
+impl UpdateChannel {
+    pub const ALL: [UpdateChannel; 3] = [Self::Stable, Self::PreRelease, Self::Dev];
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Stable => "stable",
+            Self::PreRelease => "pre-release",
+            Self::Dev => "dev",
+        }
+    }
+
+    pub fn parse(value: &str) -> Option<Self> {
+        Self::ALL
+            .into_iter()
+            .find(|channel| channel.as_str() == value)
+    }
+}
+
+impl std::fmt::Display for UpdateChannel {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
+/// Whether `tag` (a GitHub release tag) carries the builds a channel follows:
+/// stable and pre-release share the plain `vX.Y.Z` shape (visibility is the
+/// GitHub pre-release flag, not the tag), and dev builds are `vX.Y.Z-dev.N`.
+fn channel_tag_matches(tag: &str, channel: UpdateChannel) -> bool {
+    let Some(rest) = tag.strip_prefix('v') else {
+        return false;
+    };
+    let (core, dev_counter) = match rest.split_once("-dev.") {
+        Some((core, counter)) => (core, Some(counter)),
+        None => (rest, None),
+    };
+    let numeric = |value: &str| !value.is_empty() && value.chars().all(|c| c.is_ascii_digit());
+    let components = core.split('.').collect::<Vec<_>>();
+    if components.len() != 3 || !components.iter().all(|part| numeric(part)) {
+        return false;
+    }
+    match dev_counter {
+        Some(counter) => channel == UpdateChannel::Dev && numeric(counter),
+        None => channel != UpdateChannel::Dev,
+    }
+}
+
+const RELEASES_API_URL: &str = "https://api.github.com/repos/adea-ai/cortana/releases?per_page=30";
+const CHANNEL_FILE_NAME: &str = "update-channel.json";
+
+pub fn read_channel<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> UpdateChannel {
+    use tauri::Manager;
+
+    let Ok(data_dir) = app.path().app_data_dir() else {
+        return UpdateChannel::Stable;
+    };
+    let Ok(raw) = std::fs::read_to_string(data_dir.join(CHANNEL_FILE_NAME)) else {
+        return UpdateChannel::Stable;
+    };
+    serde_json::from_str::<UpdateChannel>(&raw).unwrap_or_default()
+}
+
+/// Persist the channel and record the change in the audit log. The file lives
+/// in the shell's app data directory (never web-side storage): the updater
+/// reads it from the shell process on every check, so a settings change takes
+/// effect without a restart, and a corrupted file degrades to stable.
+pub fn save_channel<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+    channel: UpdateChannel,
+) -> Result<(), String> {
+    use tauri::Manager;
+
+    let data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| format!("resolve app data dir: {error}"))?;
+    std::fs::create_dir_all(&data_dir)
+        .map_err(|error| format!("create app data dir: {error}"))?;
+    let body = serde_json::json!({ "channel": channel.as_str() });
+    std::fs::write(data_dir.join(CHANNEL_FILE_NAME), body.to_string())
+        .map_err(|error| format!("write update channel: {error}"))?;
+    audit("update_channel_changed", Some(channel.as_str()), false);
+    Ok(())
+}
+
+/// The endpoint a channel checks, or `None` for stable: the plugin then reads
+/// its configured `releases/latest` manifest unchanged.
+async fn resolve_channel_endpoint(channel: UpdateChannel) -> Result<tauri::Url, String> {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()
+        .map_err(|error| format!("build update channel client: {error}"))?;
+    let releases: serde_json::Value = client
+        .get(RELEASES_API_URL)
+        .header(reqwest::header::ACCEPT, "application/vnd.github+json")
+        .send()
+        .await
+        .map_err(|error| format!("list GitHub releases: {error}"))?
+        .error_for_status()
+        .map_err(|error| format!("list GitHub releases: {error}"))?
+        .json()
+        .await
+        .map_err(|error| format!("decode GitHub releases: {error}"))?;
+    let Some(releases) = releases.as_array() else {
+        return Err(format!("no {channel} release is published yet"));
+    };
+    for release in releases {
+        let tag = release
+            .get("tag_name")
+            .and_then(|value| value.as_str())
+            .unwrap_or_default();
+        if release.get("draft").and_then(|value| value.as_bool()) == Some(false)
+            && release.get("prerelease").and_then(|value| value.as_bool()) == Some(true)
+            && channel_tag_matches(tag, channel)
+        {
+            return tauri::Url::parse(&format!(
+                "https://github.com/adea-ai/cortana/releases/download/{tag}/latest.json"
+            ))
+            .map_err(|error| format!("parse channel endpoint: {error}"));
+        }
+    }
+    Err(format!("no {channel} release is published yet"))
+}
+
+/// The endpoint override for the configured channel: `None` lets the plugin
+/// read its configured stable feed.
+async fn channel_endpoint<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+) -> Result<Option<tauri::Url>, String> {
+    match read_channel(app) {
+        UpdateChannel::Stable => Ok(None),
+        channel => resolve_channel_endpoint(channel).await.map(Some),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -472,6 +639,37 @@ mod tests {
             "darwin-aarch64".into(),
         ])));
         assert!(!is_target_unavailable(&UpdaterError::ReleaseNotFound));
+    }
+
+    #[test]
+    fn channel_tags_split_stable_from_dev_builds() {
+        // The pre-release channel follows the plain shape; dev builds carry a
+        // -dev.N counter and never leak into it.
+        assert!(channel_tag_matches("v0.65.3", UpdateChannel::PreRelease));
+        assert!(!channel_tag_matches("v0.65.3-dev.1", UpdateChannel::PreRelease));
+        // The dev channel follows exactly the dev shape.
+        assert!(channel_tag_matches("v0.65.3-dev.1", UpdateChannel::Dev));
+        assert!(!channel_tag_matches("v0.65.3", UpdateChannel::Dev));
+        assert!(!channel_tag_matches("v0.65.3-dev.beta", UpdateChannel::Dev));
+        // Stable sees only the plain shape too: pre-releases are the same
+        // version grammar, gated by the GitHub flag instead of the tag.
+        assert!(channel_tag_matches("v0.65.3", UpdateChannel::Stable));
+        assert!(!channel_tag_matches("v0.65.3-dev.1", UpdateChannel::Stable));
+        // Malformed tags match nothing.
+        assert!(!channel_tag_matches("0.65.3", UpdateChannel::PreRelease));
+        assert!(!channel_tag_matches("v0.65", UpdateChannel::PreRelease));
+        assert!(!channel_tag_matches("v0.65.x-dev.1", UpdateChannel::Dev));
+        assert!(!channel_tag_matches("", UpdateChannel::Dev));
+    }
+
+    #[test]
+    fn channel_names_round_trip_through_parse() {
+        for channel in UpdateChannel::ALL {
+            assert_eq!(UpdateChannel::parse(channel.as_str()), Some(channel));
+        }
+        assert_eq!(UpdateChannel::parse("beta"), None);
+        assert_eq!(UpdateChannel::parse(""), None);
+        assert_eq!(UpdateChannel::default(), UpdateChannel::Stable);
     }
 
     #[test]

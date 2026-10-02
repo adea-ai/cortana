@@ -1,0 +1,90 @@
+name: Dev build
+
+# The dev update channel's build lane. Installs that opt into "Dev" follow
+# main: every push publishes a fully-built, fully-signed desktop update whose
+# version is `<last stable>-dev.<run number>`, flagged as a pre-release so it
+# is visible only to the dev channel and can never be promoted to stable (the
+# promoter's batch selector matches only the plain tag shape).
+#
+# Creating the release alone is not enough: the source between Release Please
+# bumps still carries the previous stable version, while the updater manifest
+# and the artifact names must carry the dev version. So this lane creates the
+# release and then dispatches release-assets.yml with `version_override`,
+# which patches the version into the build inputs on a throwaway checkout —
+# and the release:published event path skips dev-shaped tags, so nothing
+# builds the unpatched version by accident. Concurrency cancels superseded
+# pushes: after a burst of merges the newest commit is the one that ships.
+# This lane gates nothing; a red run here never blocks a merge.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: dev-build
+  cancel-in-progress: true
+
+jobs:
+  cut-dev-release:
+    name: Cut the dev pre-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # The release pipeline owns `chore(main): release …` commits; those builds
+    # are the daily pre-releases, not dev builds.
+    if: >-
+      ${{ !(github.event_name == 'push' && startsWith(github.event.head_commit.message, 'chore(main): release ')) }}
+    steps:
+      - name: Publish the dev pre-release and start the build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          repo="$GITHUB_REPOSITORY"
+
+          # Anchor the dev line at the newest promoted stable so ordering
+          # stays semver-honest: every 0.65.3-dev.N sorts below 0.65.4, so
+          # the next stable always wins over the dev line anchored at its
+          # predecessor, and successive dev builds order by their counter.
+          base="$(gh api "repos/$repo/releases/latest" --jq '.tag_name' | sed 's/^v//')"
+          version="${base}-dev.${RUN_NUMBER}"
+          tag="v${version}"
+          echo "Dev version: ${version} (anchored at stable ${base})"
+
+          if gh release view "$tag" --repo "$repo" >/dev/null 2>&1; then
+            echo "Release $tag already exists; nothing to do."
+            exit 0
+          fi
+
+          notes="$(printf 'Dev build of main @ %s.\n\nInstalls on the dev update channel only; never promoted to stable.' "$SHA")"
+          gh release create "$tag" --repo "$repo" \
+            --prerelease --target "$SHA" \
+            --title "Cortana $tag" --notes "$notes"
+
+          # The release event path skips dev-shaped tags by design; dispatch
+          # the build with the version the artifacts must carry.
+          gh workflow run release-assets.yml --repo "$repo" --ref main \
+            -f tag="$tag" -f version_override="$version"
+
+      - name: Prune old dev releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          repo="$GITHUB_REPOSITORY"
+          # Keep the newest ten dev builds; the API returns newest first.
+          gh api "repos/$repo/releases?per_page=100" --jq '
+            .[]
+            | select(.prerelease == true)
+            | select(.tag_name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+-dev\\.[0-9]+$"))
+            | .tag_name
+          ' | tail -n +11 | while read -r old; do
+            echo "Pruning old dev release $old"
+            gh release delete "$old" --repo "$repo" --yes --cleanup-tag
+          done
