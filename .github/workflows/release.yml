@@ -3,14 +3,6 @@ name: Code Foundry Release
 on:
   push:
     branches: [main]
-  schedule:
-    # Batch Release Please to four windows per day. Every push to main used to
-    # update the version pull request immediately, and the configured
-    # automation token merged it on sight, so each merge became its own
-    # release (6-8/day) with a full release-assets build behind it. Scheduled
-    # runs let the version pull request accumulate one window's changes; a
-    # run with nothing unreleased is a cheap no-op.
-    - cron: '23 */6 * * *'
   workflow_dispatch:
     inputs:
       release-while-paused:
@@ -30,22 +22,17 @@ concurrency:
 jobs:
   release:
     name: Release
-    # Version pull requests keep flowing even when the candidate is broken;
+    # Release Please consumes no qualification outputs; it runs first so the
+    # qualification below only executes when a release (or a stuck draft) needs
+    # it. Version pull requests keep flowing even when the candidate is broken;
     # publication stays gated on qualification success in the stage job.
-    #
-    # Batching gate: ordinary main pushes no longer run Release Please (the
-    # schedule above owns version pull requests between windows), but the
-    # squash merge of a version pull request must still trigger this workflow
-    # so Release Please cuts the tag and the publication pipeline runs.
-    if: >-
-      (vars.CI_BILLING_PAUSED != 'true' || (github.event_name == 'workflow_dispatch' && inputs['release-while-paused'] == true)) &&
-      (github.event_name != 'push' || startsWith(github.event.head_commit.message, 'chore(main): release '))
-    uses: 0xPlayerOne/code-foundry/.github/workflows/release.yml@v1.39.3
+    if: vars.CI_BILLING_PAUSED != 'true' || (github.event_name == 'workflow_dispatch' && inputs['release-while-paused'] == true)
+    uses: 0xPlayerOne/code-foundry/.github/workflows/release.yml@v1.41.0
     with:
       billing-pause-bypass: ${{ github.event_name == 'workflow_dispatch' && inputs['release-while-paused'] == true }}
       runner: ubuntu-slim
       runtime-repository: 0xPlayerOne/code-foundry
-      runtime-ref: v1.39.3
+      runtime-ref: v1.41.0
       git-workflow: direct
     permissions:
       actions: write
