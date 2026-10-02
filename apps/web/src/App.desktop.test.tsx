@@ -4,6 +4,7 @@ import { afterEach, expect, mock, test } from 'bun:test'
 import { cleanup, fireEvent, render, screen, waitFor, within } from 'solid-testing-library'
 import userEvent from '@testing-library/user-event'
 import { demoStatus } from './demo'
+import { shortcutLabel } from './shortcuts'
 import {
   desktopAuditEvents,
   desktopInfo,
@@ -34,6 +35,15 @@ const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\\]\\\\]/g, 
 const updatesButtonName = new RegExp(
   `Cortana ${escapeRegExp(desktopInfo.desktop_version)} · Updates`
 )
+const dragState = { startCalls: 0 }
+mock.module('@tauri-apps/api/window', () => ({
+  getCurrentWindow: () => ({
+    startDragging: () => {
+      dragState.startCalls += 1
+      return Promise.resolve()
+    },
+  }),
+}))
 afterEach(async () => {
   await act(async () => {
     // Unmount before flushing pending work so the shell's polling effects are
@@ -715,9 +725,25 @@ function utilitiesTrigger() {
   })
 }
 async function openSidebarDestination(label: string) {
-  fireEvent.pointerDown(utilitiesTrigger())
-  const item = await screen.findByRole('menuitem', { name: label })
+  const trigger = screen.queryByRole('button', { name: 'Settings and utilities' })
+  if (!trigger) {
+    fireEvent.click(screen.getByRole('button', { name: label, exact: true }))
+    return
+  }
+  fireEvent.pointerDown(trigger)
+  const item = await screen.findByRole('menuitem', {
+    name: label === 'Settings' ? /^Settings\b/ : label,
+  })
   fireEvent.pointerUp(item)
+}
+async function openUpdaterFromMenu() {
+  await openSidebarDestination('Updates')
+  return screen.findByRole('dialog', { name: /Version & updates/i })
+}
+async function installUpdateFromDialog() {
+  const install = await screen.findByRole('button', { name: 'Install and restart' })
+  await waitFor(() => expect(isActionDisabled(install as HTMLButtonElement)).toBe(false))
+  fireEvent.click(install)
 }
 test('shadcn settings compose generated source controls', async () => {
   const sourceSettings = {
@@ -1605,41 +1631,17 @@ test('advanced settings import preview applies as unsaved draft and requires exp
     window.confirm = originalConfirm
   }
 })
-test('updates project link surfaces native browser failures', async () => {
-  const originalError = state.openProjectError
-  state.openProjectError = new Error('browser unavailable')
+test('the shared updater release link uses the native URL bridge', async () => {
+  const originalError = state.openUrlError
+  state.openUrlError = new Error('browser unavailable')
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    await openSidebarDestination('Settings')
-    await waitFor(() =>
-      expect(
-        screen.getByRole('heading', {
-          name: 'Settings',
-        })
-      ).toBeTruthy()
-    )
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Updates',
-      })
-    )
-    await waitFor(() =>
-      expect(
-        screen.getByRole('heading', {
-          name: 'Updates',
-        })
-      ).toBeTruthy()
-    )
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'View Cortana source on GitHub',
-      })
-    )
-    await waitFor(() => expect(screen.getByText('browser unavailable')).toBeTruthy())
-    expect(state.openProjectCalls).toBe(1)
+    await openUpdaterFromMenu()
+    fireEvent.click(screen.getByRole('button', { name: 'View releases' }))
+    await waitFor(() => expect(state.openUrlCalls).toEqual(['https://github.com/adea-ai/cortana']))
   } finally {
-    state.openProjectError = originalError
+    state.openUrlError = originalError
   }
 })
 test('updates require confirmation before invoking native installation', async () => {
@@ -1650,41 +1652,18 @@ test('updates require confirmation before invoking native installation', async (
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      getSystemAction({
-        name: updatesButtonName,
-      })
-    )
-    await waitFor(() =>
-      expect(
-        screen.getByRole('heading', {
-          name: 'Updates',
-        })
-      ).toBeTruthy()
-    )
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Install and restart',
-      })
-    )
+    await openUpdaterFromMenu()
+    await installUpdateFromDialog()
     expect(state.installDesktopUpdateCalls).toBe(0)
     window.confirm = () => true
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Install and restart',
-      })
-    )
+    await installUpdateFromDialog()
     await waitFor(() => expect(state.installDesktopUpdateCalls).toBe(1))
     expect(state.lastInstallDesktopUpdate as unknown).toEqual({
       expectedVersion: '9.9.9',
       restart: true,
     })
     await waitFor(() =>
-      expect(
-        screen.getByRole('button', {
-          name: 'Restart required',
-        })
-      ).toBeTruthy()
+      expect(screen.getByText('Restart Cortana to finish the update.')).toBeTruthy()
     )
   } finally {
     window.confirm = originalConfirm
@@ -1699,23 +1678,8 @@ test('updates surface native install failures while retaining retryable update s
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      getSystemAction({
-        name: updatesButtonName,
-      })
-    )
-    await waitFor(() =>
-      expect(
-        screen.getByRole('heading', {
-          name: 'Updates',
-        })
-      ).toBeTruthy()
-    )
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Install and restart',
-      })
-    )
+    await openUpdaterFromMenu()
+    await installUpdateFromDialog()
     await waitFor(() => expect(state.installDesktopUpdateCalls).toBe(1))
     await waitFor(() => expect(screen.getByText('signed update verification failed')).toBeTruthy())
     expect(
@@ -1736,23 +1700,8 @@ test('updates can cancel native installation and retain a retryable state', asyn
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    fireEvent.click(
-      getSystemAction({
-        name: updatesButtonName,
-      })
-    )
-    await waitFor(() =>
-      expect(
-        screen.getByRole('heading', {
-          name: 'Updates',
-        })
-      ).toBeTruthy()
-    )
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Install and restart',
-      })
-    )
+    await openUpdaterFromMenu()
+    await installUpdateFromDialog()
     await waitFor(() =>
       expect(
         screen.getByRole('button', {
@@ -1778,7 +1727,7 @@ test('updates can cancel native installation and retain a retryable state', asyn
         })
       ).toBeTruthy()
     )
-    expect(screen.getByText('Update cancelled; you can retry when ready')).toBeTruthy()
+    expect(screen.getByText('Update cancelled. You can retry when ready.')).toBeTruthy()
   } finally {
     state.deferDesktopUpdateInstall = false
     state.deferredDesktopUpdateInstall = []
@@ -1805,7 +1754,7 @@ test('desktop Help links use the native external URL bridge', async () => {
       })
     ).toBeTruthy()
   )
-  await openSidebarDestination('Help')
+  await openSidebarDestination('Help Center')
   const documentation = await screen.findByRole('link', {
     name: /Documentation/,
   })
@@ -1824,33 +1773,42 @@ test('desktop Help links surface native browser failures', async () => {
       })
     ).toBeTruthy()
   )
-  await openSidebarDestination('Help')
+  await openSidebarDestination('Help Center')
   fireEvent.click(
     await screen.findByRole('link', {
       name: /Documentation/,
     })
   )
-  await waitFor(() => expect(screen.getByText('browser unavailable')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByText('Could not open this help resource. Please try again.')).toBeTruthy()
+  )
   expect(state.openUrlCalls).toEqual(['https://github.com/adea-ai/cortana/tree/main/docs'])
 })
-test('desktop Help project action surfaces native browser failures', async () => {
-  state.openProjectError = new Error('browser unavailable')
+test('desktop feedback opens the prefilled Adea feedback form', async () => {
   render(() => <App />)
-  await waitFor(() =>
-    expect(
-      screen.getByRole('button', {
-        name: 'Settings and utilities',
-      })
-    ).toBeTruthy()
+  await openSidebarDestination('Send Feedback')
+  await waitFor(() => expect(state.openUrlCalls).toHaveLength(1))
+  const feedback = new URL(state.openUrlCalls[0])
+  expect(`${feedback.origin}${feedback.pathname}`).toBe(
+    'https://github.com/adea-ai/adea/issues/new'
   )
-  await openSidebarDestination('Help')
-  fireEvent.click(
-    await screen.findByRole('button', {
-      name: 'Open project page',
-    })
-  )
-  await waitFor(() => expect(screen.getByText('browser unavailable')).toBeTruthy())
-  expect(state.openProjectCalls).toBe(1)
+  expect(feedback.searchParams.get('template')).toBe('feedback.yml')
+  expect(feedback.searchParams.get('context')).toContain('App: Cortana')
+  expect(feedback.searchParams.get('context')).toContain(`Version: ${desktopInfo.desktop_version}`)
+  expect(feedback.searchParams.get('context')).toContain('Platform: desktop')
+})
+test('desktop feedback shows a retryable shared error and clears it after retry succeeds', async () => {
+  state.openUrlError = new Error('browser unavailable')
+  render(() => <App />)
+  await openSidebarDestination('Send Feedback')
+  const error = await screen.findByRole('alert')
+  expect(error.textContent).toContain('Could not open the Cortana feedback form')
+  expect(error.textContent).toContain('browser unavailable')
+
+  state.openUrlError = null
+  await openSidebarDestination('Send Feedback')
+  await waitFor(() => expect(screen.queryByRole('alert') === null).toBe(true))
+  expect(state.openUrlCalls).toHaveLength(2)
 })
 test('desktop shell does not present a stale service report after refresh failure', () => {
   render(() => (
@@ -2938,7 +2896,7 @@ test('late desktop bootstrap settings cannot overwrite a shell-reconciled snapsh
     state.settings = originalSettings
   }
 })
-test('the footer updates shortcut opens the updates section directly', async () => {
+test('the footer updates shortcut opens the settings launcher for the shared updater', async () => {
   render(() => <App />)
   await waitFor(() =>
     expect(
@@ -2960,13 +2918,15 @@ test('the footer updates shortcut opens the updates section directly', async () 
       })
     ).toBeTruthy()
   )
-  await waitFor(() => expect(screen.getByText('Version 9.9.9 is available')).toBeTruthy())
-  expect(screen.getByText('Installed version')).toBeTruthy()
+  expect(await screen.findByText('Installed version')).toBeTruthy()
   expect(
     screen.getByRole('button', {
-      name: /Install and restart/,
+      name: 'Open updates',
     })
   ).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Open updates' }))
+  await waitFor(() => expect(screen.getByText('A newer release, v9.9.9, is ready.')).toBeTruthy())
+  expect(screen.getByRole('button', { name: 'Install and restart' })).toBeTruthy()
 
   // Back to the knowledge workspace via the rail.
   fireEvent.click(
@@ -2976,7 +2936,7 @@ test('the footer updates shortcut opens the updates section directly', async () 
   )
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
 })
-test('updates section renders release markdown safely', async () => {
+test('the settings launcher opens the shared updater with release notes and full changelog', async () => {
   const originalNotes = desktopUpdate.release_notes
   const originalChangelog = desktopUpdate.changelog
   desktopUpdate.release_notes =
@@ -2996,29 +2956,16 @@ test('updates section renders release markdown safely', async () => {
         })
       ).toBeTruthy()
     )
-    await waitFor(() =>
-      expect(
-        screen.getByRole('button', {
-          name: 'Updates',
-        })
-      ).toBeTruthy()
-    )
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Updates',
-      })
-    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Open updates' }))
     expect(
-      await screen.findByRole('heading', {
-        name: 'Release Notes',
-      })
+      await screen.findByRole('heading', { name: 'What changed in this release' })
     ).toBeTruthy()
-    expect(screen.getByText('Indexed local Q&A')).toBeTruthy()
-    const link = screen.getByRole('link', {
-      name: 'dashboard',
-    }) as HTMLAnchorElement
-    expect(link.href).toBe('https://example.com/help')
-    expect(screen.getByText('inline')).toBeTruthy()
+    const releaseNotes = screen.getByRole('region', { name: 'What changed in this release' })
+    expect(releaseNotes.textContent).toContain('Indexed local Q&A')
+    expect(releaseNotes.textContent).toContain('dashboard')
+    expect(releaseNotes.textContent).toContain('inline')
+    const changelog = screen.getByRole('region', { name: 'Installed changelog' })
+    expect(changelog.textContent).toContain('Fixed bugs')
   } finally {
     desktopUpdate.release_notes = originalNotes
     desktopUpdate.changelog = originalChangelog
@@ -4046,8 +3993,8 @@ test('the title bar carries the workspace picker with its own mark', async () =>
 })
 test('the mac title strip is a drag region clear of the traffic lights', async () => {
   // Tauri's Overlay title bar floats the traffic lights over the top bar, so
-  // the strip must reserve their width and carry the drag region — while the
-  // controls inside it keep receiving clicks.
+  // the strip reserves their width and starts native dragging only on empty
+  // primary-pointer space. Controls must keep receiving normal pointer events.
   const prototype = Object.getPrototypeOf(window.navigator)
   const original = Object.getOwnPropertyDescriptor(
     Object.getPrototypeOf(window.navigator),
@@ -4063,8 +4010,8 @@ test('the mac title strip is a drag region clear of the traffic lights', async (
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
     const bar = document.querySelector('[data-slot="top-bar"]') as HTMLElement | null
     expect(bar).not.toBeNull()
-    expect(bar!.hasAttribute('data-tauri-drag-region')).toBe(true)
-    expect(bar!.className).toContain('window-drag')
+    expect(bar!.hasAttribute('data-tauri-drag-region')).toBe(false)
+    expect(bar!.className).not.toContain('window-drag')
     expect(bar!.className).toContain('window-inset-macos')
     // The rail sits below the strip, so it has no header row of its own; the
     // workspace picker is part of the strip itself.
@@ -4072,6 +4019,21 @@ test('the mac title strip is a drag region clear of the traffic lights', async (
     expect(
       screen.getByRole('button', { name: 'Switch workspace' }).closest('[data-slot="top-bar"]')
     ).not.toBeNull()
+    dragState.startCalls = 0
+    fireEvent.pointerDown(bar!, { button: 0, isPrimary: true, pointerType: 'mouse' })
+    await waitFor(() => expect(dragState.startCalls).toBe(1))
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Switch workspace' }), {
+      button: 0,
+      isPrimary: true,
+      pointerType: 'mouse',
+    })
+    fireEvent.pointerDown(screen.getByLabelText('Search your knowledge'), {
+      button: 0,
+      isPrimary: true,
+      pointerType: 'mouse',
+    })
+    fireEvent.pointerDown(bar!, { button: 2, isPrimary: true, pointerType: 'mouse' })
+    expect(dragState.startCalls).toBe(1)
   } finally {
     delete (window.navigator as { userAgent?: string }).userAgent
     if (original) Object.defineProperty(prototype, 'userAgent', original)
@@ -4119,6 +4081,22 @@ test('the utilities menu opens the identity dialog with the packaged version', a
       })
     ).toBeNull()
   )
+  await waitFor(() => expect(utilitiesTrigger() === document.activeElement).toBe(true))
+})
+test('the desktop utilities menu puts Index first and omits session actions', async () => {
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  fireEvent.pointerDown(screen.getByRole('button', { name: 'Settings and utilities' }))
+  const items = await screen.findAllByRole('menuitem')
+  expect(items.map((item) => item.textContent)).toEqual([
+    'Index',
+    'About',
+    'Help Center',
+    'Send Feedback',
+    'Updates',
+    'Settings' + shortcutLabel('MOD,'),
+  ])
+  expect(screen.queryByRole('menuitem', { name: /Sign in|Sign out/i })).toBeNull()
 })
 test('the utilities trigger marks the active destination and clears when it changes', async () => {
   render(() => <App />)
@@ -4154,25 +4132,113 @@ test('the settings chord advertised by the utilities menu opens settings', async
     ).toBeTruthy()
   )
 })
-test('the utilities menu opens settings on the updates section', async () => {
+test('the utilities menu opens the shared updater dialog', async () => {
   render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
   await openSidebarDestination('Updates')
-  await waitFor(() =>
-    expect(
-      screen.getByRole('heading', {
-        name: 'Settings',
-      })
-    ).toBeTruthy()
-  )
-  // Updates is a section of Settings, not a view of its own.
-  expect(
-    screen
-      .getByRole('button', {
-        name: 'Updates',
-      })
-      .getAttribute('aria-current')
-  ).toBe('page')
+  expect(await screen.findByRole('dialog', { name: /Version & updates/i })).toBeTruthy()
+})
+test('closing the shared updater restores focus to the utilities trigger', async () => {
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  const dialog = await openUpdaterFromMenu()
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }))
+  await waitFor(() => expect(utilitiesTrigger() === document.activeElement).toBe(true))
+})
+test('mobile About and Updates restore focus to the live navigation trigger', async () => {
+  const originalMatchMedia = Object.getOwnPropertyDescriptor(window, 'matchMedia')
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: (query: string) =>
+      ({
+        matches: query === '(max-width: 799px)',
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => true,
+      }) as MediaQueryList,
+  })
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    const navigationTrigger = screen.getByRole('button', { name: 'Toggle navigation' })
+    const originalRects = Object.getOwnPropertyDescriptor(navigationTrigger, 'getClientRects')
+    Object.defineProperty(navigationTrigger, 'getClientRects', {
+      configurable: true,
+      value: () => [{ width: 1, height: 1 }] as unknown as DOMRectList,
+    })
+    fireEvent.click(navigationTrigger)
+    await screen.findByRole('dialog', { name: 'Primary navigation' })
+    await openSidebarDestination('About')
+    const about = await screen.findByRole('dialog', { name: 'About Cortana' })
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Primary navigation' }) === null).toBe(true)
+    )
+    fireEvent.click(within(about).getByRole('button', { name: 'Close' }))
+    await waitFor(() => expect(navigationTrigger === document.activeElement).toBe(true))
+
+    fireEvent.click(navigationTrigger)
+    await screen.findByRole('dialog', { name: 'Primary navigation' })
+    const updates = await openUpdaterFromMenu()
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Primary navigation' }) === null).toBe(true)
+    )
+    fireEvent.click(within(updates).getByRole('button', { name: 'Close' }))
+    await waitFor(() => expect(navigationTrigger === document.activeElement).toBe(true))
+
+    fireEvent.click(navigationTrigger)
+    const navigation = await screen.findByRole('dialog', { name: 'Primary navigation' })
+    fireEvent.keyDown(navigation, { key: 'Escape' })
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Primary navigation' }) === null).toBe(true)
+    )
+    expect(screen.queryByRole('dialog', { name: 'About Cortana' }) === null).toBe(true)
+    if (originalRects) Object.defineProperty(navigationTrigger, 'getClientRects', originalRects)
+    else Reflect.deleteProperty(navigationTrigger, 'getClientRects')
+  } finally {
+    if (originalMatchMedia) Object.defineProperty(window, 'matchMedia', originalMatchMedia)
+    else Reflect.deleteProperty(window, 'matchMedia')
+  }
+})
+test('mobile support launch pending after sheet close is cleared when the app unmounts', async () => {
+  const originalMatchMedia = Object.getOwnPropertyDescriptor(window, 'matchMedia')
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: (query: string) =>
+      ({
+        matches: query === '(max-width: 799px)',
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => true,
+      }) as MediaQueryList,
+  })
+  try {
+    const app = render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    const navigationTrigger = screen.getByRole('button', { name: 'Toggle navigation' })
+    fireEvent.click(navigationTrigger)
+    await screen.findByRole('dialog', { name: 'Primary navigation' })
+    navigationTrigger.setAttribute('aria-hidden', 'true')
+    await openSidebarDestination('About')
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Primary navigation' }) === null).toBe(true)
+    )
+    app.unmount()
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(document.querySelector('[role="dialog"][aria-label="About Cortana"]') === null).toBe(
+      true
+    )
+  } finally {
+    if (originalMatchMedia) Object.defineProperty(window, 'matchMedia', originalMatchMedia)
+    else Reflect.deleteProperty(window, 'matchMedia')
+  }
 })
 test('services settings name the install path for services that are not installed', async () => {
   render(() => <App />)
@@ -4328,31 +4394,13 @@ test('settings view reuses the shell settings snapshot without a duplicate read'
   )
   expect(state.getDesktopSettingsCalls).toBe(1)
 })
-test('updates settings reuses the shell updater snapshot without a duplicate read', async () => {
+test('opening the shared updater reads current native updater state', async () => {
   render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
   await waitFor(() => expect(state.getDesktopUpdateCalls).toBe(1))
-  await openSidebarDestination('Settings')
-  await waitFor(() =>
-    expect(
-      screen.getByRole('heading', {
-        name: 'Settings',
-      })
-    ).toBeTruthy()
-  )
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: 'Updates',
-    })
-  )
-  await waitFor(() =>
-    expect(
-      screen.getByRole('heading', {
-        name: 'Updates',
-      })
-    ).toBeTruthy()
-  )
-  expect(state.getDesktopUpdateCalls).toBe(1)
+  await openSidebarDestination('Updates')
+  expect(await screen.findByRole('dialog', { name: /Version & updates/i })).toBeTruthy()
+  expect(state.getDesktopUpdateCalls).toBeGreaterThan(1)
 })
 test('settings save refreshes shell service metadata immediately', async () => {
   render(() => <App />)

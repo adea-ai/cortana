@@ -196,7 +196,9 @@ async function openSidebarDestination(label: string) {
       name: 'Settings and utilities',
     })
   )
-  const item = await screen.findByRole('menuitem', { name: label })
+  const item = await screen.findByRole('menuitem', {
+    name: label === 'Settings' ? /^Settings\b/ : label,
+  })
   fireEvent.pointerUp(item)
 }
 test('the shadcn renderer composes the real application shell and state', async () => {

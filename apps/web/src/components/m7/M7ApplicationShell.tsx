@@ -11,25 +11,24 @@ import {
   useContext,
   type JSX,
 } from 'solid-js'
-import { Dynamic } from 'solid-js/web'
 
 import { createMediaQuery } from '@/lib/mediaQuery'
 import {
   ArrowLeft,
   ArrowRight,
   BookOpenText,
-  ChevronDown,
   CircleHelp,
-  Info,
+  ChevronDown,
   Database,
   GitFork,
   Inbox,
+  Info,
+  Megaphone,
   MessageCircle,
   MoreVertical,
   PanelLeftIcon,
   RefreshCw,
   Search,
-  Settings,
   Settings2,
   Sparkles,
   TerminalSquare,
@@ -37,10 +36,11 @@ import {
 
 import { Badge } from '@adea-ai/ui/components/ui/badge'
 import { EntityIcon } from '@adea-ai/ui/components/ui/entity-icon'
+import { AccountMenu, createAppMenuItems } from '@adea-ai/ui/components/composites/account-menu'
+import type { AccountMenuItem } from '@adea-ai/ui/components/composites/account-menu'
 import { ActionButton as Button } from '@adea-ai/ui/components/composites/action-button'
 import {
   SideRail,
-  SideRailButton,
   SideRailContent,
   SideRailFooter,
   SideRailHeader,
@@ -66,7 +66,6 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@adea-ai/ui/components/ui/dropdown-menu'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@adea-ai/ui/components/ui/input-group'
@@ -96,6 +95,8 @@ type CortanaNavigationValue = {
   toggleNavigation: () => void
   mobileTriggerRef: { current: HTMLButtonElement | null }
   mobileFinalFocusRef: { current: HTMLElement | null }
+  mobileAfterCloseActionRef: { current: (() => void) | null }
+  mobileAfterCloseFrameRef: { current: number | null }
 }
 
 const CortanaNavigationContext = createContext<CortanaNavigationValue>()
@@ -120,10 +121,14 @@ export type M7NavigationProps = {
   workspaceTab?: 'answer' | 'document' | 'sources' | 'graph' | 'timeline'
   onNavigate: (view: AppView) => void
   onOpenGraph: () => void
-  /** Opens Settings on a named section, used by the utilities menu. */
-  onOpenSettingsSection?: (section: 'updates' | 'services') => void
-  /** Opens the identity dialog behind the About entry. */
-  onOpenAbout?: () => void
+  /** Opens About after the utilities menu closes, returning focus to its trigger. */
+  onOpenAbout?: (opener?: HTMLButtonElement) => void
+  /** Opens the Help Center destination. */
+  onOpenHelp?: (opener?: HTMLButtonElement) => void
+  /** Opens the prefilled product feedback form. */
+  onOpenFeedback?: (opener?: HTMLButtonElement) => void
+  /** Opens the shared updater dialog. */
+  onOpenUpdates?: (opener?: HTMLButtonElement) => void
 }
 
 export type M7HeaderProps = {
@@ -156,70 +161,6 @@ const navigationItems = [
   { view: 'conversations' as const, label: 'Conversations', icon: MessageCircle },
 ]
 
-type UtilityItem = {
-  id: 'about' | 'help' | 'index' | 'updates' | 'settings'
-  label: string
-  icon: typeof CircleHelp
-  /** Hidden on web, where the surface it opens does not exist (as upstream). */
-  desktopOnly?: boolean
-  /** Chord rendered on the right of the entry; `undefined` when none is bound. */
-  shortcut?: string
-  run: (navigation: M7NavigationProps) => void
-  current: (view: AppView) => boolean
-}
-
-/**
- * Destinations behind the single utilities trigger. Inbox keeps its own rail
- * row; the rest of the footer's former rows live here so the collapsed column
- * stays a short list of surfaces instead of a stack of icon-only entries. The
- * sequence mirrors the account menu in the sibling shell (help, app surfaces,
- * updates, settings), minus the entries this app has no surface for.
- *
- * The list is static and both callbacks take what they need as arguments: the
- * shell re-renders its navigation props on every view change, so an item that
- * closed over that object would keep testing the view it was built with and the
- * trigger's active state would never change again.
- */
-const utilityItems: UtilityItem[] = [
-  {
-    id: 'about',
-    label: 'About',
-    icon: Info,
-    run: (navigation) => navigation.onOpenAbout?.(),
-    current: () => false,
-  },
-  {
-    id: 'help',
-    label: 'Help',
-    icon: CircleHelp,
-    run: (navigation) => navigation.onNavigate('help'),
-    current: (view) => view === 'help',
-  },
-  {
-    id: 'index',
-    label: 'Index',
-    icon: Database,
-    run: (navigation) => navigation.onNavigate('index'),
-    current: (view) => view === 'index',
-  },
-  {
-    id: 'updates',
-    label: 'Updates',
-    icon: RefreshCw,
-    desktopOnly: true,
-    run: (navigation) => navigation.onOpenSettingsSection?.('updates'),
-    current: () => false,
-  },
-  {
-    id: 'settings',
-    label: 'Settings',
-    icon: Settings2,
-    shortcut: shortcutLabel('MOD,'),
-    run: (navigation) => navigation.onNavigate('settings'),
-    current: (view) => view === 'settings',
-  },
-]
-
 /*
  * macOS desktop windows merge the title bar into the top bar: Tauri's Overlay
  * title bar style floats the traffic lights over the strip, so the strip
@@ -229,6 +170,22 @@ const utilityItems: UtilityItem[] = [
  * normal chrome and skip both.
  */
 const macTitlebarChrome = () => isDesktopApp && navigator.userAgent.includes('Mac')
+
+function startWindowDrag(event: PointerEvent) {
+  if (event.button !== 0 || !event.isPrimary) return
+  const target = event.target
+  if (
+    target instanceof Element &&
+    target.closest(
+      'button, a[href], input, textarea, select, [role="button"], [role="link"], [contenteditable="true"], [data-no-window-drag], .window-no-drag'
+    )
+  ) {
+    return
+  }
+  void import('@tauri-apps/api/window')
+    .then(({ getCurrentWindow }) => getCurrentWindow().startDragging())
+    .catch(() => {})
+}
 
 export function M7ApplicationHeader(props: M7HeaderProps) {
   const actionsRef = { current: null as HTMLButtonElement | null }
@@ -241,9 +198,9 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
     <TopBar
       class="m7-application-header"
       glass
-      draggable={titlebar}
+      draggable={false}
       macosInset={titlebar}
-      {...(titlebar ? { 'data-tauri-drag-region': '' } : {})}
+      onPointerDown={titlebar ? startWindowDrag : undefined}
     >
       <TopBarSection class="m7-header-leading">
         <Button
@@ -536,6 +493,21 @@ function WorkspaceGlyph(props: {
   )
 }
 
+function mobileMenuIcon(item: AccountMenuItem) {
+  if (item.icon) return item.icon
+  const Icon =
+    item.id === 'about'
+      ? Info
+      : item.id === 'help'
+        ? CircleHelp
+        : item.id === 'feedback'
+          ? Megaphone
+          : item.id === 'updates'
+            ? RefreshCw
+            : Settings2
+  return <Icon aria-hidden="true" />
+}
+
 export function M7ApplicationNavigation(props: {
   navigation: M7NavigationProps
   workspaces: WorkspaceOption[]
@@ -543,21 +515,60 @@ export function M7ApplicationNavigation(props: {
   onWorkspaceChange: (workspace: string) => void
 }) {
   const activeWorkspace = () => props.workspaces.find((item) => item.id === props.workspace)
-  const [utilitiesMenuOpen, setUtilitiesMenuOpen] = createSignal(false)
   const currentView = () => props.navigation.view
-  const visibleUtilityItems = () => utilityItems.filter((item) => !item.desktopOnly || isDesktopApp)
-  const utilitiesActive = () => visibleUtilityItems().some((item) => item.current(currentView()))
-  const { collapsed, isMobile, mobileFinalFocusRef, mobileTriggerRef, openMobile, setOpenMobile } =
-    useCortanaNavigation()
+  const utilitiesActive = () =>
+    currentView() === 'index' || currentView() === 'help' || currentView() === 'settings'
+  const {
+    collapsed,
+    isMobile,
+    mobileAfterCloseActionRef,
+    mobileAfterCloseFrameRef,
+    mobileFinalFocusRef,
+    mobileTriggerRef,
+    openMobile,
+    setOpenMobile,
+  } = useCortanaNavigation()
 
   const dismissMobile = () => {
     mobileFinalFocusRef.current = mobileTriggerRef.current
     setOpenMobile(false)
   }
   const runNavigation = (action: () => void) => {
-    action()
-    if (isMobile()) dismissMobile()
+    if (!isMobile()) {
+      action()
+      return
+    }
+    mobileAfterCloseActionRef.current = action
+    dismissMobile()
   }
+  const dialogOpener = (opener: HTMLButtonElement | undefined) =>
+    isMobile() ? (mobileTriggerRef.current ?? opener) : opener
+  const menuItems = (): AccountMenuItem[] =>
+    createAppMenuItems({
+      primaryItem: {
+        id: 'index',
+        label: 'Index',
+        icon: <Database aria-hidden="true" />,
+        onSelectAfterClose: () => runNavigation(() => props.navigation.onNavigate('index')),
+      },
+      settingsShortcut: shortcutLabel('MOD,'),
+      onAbout: (opener: HTMLButtonElement | undefined) =>
+        runNavigation(() => props.navigation.onOpenAbout?.(dialogOpener(opener))),
+      onHelp: (opener: HTMLButtonElement | undefined) =>
+        runNavigation(() => {
+          if (props.navigation.onOpenHelp) props.navigation.onOpenHelp(opener)
+          else props.navigation.onNavigate('help')
+        }),
+      onFeedback: (opener: HTMLButtonElement | undefined) =>
+        runNavigation(() => props.navigation.onOpenFeedback?.(opener)),
+      onUpdates: (opener: HTMLButtonElement | undefined) =>
+        runNavigation(() => props.navigation.onOpenUpdates?.(dialogOpener(opener))),
+      onSettings: () => runNavigation(() => props.navigation.onNavigate('settings')),
+    })
+  const mobileMenuItemActive = (item: AccountMenuItem) =>
+    (item.id === 'index' && props.navigation.view === 'index') ||
+    (item.id === 'help' && props.navigation.view === 'help') ||
+    (item.id === 'settings' && props.navigation.view === 'settings')
   const navActive = (view: 'knowledge' | 'conversations') =>
     props.navigation.view === view &&
     (view !== 'knowledge' || props.navigation.workspaceTab !== 'graph')
@@ -637,6 +648,26 @@ export function M7ApplicationNavigation(props: {
           </For>
         </SideRailSection>
         {destinations()}
+        <SideRailSection label="App">
+          <For
+            each={menuItems().filter(
+              (item) => !item.platform || item.platform === (isDesktopApp ? 'desktop' : 'web')
+            )}
+          >
+            {(item) => (
+              <SideRailItem
+                as="button"
+                type="button"
+                label={item.label}
+                active={mobileMenuItemActive(item)}
+                disabled={item.disabled}
+                onClick={(event) => item.onSelectAfterClose?.(event.currentTarget)}
+              >
+                {mobileMenuIcon(item)}
+              </SideRailItem>
+            )}
+          </For>
+        </SideRailSection>
       </SideRailContent>
       <SideRailFooter>
         <SideRailItem
@@ -648,19 +679,6 @@ export function M7ApplicationNavigation(props: {
         >
           <Inbox aria-hidden="true" />
         </SideRailItem>
-        <For each={visibleUtilityItems()}>
-          {(item) => (
-            <SideRailItem
-              as="button"
-              type="button"
-              label={item.label}
-              active={item.current(currentView())}
-              onClick={() => runNavigation(() => item.run(props.navigation))}
-            >
-              <Dynamic component={item.icon} aria-hidden="true" />
-            </SideRailItem>
-          )}
-        </For>
       </SideRailFooter>
     </SideRail>
   )
@@ -683,43 +701,15 @@ export function M7ApplicationNavigation(props: {
         >
           <Inbox aria-hidden="true" />
         </SideRailItem>
-        <DropdownMenu modal={false} open={utilitiesMenuOpen()} onOpenChange={setUtilitiesMenuOpen}>
-          <DropdownMenuTrigger
-            as={SideRailButton}
-            label="Settings and utilities"
-            aria-label="Settings and utilities"
-            data-active={utilitiesActive() ? '' : undefined}
-            active={utilitiesActive()}
-          >
-            <Settings aria-hidden="true" />
-            <span class="min-w-0 flex-1 truncate text-left text-sm group-data-[collapsed=true]/rail:sr-only">
-              Settings
-            </span>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent class="m7-utilities-menu" align="start" side="top" sideOffset={0}>
-            <DropdownMenuGroup>
-              <For each={visibleUtilityItems()}>
-                {(item) => (
-                  <DropdownMenuItem
-                    aria-current={item.current(currentView()) ? 'page' : undefined}
-                    onSelect={() => {
-                      setUtilitiesMenuOpen(false)
-                      item.run(props.navigation)
-                    }}
-                  >
-                    <Dynamic component={item.icon} aria-hidden="true" />
-                    <span>{item.label}</span>
-                    <Show when={item.shortcut}>
-                      {(keys) => (
-                        <DropdownMenuShortcut aria-hidden="true">{keys()}</DropdownMenuShortcut>
-                      )}
-                    </Show>
-                  </DropdownMenuItem>
-                )}
-              </For>
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <AccountMenu
+          items={menuItems()}
+          platform={isDesktopApp ? 'desktop' : 'web'}
+          authenticated={false}
+          showSession={false}
+          label="Settings and utilities"
+          size="icon-sm"
+          data-active={utilitiesActive() ? '' : undefined}
+        />
       </SideRailFooter>
     </SideRail>
   )
@@ -738,6 +728,32 @@ export function M7ApplicationNavigation(props: {
             if (target) {
               event.preventDefault()
               target.focus()
+            }
+            if (mobileAfterCloseActionRef.current) {
+              let attempts = 0
+              const startedAt = Date.now()
+              const runWhenAvailable = () => {
+                mobileAfterCloseFrameRef.current = null
+                if (!mobileAfterCloseActionRef.current) return
+                const trigger = mobileTriggerRef.current
+                if (
+                  !openMobile() &&
+                  trigger?.isConnected &&
+                  !trigger.matches(':disabled') &&
+                  !trigger.closest('[inert], [aria-hidden="true"]')
+                ) {
+                  const action = mobileAfterCloseActionRef.current
+                  mobileAfterCloseActionRef.current = null
+                  action()
+                  return
+                }
+                if (++attempts >= 60 || Date.now() - startedAt >= 1_000) {
+                  mobileAfterCloseActionRef.current = null
+                  return
+                }
+                mobileAfterCloseFrameRef.current = window.requestAnimationFrame(runWhenAvailable)
+              }
+              mobileAfterCloseFrameRef.current = window.requestAnimationFrame(runWhenAvailable)
             }
           }}
         >
@@ -765,6 +781,15 @@ export function M7ShellProvider(props: { children: JSX.Element }) {
   })
   const mobileTriggerRef: { current: HTMLButtonElement | null } = { current: null }
   const mobileFinalFocusRef: { current: HTMLElement | null } = { current: null }
+  const mobileAfterCloseActionRef: { current: (() => void) | null } = { current: null }
+  const mobileAfterCloseFrameRef: { current: number | null } = { current: null }
+  onCleanup(() => {
+    mobileAfterCloseActionRef.current = null
+    if (mobileAfterCloseFrameRef.current !== null) {
+      window.cancelAnimationFrame(mobileAfterCloseFrameRef.current)
+      mobileAfterCloseFrameRef.current = null
+    }
+  })
   const setCollapsed = (value: boolean) => {
     setCollapsedState(value)
     document.cookie = `sidebar_state=${!value}; path=/; max-age=${60 * 60 * 24 * 7}`
@@ -796,6 +821,8 @@ export function M7ShellProvider(props: { children: JSX.Element }) {
           toggleNavigation,
           mobileTriggerRef,
           mobileFinalFocusRef,
+          mobileAfterCloseActionRef,
+          mobileAfterCloseFrameRef,
         }}
       >
         <div class="m7-shell-provider min-h-0 overflow-hidden">{props.children}</div>

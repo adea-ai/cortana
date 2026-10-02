@@ -17,7 +17,7 @@ const baseUrl = args.get('--base-url') ?? 'http://127.0.0.1:4173'
 const output = resolve(args.get('--output') ?? 'artifacts/m7-shadcn/final')
 // Destinations that live behind the rail's single utilities trigger rather
 // than on a row of their own.
-const MENU_DESTINATIONS = new Set(['Settings', 'Updates', 'Index', 'Help'])
+const MENU_DESTINATIONS = new Set(['Settings', 'Updates', 'Index', 'Help Center'])
 const widths = args.has('--widths')
   ? args.get('--widths').split(',').map(Number)
   : [320, 768, 1024, 1440, 1920]
@@ -29,6 +29,7 @@ const themes = args.has('--themes')
         .map((theme) => theme.id)
         .filter((id) => id !== 'nord'),
     ]
+const primaryTheme = themes[0]
 const consoleErrors = []
 let screenshotCount = 0
 
@@ -53,28 +54,6 @@ async function openPage(theme, width, state = 'configured') {
     theme
   )
   const page = await context.newPage()
-  const rawWaitForFunction = page.waitForFunction.bind(page)
-  page.waitForFunction = (...callArgs) => {
-    const frames = (new Error().stack ?? '')
-      .split('\n')
-      .filter((line) => line.includes('capture-m7-visuals.mjs:'))
-      .map((line) => line.trim().slice(0, 90))
-    const caller = frames.find((line) => !line.includes(':58:')) ?? frames[0]
-    console.log(`WFF-CALL ${caller}`)
-    return rawWaitForFunction(...callArgs).catch(async (error) => {
-      let focusState = 'unavailable'
-      try {
-        focusState = await page.evaluate(() => {
-          const a = document.activeElement
-          return `${a?.tagName} [${(a?.getAttribute('aria-label') ?? a?.textContent ?? '').toString().slice(0, 40)}]`
-        })
-      } catch {}
-      console.log(
-        `WFF-FAIL ${caller} focus=${focusState} console=${JSON.stringify(consoleErrors.slice(0, 3))}`
-      )
-      throw error
-    })
-  }
   page.setDefaultTimeout(60_000)
   page.on('console', (message) => {
     if (message.type() === 'error') {
@@ -87,8 +66,8 @@ async function openPage(theme, width, state = 'configured') {
   return { context, page }
 }
 
-// The rail footer keeps one utilities trigger: Settings, Updates, Index, and
-// Help are reached by opening its menu and choosing the destination.
+// The rail footer keeps one utilities trigger: Index, Help Center, Updates,
+// and Settings are reached by opening its menu and choosing the destination.
 async function openRailDestination(page, destination) {
   // The compact rail folds these destinations into one trigger; the mobile
   // sheet keeps them as rows, so a missing trigger means a direct row click.
@@ -98,7 +77,11 @@ async function openRailDestination(page, destination) {
     return
   }
   await trigger.click()
-  await page.getByRole('menuitem', { name: destination, exact: true }).click()
+  await page
+    .getByRole('menuitem', {
+      name: destination === 'Settings' ? /^Settings\b/ : destination,
+    })
+    .click()
 }
 
 async function openSettings(page, width) {
@@ -110,6 +93,31 @@ async function openSettings(page, width) {
   if (width <= 768) await page.locator('[data-mobile="true"]').waitFor({ state: 'detached' })
   await page.locator('.settings-view').waitFor()
   await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor()
+}
+
+async function auditUpdateLauncher(page, theme, width) {
+  await openSettings(page, width)
+  await page.getByRole('button', { name: 'Updates', exact: true }).click()
+  await page.getByRole('heading', { name: 'Updates', exact: true }).waitFor()
+  const openUpdates = page.getByRole('button', { name: 'Open updates' })
+  await openUpdates.click()
+  const updateDialog = page.getByRole('dialog', { name: 'Version & updates' })
+  await updateDialog.waitFor()
+  await updateDialog.getByRole('region', { name: 'Version status' }).waitFor()
+  const changelog = updateDialog.getByRole('region', { name: 'Installed changelog' })
+  await changelog.waitFor()
+  await changelog
+    .getByText('Settings and recovery surfaces migrated to shared shadcn composition.')
+    .waitFor()
+  await auditAccessibility(page, `shared update dialog at ${width}px`)
+  const horizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+  )
+  if (horizontalOverflow) throw new Error(`Shared update dialog overflows at ${width}px`)
+  await screenshot(page, `update-dialog-${theme}-${width}`)
+  await page.keyboard.press('Escape')
+  await updateDialog.waitFor({ state: 'detached' })
+  await page.waitForFunction(() => document.activeElement?.textContent?.trim() === 'Open updates')
 }
 
 async function openDestination(page, width, destination) {
@@ -225,7 +233,7 @@ async function auditAccessibility(page, label) {
   for (const theme of themes) {
     for (const width of widths) {
       const { context, page } = await openPage(theme, width)
-      if (theme === 'blue' && width === 320) {
+      if (theme === primaryTheme && width === 320) {
         await page.keyboard.press('Tab')
         const skipLink = page.getByRole('link', { name: 'Skip to main content', exact: true })
         if (!(await skipLink.evaluate((element) => element === document.activeElement))) {
@@ -252,13 +260,13 @@ async function auditAccessibility(page, label) {
       await page.keyboard.press('Escape')
       await page.getByRole('button', { name: 'System status', exact: true }).waitFor()
 
-      if (theme === 'blue' && width === 320) {
+      if (theme === primaryTheme && width === 320) {
         const mobileSearch = page.getByRole('textbox', { name: 'Search your knowledge' })
         await mobileSearch.fill('How do releases work?')
         await mobileSearch.press('Enter')
         await page.getByRole('heading', { name: 'How do releases work?', level: 1 }).waitFor()
         await auditAccessibility(page, 'mobile populated knowledge answer')
-        await screenshot(page, 'knowledge-answer-blue-320')
+        await screenshot(page, `knowledge-answer-${theme}-320`)
 
         const navigationTrigger = page.getByRole('button', { name: 'Toggle navigation' })
         await navigationTrigger.click()
@@ -297,7 +305,19 @@ async function auditAccessibility(page, label) {
         await page.getByRole('button', { name: 'Inbox', exact: true }).waitFor()
         await page.waitForTimeout(300)
         await auditAccessibility(page, 'mobile production navigation')
-        await screenshot(page, 'mobile-navigation-blue-320')
+        await screenshot(page, `mobile-navigation-${theme}-320`)
+        await openRailDestination(page, 'About')
+        const aboutDialog = page.getByRole('dialog', { name: 'About Cortana' })
+        await aboutDialog.waitFor()
+        await auditAccessibility(page, 'mobile About dialog')
+        await screenshot(page, `about-dialog-${theme}-320`)
+        await aboutDialog.getByRole('button', { name: 'Close' }).click()
+        await aboutDialog.waitFor({ state: 'detached' })
+        await page.waitForFunction(
+          () => document.activeElement?.getAttribute('aria-label') === 'Toggle navigation'
+        )
+        await navigationTrigger.click()
+        await page.locator('[data-mobile="true"]').waitFor()
         await page.getByRole('button', { name: 'Knowledge', exact: true }).click()
         await page.locator('[data-mobile="true"]').waitFor({ state: 'detached' })
         await navigationTrigger.click()
@@ -316,7 +336,7 @@ async function auditAccessibility(page, label) {
         }
       }
 
-      if (theme === 'blue' && width <= 768) {
+      if (theme === primaryTheme && width <= 768) {
         await openDestination(page, width, 'Graph')
         await page.locator('.graph-view[data-compact]').waitFor()
         await auditAccessibility(page, `responsive graph/${width}`)
@@ -335,16 +355,16 @@ async function auditAccessibility(page, label) {
           )
         })
         if (overlaps) throw new Error(`Graph nodes overlap at ${width}px`)
-        await screenshot(page, `knowledge-graph-blue-${width}`)
+        await screenshot(page, `knowledge-graph-${theme}-${width}`)
         const node = page.getByRole('button', { name: /Focus workspace:/ }).first()
         await node.click()
         await page.getByRole('complementary', { name: 'Selected graph node' }).waitFor()
         await auditAccessibility(page, `selected responsive graph/${width}`)
-        await screenshot(page, `knowledge-graph-selected-blue-${width}`)
+        await screenshot(page, `knowledge-graph-selected-${theme}-${width}`)
         await openDestination(page, width, 'Knowledge')
       }
 
-      if (theme === 'blue' && width === 768) {
+      if (theme === primaryTheme && width === 768) {
         await page.getByRole('button', { name: 'Actions' }).click()
         // Menu items select on activation, which closes the menu and can
         // detach the element mid-gesture; a single dispatched keydown is
@@ -355,7 +375,7 @@ async function auditAccessibility(page, label) {
         await page.getByRole('dialog', { name: 'Sources and documents' }).waitFor()
         await page.locator('aside.source-panel.mobile-open').waitFor()
         await auditAccessibility(page, 'mobile sources and documents')
-        await screenshot(page, 'source-panel-blue-768')
+        await screenshot(page, `source-panel-${theme}-768`)
         await page.keyboard.press('Escape')
         await page.getByRole('dialog', { name: 'Sources and documents' }).waitFor({
           state: 'detached',
@@ -380,7 +400,7 @@ async function auditAccessibility(page, label) {
         }
       }
 
-      if (theme === 'blue' && width === 1024) {
+      if (theme === primaryTheme && width === 1024) {
         await page.getByRole('button', { name: 'Actions' }).click()
         await page
           .getByRole('menuitem', { name: 'Open agent context' })
@@ -388,7 +408,7 @@ async function auditAccessibility(page, label) {
         await page.getByRole('dialog', { name: 'Agent context' }).waitFor()
         await page.waitForTimeout(300)
         await auditAccessibility(page, 'tablet agent context boundary')
-        await screenshot(page, 'context-panel-blue-1024')
+        await screenshot(page, `context-panel-${theme}-1024`)
         await page.keyboard.press('Escape')
         await page.getByRole('dialog', { name: 'Agent context' }).waitFor({ state: 'detached' })
         await page.waitForFunction(
@@ -396,7 +416,7 @@ async function auditAccessibility(page, label) {
         )
       }
 
-      if (theme === 'blue' && width === 1440) {
+      if (theme === primaryTheme && width === 1440) {
         const collapsedMetrics = await page.evaluate(() => {
           const rail = document.querySelector('#m7-primary-navigation[data-collapsed="true"]')
           const destination = Array.from(rail?.querySelectorAll('button') ?? []).find(
@@ -442,7 +462,7 @@ async function auditAccessibility(page, label) {
           )
         }
         await auditAccessibility(page, 'expanded desktop navigation')
-        await screenshot(page, 'sidebar-expanded-blue-1440')
+        await screenshot(page, `sidebar-expanded-${theme}-1440`)
         await page.getByRole('button', { name: 'Toggle navigation' }).click()
         await page.locator('#m7-primary-navigation[data-collapsed="true"]').waitFor()
 
@@ -451,30 +471,30 @@ async function auditAccessibility(page, label) {
         await knowledgeSearch.press('Enter')
         await page.getByRole('heading', { name: 'How do releases work?', level: 1 }).waitFor()
         await auditAccessibility(page, 'populated knowledge answer')
-        await screenshot(page, 'knowledge-answer-blue-1440')
+        await screenshot(page, `knowledge-answer-${theme}-1440`)
 
         await page.getByRole('button', { name: 'Conversations', exact: true }).click()
         await page.getByRole('heading', { name: 'Conversations', level: 1 }).waitFor()
         await auditAccessibility(page, 'populated conversations')
-        await screenshot(page, 'conversations-blue-1440')
+        await screenshot(page, `conversations-${theme}-1440`)
         await page.getByRole('button', { name: 'Knowledge', exact: true }).click()
 
         await page.getByRole('tab', { name: /Evidence/ }).click()
         await page.getByRole('heading', { name: 'How do releases work?', level: 1 }).waitFor()
-        await screenshot(page, 'knowledge-evidence-blue-1440')
+        await screenshot(page, `knowledge-evidence-${theme}-1440`)
 
         await page.getByRole('tab', { name: 'Timeline' }).click()
         await page.locator('.timeline-view').waitFor()
-        await screenshot(page, 'knowledge-timeline-blue-1440')
+        await screenshot(page, `knowledge-timeline-${theme}-1440`)
 
         await page.getByRole('option').first().click()
         await page.locator('.canonical-document').waitFor()
-        await screenshot(page, 'knowledge-document-blue-1440')
+        await screenshot(page, `knowledge-document-${theme}-1440`)
 
         await page.getByRole('button', { name: 'Graph', exact: true }).click()
         await page.locator('.graph-view').waitFor()
         await auditAccessibility(page, 'bounded knowledge graph')
-        await screenshot(page, 'knowledge-graph-blue-1440')
+        await screenshot(page, `knowledge-graph-${theme}-1440`)
         await page.getByRole('button', { name: 'Actions' }).click()
         await page
           .getByRole('menuitem', { name: 'Open agent context' })
@@ -522,7 +542,7 @@ async function auditAccessibility(page, label) {
         }
         await page.waitForTimeout(300)
         await auditAccessibility(page, 'production command palette')
-        await screenshot(page, 'command-blue-1440')
+        await screenshot(page, `command-${theme}-1440`)
         await page.keyboard.press('Escape')
         await page.waitForFunction(
           () => document.activeElement?.getAttribute('aria-label') === 'Search your knowledge'
@@ -542,19 +562,21 @@ async function auditAccessibility(page, label) {
         await page.getByRole('menuitemradio', { name: 'Work' }).waitFor()
         await page.waitForTimeout(200)
         await auditAccessibility(page, 'production workspace switcher')
-        await screenshot(page, 'workspace-menu-blue-1440')
+        await screenshot(page, `workspace-menu-${theme}-1440`)
         await page.keyboard.press('Escape')
 
         await openRailDestination(page, 'Settings')
         await page.locator('.settings-view').waitFor()
         await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor()
         await auditAccessibility(page, 'settings readiness')
-        await screenshot(page, 'settings-readiness-blue-1440')
+        await screenshot(page, `settings-readiness-${theme}-1440`)
+
+        await auditUpdateLauncher(page, theme, 1440)
 
         await page.getByRole('button', { name: 'Services', exact: true }).click()
         await page.getByRole('heading', { name: 'Services', exact: true }).waitFor()
         await auditAccessibility(page, 'settings services and recovery')
-        await screenshot(page, 'settings-services-recovery-blue-1440')
+        await screenshot(page, `settings-services-recovery-${theme}-1440`)
 
         await page.getByRole('button', { name: 'Sources', exact: true }).click()
         await page.getByRole('heading', { name: 'Ingestion sources' }).waitFor()
@@ -564,7 +586,7 @@ async function auditAccessibility(page, label) {
         await sourceTypeDialog.waitFor()
         await page.waitForTimeout(300)
         await auditAccessibility(page, 'settings source-type selection')
-        await screenshot(page, 'settings-source-type-blue-1440')
+        await screenshot(page, `settings-source-type-${theme}-1440`)
         await page.keyboard.press('Escape')
         await sourceTypeDialog.waitFor({ state: 'detached' })
         await page.waitForFunction(
@@ -572,13 +594,13 @@ async function auditAccessibility(page, label) {
         )
         await page.getByRole('button', { name: 'Advanced source settings' }).click()
         await auditAccessibility(page, 'settings configured source')
-        await screenshot(page, 'settings-source-configured-blue-1440')
+        await screenshot(page, `settings-source-configured-${theme}-1440`)
         const removeSource = page.getByRole('button', { name: 'Remove work-code' })
         await removeSource.click()
         await page.getByRole('alertdialog').waitFor()
         await page.waitForTimeout(300)
         await auditAccessibility(page, 'settings destructive confirmation')
-        await screenshot(page, 'settings-source-confirmation-blue-1440')
+        await screenshot(page, `settings-source-confirmation-${theme}-1440`)
         // The shared alert dialog deliberately ignores Escape — a destructive
         // confirmation wants an explicit choice — so dismiss through Cancel,
         // which restores focus to the Remove trigger.
@@ -595,26 +617,38 @@ async function auditAccessibility(page, label) {
         await page.getByRole('button', { name: 'Access', exact: true }).click()
         await page.getByRole('heading', { name: 'Agent access' }).waitFor()
         await auditAccessibility(page, 'settings write-only access')
-        await screenshot(page, 'settings-access-blue-1440')
+        await screenshot(page, `settings-access-${theme}-1440`)
 
-        await page.getByRole('button', { name: 'Updates', exact: true }).click()
-        await page.getByRole('heading', { name: 'Updates', exact: true }).waitFor()
-        await screenshot(page, 'settings-updater-blue-1440')
+        const menuTrigger = page.getByRole('button', { name: 'Settings and utilities' })
+        await menuTrigger.click()
+        const accountMenu = page.getByRole('menu')
+        await accountMenu.waitFor()
+        const menuBounds = await accountMenu.boundingBox()
+        if (!menuBounds || menuBounds.x < 0 || menuBounds.x + menuBounds.width > 1440) {
+          throw new Error('The desktop account menu overflows the viewport')
+        }
+        await auditAccessibility(page, 'desktop account menu')
+        await screenshot(page, `account-menu-${theme}-1440`)
+        await page.keyboard.press('Escape')
+        await accountMenu.waitFor({ state: 'detached' })
+        await page.waitForFunction(
+          () => document.activeElement?.getAttribute('aria-label') === 'Settings and utilities'
+        )
 
         await page.getByRole('button', { name: 'Query', exact: true }).click()
         await page.getByRole('heading', { name: 'Query and answer model' }).waitFor()
         await auditAccessibility(page, 'settings query model selector')
-        await screenshot(page, 'settings-query-blue-1440')
+        await screenshot(page, `settings-query-${theme}-1440`)
 
         await page.getByRole('button', { name: 'Memory', exact: true }).click()
         await page.getByRole('heading', { name: 'Native agentic memory' }).waitFor()
         await auditAccessibility(page, 'settings memory control center')
-        await screenshot(page, 'settings-memory-blue-1440')
+        await screenshot(page, `settings-memory-${theme}-1440`)
 
         await page.getByRole('button', { name: 'Advanced', exact: true }).click()
         await page.getByRole('heading', { name: 'Local runtime' }).waitFor()
         await auditAccessibility(page, 'settings backup and recovery')
-        await screenshot(page, 'settings-backup-recovery-blue-1440')
+        await screenshot(page, `settings-backup-recovery-${theme}-1440`)
 
         const collapsedSidebar = page.locator('#m7-primary-navigation[data-collapsed="true"]')
         await collapsedSidebar.waitFor()
@@ -654,31 +688,35 @@ async function auditAccessibility(page, label) {
   }
 
   for (const width of widths) {
-    const { context, page } = await openPage('blue', width)
+    const { context, page } = await openPage(primaryTheme, width)
     const search = page.getByRole('textbox', { name: 'Search your knowledge' })
     await search.fill('How do releases work?')
     await search.press('Enter')
     await page.getByRole('heading', { name: 'How do releases work?', level: 1 }).waitFor()
 
-    for (const destination of ['Inbox', 'Conversations', 'Agent tools', 'Index', 'Help']) {
+    for (const destination of ['Inbox', 'Conversations', 'Agent tools', 'Index', 'Help Center']) {
       await openDestination(page, width, destination)
       await auditAccessibility(page, `${destination} at ${width}px`)
       const horizontalOverflow = await page.evaluate(
         () => document.documentElement.scrollWidth > document.documentElement.clientWidth
       )
       if (horizontalOverflow) throw new Error(`${destination} overflows horizontally at ${width}px`)
-      await screenshot(page, `${destination.toLowerCase().replaceAll(' ', '-')}-blue-${width}`)
+      await screenshot(
+        page,
+        `${destination.toLowerCase().replaceAll(' ', '-')}-${primaryTheme}-${width}`
+      )
     }
     await context.close()
   }
 
   for (const theme of themes) {
     for (const width of widths) {
-      if (theme === 'blue' && width === 1440) continue
+      if (theme === primaryTheme && width === 1440) continue
       const { context, page } = await openPage(theme, width)
       await openSettings(page, width)
       await auditAccessibility(page, `configured settings ${theme}/${width}`)
       await screenshot(page, `settings-configured-${theme}-${width}`)
+      await auditUpdateLauncher(page, theme, width)
       await context.close()
     }
   }
@@ -693,14 +731,14 @@ async function auditAccessibility(page, label) {
     'retry',
     'recovery',
   ]) {
-    const { context, page } = await openPage('blue', 1440, state)
+    const { context, page } = await openPage(primaryTheme, 1440, state)
     await openSettings(page, 1440)
     if (state === 'success') {
       await page.getByRole('button', { name: 'Services', exact: true }).click()
       await page.getByRole('heading', { name: 'Services', exact: true }).waitFor()
     }
     await auditAccessibility(page, `${state} settings state`)
-    await screenshot(page, `settings-state-${state}-blue-1440`)
+    await screenshot(page, `settings-state-${state}-${primaryTheme}-1440`)
     await context.close()
   }
 

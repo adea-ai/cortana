@@ -60,10 +60,14 @@ async function openDemoApp(context) {
 }
 
 // The rail footer keeps one utilities trigger, so the destinations behind it
-// (Settings, Updates, Index, Help) are two steps: open the menu, then choose.
+// (Settings, Updates, Index, Help Center) are two steps: open the menu, then choose.
 async function openRailDestination(page, label) {
   await page.getByRole('button', { name: 'Settings and utilities' }).click()
-  await page.getByRole('menuitem', { name: label, exact: true }).click()
+  await page
+    .getByRole('menuitem', {
+      name: label === 'Settings' ? /^Settings\b/ : label,
+    })
+    .click()
 }
 
 async function searchProducesAnswerWithEvidence(context) {
