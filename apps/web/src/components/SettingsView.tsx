@@ -178,6 +178,7 @@ function SettingsViewContent(incoming: {
   /** Optional shell-owned updater snapshot shared across Settings mounts. */
   desktopUpdate?: DesktopUpdate | null
   onDesktopUpdate?: (update: DesktopUpdate) => void
+  onOpenUpdates?: (opener?: HTMLButtonElement) => void
   /** Shell-owned service status shared with the tray/health indicator. */
   services?: DesktopServiceReport | null
   onServices?: (report: DesktopServiceReport) => void
@@ -731,8 +732,8 @@ function SettingsViewContent(incoming: {
                 {section() === 'updates' && (
                   <Suspense fallback={<p role="status">Loading update settings…</p>}>
                     <UpdatesSection
-                      desktopUpdate={props.desktopUpdate}
-                      onDesktopUpdate={props.onDesktopUpdate}
+                      currentVersion={props.desktopUpdate?.current_version}
+                      onOpenUpdates={props.onOpenUpdates ?? (() => {})}
                     />
                   </Suspense>
                 )}

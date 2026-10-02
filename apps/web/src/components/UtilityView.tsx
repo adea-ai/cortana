@@ -8,13 +8,11 @@ import {
 import { Alert, AlertDescription } from '@adea-ai/ui/components/ui/alert'
 import {
   AlertTriangle,
-  BookOpen,
   Check,
   CheckCircle2,
   CircleStop,
   CircleX,
   Copy,
-  ExternalLink,
   FileText,
   Inbox,
   MessageCircle,
@@ -24,7 +22,7 @@ import {
   Sparkles,
   TerminalSquare,
 } from 'lucide-solid'
-import { createSignal, For, Show } from 'solid-js'
+import { For, Show } from 'solid-js'
 
 import { openDesktopUrl } from '../api'
 import { codeRevisionLabel } from '../codeEvidence'
@@ -40,10 +38,10 @@ import { describeSyncRunProgress } from '../operations'
 import { shortcutLabel } from '../shortcuts'
 import { useClipboardCopy } from '../useClipboardCopy'
 import { ActionButton as Button } from '@adea-ai/ui/components/composites/action-button'
+import { HelpCenter } from '@adea-ai/ui/components/composites/help-center'
 import { ListGroup, ListRow } from '@adea-ai/ui/components/composites/list-row'
 import { Badge } from '@adea-ai/ui/components/ui/badge'
 import { Table, TableBody, TableRow, TableCell, TableHead } from '@adea-ai/ui/components/ui/table'
-import { Kbd } from '@adea-ai/ui/components/ui/kbd'
 import { Card } from '@adea-ai/ui/components/ui/card'
 import {
   Empty,
@@ -108,7 +106,6 @@ export function UtilityView(props: {
   onSearchFocus: () => void
   onRetrieveContext: () => void
   onOpenSettings: () => void
-  onOpenProject: () => void | Promise<void>
   onCancelSourceJob?: (id: string) => void
 }) {
   const titles = () => TITLES[props.kind]
@@ -119,13 +116,15 @@ export function UtilityView(props: {
       class="utility-view m7-utility-view"
       data-m7-utility-view={props.kind}
     >
-      <header class="utility-header">
-        <div>
-          <span class="eyebrow">{titles().eyebrow}</span>
-          <h1>{titles().title}</h1>
-          <p>{titles().description}</p>
-        </div>
-      </header>
+      <Show when={props.kind !== 'help'}>
+        <header class="utility-header">
+          <div>
+            <span class="eyebrow">{titles().eyebrow}</span>
+            <h1>{titles().title}</h1>
+            <p>{titles().description}</p>
+          </div>
+        </header>
+      </Show>
       <div class="utility-body">
         <Show when={props.kind === 'inbox'}>
           <InboxView
@@ -169,7 +168,7 @@ export function UtilityView(props: {
           />
         </Show>
         <Show when={props.kind === 'help'}>
-          <HelpView desktopAvailable={props.desktopAvailable} onOpenProject={props.onOpenProject} />
+          <HelpView desktopAvailable={props.desktopAvailable} />
         </Show>
       </div>
     </main>
@@ -890,99 +889,30 @@ function IndexView(props: {
   )
 }
 
-function HelpView(props: { desktopAvailable: boolean; onOpenProject: () => void | Promise<void> }) {
-  const [projectError, setProjectError] = createSignal('')
-  const shortcuts = [
-    { keys: shortcutLabel('MOD K'), action: 'Focus the search bar' },
-    { keys: shortcutLabel('MOD P'), action: 'Toggle the command palette' },
-    { keys: shortcutLabel('MOD ⇧ F'), action: 'Open the document filter' },
-    { keys: 'Esc', action: 'Close panels and the palette' },
-  ]
-  const links = [
-    {
-      label: 'GitHub project',
-      href: 'https://github.com/adea-ai/cortana',
-      detail: 'Source, releases, and issues.',
-    },
-    {
-      label: 'Documentation',
-      href: 'https://github.com/adea-ai/cortana/tree/main/docs',
-      detail: 'Architecture, ingestion, query, and operations guides.',
-    },
-  ]
+function HelpView(props: { desktopAvailable: boolean }) {
   return (
-    <>
-      <section class="utility-section">
-        <h2>Keyboard shortcuts</h2>
-        <ListGroup>
-          <For each={shortcuts}>
-            {({ keys, action }) => <ListRow trailing={<Kbd>{keys}</Kbd>}>{action}</ListRow>}
-          </For>
-        </ListGroup>
-      </section>
-      <section class="utility-section">
-        <h2>Project and docs</h2>
-        <ListGroup>
-          <For each={links}>
-            {({ label, href, detail }) => (
-              <ListRow
-                as="a"
-                tooltip={`Open ${label.toLowerCase()} in your browser.`}
-                leading={<BookOpen size={16} aria-hidden="true" />}
-                description={detail}
-                trailing={<ExternalLink size={14} aria-hidden="true" />}
-                href={href}
-                target="_blank"
-                rel="noreferrer"
-                onClick={(event) => {
-                  if (!props.desktopAvailable) return
-                  event.preventDefault()
-                  setProjectError('')
-                  void openDesktopUrl(href).catch((caught: unknown) => {
-                    setProjectError(
-                      caught instanceof Error
-                        ? caught.message
-                        : `Unable to open ${label.toLowerCase()} in the system browser`
-                    )
-                  })
-                }}
-              >
-                {label}
-              </ListRow>
-            )}
-          </For>
-        </ListGroup>
-        <Show when={props.desktopAvailable}>
-          <div class="utility-actions">
-            <Button
-              tooltip="Open project page"
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                setProjectError('')
-                void Promise.resolve(props.onOpenProject()).catch((caught: unknown) => {
-                  setProjectError(
-                    caught instanceof Error
-                      ? caught.message
-                      : 'Unable to open the Cortana project page'
-                  )
-                })
-              }}
-            >
-              <ExternalLink size={15} aria-hidden="true" /> Open project page
-            </Button>
-          </div>
-        </Show>
-        <Show when={projectError()}>
-          <Alert variant="destructive" class="utility-error" role="alert">
-            <AlertDescription>{projectError()}</AlertDescription>
-          </Alert>
-        </Show>
-        <p class="utility-note">
-          Cortana is local-first: your index, context bundles, and settings stay on this machine.
-        </p>
-      </section>
-    </>
+    <HelpCenter
+      appName="Cortana"
+      shortcuts={[
+        { label: 'Focus the search bar', keys: [shortcutLabel('MOD'), 'K'] },
+        { label: 'Toggle the command palette', keys: [shortcutLabel('MOD'), 'P'] },
+        { label: 'Open the document filter', keys: [shortcutLabel('MOD'), '⇧', 'F'] },
+        { label: 'Close panels and the palette', keys: ['Esc'] },
+      ]}
+      links={[
+        {
+          label: 'GitHub project',
+          description: 'Source, releases, and issues.',
+          url: 'https://github.com/adea-ai/cortana',
+        },
+        {
+          label: 'Documentation',
+          description: 'Architecture, ingestion, query, and operations guides.',
+          url: 'https://github.com/adea-ai/cortana/tree/main/docs',
+        },
+      ]}
+      openExternal={props.desktopAvailable ? (url: string) => openDesktopUrl(url) : undefined}
+    />
   )
 }
 

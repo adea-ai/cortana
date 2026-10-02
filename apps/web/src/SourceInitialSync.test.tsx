@@ -379,13 +379,20 @@ test('service action result is not overwritten by stale local refresh', async ()
     window.confirm = originalConfirm
   }
 })
-test('standalone updater failures stay visible instead of being swallowed', async () => {
+test('the updates settings launcher opens the shared updater surface', async () => {
+  let opened = false
   render(() => (
-    <SettingsView onSaved={() => {}} initialSection="updates" desktopSettings={state.settings} />
+    <SettingsView
+      onSaved={() => {}}
+      initialSection="updates"
+      desktopSettings={state.settings}
+      onOpenUpdates={() => {
+        opened = true
+      }}
+    />
   ))
-  await waitFor(() =>
-    expect(screen.getByRole('alert').textContent).toContain('Updates unavailable')
-  )
+  fireEvent.click(await screen.findByRole('button', { name: 'Open updates' }))
+  expect(opened).toBe(true)
 })
 test('settings bridge failures expose a retry action', async () => {
   state.settingsLoadError = new Error('settings bridge unavailable')
