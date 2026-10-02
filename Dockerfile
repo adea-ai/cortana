@@ -21,7 +21,7 @@ RUN cd apps/web \
     && node ../../node_modules/vite/bin/vite.js build \
     && bun ../../scripts/check-web-bundle-budget.mjs
 
-FROM rust:1.88-bookworm AS rust-builder
+FROM rust:1.98-bookworm AS rust-builder
 ARG TARGETARCH
 WORKDIR /src
 # reqwest 0.13's rustls (aws-lc-rs) compiles its vendored C with CMake,
