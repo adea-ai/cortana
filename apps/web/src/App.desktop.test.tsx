@@ -4234,9 +4234,20 @@ test('a failed new-channel check keeps the channel that persisted successfully',
 test('closing the shared updater restores focus to the utilities trigger', async () => {
   render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-  const dialog = await openUpdaterFromMenu()
-  fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }))
-  await waitFor(() => expect(utilitiesTrigger() === document.activeElement).toBe(true))
+  const trigger = utilitiesTrigger()
+  const originalRects = Object.getOwnPropertyDescriptor(trigger, 'getClientRects')
+  Object.defineProperty(trigger, 'getClientRects', {
+    configurable: true,
+    value: () => [{ width: 1, height: 1 }] as unknown as DOMRectList,
+  })
+  try {
+    const dialog = await openUpdaterFromMenu()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }))
+    await waitFor(() => expect(trigger === document.activeElement).toBe(true))
+  } finally {
+    if (originalRects) Object.defineProperty(trigger, 'getClientRects', originalRects)
+    else Reflect.deleteProperty(trigger, 'getClientRects')
+  }
 })
 test('mobile About and Updates restore focus to the live navigation trigger', async () => {
   const originalMatchMedia = Object.getOwnPropertyDescriptor(window, 'matchMedia')
