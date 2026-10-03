@@ -6,7 +6,10 @@ import { resolve } from 'node:path'
 import { AxeBuilder } from '@axe-core/playwright'
 import { chromium, webkit } from 'playwright'
 import { themesForAppearance } from '@adea-ai/ui/lib/themes'
-import { setViewportAndWaitForLayout } from './knowledge-accessibility-browser.mjs'
+import {
+  setViewportAndWaitForLayout,
+  waitForTransitionStylesToSettle,
+} from './knowledge-accessibility-browser.mjs'
 
 const args = new Map()
 for (let index = 2; index < process.argv.length; index += 2) {
@@ -345,6 +348,7 @@ async function auditAccessibility(page, label) {
         const node = page.getByRole('button', { name: /Focus workspace:/ }).first()
         await node.click()
         await page.getByRole('complementary', { name: 'Selected graph node' }).waitFor()
+        await node.evaluate(waitForTransitionStylesToSettle)
         await auditAccessibility(page, `selected responsive graph/${width}`)
         await screenshot(page, `knowledge-graph-selected-${theme}-${width}`)
         await openDestination(page, width, 'Knowledge')
