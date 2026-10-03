@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.66.3](https://github.com/adea-ai/cortana/compare/v0.66.2...v0.66.3) (2026-10-03)
+
+
+### Bug Fixes
+
+* cache exact status stats by database revision ([#2497](https://github.com/adea-ai/cortana/issues/2497)) ([ad491b0](https://github.com/adea-ai/cortana/commit/ad491b0bbc63b5f11753e4cde2d9928793e68b68))
+* **release:** preserve dev identity in core assets ([#2496](https://github.com/adea-ai/cortana/issues/2496)) ([75e02ff](https://github.com/adea-ai/cortana/commit/75e02ffc978a76b7df0e8d5c9077845c10da3d11))
+* **release:** use source version for dev builds ([#2493](https://github.com/adea-ai/cortana/issues/2493)) ([0f7ea1c](https://github.com/adea-ai/cortana/commit/0f7ea1c4a96f2ca3645a9ff6dfea733f9a499203))
+
 ## [0.66.2](https://github.com/adea-ai/cortana/compare/v0.66.1...v0.66.2) (2026-10-03)
 
 
