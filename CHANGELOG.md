@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.66.4](https://github.com/adea-ai/cortana/compare/v0.66.3...v0.66.4) (2026-10-03)
+
+
+### Bug Fixes
+
+* **status:** isolate memory stats from document reads ([#2499](https://github.com/adea-ai/cortana/issues/2499)) ([438a913](https://github.com/adea-ai/cortana/commit/438a9139929d40947a0d46771a5dc4ee08dba368))
+
 ## [0.66.3](https://github.com/adea-ai/cortana/compare/v0.66.2...v0.66.3) (2026-10-03)
 
 
