@@ -49,7 +49,9 @@
   "packages": {
     ".": {
       "release-type": "rust",
-      "package-name": "cortana"
+      "package-name": "cortana",
+      "draft": true,
+      "force-tag-creation": true
     }
   },
   "extra-files": [
@@ -165,5 +167,7 @@
       "path": "crates/mcp/Cargo.toml",
       "jsonpath": "$.package.version"
     }
-  ]
+  ],
+  "draft": true,
+  "force-tag-creation": true
 }
