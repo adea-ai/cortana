@@ -4,7 +4,9 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { dirname, relative, resolve, matchesGlob as pathMatchesGlob } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
-import ts from 'typescript'
+// TS 7's native compiler removed the classic JS API this contract checker
+// introspects with; the typescript6 alias pins it for tooling only.
+import ts from 'typescript6'
 
 const defaultRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const sourceRootPath = 'apps/web/src'

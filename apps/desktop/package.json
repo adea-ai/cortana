@@ -18,6 +18,6 @@
     "test:native": "bun run prepare:resources && bun run prepare:sidecar && node ../../scripts/run-desktop-command.mjs cargo test --manifest-path src-tauri/Cargo.toml native_"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.11.4"
+    "@tauri-apps/cli": "^2.12.1"
   }
 }

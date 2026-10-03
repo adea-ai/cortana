@@ -32,10 +32,12 @@ describe('Desktop shadcn renderer contract', () => {
   test('resolves generated components through the checked-in source alias', () => {
     const tsconfig = JSON.parse(readFileSync(resolve(root, 'apps/web/tsconfig.json'), 'utf8'))
 
+    // TypeScript 7 removed `baseUrl`; explicit ./ paths resolve relative to
+    // this tsconfig, which is what the generated-component alias needs.
     expect(tsconfig.compilerOptions).toMatchObject({
-      baseUrl: '.',
       paths: { '@/*': ['./src/*'] },
     })
+    expect(tsconfig.compilerOptions.baseUrl).toBeUndefined()
   })
 
   test('disables renderer motion when the operating system requests it', () => {
