@@ -3,6 +3,10 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 const workflow = readFileSync(new URL('../.github/workflows/desktop.yml', import.meta.url), 'utf8')
+const releaseAssetsWorkflow = readFileSync(
+  new URL('../.github/workflows/release-assets.yml', import.meta.url),
+  'utf8'
+)
 const jobs = [
   'gtk_provenance',
   'gtk_iterator',
@@ -82,6 +86,24 @@ test('desktop cache regression coverage is included in desktop change detection'
     workflow.indexOf('changed=false')
   )
   assert.match(detector, /scripts\/desktop-cache\.test\.mjs/)
+  assert.match(detector, /\.github\/workflows\/release-assets\.yml/)
+  assert.match(detector, /\.github\/workflows\/dev-build\.yml/)
+  assert.match(detector, /scripts\/release-workflow\.test\.mjs/)
+})
+
+test('Windows release asset builds run the dev version override script in Bash', () => {
+  const desktopStart = releaseAssetsWorkflow.indexOf('\n  desktop:\n')
+  assert.notEqual(desktopStart, -1, 'missing Desktop release-assets job')
+  const desktopTail = releaseAssetsWorkflow.slice(desktopStart + 1)
+  const desktopEnd = desktopTail.slice(1).search(/\n  [A-Za-z_][A-Za-z0-9_-]*:\n/)
+  const desktopJob = desktopEnd === -1 ? desktopTail : desktopTail.slice(0, desktopEnd + 1)
+  const overrideStart = desktopJob.indexOf('      - name: Apply the dev version override\n')
+  assert.notEqual(overrideStart, -1, 'missing dev version override step')
+  const overrideTail = desktopJob.slice(overrideStart)
+  const overrideEnd = overrideTail.indexOf('\n      - name: ', 1)
+  const overrideStep = overrideEnd === -1 ? overrideTail : overrideTail.slice(0, overrideEnd)
+  assert.match(overrideStep, /\n        shell: bash\n/)
+  assert.match(overrideStep, /set -euo pipefail/)
 })
 
 test('dependency audit never transfers compilation targets', () => {

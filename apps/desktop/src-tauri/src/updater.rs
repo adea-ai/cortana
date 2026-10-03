@@ -71,6 +71,10 @@ impl UpdaterState {
         app: &tauri::AppHandle<R>,
     ) -> Result<UpdateSnapshot, String> {
         let _operation = self.operation.lock().await;
+        {
+            let mut pending = self.pending.lock().await;
+            *pending = None;
+        }
         self.update_snapshot(|snapshot| {
             snapshot.phase = "checking";
             snapshot.error = None;
@@ -88,12 +92,33 @@ impl UpdaterState {
         // reads that release's signed manifest instead of the stable feed.
         // Opt-in channels never fall back to stable on resolution failure —
         // the check fails so the user sees the channel is unreachable.
-        let updater = match channel_endpoint(app).await {
-            Ok(Some(endpoint)) => app
-                .updater_builder()
-                .endpoints(vec![endpoint])
-                .and_then(|builder| builder.build())
-                .map_err(|error| format!("initialize signed updater: {error}")),
+        let channel = read_channel(app);
+        let updater = match channel_endpoint(channel).await {
+            Ok(Some(endpoint)) => {
+                let mut builder = app.updater_builder();
+                if channel == UpdateChannel::Dev {
+                    // SemVer correctly orders `0.66.0-dev.3` below the stable
+                    // `0.66.0`. For an explicitly selected dev channel, allow
+                    // moving from stable to that same core version while
+                    // keeping ordinary SemVer ordering on every other channel.
+                    builder = builder.version_comparator(|current, update| {
+                        dev_channel_version_is_newer(
+                            (current.major, current.minor, current.patch),
+                            current.pre.as_str(),
+                            (
+                                update.version.major,
+                                update.version.minor,
+                                update.version.patch,
+                            ),
+                            update.version.pre.as_str(),
+                        )
+                    });
+                }
+                builder
+                    .endpoints(vec![endpoint])
+                    .and_then(|builder| builder.build())
+                    .map_err(|error| format!("initialize signed updater: {error}"))
+            }
             Ok(None) => app
                 .updater()
                 .map_err(|error| format!("initialize signed updater: {error}")),
@@ -539,7 +564,25 @@ pub fn read_channel<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> UpdateChann
     let Ok(raw) = std::fs::read_to_string(data_dir.join(CHANNEL_FILE_NAME)) else {
         return UpdateChannel::Stable;
     };
-    serde_json::from_str::<UpdateChannel>(&raw).unwrap_or_default()
+    parse_saved_channel(&raw)
+}
+
+fn parse_saved_channel(raw: &str) -> UpdateChannel {
+    if let Ok(channel) = serde_json::from_str::<UpdateChannel>(raw) {
+        return channel;
+    }
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(raw) else {
+        return UpdateChannel::Stable;
+    };
+    let channel = value
+        .get("channel")
+        .and_then(serde_json::Value::as_str)
+        // Accept the old bare-enum representation too, so a pre-release build
+        // that happened to persist it keeps its selected channel.
+        .or_else(|| value.as_str());
+    channel
+        .and_then(UpdateChannel::parse)
+        .unwrap_or(UpdateChannel::Stable)
 }
 
 /// Persist the channel and record the change in the audit log. The file lives
@@ -556,8 +599,7 @@ pub fn save_channel<R: tauri::Runtime>(
         .path()
         .app_data_dir()
         .map_err(|error| format!("resolve app data dir: {error}"))?;
-    std::fs::create_dir_all(&data_dir)
-        .map_err(|error| format!("create app data dir: {error}"))?;
+    std::fs::create_dir_all(&data_dir).map_err(|error| format!("create app data dir: {error}"))?;
     let body = serde_json::json!({ "channel": channel.as_str() });
     std::fs::write(data_dir.join(CHANNEL_FILE_NAME), body.to_string())
         .map_err(|error| format!("write update channel: {error}"))?;
@@ -567,11 +609,48 @@ pub fn save_channel<R: tauri::Runtime>(
 
 /// The endpoint a channel checks, or `None` for stable: the plugin then reads
 /// its configured `releases/latest` manifest unchanged.
+fn resolve_channel_endpoint_from_releases(
+    releases: &serde_json::Value,
+    channel: UpdateChannel,
+) -> Result<tauri::Url, String> {
+    let Some(releases) = releases.as_array() else {
+        return Err(format!("no {channel} release is published yet"));
+    };
+    for release in releases {
+        let tag = release
+            .get("tag_name")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or_default();
+        if release.get("draft").and_then(serde_json::Value::as_bool) == Some(false)
+            && release
+                .get("prerelease")
+                .and_then(serde_json::Value::as_bool)
+                == Some(true)
+            && channel_tag_matches(tag, channel)
+            && release_has_latest_manifest(release)
+        {
+            return tauri::Url::parse(&format!(
+                "https://github.com/adea-ai/cortana/releases/download/{tag}/latest.json"
+            ))
+            .map_err(|error| format!("parse channel endpoint: {error}"));
+        }
+    }
+    Err(format!("no {channel} release is published yet"))
+}
+
+fn release_has_latest_manifest(release: &serde_json::Value) -> bool {
+    release
+        .get("assets")
+        .and_then(serde_json::Value::as_array)
+        .is_some_and(|assets| {
+            assets.iter().any(|asset| {
+                asset.get("name").and_then(serde_json::Value::as_str) == Some("latest.json")
+            })
+        })
+}
+
 async fn resolve_channel_endpoint(channel: UpdateChannel) -> Result<tauri::Url, String> {
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()
-        .map_err(|error| format!("build update channel client: {error}"))?;
+    let client = release_list_client()?;
     let releases: serde_json::Value = client
         .get(RELEASES_API_URL)
         .header(reqwest::header::ACCEPT, "application/vnd.github+json")
@@ -583,36 +662,51 @@ async fn resolve_channel_endpoint(channel: UpdateChannel) -> Result<tauri::Url, 
         .json()
         .await
         .map_err(|error| format!("decode GitHub releases: {error}"))?;
-    let Some(releases) = releases.as_array() else {
-        return Err(format!("no {channel} release is published yet"));
-    };
-    for release in releases {
-        let tag = release
-            .get("tag_name")
-            .and_then(|value| value.as_str())
-            .unwrap_or_default();
-        if release.get("draft").and_then(|value| value.as_bool()) == Some(false)
-            && release.get("prerelease").and_then(|value| value.as_bool()) == Some(true)
-            && channel_tag_matches(tag, channel)
-        {
-            return tauri::Url::parse(&format!(
-                "https://github.com/adea-ai/cortana/releases/download/{tag}/latest.json"
-            ))
-            .map_err(|error| format!("parse channel endpoint: {error}"));
-        }
-    }
-    Err(format!("no {channel} release is published yet"))
+    resolve_channel_endpoint_from_releases(&releases, channel)
+}
+
+fn release_list_client() -> Result<reqwest::Client, String> {
+    reqwest::Client::builder()
+        .user_agent(concat!("Cortana/", env!("CARGO_PKG_VERSION")))
+        .timeout(Duration::from_secs(30))
+        .build()
+        .map_err(|error| format!("build update channel client: {error}"))
 }
 
 /// The endpoint override for the configured channel: `None` lets the plugin
 /// read its configured stable feed.
-async fn channel_endpoint<R: tauri::Runtime>(
-    app: &tauri::AppHandle<R>,
-) -> Result<Option<tauri::Url>, String> {
-    match read_channel(app) {
+async fn channel_endpoint(channel: UpdateChannel) -> Result<Option<tauri::Url>, String> {
+    match channel {
         UpdateChannel::Stable => Ok(None),
         channel => resolve_channel_endpoint(channel).await.map(Some),
     }
+}
+
+fn dev_channel_version_is_newer(
+    current_core: (u64, u64, u64),
+    current_pre: &str,
+    remote_core: (u64, u64, u64),
+    remote_pre: &str,
+) -> bool {
+    let Some(remote_counter) = dev_counter(remote_pre) else {
+        return false;
+    };
+    match remote_core.cmp(&current_core) {
+        std::cmp::Ordering::Greater => true,
+        std::cmp::Ordering::Less => false,
+        std::cmp::Ordering::Equal => match current_pre {
+            "" => true,
+            pre => dev_counter(pre).is_some_and(|counter| remote_counter > counter),
+        },
+    }
+}
+
+fn dev_counter(prerelease: &str) -> Option<u64> {
+    let counter = prerelease.strip_prefix("dev.")?;
+    let parsed = counter.parse::<u64>().ok()?;
+    // SemVer numeric identifiers cannot have leading zeroes; keep the same
+    // strict grammar here even though GitHub tag matching only checks digits.
+    (parsed.to_string() == counter).then_some(parsed)
 }
 
 #[cfg(test)]
@@ -646,7 +740,10 @@ mod tests {
         // The pre-release channel follows the plain shape; dev builds carry a
         // -dev.N counter and never leak into it.
         assert!(channel_tag_matches("v0.65.3", UpdateChannel::PreRelease));
-        assert!(!channel_tag_matches("v0.65.3-dev.1", UpdateChannel::PreRelease));
+        assert!(!channel_tag_matches(
+            "v0.65.3-dev.1",
+            UpdateChannel::PreRelease
+        ));
         // The dev channel follows exactly the dev shape.
         assert!(channel_tag_matches("v0.65.3-dev.1", UpdateChannel::Dev));
         assert!(!channel_tag_matches("v0.65.3", UpdateChannel::Dev));
@@ -670,6 +767,168 @@ mod tests {
         assert_eq!(UpdateChannel::parse("beta"), None);
         assert_eq!(UpdateChannel::parse(""), None);
         assert_eq!(UpdateChannel::default(), UpdateChannel::Stable);
+    }
+
+    #[test]
+    fn saved_channel_reads_the_object_written_by_save() {
+        assert_eq!(
+            parse_saved_channel(r#"{"channel":"dev"}"#),
+            UpdateChannel::Dev
+        );
+        assert_eq!(
+            parse_saved_channel(r#"{"channel":"pre-release"}"#),
+            UpdateChannel::PreRelease
+        );
+        assert_eq!(parse_saved_channel(r#""Dev""#), UpdateChannel::Dev);
+        assert_eq!(
+            parse_saved_channel(r#"{"channel":"unknown"}"#),
+            UpdateChannel::Stable
+        );
+    }
+
+    #[test]
+    fn dev_channel_version_comparator_allows_same_core_and_newer_dev_builds() {
+        assert!(dev_channel_version_is_newer(
+            (0, 66, 0),
+            "",
+            (0, 66, 0),
+            "dev.3"
+        ));
+        assert!(dev_channel_version_is_newer(
+            (0, 66, 0),
+            "dev.3",
+            (0, 66, 0),
+            "dev.4"
+        ));
+        assert!(dev_channel_version_is_newer(
+            (0, 66, 0),
+            "",
+            (0, 67, 0),
+            "dev.1"
+        ));
+    }
+
+    #[test]
+    fn dev_channel_version_comparator_rejects_old_or_malformed_releases() {
+        assert!(!dev_channel_version_is_newer(
+            (0, 66, 0),
+            "",
+            (0, 65, 9),
+            "dev.99"
+        ));
+        assert!(!dev_channel_version_is_newer(
+            (0, 66, 0),
+            "dev.3",
+            (0, 66, 0),
+            "dev.3"
+        ));
+        assert!(!dev_channel_version_is_newer(
+            (0, 66, 0),
+            "dev.3",
+            (0, 66, 0),
+            "dev.2"
+        ));
+        assert!(!dev_channel_version_is_newer(
+            (0, 66, 0),
+            "",
+            (0, 66, 0),
+            "rc.1"
+        ));
+        assert!(!dev_channel_version_is_newer(
+            (0, 66, 0),
+            "",
+            (0, 66, 0),
+            "dev.03"
+        ));
+    }
+
+    #[test]
+    fn channel_resolver_skips_newest_release_without_manifest() {
+        let releases = serde_json::json!([
+            {
+                "tag_name": "v0.66.0-dev.3",
+                "draft": false,
+                "prerelease": true,
+                "assets": [{"name": "Cortana.dmg"}]
+            },
+            {
+                "tag_name": "v0.66.0-dev.2",
+                "draft": false,
+                "prerelease": true,
+                "assets": [{"name": "latest.json"}]
+            }
+        ]);
+
+        let endpoint = resolve_channel_endpoint_from_releases(&releases, UpdateChannel::Dev)
+            .expect("older complete dev release remains installable");
+        assert_eq!(
+            endpoint.as_str(),
+            "https://github.com/adea-ai/cortana/releases/download/v0.66.0-dev.2/latest.json"
+        );
+    }
+
+    #[test]
+    fn channel_resolver_reports_no_release_when_manifests_are_missing() {
+        let releases = serde_json::json!([{
+            "tag_name": "v0.66.0-dev.3",
+            "draft": false,
+            "prerelease": true,
+            "assets": [{"name": "Cortana.dmg"}]
+        }]);
+
+        assert_eq!(
+            resolve_channel_endpoint_from_releases(&releases, UpdateChannel::Dev).unwrap_err(),
+            "no dev release is published yet"
+        );
+    }
+
+    #[tokio::test]
+    async fn release_list_client_sends_the_cortana_user_agent() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind local HTTP server");
+        let address = listener.local_addr().expect("read local HTTP address");
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.expect("accept API request");
+            let mut request = Vec::new();
+            let mut buffer = [0; 1024];
+            loop {
+                let read = stream.read(&mut buffer).await.expect("read API request");
+                if read == 0 {
+                    break;
+                }
+                request.extend_from_slice(&buffer[..read]);
+                if request.windows(4).any(|window| window == b"\r\n\r\n") {
+                    break;
+                }
+            }
+            stream
+                .write_all(
+                    b"HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: 2\r\nconnection: close\r\n\r\n[]",
+                )
+                .await
+                .expect("write API response");
+            String::from_utf8(request).expect("decode API request")
+        });
+
+        release_list_client()
+            .expect("build release-list client")
+            .get(format!("http://{address}/releases"))
+            .send()
+            .await
+            .expect("send release-list request")
+            .error_for_status()
+            .expect("accept release-list response");
+        let request = server.await.expect("finish local API server");
+        let expected = format!("user-agent: Cortana/{}", env!("CARGO_PKG_VERSION"));
+        assert!(
+            request
+                .lines()
+                .any(|line| line.eq_ignore_ascii_case(&expected)),
+            "request omitted {expected:?}: {request}"
+        );
     }
 
     #[test]

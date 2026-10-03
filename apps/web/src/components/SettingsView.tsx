@@ -81,7 +81,6 @@ import type {
   DesktopSettings,
   DesktopSettingsUpdate,
   DesktopSourceJob,
-  DesktopUpdate,
   SourceSettings,
 } from '../types'
 const AdvancedSettingsSection = lazy(() =>
@@ -93,9 +92,6 @@ const SourcesSection = lazy(() =>
   import('./settings/SourceSettingsWorkflow').then((module) => ({
     default: module.SourcesSection,
   }))
-)
-const UpdatesSection = lazy(() =>
-  import('./settings/UpdatesSection').then((module) => ({ default: module.UpdatesSection }))
 )
 const AccessSection = lazy(() =>
   import('./settings/AccessSection').then((module) => ({ default: module.AccessSection }))
@@ -123,7 +119,6 @@ const IngestionSection = lazy(() =>
 type Section =
   | 'readiness'
   | 'services'
-  | 'updates'
   | 'access'
   | 'audit'
   | 'workspaces'
@@ -135,7 +130,6 @@ type Section =
   | 'advanced'
 const SETTINGS_NAV_PRIMARY_SECTIONS: Section[] = ['services', 'workspaces', 'sources', 'readiness']
 const SETTINGS_NAV_SECONDARY_SECTIONS: Section[] = [
-  'updates',
   'access',
   'audit',
   'embedding',
@@ -175,10 +169,6 @@ function SettingsViewContent(incoming: {
   onReadiness?: (readiness: DesktopReadiness | null) => void
   readinessActivity?: DesktopReadinessActivity | null
   onReadinessScan?: () => Promise<DesktopReadiness>
-  /** Optional shell-owned updater snapshot shared across Settings mounts. */
-  desktopUpdate?: DesktopUpdate | null
-  onDesktopUpdate?: (update: DesktopUpdate) => void
-  onOpenUpdates?: (opener?: HTMLButtonElement) => void
   /** Shell-owned service status shared with the tray/health indicator. */
   services?: DesktopServiceReport | null
   onServices?: (report: DesktopServiceReport) => void
@@ -728,14 +718,6 @@ function SettingsViewContent(incoming: {
                       )
                     }
                   />
-                )}
-                {section() === 'updates' && (
-                  <Suspense fallback={<p role="status">Loading update settings…</p>}>
-                    <UpdatesSection
-                      currentVersion={props.desktopUpdate?.current_version}
-                      onOpenUpdates={props.onOpenUpdates ?? (() => {})}
-                    />
-                  </Suspense>
                 )}
                 {section() === 'access' && (
                   <Suspense fallback={<p role="status">Loading access settings…</p>}>

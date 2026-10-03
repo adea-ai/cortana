@@ -77,6 +77,7 @@ import { StatusChip } from '@adea-ai/ui/components/ui/status-chip'
 import { StatusBarItem } from '@adea-ai/ui/components/layout/status-bar'
 import { UpdateDialog } from '@adea-ai/ui/components/composites/update-dialog'
 import type { UpdateAdapter, UpdateState } from '@adea-ai/ui/components/composites/update-dialog'
+import { UpdateChannelControl } from './components/UpdateChannelControl'
 import { buildAgentContext, estimateTokens } from './context'
 import { embeddingLabel } from './operations'
 import {
@@ -339,7 +340,7 @@ function CortanaApplication() {
   const [desktopServices, setDesktopServices] = createSignal<DesktopServiceReport | null>(null)
   const [desktopServicesError, setDesktopServicesError] = createSignal('')
   const [settingsSection, setSettingsSection] = createSignal<
-    'readiness' | 'services' | 'updates' | 'sources' | 'memory'
+    'readiness' | 'services' | 'sources' | 'memory'
   >('readiness')
   const [aboutOpen, setAboutOpen] = createSignal(false)
   const [aboutDialogMounted, setAboutDialogMounted] = createSignal(false)
@@ -1281,7 +1282,7 @@ function CortanaApplication() {
         (candidate.name === sourceName || candidate.source === sourceName)
     )
   }
-  function openSettingsAt(section: 'readiness' | 'services' | 'updates' | 'sources' | 'memory') {
+  function openSettingsAt(section: 'readiness' | 'services' | 'sources' | 'memory') {
     if (!canLeaveSettings()) return
     setSettingsSection(section)
     setView('settings')
@@ -2035,11 +2036,7 @@ function CortanaApplication() {
                     tooltip="Cortana · Updates"
                     variant="ghost"
                     type="button"
-                    onClick={() => {
-                      if (!canLeaveSettings()) return
-                      setSettingsSection('updates')
-                      setView('settings')
-                    }}
+                    onClick={(event) => openUpdateDialog(event.currentTarget)}
                   >
                     Cortana {desktopInfo()?.desktop_version || '—'} · Updates
                     {desktopUpdateStatusSuffix(desktopUpdate())}
@@ -2148,9 +2145,6 @@ function CortanaApplication() {
                     onReadiness={setDesktopReadiness}
                     readinessActivity={readinessActivity()}
                     onReadinessScan={runReadinessScan}
-                    desktopUpdate={desktopUpdate() ?? undefined}
-                    onDesktopUpdate={setDesktopUpdate}
-                    onOpenUpdates={openUpdateDialog}
                     services={desktopServices()}
                     onServices={(nextServices) => {
                       setDesktopServices(nextServices)
@@ -2502,6 +2496,11 @@ function CortanaApplication() {
                   appIcon="/app-icon.svg"
                   fallbackVersion={desktopInfo()?.desktop_version}
                   changelog={desktopUpdate()?.changelog}
+                  channelControl={
+                    isDesktopApp
+                      ? (controls) => <UpdateChannelControl controls={controls} />
+                      : undefined
+                  }
                   open={updateDialogOpen()}
                   onOpenChange={setUpdateDialogOpen}
                   restoreFocusRef={() => updateDialogOpenerRef.current}

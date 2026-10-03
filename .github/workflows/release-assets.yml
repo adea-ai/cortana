@@ -21,6 +21,8 @@ permissions:
 # release:published event path builds the checked-out source version, so the
 # dev lane skips that event for dev tags and builds them through an explicit
 # dispatch with version_override instead (see dev-build.yml).
+# `latest.json` is the channel resolver's readiness signal. Publish it only
+# after every platform job and macOS trust verification have succeeded.
 jobs:
   binaries:
     name: Binary / ${{ matrix.target }}
@@ -143,6 +145,7 @@ jobs:
           ref: ${{ env.RELEASE_TAG }}
       - name: Apply the dev version override
         if: env.VERSION_OVERRIDE != ''
+        shell: bash
         run: |
           set -euo pipefail
           python3 scripts/apply-dev-version.py "${VERSION_OVERRIDE}"
@@ -294,10 +297,12 @@ jobs:
 
   manifest:
     name: Generate updater manifest
-    needs: [binaries, desktop]
+    needs: [binaries, desktop, macos_trust]
     if: >-
       always() &&
-      (needs.binaries.result == 'success' || needs.desktop.result == 'success')
+      needs.binaries.result == 'success' &&
+      needs.desktop.result == 'success' &&
+      needs.macos_trust.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -314,24 +319,19 @@ jobs:
           # the asset target while main supplies the maintained tooling.
           ref: main
       - name: Generate merged updater manifest
-        # Keep the updater endpoint valid when one platform's package gate
-        # fails. Missing targets are omitted from the manifest, so supported
-        # platforms can still receive signed updates. The strict `verify` job
-        # below remains fail-closed for an incomplete cross-platform release.
         run: >-
           python3 scripts/generate-updater-manifest.py "$RELEASE_TAG"
-          --allow-partial --output "$RUNNER_TEMP/latest.json"
+          --output "$RUNNER_TEMP/latest.json"
       - name: Upload merged updater manifest
         run: gh release upload "$RELEASE_TAG" "$RUNNER_TEMP/latest.json" --repo "$GH_REPO" --clobber
 
   macos_trust:
     name: Verify macOS trust and stapling
-    needs: [binaries, desktop, manifest]
+    needs: [binaries, desktop]
     if: >-
       always() &&
       needs.binaries.result == 'success' &&
-      needs.desktop.result == 'success' &&
-      needs.manifest.result == 'success'
+      needs.desktop.result == 'success'
     runs-on: macos-14
     timeout-minutes: 15
     permissions:
