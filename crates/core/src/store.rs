@@ -87,6 +87,10 @@ fn bump_memory_revision(transaction: &rusqlite::Transaction<'_>) -> Result<()> {
 pub struct Store {
     connection: Arc<Mutex<Connection>>,
     read_connection: Arc<Mutex<Connection>>,
+    /// Dedicated connection for readiness and metrics statistics. These
+    /// grouped full-corpus queries must not queue behind document retrievals
+    /// sharing `read_connection` and exhaust the HTTP readiness deadline.
+    stats_connection: Arc<Mutex<Connection>>,
     /// A dedicated control-plane connection keeps liveness/readiness probes
     /// independent from the shared read connection used by document and
     /// status queries. A slow full-corpus read must not make the service look
@@ -152,6 +156,46 @@ pub struct SourceStats {
     pub chunks: i64,
     pub latest_updated_at: Option<String>,
 }
+
+const SOURCE_STATS_QUERY: &str = "SELECT d.source,d.project,COUNT(*),
+            SUM((SELECT COUNT(*) FROM chunks c WHERE c.document_id=d.id)),
+            MAX(d.updated_at)
+     FROM documents d
+     GROUP BY d.source,d.project ORDER BY d.project,d.source";
+
+const SCOPED_SOURCE_STATS_QUERY: &str = "WITH visible_documents AS (
+       SELECT d.id,d.source,d.project,d.updated_at
+       FROM documents d
+       WHERE json_valid(d.acl_json)
+         AND json_type(d.acl_json)='array'
+         AND NOT EXISTS (
+           SELECT 1 FROM json_each(d.acl_json) AS document_acl
+           WHERE document_acl.type<>'text'
+         )
+         AND (
+           json_array_length(d.acl_json)=0
+           OR EXISTS (
+             SELECT 1 FROM json_each(?1) AS principal_acl
+             WHERE principal_acl.type='text'
+               AND (
+                 principal_acl.value='*'
+                 OR EXISTS (
+                   SELECT 1 FROM json_each(d.acl_json) AS document_acl
+                   WHERE document_acl.type='text'
+                     AND document_acl.value=principal_acl.value
+                 )
+               )
+           )
+         )
+     )
+     SELECT visible_documents.source,visible_documents.project,
+            COUNT(*),
+            SUM((SELECT COUNT(*) FROM chunks c
+                 WHERE c.document_id=visible_documents.id)),
+            MAX(visible_documents.updated_at)
+     FROM visible_documents
+     GROUP BY visible_documents.source,visible_documents.project
+     ORDER BY visible_documents.source,visible_documents.project";
 
 #[derive(Clone, Debug, Serialize, schemars::JsonSchema)]
 pub struct SourceSyncStats {
@@ -511,11 +555,14 @@ impl Store {
         secure_database_files(path)?;
         let read_connection = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
         read_connection.busy_timeout(DATABASE_BUSY_TIMEOUT)?;
+        let stats_connection = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+        stats_connection.busy_timeout(DATABASE_BUSY_TIMEOUT)?;
         let probe_connection = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
         probe_connection.busy_timeout(Duration::from_millis(250))?;
         Ok(Self {
             connection: Arc::new(Mutex::new(connection)),
             read_connection: Arc::new(Mutex::new(read_connection)),
+            stats_connection: Arc::new(Mutex::new(stats_connection)),
             probe_connection: Arc::new(Mutex::new(probe_connection)),
             memory_max_active: Arc::new(AtomicUsize::new(memory::DEFAULT_MEMORY_MAX_ACTIVE)),
         })
@@ -5084,12 +5131,11 @@ impl Store {
     }
 
     pub fn stats(&self) -> Result<StoreStats> {
-        // Status and readiness are control-plane endpoints. Use a dedicated
-        // read-only connection so a long-running ingestion/retrieval query
-        // cannot hold the process-wide writer connection mutex and make
-        // health checks wait behind it.
+        // Status and readiness are control-plane endpoints. Keep their
+        // grouped full-corpus reads off the shared document-read connection
+        // so a long retrieval cannot consume the readiness request deadline.
         let connection = self
-            .read_connection
+            .stats_connection
             .lock()
             .expect("read connection lock poisoned");
         let documents =
@@ -5112,11 +5158,7 @@ impl Store {
             [],
             |row| Ok((row.get(0)?, row.get(1)?)),
         )?;
-        let mut statement = connection.prepare(
-            "SELECT d.source,d.project,COUNT(DISTINCT d.id),COUNT(c.id),MAX(d.updated_at)
-             FROM documents d LEFT JOIN chunks c ON c.document_id=d.id
-             GROUP BY d.source,d.project ORDER BY d.project,d.source",
-        )?;
+        let mut statement = connection.prepare(SOURCE_STATS_QUERY)?;
         let sources = statement
             .query_map([], |row| {
                 Ok(SourceStats {
@@ -5187,7 +5229,7 @@ impl Store {
         allowed_sync_sources: &HashSet<(String, String)>,
     ) -> Result<StoreStats> {
         let connection = self
-            .read_connection
+            .stats_connection
             .lock()
             .expect("read connection lock poisoned");
         let embedding_fingerprint = connection
@@ -5214,40 +5256,7 @@ impl Store {
         // `serde_json::from_str::<Vec<String>>`: malformed/non-array/mixed-type
         // ACL values remain hidden instead of becoming public documents.
         let principal_acl_json = serde_json::to_string(principal_acl)?;
-        let mut source_statement = connection.prepare(
-            "WITH visible_documents AS (
-               SELECT d.id,d.source,d.project,d.updated_at
-               FROM documents d
-               WHERE json_valid(d.acl_json)
-                 AND json_type(d.acl_json)='array'
-                 AND NOT EXISTS (
-                   SELECT 1 FROM json_each(d.acl_json) AS document_acl
-                   WHERE document_acl.type<>'text'
-                 )
-                 AND (
-                   json_array_length(d.acl_json)=0
-                   OR EXISTS (
-                     SELECT 1 FROM json_each(?1) AS principal_acl
-                     WHERE principal_acl.type='text'
-                       AND (
-                         principal_acl.value='*'
-                         OR EXISTS (
-                           SELECT 1 FROM json_each(d.acl_json) AS document_acl
-                           WHERE document_acl.type='text'
-                             AND document_acl.value=principal_acl.value
-                         )
-                       )
-                   )
-                 )
-             )
-             SELECT visible_documents.source,visible_documents.project,
-                    COUNT(DISTINCT visible_documents.id),COUNT(c.id),
-                    MAX(visible_documents.updated_at)
-             FROM visible_documents
-             LEFT JOIN chunks c ON c.document_id=visible_documents.id
-             GROUP BY visible_documents.source,visible_documents.project
-             ORDER BY visible_documents.source,visible_documents.project",
-        )?;
+        let mut source_statement = connection.prepare(SCOPED_SOURCE_STATS_QUERY)?;
         let sources = source_statement
             .query_map([principal_acl_json], |row| {
                 Ok(SourceStats {
@@ -7443,6 +7452,74 @@ mod tests {
         assert_eq!(stats.chunks, 1);
         assert_eq!(stats.sources[0].source, "test");
         assert_eq!(stats.embedding_cache_entries, 0);
+    }
+
+    #[test]
+    fn stats_do_not_wait_for_shared_document_read_connection() {
+        let directory = tempdir().expect("temporary directory");
+        let store = Store::open(&directory.path().join("store.sqlite3")).expect("store");
+        let read_connection = store.read_connection.lock().expect("read connection");
+        let worker_store = store.clone();
+        let (started_sender, started_receiver) = std::sync::mpsc::channel();
+        let (result_sender, result_receiver) = std::sync::mpsc::channel();
+        let worker = std::thread::spawn(move || {
+            started_sender.send(()).expect("signal worker start");
+            result_sender
+                .send(worker_store.stats())
+                .expect("send stats result");
+        });
+
+        started_receiver
+            .recv_timeout(std::time::Duration::from_secs(2))
+            .expect("stats worker starts");
+        let result_before_unlock = result_receiver.recv_timeout(std::time::Duration::from_secs(2));
+        drop(read_connection);
+        worker.join().expect("stats worker joins");
+
+        assert!(
+            matches!(result_before_unlock, Ok(Ok(_))),
+            "status stats should finish while document reads are queued: {result_before_unlock:?}"
+        );
+    }
+
+    #[test]
+    fn status_source_stats_use_covering_chunk_index() {
+        let directory = tempdir().expect("temporary directory");
+        let store = Store::open(&directory.path().join("store.sqlite3")).expect("store");
+        let connection = store.read_connection.lock().expect("read connection");
+
+        for (name, query, parameters) in [
+            ("owner", SOURCE_STATS_QUERY, None),
+            ("scoped", SCOPED_SOURCE_STATS_QUERY, Some("[\"work\"]")),
+        ] {
+            let mut statement = connection
+                .prepare(&format!("EXPLAIN QUERY PLAN {query}"))
+                .expect("explain source stats query");
+            let plan = match parameters {
+                Some(parameters) => statement
+                    .query_map([parameters], |row| row.get::<_, String>(3))
+                    .expect("query plan")
+                    .collect::<rusqlite::Result<Vec<_>>>()
+                    .expect("plan details"),
+                None => statement
+                    .query_map([], |row| row.get::<_, String>(3))
+                    .expect("query plan")
+                    .collect::<rusqlite::Result<Vec<_>>>()
+                    .expect("plan details"),
+            };
+
+            assert!(
+                plan.iter().any(|detail| {
+                    detail.contains("USING COVERING INDEX idx_chunks_document_ordinal")
+                }),
+                "{name} status source stats should count chunks from the covering index; plan: {plan:?}"
+            );
+            assert!(
+                plan.iter()
+                    .all(|detail| !detail.contains("USE TEMP B-TREE FOR count(DISTINCT)")),
+                "{name} status source stats should not deduplicate joined chunk rows; plan: {plan:?}"
+            );
+        }
     }
 
     #[test]
