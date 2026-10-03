@@ -10,8 +10,8 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@adea-ai/themes": "0.9.5",
-    "@adea-ai/ui": "0.104.2",
+    "@adea-ai/themes": "0.9.6",
+    "@adea-ai/ui": "0.104.3",
     "@tauri-apps/api": "^2.11.1",
     "lucide-solid": "^1.46.0",
     "simple-icons": "^16.28.0",
