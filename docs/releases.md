@@ -698,7 +698,7 @@ Set `STABLE_PROMOTION_HELD=true` in repository Actions variables to hold
 scheduled and manual promotions. A manual `version` selects a plain version;
 `force` overrides the soak or hold. A manually dispatched release run that
 actually cuts a release publishes stable immediately. If that dispatch only
-prepares a version PR, merge it and dispatch again, or promote its published
+prepares a version PR, its squash cuts a prerelease; promote that published
 version by name for a stable hotfix.
 
 The local Code Foundry dependency and all managed runtime pins must match;
