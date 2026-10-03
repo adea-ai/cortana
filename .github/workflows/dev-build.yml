@@ -2,13 +2,13 @@ name: Dev build
 
 # The dev update channel's build lane. Installs that opt into "Dev" follow
 # main: every push publishes a fully-built, fully-signed desktop update whose
-# version is `<last stable>-dev.<run number>`, flagged as a pre-release so it
-# is visible only to the dev channel and can never be promoted to stable (the
-# promoter's batch selector matches only the plain tag shape).
+# version is `<desktop app version on main>-dev.<run number>`. It is a
+# pre-release visible only to the dev channel and cannot be promoted to stable
+# (the promoter's batch selector matches only the plain tag shape).
 #
-# Creating the release alone is not enough: the source between Release Please
-# bumps still carries the previous stable version, while the updater manifest
-# and the artifact names must carry the dev version. So this lane creates the
+# Creating the release alone is not enough: the source commit carries the
+# desktop/core version the build will report, while the updater manifest and
+# artifact names must carry the dev version. So this lane creates the
 # release and then dispatches release-assets.yml with `version_override`,
 # which patches the version into the build inputs on a throwaway checkout —
 # and the release:published event path skips dev-shaped tags, so nothing
@@ -39,6 +39,10 @@ jobs:
     if: >-
       ${{ !(github.event_name == 'push' && startsWith(github.event.head_commit.message, 'chore(main): release ')) }}
     steps:
+      - name: Check out the source version
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
       - name: Publish the dev pre-release and start the build
         env:
           GH_TOKEN: ${{ github.token }}
@@ -48,14 +52,23 @@ jobs:
           set -euo pipefail
           repo="$GITHUB_REPOSITORY"
 
-          # Anchor the dev line at the newest promoted stable so ordering
-          # stays semver-honest: every 0.65.3-dev.N sorts below 0.65.4, so
-          # the next stable always wins over the dev line anchored at its
-          # predecessor, and successive dev builds order by their counter.
-          base="$(gh api "repos/$repo/releases/latest" --jq '.tag_name' | sed 's/^v//')"
+          # Match the exact source commit whose core binary the release lane
+          # builds. The latest stable can lag a version bump and produce a tag
+          # older than the binary itself.
+          base="$(
+            jq -er '
+              .version
+              | strings
+              | select(test("^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"))
+              | select(. != "0.0.0")
+            ' apps/desktop/src-tauri/tauri.conf.json
+          )" || {
+            echo "The checked-out desktop source has no stable SemVer version." >&2
+            exit 1
+          }
           version="${base}-dev.${RUN_NUMBER}"
           tag="v${version}"
-          echo "Dev version: ${version} (anchored at stable ${base})"
+          echo "Dev version: ${version} (anchored at desktop source ${base})"
 
           if gh release view "$tag" --repo "$repo" >/dev/null 2>&1; then
             echo "Release $tag already exists; retrying asset publication."
