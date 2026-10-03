@@ -2418,9 +2418,9 @@ async fn status(
     };
     let workspaces = fallback_workspaces(&visible_workspaces, source_projects);
     let counters = state.metrics.counters_for(&principal, owner);
-    // Memory statistics share the SQLite read mutex with document reads.
-    // Keep this synchronous work off the async request worker so a contended
-    // database cannot stall /healthz or other control-plane requests.
+    // Memory statistics use their own read-only connection so they cannot
+    // queue behind document reads. Keep this synchronous aggregate off the
+    // async request worker and within the existing readiness deadline.
     let memory = memory_stats_with_timeout(
         state.store.clone(),
         (!owner).then(|| principal.visible_acl()),

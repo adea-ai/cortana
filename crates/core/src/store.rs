@@ -91,6 +91,9 @@ pub struct Store {
     /// grouped full-corpus queries must not queue behind document retrievals
     /// sharing `read_connection` and exhaust the HTTP readiness deadline.
     stats_connection: Arc<Mutex<StatsConnection>>,
+    /// Dedicated connection for memory lifecycle counts so they do not queue
+    /// behind paged document reads on `read_connection`.
+    memory_stats_connection: Arc<Mutex<Connection>>,
     /// A dedicated control-plane connection keeps liveness/readiness probes
     /// independent from the shared read connection used by document and
     /// status queries. A slow full-corpus read must not make the service look
@@ -672,12 +675,16 @@ impl Store {
         read_connection.busy_timeout(DATABASE_BUSY_TIMEOUT)?;
         let stats_connection = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
         stats_connection.busy_timeout(DATABASE_BUSY_TIMEOUT)?;
+        let memory_stats_connection =
+            Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+        memory_stats_connection.busy_timeout(DATABASE_BUSY_TIMEOUT)?;
         let probe_connection = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
         probe_connection.busy_timeout(Duration::from_millis(250))?;
         Ok(Self {
             connection: Arc::new(Mutex::new(connection)),
             read_connection: Arc::new(Mutex::new(read_connection)),
             stats_connection: Arc::new(Mutex::new(StatsConnection::new(stats_connection))),
+            memory_stats_connection: Arc::new(Mutex::new(memory_stats_connection)),
             probe_connection: Arc::new(Mutex::new(probe_connection)),
             memory_max_active: Arc::new(AtomicUsize::new(memory::DEFAULT_MEMORY_MAX_ACTIVE)),
         })
@@ -3947,7 +3954,10 @@ impl Store {
     }
 
     pub fn memory_stats(&self) -> Result<MemoryStats> {
-        let connection = self.read_connection.lock().expect("store lock poisoned");
+        let connection = self
+            .memory_stats_connection
+            .lock()
+            .expect("memory stats connection lock poisoned");
         let now = memory::now();
         let (active, expired, retracted, superseded): (i64, i64, i64, i64) = connection.query_row(
             "SELECT
@@ -4007,7 +4017,10 @@ impl Store {
     /// must not reveal the existence of another workspace's memories even
     /// though they contain no record content.
     pub fn memory_stats_scoped(&self, principal_acl: &[String]) -> Result<MemoryStats> {
-        let connection = self.read_connection.lock().expect("store lock poisoned");
+        let connection = self
+            .memory_stats_connection
+            .lock()
+            .expect("memory stats connection lock poisoned");
         let now = memory::now();
         let principal_acl_json = serde_json::to_string(principal_acl)?;
         let (active, expired, retracted, superseded): (i64, i64, i64, i64) = connection
@@ -7631,6 +7644,72 @@ mod tests {
             matches!(result_before_unlock, Ok(Ok(_))),
             "status stats should finish while document reads are queued: {result_before_unlock:?}"
         );
+    }
+
+    #[test]
+    fn memory_stats_do_not_wait_for_shared_document_read_connection() {
+        let directory = tempdir().expect("temporary directory");
+        let store = Store::open(&directory.path().join("store.sqlite3")).expect("store");
+        let read_connection = store.read_connection.lock().expect("read connection");
+        let worker_store = store.clone();
+        let (started_sender, started_receiver) = std::sync::mpsc::channel();
+        let (result_sender, result_receiver) = std::sync::mpsc::channel();
+        let worker = std::thread::spawn(move || {
+            started_sender.send(()).expect("signal worker start");
+            result_sender
+                .send((
+                    worker_store.memory_stats(),
+                    worker_store.memory_stats_scoped(&["work".into()]),
+                ))
+                .expect("send memory stats result");
+        });
+
+        started_receiver
+            .recv_timeout(std::time::Duration::from_secs(2))
+            .expect("memory stats worker starts");
+        let result_before_unlock = result_receiver.recv_timeout(std::time::Duration::from_secs(2));
+        drop(read_connection);
+        worker.join().expect("memory stats worker joins");
+
+        let (owner_stats, scoped_stats) =
+            result_before_unlock.expect("memory stats must not wait for shared document reads");
+        assert_eq!(owner_stats.expect("owner memory stats").total, 0);
+        assert_eq!(scoped_stats.expect("scoped memory stats").total, 0);
+    }
+
+    #[test]
+    fn document_browser_does_not_wait_for_memory_stats_connection() {
+        let directory = tempdir().expect("temporary directory");
+        let store = Store::open(&directory.path().join("store.sqlite3")).expect("store");
+        let item = document("browse-during-memory-stats", "visible content");
+        store
+            .upsert(&item, &[(item.content.clone(), vec![1.0])])
+            .expect("insert document");
+        let memory_stats_connection = store
+            .memory_stats_connection
+            .lock()
+            .expect("memory stats connection");
+        let worker_store = store.clone();
+        let (started_sender, started_receiver) = std::sync::mpsc::channel();
+        let (result_sender, result_receiver) = std::sync::mpsc::channel();
+        let worker = std::thread::spawn(move || {
+            started_sender.send(()).expect("signal worker start");
+            result_sender
+                .send(worker_store.list_documents_scoped(None, None, None, None, 1, &[]))
+                .expect("send document page");
+        });
+
+        started_receiver
+            .recv_timeout(std::time::Duration::from_secs(2))
+            .expect("document worker starts");
+        let result_before_unlock = result_receiver.recv_timeout(std::time::Duration::from_secs(2));
+        drop(memory_stats_connection);
+        worker.join().expect("document worker joins");
+
+        let page = result_before_unlock
+            .expect("document browser must not wait on memory statistics")
+            .expect("document page");
+        assert_eq!(page.documents[0].source_id, "browse-during-memory-stats");
     }
 
     #[test]
