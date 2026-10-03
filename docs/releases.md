@@ -704,3 +704,8 @@ version by name for a stable hotfix.
 The local Code Foundry dependency and all managed runtime pins must match;
 rerun sync with the pinned runtime when changing this policy. Asset production
 and package verification remain separate release workflows.
+
+Stable promotion also requires the latest release-event run of `release-assets.yml`
+for the candidate tag’s exact source commit to succeed. Missing, running, failed,
+or cancelled asset builds hold promotion. Named and forced promotions obey this
+qualification; `force` only overrides the soak and hold.
