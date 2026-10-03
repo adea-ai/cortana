@@ -10,6 +10,7 @@ never run on a committed tree.
 """
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -17,6 +18,28 @@ CONF = Path("apps/desktop/src-tauri/tauri.conf.json")
 CARGO_TOML = Path("apps/desktop/src-tauri/Cargo.toml")
 CARGO_LOCK = Path("apps/desktop/src-tauri/Cargo.lock")
 PACKAGE_NAME = "cortana-desktop"
+DEV_VERSION = re.compile(
+    r"(?P<major>0|[1-9][0-9]*)\."
+    r"(?P<minor>0|[1-9][0-9]*)\."
+    r"(?P<patch>0|[1-9][0-9]*)-dev\."
+    r"(?P<build>0|[1-9][0-9]*)"
+)
+MSI_COMPONENT_LIMITS = (255, 255, 65_535, 65_535)
+
+
+def msi_version_for_dev(version: str) -> str:
+    """Map a dev SemVer to a valid four-part MSI version without changing app identity."""
+    match = DEV_VERSION.fullmatch(version)
+    if match is None:
+        raise ValueError("version must have the form <major>.<minor>.<patch>-dev.<number>")
+
+    components = tuple(int(match[name]) for name in ("major", "minor", "patch", "build"))
+    for name, component, maximum in zip(
+        ("major", "minor", "patch", "dev counter"), components, MSI_COMPONENT_LIMITS, strict=True
+    ):
+        if component > maximum:
+            raise ValueError(f"MSI {name} version component must be at most {maximum}")
+    return ".".join(str(component) for component in components)
 
 
 def main() -> int:
@@ -24,9 +47,17 @@ def main() -> int:
         print("usage: apply-dev-version.py <version>", file=sys.stderr)
         return 1
     version = sys.argv[1]
+    try:
+        msi_version = msi_version_for_dev(version)
+    except ValueError as error:
+        print(f"invalid dev version: {error}", file=sys.stderr)
+        return 1
 
     conf = json.loads(CONF.read_text())
     conf["version"] = version
+    # Tauri keeps the app SemVer here and uses WixConfig.version only for MSI.
+    wix = conf.setdefault("bundle", {}).setdefault("windows", {}).setdefault("wix", {})
+    wix["version"] = msi_version
     CONF.write_text(json.dumps(conf, indent=2) + "\n")
 
     out: list[str] = []
@@ -57,7 +88,10 @@ def main() -> int:
         out.append(line)
     CARGO_LOCK.write_text("".join(out))
 
-    print(f"Applied dev version {version} to {CONF.name}, {CARGO_TOML.name}, {CARGO_LOCK.name}")
+    print(
+        f"Applied dev version {version} (MSI {msi_version}) to "
+        f"{CONF.name}, {CARGO_TOML.name}, {CARGO_LOCK.name}"
+    )
     return 0
 
 
