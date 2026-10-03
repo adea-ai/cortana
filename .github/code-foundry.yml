@@ -10,7 +10,7 @@ codeql: auto
 dependency_review: auto
 package_manager: bun
 runtime_repository: 0xPlayerOne/code-foundry
-runtime_ref: v1.42.0
+runtime_ref: v1.43.2
 rust_sccache: true
 rust_nextest: true
 # These lanes exercise nearly every code path (installer, release-packaging,
@@ -66,3 +66,9 @@ required_capabilities:
 coverage_enforcement: auto
 coverage_metrics: lines
 coverage_report:
+
+# Daily release window and four-day batch soak for the stable update channel.
+release_batching_schedule: '23 12 * * *'
+release_batching_prerelease: true
+release_batching_soak_hours: 96
+release_batching_qualification_workflow: release-assets.yml

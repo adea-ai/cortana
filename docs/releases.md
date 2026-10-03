@@ -681,3 +681,31 @@ a downloaded archive locally:
   cortana-vX.Y.Z-x86_64-unknown-linux-gnu.tar.gz \
   cortana-vX.Y.Z-x86_64-unknown-linux-gnu.tar.gz.sha256
 ```
+
+## Release windows and stable promotion
+
+Code Foundry batches Release Please at 12:23 UTC daily, configured by
+`release_batching_schedule` in `.github/code-foundry.yml`. Ordinary main
+merges accumulate until that window; version PR squashes still cut releases
+on push. The producer creates a private draft with a forced tag and publishes
+it with prerelease visibility in one update, keeping it out of the stable
+feed during creation.
+
+The generated `promote-stable.yml` promotes the newest plain-version
+prerelease when the oldest candidate since the last stable has been public
+for 96 hours. It stitches the batch's release notes and excludes dev tags.
+Set `STABLE_PROMOTION_HELD=true` in repository Actions variables to hold
+scheduled and manual promotions. A manual `version` selects a plain version;
+`force` overrides the soak or hold. A manually dispatched release run that
+actually cuts a release publishes stable immediately. If that dispatch only
+prepares a version PR, its squash cuts a prerelease; promote that published
+version by name for a stable hotfix.
+
+The local Code Foundry dependency and all managed runtime pins must match;
+rerun sync with the pinned runtime when changing this policy. Asset production
+and package verification remain separate release workflows.
+
+Stable promotion also requires the latest release-event run of `release-assets.yml`
+for the candidate tag’s exact source commit to succeed. Missing, running, failed,
+or cancelled asset builds hold promotion. Named and forced promotions obey this
+qualification; `force` only overrides the soak and hold.

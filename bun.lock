@@ -14,7 +14,7 @@
         "@testing-library/dom": "^10.4.1",
         "@types/bun": "^1.4.0",
         "babel-preset-solid": "^1.9.15",
-        "code-foundry": "1.41.0",
+        "code-foundry": "1.43.2",
         "oxfmt": "^0.71.0",
         "oxlint": "^1.83.0",
         "playwright": "^1.63.0",
@@ -488,7 +488,7 @@
 
     "cn": ["cn@0.4.0", "", { "bin": { "cn": "bin/cn.mjs" } }, "sha512-qOAeUhPwPzBxx6jaeQdo646XIKliKHc2j1ZF7Ngb1o0pJZKH5gq8FkA0aVdUdPFUDXNXyUCXpCtoJISo6dhizg=="],
 
-    "code-foundry": ["code-foundry@1.41.0", "", { "bin": { "code-foundry": "src/cli.mjs" } }, "sha512-qQYTci/QXhxDifnwUWoaET24PxHq+A5u0KLx2l4o8UJn4HJBIIUJKgPcfGOVYE9W2/LpvWU5OHPgVoOzReAELA=="],
+    "code-foundry": ["code-foundry@1.43.2", "", { "bin": { "code-foundry": "src/cli.mjs" } }, "sha512-V/LIxPCDB2R5U3Ns/W1fMtOtSjfGo4o5HmShC4IyCLO1kakibSVyV51yQeWNFEophmRH9RBhc62+btJo4p9XrA=="],
 
     "color-convert": ["color-convert@2.0.1", "", { "dependencies": { "color-name": "~1.1.4" } }, "sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ=="],
 
