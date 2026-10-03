@@ -105,6 +105,15 @@ afterEach(() => {
   state.deferDesktopSettings = false
   state.deferredDesktopSettings = []
   state.getDesktopUpdateCalls = 0
+  state.getDesktopUpdateChannelCalls = 0
+  state.updateChannel = 'stable'
+  state.saveDesktopUpdateChannelCalls = []
+  state.deferDesktopUpdateChannelSave = false
+  state.deferredDesktopUpdateChannelSaves = []
+  state.desktopUpdateChannelSaveError = null
+  state.checkDesktopUpdateCalls = 0
+  state.checkedUpdateChannels = []
+  state.desktopUpdateCheckError = null
   state.installDesktopUpdateCalls = 0
   state.lastInstallDesktopUpdate = null
   state.installDesktopUpdateError = null
@@ -205,6 +214,17 @@ const state = {
   deferredDesktopSettings: [] as Array<(settings: DesktopSettings) => void>,
   getDesktopServicesCalls: 0,
   getDesktopUpdateCalls: 0,
+  getDesktopUpdateChannelCalls: 0,
+  updateChannel: 'stable' as 'stable' | 'pre-release' | 'dev',
+  saveDesktopUpdateChannelCalls: [] as string[],
+  deferDesktopUpdateChannelSave: false,
+  deferredDesktopUpdateChannelSaves: [] as Array<
+    (channel: 'stable' | 'pre-release' | 'dev') => void
+  >,
+  desktopUpdateChannelSaveError: null as Error | null,
+  checkDesktopUpdateCalls: 0,
+  checkedUpdateChannels: [] as string[],
+  desktopUpdateCheckError: null as Error | null,
   installDesktopUpdateCalls: 0,
   lastInstallDesktopUpdate: null as {
     expectedVersion: string
@@ -487,7 +507,35 @@ mock.module('./api', () => ({
       phase: 'cancelled',
     })
   },
-  checkDesktopUpdate: () => Promise.resolve(desktopUpdate),
+  getDesktopUpdateChannel: () => {
+    state.getDesktopUpdateChannelCalls += 1
+    return Promise.resolve(state.updateChannel)
+  },
+  saveDesktopUpdateChannel: (channel: 'stable' | 'pre-release' | 'dev') => {
+    state.saveDesktopUpdateChannelCalls.push(channel)
+    if (state.desktopUpdateChannelSaveError) {
+      return Promise.reject(state.desktopUpdateChannelSaveError)
+    }
+    if (state.deferDesktopUpdateChannelSave) {
+      return new Promise<'stable' | 'pre-release' | 'dev'>((resolve) => {
+        state.deferredDesktopUpdateChannelSaves.push((saved) => {
+          state.updateChannel = saved
+          resolve(saved)
+        })
+      })
+    }
+    state.updateChannel = channel
+    return Promise.resolve(channel)
+  },
+  checkDesktopUpdate: () => {
+    state.checkDesktopUpdateCalls += 1
+    state.checkedUpdateChannels.push(state.updateChannel)
+    if (state.desktopUpdateCheckError && state.updateChannel === 'dev') {
+      return Promise.reject(state.desktopUpdateCheckError)
+    }
+    const available_version = state.updateChannel === 'dev' ? '10.0.0-dev.1' : '9.9.9'
+    return Promise.resolve({ ...desktopUpdate, available_version })
+  },
   getRuntimeAudit: (limit: number) => Promise.resolve(runtimeAuditEvents.slice(0, limit)),
   getDesktopAudit: (limit: number) => Promise.resolve(desktopAuditEvents.slice(0, limit)),
   getDesktopUpdate: () => {
@@ -2896,7 +2944,7 @@ test('late desktop bootstrap settings cannot overwrite a shell-reconciled snapsh
     state.settings = originalSettings
   }
 })
-test('the footer updates shortcut opens the settings launcher for the shared updater', async () => {
+test('the footer updates shortcut opens the shared updater directly', async () => {
   render(() => <App />)
   await waitFor(() =>
     expect(
@@ -2910,33 +2958,13 @@ test('the footer updates shortcut opens the settings launcher for the shared upd
       name: updatesButtonName,
     })
   )
-  await waitFor(() =>
-    expect(
-      screen.getByRole('heading', {
-        level: 1,
-        name: 'Settings',
-      })
-    ).toBeTruthy()
-  )
-  expect(await screen.findByText('Installed version')).toBeTruthy()
-  expect(
-    screen.getByRole('button', {
-      name: 'Open updates',
-    })
-  ).toBeTruthy()
-  fireEvent.click(screen.getByRole('button', { name: 'Open updates' }))
-  await waitFor(() => expect(screen.getByText('A newer release, v9.9.9, is ready.')).toBeTruthy())
-  expect(screen.getByRole('button', { name: 'Install and restart' })).toBeTruthy()
-
-  // Back to the knowledge workspace via the rail.
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: 'Knowledge',
-    })
-  )
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  const dialog = await screen.findByRole('dialog', { name: /Version & updates/i })
+  expect(within(dialog).getByText('Installed version')).toBeTruthy()
+  expect(within(dialog).getByLabelText('Update channel')).toBeTruthy()
+  expect(await within(dialog).findByText('A newer release, v9.9.9, is ready.')).toBeTruthy()
+  expect(within(dialog).getByRole('button', { name: 'Install and restart' })).toBeTruthy()
 })
-test('the settings launcher opens the shared updater with release notes and full changelog', async () => {
+test('the footer updates shortcut opens release notes and the full changelog', async () => {
   const originalNotes = desktopUpdate.release_notes
   const originalChangelog = desktopUpdate.changelog
   desktopUpdate.release_notes =
@@ -2949,22 +2977,17 @@ test('the settings launcher opens the shared updater with release notes and full
         name: /· Updates/,
       })
     )
-    await waitFor(() =>
-      expect(
-        screen.getByRole('heading', {
-          name: 'Settings',
-        })
-      ).toBeTruthy()
-    )
-    fireEvent.click(await screen.findByRole('button', { name: 'Open updates' }))
+    const dialog = await screen.findByRole('dialog', { name: /Version & updates/i })
     expect(
-      await screen.findByRole('heading', { name: 'What changed in this release' })
+      await within(dialog).findByRole('heading', { name: 'What changed in this release' })
     ).toBeTruthy()
-    const releaseNotes = screen.getByRole('region', { name: 'What changed in this release' })
+    const releaseNotes = within(dialog).getByRole('region', {
+      name: 'What changed in this release',
+    })
     expect(releaseNotes.textContent).toContain('Indexed local Q&A')
     expect(releaseNotes.textContent).toContain('dashboard')
     expect(releaseNotes.textContent).toContain('inline')
-    const changelog = screen.getByRole('region', { name: 'Installed changelog' })
+    const changelog = within(dialog).getByRole('region', { name: 'Installed changelog' })
     expect(changelog.textContent).toContain('Fixed bugs')
   } finally {
     desktopUpdate.release_notes = originalNotes
@@ -4137,6 +4160,65 @@ test('the utilities menu opens the shared updater dialog', async () => {
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
   await openSidebarDestination('Updates')
   expect(await screen.findByRole('dialog', { name: /Version & updates/i })).toBeTruthy()
+})
+test('changing the update channel saves first and refreshes the shared updater offer', async () => {
+  state.deferDesktopUpdateChannelSave = true
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  const dialog = await openUpdaterFromMenu()
+  const channel = (await within(dialog).findByRole('combobox', {
+    name: 'Update channel',
+  })) as HTMLSelectElement
+  await waitFor(() => expect(channel.value).toBe('stable'))
+  await waitFor(() => expect(state.checkedUpdateChannels).toEqual(['stable']))
+  expect(within(dialog).getByText('A newer release, v9.9.9, is ready.')).toBeTruthy()
+
+  fireEvent.change(channel, { target: { value: 'dev' } })
+  await waitFor(() => expect(state.saveDesktopUpdateChannelCalls).toEqual(['dev']))
+  expect(channel.disabled).toBe(true)
+  expect(state.checkedUpdateChannels).toEqual(['stable'])
+
+  const finishSave = state.deferredDesktopUpdateChannelSaves.shift()
+  await act(async () => finishSave?.('dev'))
+  await waitFor(() => expect(state.checkedUpdateChannels).toEqual(['stable', 'dev']))
+  await waitFor(() => expect(channel.value).toBe('dev'))
+  await waitFor(() => expect(channel.disabled).toBe(false))
+  expect(within(dialog).getByText('A newer release, v10.0.0-dev.1, is ready.')).toBeTruthy()
+  expect(within(dialog).queryByText('A newer release, v9.9.9, is ready.')).toBeNull()
+})
+test('a failed channel save rolls the controlled selection back without checking', async () => {
+  state.desktopUpdateChannelSaveError = new Error('channel persistence failed')
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  const dialog = await openUpdaterFromMenu()
+  const channel = (await within(dialog).findByRole('combobox', {
+    name: 'Update channel',
+  })) as HTMLSelectElement
+  await waitFor(() => expect(channel.value).toBe('stable'))
+  await waitFor(() => expect(state.checkedUpdateChannels).toEqual(['stable']))
+
+  fireEvent.change(channel, { target: { value: 'dev' } })
+  await waitFor(() => expect(channel.value).toBe('stable'))
+  expect(state.saveDesktopUpdateChannelCalls).toEqual(['dev'])
+  expect(state.checkedUpdateChannels).toEqual(['stable'])
+  expect(state.updateChannel).toBe('stable')
+})
+test('a failed new-channel check keeps the channel that persisted successfully', async () => {
+  state.desktopUpdateCheckError = new Error('dev release feed unavailable')
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  const dialog = await openUpdaterFromMenu()
+  const channel = (await within(dialog).findByRole('combobox', {
+    name: 'Update channel',
+  })) as HTMLSelectElement
+  await waitFor(() => expect(channel.value).toBe('stable'))
+  await waitFor(() => expect(state.checkedUpdateChannels).toEqual(['stable']))
+
+  fireEvent.change(channel, { target: { value: 'dev' } })
+  await waitFor(() => expect(state.checkedUpdateChannels).toEqual(['stable', 'dev']))
+  await waitFor(() => expect(channel.value).toBe('dev'))
+  await waitFor(() => expect(state.updateChannel).toBe('dev'))
+  expect(within(dialog).getByText('dev release feed unavailable')).toBeTruthy()
 })
 test('closing the shared updater restores focus to the utilities trigger', async () => {
   render(() => <App />)

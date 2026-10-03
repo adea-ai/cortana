@@ -58,17 +58,22 @@ jobs:
           echo "Dev version: ${version} (anchored at stable ${base})"
 
           if gh release view "$tag" --repo "$repo" >/dev/null 2>&1; then
-            echo "Release $tag already exists; nothing to do."
-            exit 0
+            echo "Release $tag already exists; retrying asset publication."
+          else
+            notes="$(printf 'Dev build of main @ %s.\n\nInstalls on the dev update channel only; never promoted to stable.' "$SHA")"
+            gh release create "$tag" --repo "$repo" \
+              --prerelease --target "$SHA" \
+              --title "Cortana $tag" --notes "$notes"
           fi
 
-          notes="$(printf 'Dev build of main @ %s.\n\nInstalls on the dev update channel only; never promoted to stable.' "$SHA")"
-          gh release create "$tag" --repo "$repo" \
-            --prerelease --target "$SHA" \
-            --title "Cortana $tag" --notes "$notes"
+          if ! gh release view "$tag" --repo "$repo" --json isPrerelease --jq '.isPrerelease' | grep -qx true; then
+            echo "Release $tag is not a dev prerelease; refusing to dispatch release assets." >&2
+            exit 1
+          fi
 
           # The release event path skips dev-shaped tags by design; dispatch
-          # the build with the version the artifacts must carry.
+          # the build with the version the artifacts must carry. This also
+          # makes rerunning the same workflow run repair an incomplete release.
           gh workflow run release-assets.yml --repo "$repo" --ref main \
             -f tag="$tag" -f version_override="$version"
 

@@ -95,29 +95,15 @@ async function openSettings(page, width) {
   await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor()
 }
 
-async function auditUpdateLauncher(page, theme, width) {
-  await openSettings(page, width)
-  await page.getByRole('button', { name: 'Updates', exact: true }).click()
-  await page.getByRole('heading', { name: 'Updates', exact: true }).waitFor()
-  const openUpdates = page.getByRole('button', { name: 'Open updates' })
-  await openUpdates.click()
-  const updateDialog = page.getByRole('dialog', { name: 'Version & updates' })
-  await updateDialog.waitFor()
-  await updateDialog.getByRole('region', { name: 'Version status' }).waitFor()
-  const changelog = updateDialog.getByRole('region', { name: 'Installed changelog' })
-  await changelog.waitFor()
-  await changelog
-    .getByText('Settings and recovery surfaces migrated to shared shadcn composition.')
-    .waitFor()
-  await auditAccessibility(page, `shared update dialog at ${width}px`)
-  const horizontalOverflow = await page.evaluate(
-    () => document.documentElement.scrollWidth > document.documentElement.clientWidth
-  )
-  if (horizontalOverflow) throw new Error(`Shared update dialog overflows at ${width}px`)
-  await screenshot(page, `update-dialog-${theme}-${width}`)
-  await page.keyboard.press('Escape')
-  await updateDialog.waitFor({ state: 'detached' })
-  await page.waitForFunction(() => document.activeElement?.textContent?.trim() === 'Open updates')
+async function auditUpdatesSettingsRemoved(page) {
+  const settingsView = page.locator('.settings-view')
+  await settingsView.waitFor()
+  if (await settingsView.getByRole('button', { name: 'Updates', exact: true }).count()) {
+    throw new Error('Updates must open from the version dialog, not Settings navigation')
+  }
+  if (await settingsView.getByRole('heading', { name: 'Updates', exact: true }).count()) {
+    throw new Error('The separate Updates settings page must not be rendered')
+  }
 }
 
 async function openDestination(page, width, destination) {
@@ -571,7 +557,7 @@ async function auditAccessibility(page, label) {
         await auditAccessibility(page, 'settings readiness')
         await screenshot(page, `settings-readiness-${theme}-1440`)
 
-        await auditUpdateLauncher(page, theme, 1440)
+        await auditUpdatesSettingsRemoved(page)
 
         await page.getByRole('button', { name: 'Services', exact: true }).click()
         await page.getByRole('heading', { name: 'Services', exact: true }).waitFor()
@@ -716,7 +702,7 @@ async function auditAccessibility(page, label) {
       await openSettings(page, width)
       await auditAccessibility(page, `configured settings ${theme}/${width}`)
       await screenshot(page, `settings-configured-${theme}-${width}`)
-      await auditUpdateLauncher(page, theme, width)
+      await auditUpdatesSettingsRemoved(page)
       await context.close()
     }
   }

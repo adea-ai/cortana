@@ -4064,22 +4064,33 @@ impl Store {
         limit: usize,
         principal_acl: &[String],
     ) -> Result<DocumentPage> {
-        let connection = self.connection.lock().expect("store lock poisoned");
+        let connection = self
+            .read_connection
+            .lock()
+            .expect("store read lock poisoned");
+        // Bound the candidate page before inspecting document and chunk bodies.
+        // Aggregating the workspace before LIMIT reads the entire corpus for
+        // every page and holds the connection through multi-gigabyte scans.
         let mut statement = connection.prepare(
-            "SELECT d.id,d.source,d.source_id,d.title,d.uri,d.updated_at,d.project,d.acl_json,
-                    d.content_hash,COUNT(c.id),
+            "WITH page AS MATERIALIZED (
+               SELECT id FROM documents
+               WHERE (?1 IS NULL OR project=?1)
+                 AND (?2 IS NULL OR source=?2)
+                 AND (?3 IS NULL OR instr(lower(title),lower(?3))>0
+                      OR instr(lower(source),lower(?3))>0
+                      OR instr(lower(source_id),lower(?3))>0)
+                 AND (?4 IS NULL OR updated_at<?4 OR (updated_at=?4 AND id<?5))
+               ORDER BY updated_at DESC,id DESC
+               LIMIT ?6
+             )
+             SELECT d.id,d.source,d.source_id,d.title,d.uri,d.updated_at,d.project,d.acl_json,
+                    d.content_hash,
+                    (SELECT COUNT(*) FROM chunks c WHERE c.document_id=d.id),
                     CASE WHEN length(d.content)>0 THEN length(d.content)
-                         ELSE COALESCE(SUM(length(c.content)),0) END
-             FROM documents d LEFT JOIN chunks c ON c.document_id=d.id
-             WHERE (?1 IS NULL OR d.project=?1)
-               AND (?2 IS NULL OR d.source=?2)
-               AND (?3 IS NULL OR instr(lower(d.title),lower(?3))>0
-                    OR instr(lower(d.source),lower(?3))>0
-                    OR instr(lower(d.source_id),lower(?3))>0)
-               AND (?4 IS NULL OR d.updated_at<?4 OR (d.updated_at=?4 AND d.id<?5))
-             GROUP BY d.id
-             ORDER BY d.updated_at DESC,d.id DESC
-             LIMIT ?6",
+                         ELSE COALESCE((SELECT SUM(length(c.content)) FROM chunks c
+                                        WHERE c.document_id=d.id),0) END
+             FROM page JOIN documents d ON d.id=page.id
+             ORDER BY d.updated_at DESC,d.id DESC",
         )?;
         let page_size = limit.clamp(1, 100);
         let mut scan_cursor = cursor.cloned();
@@ -6876,6 +6887,60 @@ mod tests {
             .expect("filtered page");
         assert_eq!(filtered.documents.len(), 1);
         assert_eq!(filtered.documents[0].source_id, "work");
+    }
+
+    #[test]
+    fn document_browser_continues_past_hidden_candidate_pages() {
+        let directory = tempdir().expect("temporary directory");
+        let store = Store::open(&directory.path().join("store.sqlite3")).expect("open store");
+        for index in 0..70 {
+            let mut item = document(&format!("hidden-{index}"), "private content");
+            item.acl = vec!["personal".into()];
+            item.updated_at = "2026-01-02T00:00:00Z".parse().expect("timestamp");
+            store
+                .upsert(&item, &[(item.content.clone(), vec![1.0])])
+                .expect("insert hidden");
+        }
+        let mut visible = document("visible-after-hidden", "public content");
+        visible.updated_at = "2026-01-01T00:00:00Z".parse().expect("timestamp");
+        store
+            .upsert(&visible, &[(visible.content.clone(), vec![1.0])])
+            .expect("insert visible");
+        let page = store
+            .list_documents_scoped(None, None, None, None, 1, &["work".into()])
+            .expect("page");
+        assert_eq!(page.documents.len(), 1);
+        assert_eq!(page.documents[0].source_id, "visible-after-hidden");
+        assert!(!page.has_more);
+    }
+
+    #[test]
+    fn document_browser_reads_while_writer_connection_is_busy() {
+        let directory = tempdir().expect("temporary directory");
+        let store = Store::open(&directory.path().join("store.sqlite3")).expect("open store");
+        let item = document("browse-during-write", "visible content");
+        store
+            .upsert(&item, &[(item.content.clone(), vec![1.0])])
+            .expect("insert");
+        let writer = store.connection.lock().expect("writer connection");
+        let reader = store.clone();
+        let (send, receive) = std::sync::mpsc::channel();
+        let task = std::thread::spawn(move || {
+            send.send(reader.list_documents_scoped(None, None, None, None, 1, &[]))
+                .expect("send page");
+        });
+        let result = receive.recv_timeout(std::time::Duration::from_secs(2));
+        drop(writer);
+        task.join().expect("reader thread");
+        let page = result
+            .expect("browsing must not wait for the writer connection")
+            .expect("page");
+        assert_eq!(page.documents[0].source_id, "browse-during-write");
+        assert_eq!(page.documents[0].chunk_count, 1);
+        assert_eq!(
+            page.documents[0].content_chars,
+            item.content.chars().count()
+        );
     }
 
     #[test]

@@ -379,20 +379,12 @@ test('service action result is not overwritten by stale local refresh', async ()
     window.confirm = originalConfirm
   }
 })
-test('the updates settings launcher opens the shared updater surface', async () => {
-  let opened = false
+test('update channel controls are not duplicated in Settings navigation', async () => {
   render(() => (
-    <SettingsView
-      onSaved={() => {}}
-      initialSection="updates"
-      desktopSettings={state.settings}
-      onOpenUpdates={() => {
-        opened = true
-      }}
-    />
+    <SettingsView onSaved={() => {}} initialSection="services" desktopSettings={state.settings} />
   ))
-  fireEvent.click(await screen.findByRole('button', { name: 'Open updates' }))
-  expect(opened).toBe(true)
+  await screen.findByRole('navigation', { name: 'Settings sections' })
+  expect(screen.queryByRole('button', { name: 'Updates', exact: true })).toBeNull()
 })
 test('settings bridge failures expose a retry action', async () => {
   state.settingsLoadError = new Error('settings bridge unavailable')
