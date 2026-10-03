@@ -5,7 +5,7 @@
     "": {
       "name": "cortana-workspace",
       "devDependencies": {
-        "@adea-ai/ui": "0.104.2",
+        "@adea-ai/ui": "0.106.0",
         "@axe-core/playwright": "^4.13.0",
         "@babel/core": "^8.0.6",
         "@babel/preset-typescript": "^8.0.1",
@@ -26,17 +26,17 @@
     },
     "apps/desktop": {
       "name": "@cortana/desktop",
-      "version": "0.66.3", // x-release-please-version
+      "version": "0.66.3",
       "devDependencies": {
         "@tauri-apps/cli": "^2.11.4",
       },
     },
     "apps/web": {
       "name": "@cortana/web",
-      "version": "0.66.3", // x-release-please-version
+      "version": "0.66.3",
       "dependencies": {
-        "@adea-ai/themes": "0.9.5",
-        "@adea-ai/ui": "0.104.2",
+        "@adea-ai/themes": "0.9.7",
+        "@adea-ai/ui": "0.106.0",
         "@tauri-apps/api": "^2.11.1",
         "lucide-solid": "^1.46.0",
         "simple-icons": "^16.28.0",
@@ -56,9 +56,9 @@
     "qs": "6.16.0",
   },
   "packages": {
-    "@adea-ai/themes": ["@adea-ai/themes@0.9.5", "", {}, "sha512-sUTO+KDQ6bjgLQW3e0yD2MfeIIJ14qTroPQOPrhZ9fIlqFFgeg59POaUw2a+NAqkEDjeuU00iTJjf1he43nt5w=="],
+    "@adea-ai/themes": ["@adea-ai/themes@0.9.7", "", {}, "sha512-NY5Q7UxtBL+rp6WldvlotEmQkeGJ84IHZsgd2Zm2LKx3d7+JiccQuSHXDvkI/G/SK2NUBfW+4sMPSVJNpaA0Ng=="],
 
-    "@adea-ai/ui": ["@adea-ai/ui@0.104.2", "", { "dependencies": { "@adea-ai/themes": "^0.9.5", "@corvu/calendar": "^0.1.2", "@corvu/drawer": "^0.2.4", "@corvu/otp-field": "^0.1.4", "@corvu/resizable": "^0.2.5", "@fontsource-variable/geist": "^5.3.0", "@fontsource-variable/geist-mono": "^5.3.0", "@fontsource-variable/jetbrains-mono": "^5.3.0", "@fontsource-variable/space-grotesk": "^5.3.0", "@kobalte/core": "^0.13.14", "class-variance-authority": "^0.7.1", "cmdk-solid": "^1.2.0", "cn": "^0.4.0", "lucide-solid": "^1.48.0", "solid-motionone": "^1.0.4", "tw-animate-css": "^1.4.0" }, "peerDependencies": { "chart.js": "^4.5.1", "embla-carousel": "^8.6.0", "embla-carousel-solid": "^8.6.0", "solid-chartjs": "^1.3.11", "solid-js": "^1.9.0" }, "optionalPeers": ["chart.js", "embla-carousel", "embla-carousel-solid", "solid-chartjs"] }, "sha512-54z2TDq0mabZnBdFecpm2eMoBjrf2hbNBOLacOK5y63GlEfGcO5yZ+FGsmTzaAmtEHXlBrpLzHUoEo8dLEpY2Q=="],
+    "@adea-ai/ui": ["@adea-ai/ui@0.106.0", "", { "dependencies": { "@adea-ai/themes": "^0.9.6", "@corvu/calendar": "^0.1.2", "@corvu/drawer": "^0.2.4", "@corvu/otp-field": "^0.1.4", "@corvu/resizable": "^0.2.5", "@fontsource-variable/geist": "^5.3.0", "@fontsource-variable/geist-mono": "^5.3.0", "@fontsource-variable/jetbrains-mono": "^5.3.0", "@fontsource-variable/space-grotesk": "^5.3.0", "@kobalte/core": "^0.13.14", "class-variance-authority": "^0.7.1", "cmdk-solid": "^1.2.0", "cn": "^0.4.0", "lucide-solid": "^1.51.0", "solid-motionone": "^1.0.4", "tw-animate-css": "^1.4.0" }, "peerDependencies": { "chart.js": "^4.5.1", "embla-carousel": "^8.6.0", "embla-carousel-solid": "^8.6.0", "solid-chartjs": "^1.3.11", "solid-js": "^1.9.0" }, "optionalPeers": ["chart.js", "embla-carousel", "embla-carousel-solid", "solid-chartjs"] }, "sha512-yr9y/QMC6hfWOS6wBw5yj8MB3jvKL9sZyV13QvRol0/OiiJIJWuEgNMFuS8P/x2dZZESmdQmfuKnk0lj+bqNdg=="],
 
     "@axe-core/playwright": ["@axe-core/playwright@4.13.0", "", { "dependencies": { "axe-core": "~4.13.0" }, "peerDependencies": { "playwright-core": ">= 1.0.0" } }, "sha512-6YLx+kxXu5GJceG4ozFg+33a2EMTdjYwWGloJ3sb9Kta5pp+ZNS53uxGVog5JetIY8s++P5UrtX+cri+u0VAVg=="],
 
@@ -644,7 +644,7 @@
 
     "lru-cache": ["lru-cache@5.1.1", "", { "dependencies": { "yallist": "^3.0.2" } }, "sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w=="],
 
-    "lucide-solid": ["lucide-solid@1.48.0", "", { "peerDependencies": { "solid-js": "^1.4.7" } }, "sha512-tes5UEPXUpMYwk8MRgFS9EtV90miJ8P/19H8NR4hhaiVDBfZY39YG0zm7Ofxv3YVNNdKP95XckdYXXc0CtQaoQ=="],
+    "lucide-solid": ["lucide-solid@1.51.0", "", { "peerDependencies": { "solid-js": "^1.4.7" } }, "sha512-b0z/9xRox77JhPkDPAmh+/SQGWeSQ4k/eG08WyUKMhmRrykH8pPIwFapPotgVGi7GR5gh0jFsZ8YKlhU6COp0A=="],
 
     "lz-string": ["lz-string@1.5.0", "", { "bin": { "lz-string": "bin/bin.js" } }, "sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ=="],
 
