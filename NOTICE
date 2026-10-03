@@ -8,7 +8,7 @@ The web application incorporates the shared UI and theme packages listed below,
 each distributed under the Apache License, Version 2.0. The full published
 notices record their design, component, and palette provenance.
 
-# @adea-ai/themes 0.8.9 published notice
+# @adea-ai/themes 0.9.5 published notice
 
 Copyright 2026 0xPlayerOne
 
@@ -168,7 +168,7 @@ is blended toward the palette's own foreground, which is recorded on the entry a
 reported on every build. No colour is ever invented: every value in the catalogue is
 a value from the palette it is attributed to, viewed at a different brightness.
 
-# @adea-ai/ui 0.99.0 published notice
+# @adea-ai/ui 0.103.0 published notice
 
 Copyright 2026 0xPlayerOne
 
