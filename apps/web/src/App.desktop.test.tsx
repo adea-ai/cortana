@@ -4073,38 +4073,49 @@ test('non-mac desktop windows keep their native chrome', async () => {
 test('the utilities menu opens the identity dialog with the packaged version', async () => {
   render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-  await openSidebarDestination('About')
-  const dialog = await screen.findByRole('dialog', {
-    name: 'About Cortana',
+  const trigger = utilitiesTrigger()
+  const originalRects = Object.getOwnPropertyDescriptor(trigger, 'getClientRects')
+  Object.defineProperty(trigger, 'getClientRects', {
+    configurable: true,
+    value: () => [{ width: 1, height: 1 }] as unknown as DOMRectList,
   })
-  expect(dialog).toBeTruthy()
-  expect(within(dialog).getByText(`Version ${desktopInfo.desktop_version}`)).toBeTruthy()
-  // Copy version info is the dialog's only action besides the source link.
-  expect(
-    within(dialog).getByRole('button', {
-      name: 'Copy version info',
+  try {
+    await openSidebarDestination('About')
+    const dialog = await screen.findByRole('dialog', {
+      name: 'About Cortana',
     })
-  ).toBeTruthy()
-  expect(
-    within(dialog)
-      .getByRole('link', {
-        name: /View source/,
-      })
-      .getAttribute('href')
-  ).toBe('https://github.com/adea-ai/cortana')
-  fireEvent.click(
-    within(dialog).getByRole('button', {
-      name: 'Close',
-    })
-  )
-  await waitFor(() =>
+    expect(dialog).toBeTruthy()
+    expect(within(dialog).getByText(`Version ${desktopInfo.desktop_version}`)).toBeTruthy()
+    // Copy version info is the dialog's only action besides the source link.
     expect(
-      screen.queryByRole('dialog', {
-        name: 'About Cortana',
+      within(dialog).getByRole('button', {
+        name: 'Copy version info',
       })
-    ).toBeNull()
-  )
-  await waitFor(() => expect(utilitiesTrigger() === document.activeElement).toBe(true))
+    ).toBeTruthy()
+    expect(
+      within(dialog)
+        .getByRole('link', {
+          name: /View source/,
+        })
+        .getAttribute('href')
+    ).toBe('https://github.com/adea-ai/cortana')
+    fireEvent.click(
+      within(dialog).getByRole('button', {
+        name: 'Close',
+      })
+    )
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', {
+          name: 'About Cortana',
+        })
+      ).toBeNull()
+    )
+    await waitFor(() => expect(trigger === document.activeElement).toBe(true))
+  } finally {
+    if (originalRects) Object.defineProperty(trigger, 'getClientRects', originalRects)
+    else Reflect.deleteProperty(trigger, 'getClientRects')
+  }
 })
 test('the desktop utilities menu puts Index first and omits session actions', async () => {
   render(() => <App />)

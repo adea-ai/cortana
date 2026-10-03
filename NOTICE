@@ -168,7 +168,7 @@ is blended toward the palette's own foreground, which is recorded on the entry a
 reported on every build. No colour is ever invented: every value in the catalogue is
 a value from the palette it is attributed to, viewed at a different brightness.
 
-# @adea-ai/ui 0.103.0 published notice
+# @adea-ai/ui 0.104.2 published notice
 
 Copyright 2026 0xPlayerOne
 
