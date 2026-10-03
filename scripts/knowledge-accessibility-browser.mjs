@@ -38,6 +38,9 @@ export async function waitForTransitionStylesToSettle(element, timeoutMs = 3_000
   let settledFrames = 0
 
   while (now() < deadline) {
+    await nextFrame()
+    if (now() >= deadline) break
+
     // Force style resolution before checking the animation list. Some engines
     // create the transition only after observing the class change on a frame.
     flushStyles(element)
@@ -47,8 +50,6 @@ export async function waitForTransitionStylesToSettle(element, timeoutMs = 3_000
 
     if (active.length) settledFrames = 0
     else if (++settledFrames >= 2) return
-
-    await nextFrame()
   }
 
   throw new Error(`Control color transitions did not settle within ${timeoutMs}ms`)

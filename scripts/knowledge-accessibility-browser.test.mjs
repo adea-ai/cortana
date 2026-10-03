@@ -68,17 +68,17 @@ test('waits through a selected-control color transition before accessibility sam
     nextFrame: async () => {
       frame += 1
     },
-    // The first frame has no registered transition yet. It appears once the
-    // browser resolves styles, then remains active until the final colors.
-    getAnimations: () => (frame === 0 ? [] : frame < 3 ? [runningTransition] : []),
-    flushStyles: () => samples.push(frame < 3 ? intermediate : final),
+    // The transition is still unregistered after the first completed frame.
+    // It then remains active until the final colors have been applied.
+    getAnimations: () => (frame < 2 ? [] : frame < 4 ? [runningTransition] : []),
+    flushStyles: () => samples.push(frame < 4 ? intermediate : final),
   })
 
   expect(samples).toContainEqual(intermediate)
   expect(samples.at(-1)).toEqual(final)
   expect(contrastRatio(intermediate.foreground, intermediate.background)).toBeLessThan(4.5)
   expect(contrastRatio(final.foreground, final.background)).toBeGreaterThanOrEqual(4.5)
-  expect(frame).toBeGreaterThanOrEqual(4)
+  expect(frame).toBeGreaterThanOrEqual(5)
 })
 
 test('fails when a control transition does not settle before the bounded timeout', async () => {
