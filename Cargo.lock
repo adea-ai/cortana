@@ -417,7 +417,7 @@ checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
 
 [[package]]
 name = "cortana"
-version = "0.66.0" # x-release-please-version
+version = "0.66.1" # x-release-please-version
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -450,7 +450,7 @@ dependencies = [
 
 [[package]]
 name = "cortana-core"
-version = "0.66.0" # x-release-please-version
+version = "0.66.1" # x-release-please-version
 dependencies = [
  "anyhow",
  "async-trait",
@@ -484,7 +484,7 @@ dependencies = [
 
 [[package]]
 name = "cortana-mcp"
-version = "0.66.0" # x-release-please-version
+version = "0.66.1" # x-release-please-version
 dependencies = [
  "anyhow",
  "chrono",
@@ -502,7 +502,7 @@ dependencies = [
 
 [[package]]
 name = "cortana-retrieval"
-version = "0.66.0" # x-release-please-version
+version = "0.66.1" # x-release-please-version
 dependencies = [
  "anyhow",
  "async-trait",
@@ -525,7 +525,7 @@ dependencies = [
 
 [[package]]
 name = "cortana-server"
-version = "0.66.0" # x-release-please-version
+version = "0.66.1" # x-release-please-version
 dependencies = [
  "anyhow",
  "async-trait",
