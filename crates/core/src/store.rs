@@ -1,5 +1,5 @@
 use std::cmp::{Ordering, Reverse};
-use std::collections::{BinaryHeap, HashMap, HashSet};
+use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
@@ -90,7 +90,7 @@ pub struct Store {
     /// Dedicated connection for readiness and metrics statistics. These
     /// grouped full-corpus queries must not queue behind document retrievals
     /// sharing `read_connection` and exhaust the HTTP readiness deadline.
-    stats_connection: Arc<Mutex<Connection>>,
+    stats_connection: Arc<Mutex<StatsConnection>>,
     /// A dedicated control-plane connection keeps liveness/readiness probes
     /// independent from the shared read connection used by document and
     /// status queries. A slow full-corpus read must not make the service look
@@ -110,6 +110,121 @@ pub struct StoreStats {
     pub query_cache_hits: i64,
     pub sources: Vec<SourceStats>,
     pub sync_runs: Vec<SourceSyncStats>,
+}
+
+const MAX_STATUS_STATS_CACHE_ENTRIES: usize = 32;
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+enum StatsCacheKey {
+    Owner,
+    Scoped {
+        acl: Vec<String>,
+        allowed_sync_sources: Vec<(String, String)>,
+    },
+}
+
+struct CachedStoreStats {
+    data_version: i64,
+    stats: StoreStats,
+}
+
+struct StatsConnection {
+    connection: Connection,
+    cached_stats: HashMap<StatsCacheKey, CachedStoreStats>,
+    cache_order: VecDeque<StatsCacheKey>,
+    #[cfg(test)]
+    full_stats_computations: usize,
+}
+
+impl StatsConnection {
+    fn new(connection: Connection) -> Self {
+        Self {
+            connection,
+            cached_stats: HashMap::new(),
+            cache_order: VecDeque::new(),
+            #[cfg(test)]
+            full_stats_computations: 0,
+        }
+    }
+
+    fn data_version(&self) -> rusqlite::Result<i64> {
+        self.connection
+            .query_row("PRAGMA data_version", [], |row| row.get(0))
+    }
+
+    fn cached(&mut self, key: &StatsCacheKey, data_version: i64) -> Option<StoreStats> {
+        let stats = self
+            .cached_stats
+            .get(key)
+            .filter(|cached| cached.data_version == data_version)
+            .map(|cached| cached.stats.clone())?;
+        self.cache_order.retain(|cached_key| cached_key != key);
+        self.cache_order.push_back(key.clone());
+        Some(stats)
+    }
+
+    fn insert(&mut self, key: StatsCacheKey, data_version: i64, stats: StoreStats) {
+        let replacing = self.cached_stats.contains_key(&key);
+        self.cache_order.retain(|cached_key| cached_key != &key);
+        if !replacing {
+            while self.cached_stats.len() >= MAX_STATUS_STATS_CACHE_ENTRIES {
+                let Some(evicted_key) = self.cache_order.pop_front() else {
+                    break;
+                };
+                self.cached_stats.remove(&evicted_key);
+            }
+        }
+        self.cache_order.push_back(key.clone());
+        self.cached_stats.insert(
+            key,
+            CachedStoreStats {
+                data_version,
+                stats,
+            },
+        );
+    }
+}
+
+fn scoped_stats_cache_key(
+    principal_acl: &[String],
+    allowed_sync_sources: &HashSet<(String, String)>,
+) -> StatsCacheKey {
+    let mut acl = principal_acl.to_vec();
+    acl.sort_unstable();
+    acl.dedup();
+    let mut allowed_sync_sources = allowed_sync_sources.iter().cloned().collect::<Vec<_>>();
+    allowed_sync_sources.sort_unstable();
+    StatsCacheKey::Scoped {
+        acl,
+        allowed_sync_sources,
+    }
+}
+
+fn cached_stats_snapshot(
+    stats_connection: &mut StatsConnection,
+    key: StatsCacheKey,
+    query: impl FnOnce(&Connection) -> Result<StoreStats>,
+) -> Result<StoreStats> {
+    let data_version_before = stats_connection.data_version()?;
+    if let Some(stats) = stats_connection.cached(&key, data_version_before) {
+        return Ok(stats);
+    }
+
+    #[cfg(test)]
+    {
+        stats_connection.full_stats_computations += 1;
+    }
+
+    let transaction = stats_connection.connection.transaction()?;
+    let stats = query(&transaction)?;
+    transaction.commit()?;
+    let data_version_after = stats_connection.data_version()?;
+    if data_version_before != data_version_after {
+        bail!("database changed while collecting status statistics");
+    }
+
+    stats_connection.insert(key, data_version_after, stats.clone());
+    Ok(stats)
 }
 
 #[derive(Clone, Debug, Serialize, schemars::JsonSchema)]
@@ -562,7 +677,7 @@ impl Store {
         Ok(Self {
             connection: Arc::new(Mutex::new(connection)),
             read_connection: Arc::new(Mutex::new(read_connection)),
-            stats_connection: Arc::new(Mutex::new(stats_connection)),
+            stats_connection: Arc::new(Mutex::new(StatsConnection::new(stats_connection))),
             probe_connection: Arc::new(Mutex::new(probe_connection)),
             memory_max_active: Arc::new(AtomicUsize::new(memory::DEFAULT_MEMORY_MAX_ACTIVE)),
         })
@@ -5134,10 +5249,18 @@ impl Store {
         // Status and readiness are control-plane endpoints. Keep their
         // grouped full-corpus reads off the shared document-read connection
         // so a long retrieval cannot consume the readiness request deadline.
-        let connection = self
+        let mut stats_connection = self
             .stats_connection
             .lock()
             .expect("read connection lock poisoned");
+        cached_stats_snapshot(
+            &mut stats_connection,
+            StatsCacheKey::Owner,
+            Self::read_stats_from_connection,
+        )
+    }
+
+    fn read_stats_from_connection(connection: &Connection) -> Result<StoreStats> {
         let documents =
             connection.query_row("SELECT COUNT(*) FROM documents", [], |row| row.get(0))?;
         let chunks = connection.query_row("SELECT COUNT(*) FROM chunks", [], |row| row.get(0))?;
@@ -5228,10 +5351,21 @@ impl Store {
         principal_acl: &[String],
         allowed_sync_sources: &HashSet<(String, String)>,
     ) -> Result<StoreStats> {
-        let connection = self
+        let key = scoped_stats_cache_key(principal_acl, allowed_sync_sources);
+        let mut stats_connection = self
             .stats_connection
             .lock()
             .expect("read connection lock poisoned");
+        cached_stats_snapshot(&mut stats_connection, key, |connection| {
+            Self::read_scoped_stats_from_connection(connection, principal_acl, allowed_sync_sources)
+        })
+    }
+
+    fn read_scoped_stats_from_connection(
+        connection: &Connection,
+        principal_acl: &[String],
+        allowed_sync_sources: &HashSet<(String, String)>,
+    ) -> Result<StoreStats> {
         let embedding_fingerprint = connection
             .query_row(
                 "SELECT value FROM meta WHERE key='embedding_fingerprint'",
@@ -6532,6 +6666,23 @@ mod tests {
         }
     }
 
+    fn stats_computations(store: &Store) -> usize {
+        store
+            .stats_connection
+            .lock()
+            .expect("stats connection")
+            .full_stats_computations
+    }
+
+    fn cached_stats_count(store: &Store) -> usize {
+        store
+            .stats_connection
+            .lock()
+            .expect("stats connection")
+            .cached_stats
+            .len()
+    }
+
     #[test]
     fn structured_chunks_persist_lineage_and_are_idempotent() {
         let directory = tempdir().expect("temporary directory");
@@ -7520,6 +7671,270 @@ mod tests {
                 "{name} status source stats should not deduplicate joined chunk rows; plan: {plan:?}"
             );
         }
+    }
+
+    #[test]
+    fn status_stats_reuse_unchanged_snapshots_and_canonicalize_scopes() {
+        let directory = tempdir().expect("temporary directory");
+        let store = Store::open(&directory.path().join("store.sqlite3")).expect("store");
+        let mut work = document("work", "work content");
+        work.project = "work".into();
+        work.acl = vec!["work".into()];
+        let mut personal = document("personal", "personal content");
+        personal.project = "personal".into();
+        personal.acl = vec!["personal".into()];
+        let mut public = document("public", "public content");
+        public.project = "public".into();
+        for item in [&work, &personal, &public] {
+            store
+                .upsert(item, &[(item.content.clone(), vec![1.0])])
+                .expect("insert document");
+        }
+
+        let allowed = HashSet::new();
+        let combined_acl = vec!["work".into(), "personal".into()];
+        let first = store
+            .stats_scoped(&combined_acl, &allowed)
+            .expect("initial scoped stats");
+        assert_eq!(first.documents, 3);
+        assert_eq!(stats_computations(&store), 1);
+
+        let reordered_acl = vec!["personal".into(), "work".into()];
+        let same_scope = store
+            .stats_scoped(&reordered_acl, &allowed)
+            .expect("cached scoped stats");
+        assert_eq!(same_scope.documents, first.documents);
+        assert_eq!(stats_computations(&store), 1);
+
+        let empty_acl = store
+            .stats_scoped(&[], &allowed)
+            .expect("empty scoped stats");
+        assert_eq!(empty_acl.documents, 1);
+        assert_eq!(stats_computations(&store), 2);
+
+        let owner = store.stats().expect("owner stats");
+        assert_eq!(owner.documents, 3);
+        assert_eq!(store.stats().expect("cached owner stats").documents, 3);
+        assert_eq!(stats_computations(&store), 3);
+    }
+
+    #[test]
+    fn status_stats_cache_invalidates_after_external_sqlite_commit() {
+        let directory = tempdir().expect("temporary directory");
+        let path = directory.path().join("store.sqlite3");
+        let store = Store::open(&path).expect("store");
+        assert_eq!(store.stats().expect("initial stats").documents, 0);
+        assert_eq!(stats_computations(&store), 1);
+
+        let mut external = Connection::open(&path).expect("external sqlite connection");
+        let transaction = external.transaction().expect("external write transaction");
+        transaction
+            .execute(
+                "INSERT INTO documents(
+                   id,source,source_id,title,uri,content_hash,updated_at,project,
+                   acl_json,metadata_json,content
+                 ) VALUES('external-doc','external','external-id','title',NULL,'hash',
+                          '2026-10-03T00:00:00Z','external-project','[]','{}','fixture')",
+                [],
+            )
+            .expect("external document insert");
+        transaction
+            .execute(
+                "INSERT INTO chunks(
+                   id,document_id,ordinal,content,embedding_json,embedding_blob
+                 ) VALUES('external-chunk','external-doc',0,'fixture','[1.0]',NULL)",
+                [],
+            )
+            .expect("external chunk insert");
+        transaction
+            .execute(
+                "INSERT INTO embedding_cache(
+                   fingerprint,content_hash,embedding_json,embedding_blob,hits,
+                   created_at,last_used_at
+                 ) VALUES('fixture','hash','[1.0]',NULL,7,
+                          '2026-10-03T00:00:00Z','2026-10-03T00:00:00Z')",
+                [],
+            )
+            .expect("external cache insert");
+        transaction.commit().expect("external commit");
+
+        let refreshed = store.stats().expect("stats after external commit");
+        assert_eq!(refreshed.documents, 1);
+        assert_eq!(refreshed.chunks, 1);
+        assert_eq!(refreshed.embedding_cache_entries, 1);
+        assert_eq!(refreshed.embedding_cache_hits, 7);
+        assert_eq!(refreshed.sources[0].documents, 1);
+        assert_eq!(refreshed.sources[0].chunks, 1);
+        assert_eq!(stats_computations(&store), 2);
+    }
+
+    #[test]
+    fn status_stats_cache_keys_isolate_acl_and_allowed_sync_sources() {
+        let directory = tempdir().expect("temporary directory");
+        let store = Store::open(&directory.path().join("store.sqlite3")).expect("store");
+        let mut work = document("work", "work content");
+        work.project = "work".into();
+        work.acl = vec!["work".into()];
+        let mut personal = document("personal", "personal content");
+        personal.project = "personal".into();
+        personal.acl = vec!["personal".into()];
+        for item in [&work, &personal] {
+            store
+                .upsert(item, &[(item.content.clone(), vec![1.0])])
+                .expect("insert document");
+        }
+        for (source, project) in [
+            ("work-drive", "work"),
+            ("work-chat", "work"),
+            ("personal-notes", "personal"),
+        ] {
+            let run = store
+                .begin_sync(source, project, 10, 1_024, 30)
+                .expect("begin sync");
+            store
+                .finish_sync(&run, SyncRunStatus::Failed, None, None, None)
+                .expect("finish sync");
+        }
+
+        let allowed_work = HashSet::from([
+            ("work-drive".to_string(), "work".to_string()),
+            ("work-chat".to_string(), "work".to_string()),
+        ]);
+        let reordered_allowed_work = HashSet::from([
+            ("work-chat".to_string(), "work".to_string()),
+            ("work-drive".to_string(), "work".to_string()),
+        ]);
+        let work_stats = store
+            .stats_scoped(&["work".into()], &allowed_work)
+            .expect("work stats");
+        assert_eq!(work_stats.documents, 1);
+        assert_eq!(work_stats.sync_runs.len(), 2);
+        assert_eq!(stats_computations(&store), 1);
+
+        let canonical_work_stats = store
+            .stats_scoped(&["work".into(), "work".into()], &reordered_allowed_work)
+            .expect("canonical work stats");
+        assert_eq!(canonical_work_stats.documents, 1);
+        assert_eq!(canonical_work_stats.sync_runs.len(), 2);
+        assert_eq!(stats_computations(&store), 1);
+
+        let allowed_drive = HashSet::from([("work-drive".to_string(), "work".to_string())]);
+        let drive_stats = store
+            .stats_scoped(&["work".into()], &allowed_drive)
+            .expect("work drive stats");
+        assert_eq!(drive_stats.sync_runs.len(), 1);
+        assert_eq!(drive_stats.sync_runs[0].source, "work-drive");
+        assert_eq!(stats_computations(&store), 2);
+
+        let allowed_chat = HashSet::from([("work-chat".to_string(), "work".to_string())]);
+        let chat_stats = store
+            .stats_scoped(&["work".into()], &allowed_chat)
+            .expect("work chat stats");
+        assert_eq!(chat_stats.sync_runs.len(), 1);
+        assert_eq!(chat_stats.sync_runs[0].source, "work-chat");
+        assert_eq!(stats_computations(&store), 3);
+
+        let allowed_personal =
+            HashSet::from([("personal-notes".to_string(), "personal".to_string())]);
+        let personal_stats = store
+            .stats_scoped(&["personal".into()], &allowed_personal)
+            .expect("personal stats");
+        assert_eq!(personal_stats.documents, 1);
+        assert_eq!(personal_stats.sources[0].project, "personal");
+        assert_eq!(personal_stats.sync_runs[0].source, "personal-notes");
+        assert_eq!(stats_computations(&store), 4);
+    }
+
+    #[test]
+    fn status_stats_does_not_cache_a_snapshot_when_database_revision_moves() {
+        let directory = tempdir().expect("temporary directory");
+        let path = directory.path().join("store.sqlite3");
+        let store = Store::open(&path).expect("store");
+        let mut stats_connection = store.stats_connection.lock().expect("stats connection");
+
+        let result =
+            cached_stats_snapshot(&mut stats_connection, StatsCacheKey::Owner, |connection| {
+                let snapshot = Store::read_stats_from_connection(connection)?;
+                let external = Connection::open(&path)?;
+                external.execute(
+                    "INSERT INTO documents(
+                       id,source,source_id,title,uri,content_hash,updated_at,project,
+                       acl_json,metadata_json,content
+                     ) VALUES('moving-doc','external','moving-id','title',NULL,'hash',
+                              '2026-10-03T00:00:00Z','external-project','[]','{}','fixture')",
+                    [],
+                )?;
+                Ok(snapshot)
+            });
+        let error = result.expect_err("moving database revision must fail closed");
+        assert!(
+            error
+                .to_string()
+                .contains("database changed while collecting")
+        );
+        assert_eq!(stats_connection.cached_stats.len(), 0);
+        drop(stats_connection);
+
+        let refreshed = store.stats().expect("stats after moving revision");
+        assert_eq!(refreshed.documents, 1);
+        assert_eq!(stats_computations(&store), 2);
+    }
+
+    #[test]
+    fn concurrent_cold_status_stats_calls_share_one_snapshot() {
+        const CALLERS: usize = 12;
+        let directory = tempdir().expect("temporary directory");
+        let store = std::sync::Arc::new(
+            Store::open(&directory.path().join("store.sqlite3")).expect("store"),
+        );
+        let held_stats_connection = store.stats_connection.lock().expect("stats connection");
+        let start = std::sync::Arc::new(std::sync::Barrier::new(CALLERS));
+        let (ready_sender, ready_receiver) = std::sync::mpsc::channel();
+        let callers = (0..CALLERS)
+            .map(|_| {
+                let store = store.clone();
+                let start = start.clone();
+                let ready_sender = ready_sender.clone();
+                std::thread::spawn(move || {
+                    start.wait();
+                    ready_sender.send(()).expect("report stats attempt");
+                    store.stats().expect("concurrent stats")
+                })
+            })
+            .collect::<Vec<_>>();
+        drop(ready_sender);
+        for _ in 0..CALLERS {
+            ready_receiver
+                .recv_timeout(std::time::Duration::from_secs(5))
+                .expect("all callers reached the cold stats request");
+        }
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        drop(held_stats_connection);
+
+        for caller in callers {
+            assert_eq!(caller.join().expect("stats caller joined").documents, 0);
+        }
+        assert_eq!(stats_computations(&store), 1);
+        assert_eq!(cached_stats_count(&store), 1);
+    }
+
+    #[test]
+    fn status_stats_cache_has_a_fixed_capacity() {
+        let directory = tempdir().expect("temporary directory");
+        let store = Store::open(&directory.path().join("store.sqlite3")).expect("store");
+        let allowed = HashSet::new();
+
+        for index in 0..(MAX_STATUS_STATS_CACHE_ENTRIES + 8) {
+            store
+                .stats_scoped(&[format!("scope-{index}")], &allowed)
+                .expect("scoped stats");
+        }
+
+        assert_eq!(cached_stats_count(&store), MAX_STATUS_STATS_CACHE_ENTRIES);
+        assert_eq!(
+            stats_computations(&store),
+            MAX_STATUS_STATS_CACHE_ENTRIES + 8
+        );
     }
 
     #[test]
