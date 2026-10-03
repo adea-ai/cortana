@@ -17,7 +17,7 @@ name: Review Policy
 
 on:
   pull_request_target:
-    types: [ready_for_review]
+    types: [ready_for_review, synchronize]
   pull_request_review:
     types: [submitted, dismissed]
 
