@@ -105,15 +105,30 @@ test('dev release versions use the checked-out desktop source version', () => {
   assert.match(`v${desktopAppVersion}-dev.17`, /^v[0-9]+\.[0-9]+\.[0-9]+-dev\.17$/)
 })
 
-test('latest.json is published only after every platform and trust check succeeds', () => {
+test('latest.json is verified against ready assets before publication', () => {
   const manifest = job(releaseAssetsWorkflow, 'manifest')
   const macosTrust = job(releaseAssetsWorkflow, 'macos_trust')
+  const verify = job(releaseAssetsWorkflow, 'verify')
 
   assert.match(manifest, /needs: \[binaries, desktop, macos_trust\]/)
   assert.match(manifest, /needs\.binaries\.result == 'success'/)
   assert.match(manifest, /needs\.desktop\.result == 'success'/)
   assert.match(manifest, /needs\.macos_trust\.result == 'success'/)
+  const generate = manifest.indexOf('name: Generate merged updater manifest')
+  const strictCandidateCheck = manifest.indexOf(
+    'name: Verify published assets and candidate updater manifest'
+  )
+  const upload = manifest.indexOf('name: Upload merged updater manifest')
+  assert.ok(generate >= 0 && strictCandidateCheck > generate && upload > strictCandidateCheck)
+  assert.match(manifest, /CORTANA_REQUIRE_MINISIGN: '1'/)
+  assert.match(
+    manifest,
+    /verify-desktop-release\.sh "\$RELEASE_TAG"\s+--manifest-candidate "\$RUNNER_TEMP\/latest\.json"/
+  )
   assert.doesNotMatch(manifest, /--allow-partial/)
+  assert.match(verify, /needs: \[binaries, desktop, manifest, macos_trust\]/)
+  assert.match(verify, /scripts\/verify-desktop-release\.sh "\$RELEASE_TAG"/)
+  assert.doesNotMatch(verify, /--manifest-candidate/)
   assert.match(macosTrust, /needs: \[binaries, desktop\]/)
   assert.doesNotMatch(macosTrust, /needs: \[binaries, desktop, manifest\]/)
 })

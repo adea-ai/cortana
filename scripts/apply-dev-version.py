@@ -1,12 +1,12 @@
 """Inject a dev version into the desktop build inputs.
 
 Dev releases carry tag versions the app source never names (v0.65.3-dev.7
-while Cargo.toml still says 0.65.3 until the next Release Please bump). The
-bundler names artifacts and the updater manifest from the configured version,
-so the build inputs must agree with the tag or the manifest references assets
-that do not exist. Applied to a throwaway checkout by the dev build lane
-(`dev-build.yml` dispatches `release-assets.yml` with `version_override`);
-never run on a committed tree.
+while release source files still say 0.65.3). The core and desktop binaries,
+bundler artifacts, and updater manifest must all agree with the tag. The
+connector wheel is a separate PEP 440 package and retains its own version.
+Applied to a throwaway checkout by the dev build lane (`dev-build.yml`
+dispatches `release-assets.yml` with `version_override`); never run on a
+committed tree.
 """
 
 import json
@@ -15,9 +15,18 @@ import sys
 from pathlib import Path
 
 CONF = Path("apps/desktop/src-tauri/tauri.conf.json")
-CARGO_TOML = Path("apps/desktop/src-tauri/Cargo.toml")
-CARGO_LOCK = Path("apps/desktop/src-tauri/Cargo.lock")
-PACKAGE_NAME = "cortana-desktop"
+WORKSPACE_MANIFESTS = {
+    "cortana": Path("Cargo.toml"),
+    "cortana-core": Path("crates/core/Cargo.toml"),
+    "cortana-mcp": Path("crates/mcp/Cargo.toml"),
+    "cortana-retrieval": Path("crates/retrieval/Cargo.toml"),
+    "cortana-server": Path("crates/server/Cargo.toml"),
+}
+WORKSPACE_PACKAGES = frozenset(WORKSPACE_MANIFESTS)
+WORKSPACE_LOCK = Path("Cargo.lock")
+DESKTOP_MANIFEST = Path("apps/desktop/src-tauri/Cargo.toml")
+DESKTOP_LOCK = Path("apps/desktop/src-tauri/Cargo.lock")
+DESKTOP_PACKAGE = "cortana-desktop"
 DEV_VERSION = re.compile(
     r"(?P<major>0|[1-9][0-9]*)\."
     r"(?P<minor>0|[1-9][0-9]*)\."
@@ -25,6 +34,72 @@ DEV_VERSION = re.compile(
     r"(?P<build>0|[1-9][0-9]*)"
 )
 MSI_COMPONENT_LIMITS = (255, 255, 65_535, 65_535)
+VERSION_LINE = re.compile(r'^(\s*version\s*=\s*)"[^"]+"')
+
+
+def update_manifest(source: str, package_name: str, version: str) -> str:
+    """Update one Cargo package version without changing other manifest data."""
+    section = ""
+    found_name: str | None = None
+    version_count = 0
+    out: list[str] = []
+    for line in source.splitlines(keepends=True):
+        stripped = line.strip()
+        if stripped.startswith("["):
+            section = stripped
+        if section == "[package]":
+            name_match = re.match(r'name\s*=\s*"([^"]+)"', stripped)
+            if name_match:
+                found_name = name_match.group(1)
+            if stripped.startswith("version ="):
+                match = VERSION_LINE.match(line)
+                if match is None:
+                    raise ValueError(f"invalid package version field for {package_name}")
+                line = f'{match.group(1)}"{version}"{line[match.end() :]}'
+                version_count += 1
+        out.append(line)
+
+    if found_name != package_name:
+        raise ValueError(f"expected Cargo package {package_name}, found {found_name or 'none'}")
+    if version_count != 1:
+        raise ValueError(f"expected one package version field for {package_name}")
+    return "".join(out)
+
+
+def update_lockfile(
+    source: str,
+    package_names: frozenset[str],
+    required_packages: frozenset[str],
+    version: str,
+) -> str:
+    """Update selected Cargo.lock package entries while preserving comments."""
+    in_package = False
+    package_name: str | None = None
+    found: set[str] = set()
+    out: list[str] = []
+    for line in source.splitlines(keepends=True):
+        stripped = line.strip()
+        if stripped == "[[package]]":
+            in_package = True
+            package_name = None
+        elif stripped.startswith("["):
+            in_package = False
+            package_name = None
+        if in_package and stripped.startswith("name ="):
+            name_match = re.match(r'name\s*=\s*"([^"]+)"', stripped)
+            package_name = name_match.group(1) if name_match else None
+        if in_package and package_name in package_names and stripped.startswith("version ="):
+            match = VERSION_LINE.match(line)
+            if match is None:
+                raise ValueError(f"invalid Cargo.lock version field for {package_name}")
+            line = f'{match.group(1)}"{version}"{line[match.end() :]}'
+            found.add(package_name)
+        out.append(line)
+
+    missing = sorted(required_packages.difference(found))
+    if missing:
+        raise ValueError("Cargo.lock is missing package entries: " + ", ".join(missing))
+    return "".join(out)
 
 
 def msi_version_for_dev(version: str) -> str:
@@ -53,45 +128,40 @@ def main() -> int:
         print(f"invalid dev version: {error}", file=sys.stderr)
         return 1
 
-    conf = json.loads(CONF.read_text())
-    conf["version"] = version
-    # Tauri keeps the app SemVer here and uses WixConfig.version only for MSI.
-    wix = conf.setdefault("bundle", {}).setdefault("windows", {}).setdefault("wix", {})
-    wix["version"] = msi_version
-    CONF.write_text(json.dumps(conf, indent=2) + "\n")
+    try:
+        replacements: dict[Path, str] = {}
+        conf = json.loads(CONF.read_text())
+        conf["version"] = version
+        # Tauri keeps the app SemVer here and uses WixConfig.version only for MSI.
+        wix = conf.setdefault("bundle", {}).setdefault("windows", {}).setdefault("wix", {})
+        wix["version"] = msi_version
+        replacements[CONF] = json.dumps(conf, indent=2) + "\n"
 
-    out: list[str] = []
-    in_package = False
-    for line in CARGO_TOML.read_text().splitlines(keepends=True):
-        stripped = line.strip()
-        if stripped.startswith("["):
-            in_package = stripped == "[package]"
-        if in_package and stripped.startswith("version ="):
-            line = f'version = "{version}"\n'
-        out.append(line)
-    CARGO_TOML.write_text("".join(out))
+        for package_name, path in WORKSPACE_MANIFESTS.items():
+            replacements[path] = update_manifest(path.read_text(), package_name, version)
+        replacements[WORKSPACE_LOCK] = update_lockfile(
+            WORKSPACE_LOCK.read_text(), WORKSPACE_PACKAGES, WORKSPACE_PACKAGES, version
+        )
 
-    out = []
-    in_package_entry = False
-    name_matched = False
-    for line in CARGO_LOCK.read_text().splitlines(keepends=True):
-        stripped = line.strip()
-        if stripped.startswith("[["):
-            in_package_entry = True
-            name_matched = False
-        elif stripped.startswith("["):
-            in_package_entry = False
-        if in_package_entry and stripped.startswith("name ="):
-            name_matched = stripped == f'name = "{PACKAGE_NAME}"'
-        if in_package_entry and name_matched and stripped.startswith("version ="):
-            line = f'version = "{version}"\n'
-        out.append(line)
-    CARGO_LOCK.write_text("".join(out))
+        replacements[DESKTOP_MANIFEST] = update_manifest(
+            DESKTOP_MANIFEST.read_text(), DESKTOP_PACKAGE, version
+        )
+        replacements[DESKTOP_LOCK] = update_lockfile(
+            DESKTOP_LOCK.read_text(),
+            WORKSPACE_PACKAGES | {DESKTOP_PACKAGE},
+            frozenset({DESKTOP_PACKAGE}),
+            version,
+        )
+    except (OSError, ValueError) as error:
+        print(f"unable to apply dev version: {error}", file=sys.stderr)
+        return 1
 
-    print(
-        f"Applied dev version {version} (MSI {msi_version}) to "
-        f"{CONF.name}, {CARGO_TOML.name}, {CARGO_LOCK.name}"
-    )
+    # Build every replacement before writing so a missing/malformed input
+    # cannot leave only some build tools using the Dev identity.
+    for path, contents in replacements.items():
+        path.write_text(contents)
+
+    print(f"Applied dev version {version} (MSI {msi_version}) to desktop and core Rust inputs")
     return 0
 
 

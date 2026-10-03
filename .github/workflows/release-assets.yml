@@ -22,7 +22,7 @@ permissions:
 # dev lane skips that event for dev tags and builds them through an explicit
 # dispatch with version_override instead (see dev-build.yml).
 # `latest.json` is the channel resolver's readiness signal. Publish it only
-# after every platform job and macOS trust verification have succeeded.
+# after every platform job, macOS trust, and strict asset verification succeed.
 jobs:
   binaries:
     name: Binary / ${{ matrix.target }}
@@ -304,7 +304,7 @@ jobs:
       needs.desktop.result == 'success' &&
       needs.macos_trust.result == 'success'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     permissions:
       contents: write
     env:
@@ -322,6 +322,16 @@ jobs:
         run: >-
           python3 scripts/generate-updater-manifest.py "$RELEASE_TAG"
           --output "$RUNNER_TEMP/latest.json"
+      - name: Install minisign
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes minisign
+      - name: Verify published assets and candidate updater manifest
+        env:
+          CORTANA_REQUIRE_MINISIGN: '1'
+        run: >-
+          scripts/verify-desktop-release.sh "$RELEASE_TAG"
+          --manifest-candidate "$RUNNER_TEMP/latest.json"
       - name: Upload merged updater manifest
         run: gh release upload "$RELEASE_TAG" "$RUNNER_TEMP/latest.json" --repo "$GH_REPO" --clobber
 
