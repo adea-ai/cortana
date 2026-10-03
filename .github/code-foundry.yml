@@ -10,7 +10,7 @@ codeql: auto
 dependency_review: auto
 package_manager: bun
 runtime_repository: 0xPlayerOne/code-foundry
-runtime_ref: v1.43.2
+runtime_ref: v1.44.3
 rust_sccache: true
 rust_nextest: true
 # These lanes exercise nearly every code path (installer, release-packaging,

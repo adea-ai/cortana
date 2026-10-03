@@ -30,12 +30,12 @@ jobs:
     # publication stays gated on qualification success in the stage job.
     if: >-
       (vars.CI_BILLING_PAUSED != 'true' || (github.event_name == 'workflow_dispatch' && inputs['release-while-paused'] == true)) && (github.event_name != 'push' || startsWith(github.event.head_commit.message, 'chore(main): release '))
-    uses: 0xPlayerOne/code-foundry/.github/workflows/release.yml@v1.43.2
+    uses: 0xPlayerOne/code-foundry/.github/workflows/release.yml@v1.44.3
     with:
       billing-pause-bypass: ${{ github.event_name == 'workflow_dispatch' && inputs['release-while-paused'] == true }}
       runner: ubuntu-slim
       runtime-repository: 0xPlayerOne/code-foundry
-      runtime-ref: v1.43.2
+      runtime-ref: v1.44.3
       prerelease: ${{ github.event_name != 'workflow_dispatch' }}
       git-workflow: direct
     permissions:

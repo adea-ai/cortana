@@ -20,6 +20,8 @@ export function WorkspaceLogo(props: {
   const size = () => (({ small: 'xs', medium: 'md', large: 'xl' }) as const)[props.size ?? 'medium']
 
   onMount(() => {
+    // Captures the component's setVersion; hoisting past onMount would lose it.
+    // oxlint-disable-next-line unicorn/consistent-function-scoping
     const refresh = () => setVersion((current) => current + 1)
     refresh()
     window.addEventListener(LOGO_EVENT, refresh)

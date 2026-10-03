@@ -169,6 +169,21 @@ const STATUS_REFRESH_MS = 15_000
 const INSTALLER_POLL_MS = 1_000
 const MAX_DOCUMENT_QUERY_BYTES = 256
 const textEncoder = new TextEncoder()
+
+function boundDocumentQuery(boundedQuery: string) {
+  if (textEncoder.encode(boundedQuery).length <= MAX_DOCUMENT_QUERY_BYTES) {
+    return boundedQuery
+  }
+  const parts: string[] = []
+  let bytes = 0
+  for (const token of boundedQuery) {
+    const nextBytes = textEncoder.encode(token).length
+    if (bytes + nextBytes > MAX_DOCUMENT_QUERY_BYTES) break
+    bytes += nextBytes
+    parts.push(token)
+  }
+  return parts.join('')
+}
 function isAbort(caught: unknown) {
   return caught instanceof DOMException
     ? caught.name === 'AbortError'
@@ -251,6 +266,8 @@ export function App() {
     </ThemeProvider>
   )
 }
+// A Solid component: its signal captures are per-instance, not module state.
+// oxlint-disable-next-line unicorn/consistent-function-scoping
 function CortanaApplication() {
   const [query, setQuery] = createSignal('How do releases work?')
   // Context reads belong in the component body: effects run outside the render's
@@ -880,6 +897,9 @@ function CortanaApplication() {
       })
   }
   createEffect(() => {
+    // Captures the component's command-palette and pane signals; the effect
+    // re-arms the listener when its tracked stores change.
+    // oxlint-disable-next-line unicorn/consistent-function-scoping
     function handleKeyDown(event: KeyboardEvent) {
       const modifier = event.metaKey || event.ctrlKey
       const target = event.target as HTMLElement | null
@@ -1114,20 +1134,6 @@ function CortanaApplication() {
     })
   })
   const agentContext = createMemo(() => buildAgentContext(activeQuery(), evidence))
-  function boundDocumentQuery(boundedQuery: string) {
-    if (textEncoder.encode(boundedQuery).length <= MAX_DOCUMENT_QUERY_BYTES) {
-      return boundedQuery
-    }
-    const parts: string[] = []
-    let bytes = 0
-    for (const token of boundedQuery) {
-      const nextBytes = textEncoder.encode(token).length
-      if (bytes + nextBytes > MAX_DOCUMENT_QUERY_BYTES) break
-      bytes += nextBytes
-      parts.push(token)
-    }
-    return parts.join('')
-  }
   const abortSearchRequest = (): void => {
     // A connector or test double may resolve after AbortController fires. The
     // generation check keeps that stale result from returning to the shell.
