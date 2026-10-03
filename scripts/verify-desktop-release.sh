@@ -3,15 +3,26 @@ set -euo pipefail
 
 tag="${1:-${RELEASE_TAG:-}}"
 repo="${GH_REPO:-${GITHUB_REPOSITORY:-}}"
+manifest_candidate=""
+if [[ "${2:-}" == "--manifest-candidate" && "$#" -eq 3 && -n "${3:-}" ]]; then
+    manifest_candidate="$3"
+elif [[ "$#" -gt 1 ]]; then
+    echo "usage: GH_REPO=owner/repo $0 TAG [--manifest-candidate PATH]" >&2
+    exit 2
+fi
 if [[ -z "$tag" || -z "$repo" ]]; then
-  echo "usage: GH_REPO=owner/repo $0 TAG" >&2
+  echo "usage: GH_REPO=owner/repo $0 TAG [--manifest-candidate PATH]" >&2
   exit 2
+fi
+if [[ -n "$manifest_candidate" && ( ! -f "$manifest_candidate" || -L "$manifest_candidate" ) ]]; then
+    echo "manifest candidate must be a regular file" >&2
+    exit 2
 fi
 version="${tag#v}"
 app_archive="Cortana_${version}_aarch64.app.tar.gz"
 
 assets_json="$(gh release view "$tag" --repo "$repo" --json assets)"
-python3 - "$assets_json" "$tag" <<'PY'
+python3 - "$assets_json" "$tag" "$manifest_candidate" <<'PY'
 import json
 import sys
 
@@ -42,8 +53,9 @@ required = {
     f"Cortana_{version}_x64-setup.exe.sig",
     f"Cortana_{version}_x64_en-US.msi",
     f"Cortana_{version}_x64_en-US.msi.sig",
-    "latest.json",
 }
+if not sys.argv[3]:
+    required.add("latest.json")
 missing = sorted(required.difference(assets))
 if missing:
     raise SystemExit("release is missing assets: " + ", ".join(missing))
@@ -344,7 +356,11 @@ else
     echo "skipped Tauri updater signature verification: minisign verifier unavailable"
 fi
 
-gh_download "$tag" --repo "$repo" --pattern latest.json --dir "$staging" --clobber
+if [[ -n "$manifest_candidate" ]]; then
+    cp "$manifest_candidate" "$staging/latest.json"
+else
+    gh_download "$tag" --repo "$repo" --pattern latest.json --dir "$staging" --clobber
+fi
 python3 - "$staging/latest.json" "$tag" "$assets_json" <<'PY'
 import json
 import sys

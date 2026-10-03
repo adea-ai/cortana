@@ -38,12 +38,12 @@ if [[ "$expected_lower" != "$actual_lower" ]]; then
 fi
 
 # The archive name is part of the release contract (cortana-<tag>-<target>.tar.gz).
-# Derive the version the archive claims to be so the packaged binary's own
-# --version output can be asserted against it; an archive whose name does not
-# embed a plain semver version cannot be verified and fails closed.
+# Derive the full version the archive claims to be so the packaged binary's
+# own --version output can be asserted against it. Keep the Dev prerelease
+# suffix: a stable binary must never pass under a Dev archive name.
 archive_base="$(basename "$archive")"
 expected_version="$(printf '%s' "$archive_base" | \
-  sed -n 's/^cortana-v\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)-.*\.tar\.gz$/\1/p')"
+  sed -nE 's/^cortana-v(([0-9]+\.){2}[0-9]+(-dev\.[0-9]+)?)-.*\.tar\.gz$/\1/p')"
 if [[ -z "$expected_version" ]]; then
   echo "cannot derive the expected release version from archive name: $archive_base" >&2
   exit 1

@@ -355,8 +355,15 @@ def run_desktop_verify(
     download_attempts: str | None = None,
     download_timeout: str | None = None,
     download_sleep: str | None = None,
+    candidate_manifest: bytes | None = None,
 ) -> subprocess.CompletedProcess[str]:
     bin_dir = tmp_path / "bin"
+    args = [TAG]
+    if candidate_manifest is not None:
+        assets = {name: content for name, content in assets.items() if name != "latest.json"}
+        candidate_path = tmp_path / "candidate-latest.json"
+        candidate_path.write_bytes(candidate_manifest)
+        args.extend(["--manifest-candidate", str(candidate_path)])
     fake_gh(bin_dir, assets)
     if minisign_mode in {"valid", "invalid", "invalid_archive"}:
         if minisign_mode == "invalid_archive" and invalid_archive is None:
@@ -393,7 +400,7 @@ def run_desktop_verify(
         env["CORTANA_MINISIGN_BIN"] = "missing-test-minisign"
     if require_minisign:
         env["CORTANA_REQUIRE_MINISIGN"] = "1"
-    return run_script(VERIFY_DESKTOP, [TAG], env_extra=env)
+    return run_script(VERIFY_DESKTOP, args, env_extra=env)
 
 
 @requires_shell
@@ -417,6 +424,29 @@ def test_verify_release_rejects_installed_vs_checkout_version_skew(tmp_path: Pat
     assert result.returncode == 1
     assert "release binary version mismatch" in result.stderr
     assert "expected 'cortana 9.9.9', got 'cortana 1.0.0'" in result.stderr
+
+
+@requires_shell
+def test_verify_release_rejects_stable_binary_under_dev_archive_tag(tmp_path: Path) -> None:
+    version = "9.9.9-dev.10"
+    archive = build_core_archive(tmp_path, version, "9.9.9")
+
+    result = run_script(VERIFY_RELEASE, [str(archive)])
+
+    assert result.returncode == 1
+    assert "release binary version mismatch" in result.stderr
+    assert "expected 'cortana 9.9.9-dev.10', got 'cortana 9.9.9'" in result.stderr
+
+
+@requires_shell
+def test_verify_release_accepts_matching_dev_version(tmp_path: Path) -> None:
+    version = "9.9.9-dev.10"
+    archive = build_core_archive(tmp_path, version, version)
+
+    result = run_script(VERIFY_RELEASE, [str(archive)])
+
+    assert result.returncode == 0, result.stderr
+    assert f"Verified packaged binary version {version}" in result.stdout
 
 
 @requires_shell
@@ -505,6 +535,36 @@ def test_desktop_verify_retries_transient_release_download(tmp_path: Path) -> No
 
     assert result.returncode == 0, result.stderr
     assert "retrying in 0s" in result.stderr
+
+
+@requires_shell
+def test_desktop_verify_checks_local_manifest_candidate_before_publication(tmp_path: Path) -> None:
+    assets = build_desktop_assets(tmp_path, VERSION)
+    candidate_manifest = assets.pop("latest.json")
+
+    result = run_desktop_verify(
+        tmp_path,
+        assets,
+        force_linux=True,
+        require_minisign=True,
+        candidate_manifest=candidate_manifest,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert f"verified 17 Cortana release assets for {TAG}" in result.stdout
+    assert f"verified updater manifest for {TAG}" in result.stdout
+    assert f"verified published Linux binary version matches {TAG}" in result.stdout
+
+
+@requires_shell
+def test_desktop_verify_still_requires_published_manifest_after_upload(tmp_path: Path) -> None:
+    assets = build_desktop_assets(tmp_path, VERSION)
+    assets.pop("latest.json")
+
+    result = run_desktop_verify(tmp_path, assets)
+
+    assert result.returncode == 1
+    assert "release is missing assets: latest.json" in result.stderr
 
 
 @requires_shell
