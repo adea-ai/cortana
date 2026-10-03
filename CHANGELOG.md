@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.66.2](https://github.com/adea-ai/cortana/compare/v0.66.1...v0.66.2) (2026-10-03)
+
+
+### Bug Fixes
+
+* keep readiness stats off document read path ([#2492](https://github.com/adea-ai/cortana/issues/2492)) ([20d2413](https://github.com/adea-ai/cortana/commit/20d241346d792df315f465c394e73c679cffc0c8))
+* **release:** use numeric MSI version for dev builds ([#2490](https://github.com/adea-ai/cortana/issues/2490)) ([e114158](https://github.com/adea-ai/cortana/commit/e11415811819462f8b5a0a035723f36b65578b64))
+
 ## [0.66.1](https://github.com/adea-ai/cortana/compare/v0.66.0...v0.66.1) (2026-10-03)
 
 
