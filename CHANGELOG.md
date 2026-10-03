@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.66.1](https://github.com/adea-ai/cortana/compare/v0.66.0...v0.66.1) (2026-10-03)
+
+
+### Bug Fixes
+
+* **desktop:** restore channel update delivery ([#2486](https://github.com/adea-ai/cortana/issues/2486)) ([b5a6f82](https://github.com/adea-ai/cortana/commit/b5a6f823f4b97f1999feb5e8ea47f36814c75ee7))
+
+
+### CI
+
+* **release:** adopt Code Foundry 1.43.1 batched release flow ([#2485](https://github.com/adea-ai/cortana/issues/2485)) ([5e593ec](https://github.com/adea-ai/cortana/commit/5e593ec4b2394d91474da216b6398c333e5014e8))
+
 ## [0.66.0](https://github.com/adea-ai/cortana/compare/v0.65.4...v0.66.0) (2026-10-02)
 
 
