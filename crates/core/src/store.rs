@@ -4326,7 +4326,7 @@ impl Store {
              WHERE d.id IN ({placeholders})
              ORDER BY d.updated_at DESC,d.id DESC"
         );
-        let mut documents = Vec::with_capacity(candidates.len());
+        let mut documents = Vec::new();
         if !candidates.is_empty() {
             let mut summary_statement = transaction.prepare(&summary_sql)?;
             let rows = summary_statement
