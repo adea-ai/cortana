@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.66.5](https://github.com/adea-ai/cortana/compare/v0.66.4...v0.66.5) (2026-10-04)
+
+
+### Bug Fixes
+
+* **core:** bound document page summary work ([#2504](https://github.com/adea-ai/cortana/issues/2504)) ([963e8f9](https://github.com/adea-ai/cortana/commit/963e8f93e4fdd183cf0a43185dba068a5dabce52))
+
+
+### Tests
+
+* **a11y:** audit settled graph selection colors ([#2501](https://github.com/adea-ai/cortana/issues/2501)) ([e0ec0db](https://github.com/adea-ai/cortana/commit/e0ec0dbe09c3009fbbc9325448835205ea8debd9))
+
+
+### Maintenance
+
+* deps-2026-10 ([#2495](https://github.com/adea-ai/cortana/issues/2495)) ([acfaf9a](https://github.com/adea-ai/cortana/commit/acfaf9ac8df05289b0863b6fa41c2a73659cc809))
+* **deps:** track @adea-ai/ui 0.106.1 and themes 0.9.7 ([#2502](https://github.com/adea-ai/cortana/issues/2502)) ([bfc3940](https://github.com/adea-ai/cortana/commit/bfc394014781020b472243081b49308ca2c6ec5d))
+
 ## [0.66.4](https://github.com/adea-ai/cortana/compare/v0.66.3...v0.66.4) (2026-10-03)
 
 
