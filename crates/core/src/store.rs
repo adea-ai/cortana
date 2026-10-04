@@ -4239,14 +4239,16 @@ impl Store {
         limit: usize,
         principal_acl: &[String],
     ) -> Result<DocumentPage> {
-        let connection = self
+        let mut connection = self
             .read_connection
             .lock()
             .expect("store read lock poisoned");
-        // Bound the candidate page before inspecting document and chunk bodies.
-        // Aggregating the workspace before LIMIT reads the entire corpus for
-        // every page and holds the connection through multi-gigabyte scans.
-        let mut statement = connection.prepare(
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Deferred)?;
+        // Select only candidate metadata first. Body and chunk summaries are
+        // expensive on large corpora, so compute them only after ACL filtering
+        // has identified the rows that will be returned. The read transaction
+        // keeps candidate metadata and summaries on one database snapshot.
+        let mut statement = transaction.prepare(
             "WITH page AS MATERIALIZED (
                SELECT id FROM documents
                WHERE (?1 IS NULL OR project=?1)
@@ -4258,18 +4260,13 @@ impl Store {
                ORDER BY updated_at DESC,id DESC
                LIMIT ?6
              )
-             SELECT d.id,d.source,d.source_id,d.title,d.uri,d.updated_at,d.project,d.acl_json,
-                    d.content_hash,
-                    (SELECT COUNT(*) FROM chunks c WHERE c.document_id=d.id),
-                    CASE WHEN length(d.content)>0 THEN length(d.content)
-                         ELSE COALESCE((SELECT SUM(length(c.content)) FROM chunks c
-                                        WHERE c.document_id=d.id),0) END
+             SELECT d.id,d.updated_at,d.acl_json
              FROM page JOIN documents d ON d.id=page.id
              ORDER BY d.updated_at DESC,d.id DESC",
         )?;
         let page_size = limit.clamp(1, 100);
         let mut scan_cursor = cursor.cloned();
-        let mut documents = Vec::with_capacity(page_size.saturating_add(1));
+        let mut candidates = Vec::with_capacity(page_size.saturating_add(1));
         loop {
             let scan_limit = page_size.saturating_mul(4).max(64);
             let rows = statement
@@ -4282,6 +4279,59 @@ impl Store {
                         scan_cursor.as_ref().map(|value| value.id.as_str()),
                         i64::try_from(scan_limit).unwrap_or(400),
                     ],
+                    |row| {
+                        let acl_json = row.get::<_, String>(2)?;
+                        let acl =
+                            serde_json::from_str::<Vec<String>>(&acl_json).map_err(|error| {
+                                rusqlite::Error::FromSqlConversionFailure(
+                                    2,
+                                    Type::Text,
+                                    Box::new(error),
+                                )
+                            })?;
+                        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?, acl))
+                    },
+                )?
+                .collect::<rusqlite::Result<Vec<_>>>()?;
+            let scanned = rows.len();
+            for candidate in rows {
+                scan_cursor = Some(DocumentCursor {
+                    updated_at: candidate.1.clone(),
+                    id: candidate.0.clone(),
+                });
+                if acl_allows(&candidate.2, principal_acl) {
+                    candidates.push(candidate);
+                    if candidates.len() > page_size {
+                        break;
+                    }
+                }
+            }
+            if candidates.len() > page_size || scanned < scan_limit {
+                break;
+            }
+        }
+        drop(statement);
+
+        let has_more = candidates.len() > page_size;
+        candidates.truncate(page_size);
+        let placeholders = vec!["?"; candidates.len()].join(",");
+        let summary_sql = format!(
+            "SELECT d.id,d.source,d.source_id,d.title,d.uri,d.updated_at,d.project,d.acl_json,
+                    d.content_hash,
+                    (SELECT COUNT(*) FROM chunks c WHERE c.document_id=d.id),
+                    CASE WHEN length(d.content)>0 THEN length(d.content)
+                         ELSE COALESCE((SELECT SUM(length(c.content)) FROM chunks c
+                                        WHERE c.document_id=d.id),0) END
+             FROM documents d
+             WHERE d.id IN ({placeholders})
+             ORDER BY d.updated_at DESC,d.id DESC"
+        );
+        let mut documents = Vec::with_capacity(candidates.len());
+        if !candidates.is_empty() {
+            let mut summary_statement = transaction.prepare(&summary_sql)?;
+            let rows = summary_statement
+                .query_map(
+                    params_from_iter(candidates.iter().map(|(id, _, _)| id.as_str())),
                     |row| {
                         let acl_json = row.get::<_, String>(7)?;
                         let acl =
@@ -4297,44 +4347,25 @@ impl Store {
                             usize::try_from(row.get::<_, i64>(9)?).unwrap_or(usize::MAX);
                         let content_chars =
                             usize::try_from(row.get::<_, i64>(10)?).unwrap_or(usize::MAX);
-                        Ok((
-                            DocumentSummary {
-                                id: row.get(0)?,
-                                source: row.get(1)?,
-                                source_id: row.get(2)?,
-                                title: row.get(3)?,
-                                uri: row.get(4)?,
-                                updated_at: row.get(5)?,
-                                project: row.get(6)?,
-                                chunk_count,
-                                content_chars,
-                                acl: acl.clone(),
-                                content_revision,
-                            },
+                        Ok(DocumentSummary {
+                            id: row.get(0)?,
+                            source: row.get(1)?,
+                            source_id: row.get(2)?,
+                            title: row.get(3)?,
+                            uri: row.get(4)?,
+                            updated_at: row.get(5)?,
+                            project: row.get(6)?,
+                            chunk_count,
+                            content_chars,
                             acl,
-                        ))
+                            content_revision,
+                        })
                     },
                 )?
                 .collect::<rusqlite::Result<Vec<_>>>()?;
-            let scanned = rows.len();
-            for (summary, acl) in rows {
-                scan_cursor = Some(DocumentCursor {
-                    updated_at: summary.updated_at.clone(),
-                    id: summary.id.clone(),
-                });
-                if acl_allows(&acl, principal_acl) {
-                    documents.push(summary);
-                    if documents.len() > page_size {
-                        break;
-                    }
-                }
-            }
-            if documents.len() > page_size || scanned < scan_limit {
-                break;
-            }
+            documents = rows;
         }
-        let has_more = documents.len() > page_size;
-        documents.truncate(page_size);
+        transaction.commit()?;
         Ok(DocumentPage {
             documents,
             has_more,
@@ -6661,6 +6692,7 @@ fn lexical_query_terms(query: &str) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use chrono::{Duration, Utc};
+    use rusqlite::functions::FunctionFlags;
     use tempfile::tempdir;
 
     use super::*;
@@ -6694,6 +6726,31 @@ mod tests {
             .expect("stats connection")
             .cached_stats
             .len()
+    }
+
+    fn track_sqlite_text_lengths(store: &Store) -> Arc<Mutex<Vec<String>>> {
+        let values = Arc::new(Mutex::new(Vec::new()));
+        let observed = Arc::clone(&values);
+        store
+            .read_connection
+            .lock()
+            .expect("read connection")
+            .create_scalar_function(
+                "length",
+                1,
+                FunctionFlags::SQLITE_DETERMINISTIC,
+                move |context| {
+                    let value = context.get::<String>(0)?;
+                    observed
+                        .lock()
+                        .expect("length observations")
+                        .push(value.clone());
+                    let text = value.split('\0').next().unwrap_or_default();
+                    Ok(i64::try_from(text.chars().count()).unwrap_or(i64::MAX))
+                },
+            )
+            .expect("instrument SQLite length");
+        values
     }
 
     #[test]
@@ -7085,6 +7142,128 @@ mod tests {
         assert_eq!(page.documents.len(), 1);
         assert_eq!(page.documents[0].source_id, "visible-after-hidden");
         assert!(!page.has_more);
+    }
+
+    #[test]
+    fn document_browser_summarizes_only_visible_page_rows() {
+        let directory = tempdir().expect("temporary directory");
+        let store = Store::open(&directory.path().join("store.sqlite3")).expect("open store");
+        for index in 0..130 {
+            let mut item = document(
+                &format!("hidden-{index:03}"),
+                &format!("hidden-body-{index:03}-{}", "x".repeat(128)),
+            );
+            item.acl = vec!["personal".into()];
+            item.updated_at = "2026-01-04T00:00:00Z".parse().expect("timestamp");
+            store
+                .upsert(&item, &[(item.content.clone(), vec![1.0])])
+                .expect("insert hidden document");
+        }
+
+        let mut direct = document("visible-direct", "Å🙂\0after");
+        direct.updated_at = "2026-01-03T00:00:00Z".parse().expect("timestamp");
+        store
+            .upsert(&direct, &[(direct.content.clone(), vec![1.0])])
+            .expect("insert direct document");
+
+        let mut fallback = document("visible-chunks", "");
+        fallback.updated_at = "2026-01-02T00:00:00Z".parse().expect("timestamp");
+        store
+            .upsert(
+                &fallback,
+                &[("naïve\0tail".into(), vec![1.0]), ("🌟β".into(), vec![1.0])],
+            )
+            .expect("insert chunk-fallback document");
+
+        let mut lookahead = document("visible-lookahead", "lookahead-body");
+        lookahead.updated_at = "2026-01-01T00:00:00Z".parse().expect("timestamp");
+        store
+            .upsert(&lookahead, &[(lookahead.content.clone(), vec![1.0])])
+            .expect("insert lookahead document");
+
+        let observed = track_sqlite_text_lengths(&store);
+        let first = store
+            .list_documents_scoped(None, None, None, None, 2, &["work".into()])
+            .expect("first page");
+        assert_eq!(
+            first
+                .documents
+                .iter()
+                .map(|summary| summary.source_id.as_str())
+                .collect::<Vec<_>>(),
+            ["visible-direct", "visible-chunks"]
+        );
+        assert!(first.has_more);
+        assert_eq!(first.documents[0].chunk_count, 1);
+        assert_eq!(first.documents[0].content_chars, 2);
+        assert_eq!(first.documents[1].chunk_count, 2);
+        assert_eq!(first.documents[1].content_chars, 7);
+        {
+            let values = observed.lock().expect("length observations");
+            assert!(
+                values
+                    .iter()
+                    .all(|value| !value.starts_with("hidden-body-"))
+            );
+            assert!(!values.iter().any(|value| value == "lookahead-body"));
+            assert!(values.iter().any(|value| value == "Å🙂\0after"));
+            assert!(values.iter().any(|value| value == "naïve\0tail"));
+            assert!(values.iter().any(|value| value == "🌟β"));
+        }
+
+        observed.lock().expect("length observations").clear();
+        let cursor = DocumentCursor {
+            updated_at: first.documents[1].updated_at.clone(),
+            id: first.documents[1].id.clone(),
+        };
+        let second = store
+            .list_documents_scoped(None, None, None, Some(&cursor), 2, &["work".into()])
+            .expect("second page");
+        assert_eq!(second.documents.len(), 1);
+        assert_eq!(second.documents[0].source_id, "visible-lookahead");
+        assert_eq!(
+            second.documents[0].content_chars,
+            lookahead.content.chars().count()
+        );
+        assert!(!second.has_more);
+        let second_observations = observed.lock().expect("length observations");
+        assert!(!second_observations.is_empty());
+        assert!(
+            second_observations
+                .iter()
+                .all(|value| value == &lookahead.content)
+        );
+    }
+
+    #[test]
+    fn document_browser_rejects_malformed_acl_in_candidate_batch() {
+        let directory = tempdir().expect("temporary directory");
+        let store = Store::open(&directory.path().join("store.sqlite3")).expect("open store");
+        let mut visible = document("visible-before-malformed", "visible content");
+        visible.updated_at = "2026-01-02T00:00:00Z".parse().expect("timestamp");
+        store
+            .upsert(&visible, &[(visible.content.clone(), vec![1.0])])
+            .expect("insert visible document");
+        store
+            .connection
+            .lock()
+            .expect("store lock")
+            .execute(
+                "INSERT INTO documents(
+                   id,source,source_id,title,uri,content_hash,updated_at,project,
+                   acl_json,metadata_json,content
+                 ) VALUES(?1,'test','malformed-acl','malformed-acl',NULL,'hash',
+                          '2026-01-01T00:00:00Z','demo','not-json','{}','hidden')",
+                [stable_id("test", "malformed-acl")],
+            )
+            .expect("insert malformed ACL fixture");
+
+        assert!(
+            store
+                .list_documents_scoped(None, None, None, None, 1, &["work".into()])
+                .is_err(),
+            "candidate ACLs are validated for the entire bounded scan before summaries"
+        );
     }
 
     #[test]

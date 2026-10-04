@@ -40,5 +40,6 @@ libc.workspace = true
 
 [dev-dependencies]
 axum.workspace = true
+rusqlite = { workspace = true, features = ["functions"] }
 tempfile.workspace = true
 tokio.workspace = true
