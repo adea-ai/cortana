@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.66.6](https://github.com/adea-ai/cortana/compare/v0.66.5...v0.66.6) (2026-10-05)
+
+
+### Bug Fixes
+
+* **desktop:** pin the M7 visual capture to dark themes ([#2511](https://github.com/adea-ai/cortana/issues/2511)) ([40e0efb](https://github.com/adea-ai/cortana/commit/40e0efb7a81c97606287b5ae2842dd0965077c6d))
+* **desktop:** render the utilities menu as a rail trigger ([#2513](https://github.com/adea-ai/cortana/issues/2513)) ([e4d8c4c](https://github.com/adea-ai/cortana/commit/e4d8c4c58444cb782931807c0e119a4b1fb91651))
+
+
+### Documentation
+
+* **web:** align Solid conventions with the shared UI contract ([#2512](https://github.com/adea-ai/cortana/issues/2512)) ([2c9c36a](https://github.com/adea-ai/cortana/commit/2c9c36a156387933496cb533c87c2bf2ca6d4146))
+* **web:** avoid stale shared UI version pins ([#2507](https://github.com/adea-ai/cortana/issues/2507)) ([dcc9586](https://github.com/adea-ai/cortana/commit/dcc9586d4c52a7b8df253e003b15723350548bde))
+
+
+### Maintenance
+
+* **deps:** track @adea-ai/ui 0.110.1 ([#2514](https://github.com/adea-ai/cortana/issues/2514)) ([d53c3d1](https://github.com/adea-ai/cortana/commit/d53c3d19f6c8c2fab836f4fe804f58e0bd6d25bf))
+
 ## [0.66.5](https://github.com/adea-ai/cortana/compare/v0.66.4...v0.66.5) (2026-10-04)
 
 
