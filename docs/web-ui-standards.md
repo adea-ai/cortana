@@ -2,7 +2,7 @@
 
 Cortana consumes the published `@adea-ai/ui` and `@adea-ai/themes` packages. The shared UI library owns controls, compound components, accessibility behavior, typography, spacing variants, fonts, and semantic tokens. Themes owns the palette catalogue and provenance. Cortana owns source, document, graph, memory, and operational behavior.
 
-At this source revision, the root and web manifests pin `@adea-ai/ui` to `0.89.2`, and the web manifest pins `@adea-ai/themes` to `0.8.6`; `bun.lock` resolves those exact published versions. Keep this version note synchronized with both manifests and the lockfile when dependencies change.
+Package versions are declared in the root `package.json` (shared UI lint dependency) and `apps/web/package.json` (web dependencies); `bun.lock` records the resolved versions. Treat those manifests and the lockfile as authoritative instead of duplicating version numbers in this guide.
 
 ## Component ownership
 
