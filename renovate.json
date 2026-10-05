@@ -52,6 +52,13 @@
       "matchPackageNames": ["!/^@adea-ai//"]
     },
     {
+      "description": "Pinned GitHub action SHAs are audited supply-chain controls (scripts/desktop-cache.test.mjs enforces the install-action pin); a digest bump is its own reviewed change, so it must not ride the external non-major group. Placed after the group rule so the null groupName clears it.",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["digest", "pin"],
+      "groupName": null,
+      "labels": ["dependencies", "supply-chain"]
+    },
+    {
       "description": "Major external bumps share one draft PR per cycle instead of one per package — a grouped major PR reads as one upgrade decision.",
       "matchUpdateTypes": ["major"],
       "groupName": "external major dependencies",
