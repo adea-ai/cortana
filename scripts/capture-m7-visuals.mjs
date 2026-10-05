@@ -24,7 +24,7 @@ const MENU_DESTINATIONS = new Set(['Settings', 'Updates', 'Index', 'Help Center'
 const widths = args.has('--widths')
   ? args.get('--widths').split(',').map(Number)
   : [320, 768, 1024, 1440, 1920]
-const themes = args.has('--themes')
+const requestedThemes = args.has('--themes')
   ? args.get('--themes').split(',')
   : [
       'blue',
@@ -32,6 +32,17 @@ const themes = args.has('--themes')
         .map((theme) => theme.id)
         .filter((id) => id !== 'nord'),
     ]
+const darkThemeIds = new Set(themesForAppearance('dark').map((theme) => theme.id))
+const legacyThemeIds = { blue: 'nord' }
+const themes = requestedThemes.map((requestedTheme) => {
+  const resolvedTheme = legacyThemeIds[requestedTheme] ?? requestedTheme
+  if (!darkThemeIds.has(resolvedTheme)) {
+    throw new Error(
+      `Unsupported audit theme "${requestedTheme}": Cortana's visual audit accepts dark themes only.`
+    )
+  }
+  return resolvedTheme
+})
 const primaryTheme = themes[0]
 const consoleErrors = []
 let screenshotCount = 0
@@ -66,6 +77,21 @@ async function openPage(theme, width, state = 'configured') {
   await page.goto(`${baseUrl}/?demo=1&demo-state=${state}`, { waitUntil: 'domcontentloaded' })
   await page.locator('[data-m7-production-shell-ready]').waitFor({ state: 'attached' })
   await page.getByRole('textbox', { name: 'Search your knowledge' }).waitFor()
+  await page.waitForFunction(
+    ({ expectedTheme }) =>
+      document.documentElement.dataset.theme === expectedTheme &&
+      document.documentElement.dataset.appearance === 'dark',
+    { expectedTheme: theme }
+  )
+  const appliedTheme = await page.evaluate(() => ({
+    theme: document.documentElement.dataset.theme,
+    appearance: document.documentElement.dataset.appearance,
+  }))
+  if (appliedTheme.theme !== theme || appliedTheme.appearance !== 'dark') {
+    throw new Error(
+      `Requested ${theme}, but the page applied ${appliedTheme.theme}/${appliedTheme.appearance}`
+    )
+  }
   return { context, page }
 }
 
