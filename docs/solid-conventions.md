@@ -13,12 +13,12 @@ fine-grained reactivity instead of carrying React-era assumptions forward.
   `const status = () => snapshot.value`.
 - **Store ownership rule**: a `createStore` proxies the object you hand it, and `reconcile`
   writes differences _into_ that object. Never seed or update a store with an object that is
-  owned or long-lived elsewhere (a prop snapshot, a shared fixture, another signal's value) —
-  leaf writes would silently mutate the shared copy. Store-fed inputs must be owned by the
-  store: fresh API responses and `unwrap`ped cache copies are safe; a settings draft seeded
+  owned or long-lived elsewhere (a prop snapshot, a shared fixture, another signal's value).
+  Leaf writes would silently mutate the shared copy. Store-fed inputs must be owned by the
+  store: use fresh API responses or owned copies of cached data. A settings draft seeded
   from a shell-owned prop is not, which is why the draft stays a signal.
 - Never store the same fact twice. If a value is computable from other reactive state, use
-  `createMemo` or a plain accessor — not a synchronized copy.
+  `createMemo` or a plain accessor.
 
 ## Effects
 
@@ -26,9 +26,9 @@ fine-grained reactivity instead of carrying React-era assumptions forward.
   `localStorage`. Everything inside it that decides whether work happens should read its reactive
   dependencies synchronously so they stay tracked.
 - `createComputed` (runs during the computation phase, before paint) is the right primitive for
-  writes that derive or redirect state read by render — tab redirects, prop-transition resets.
-- A bare `if (props.x !== previous) { ... }` in a component body runs **once** at setup — it is a
-  broken `getDerivedStateFromProps` translation and silently dead. Track the previous value in a
+  writes that derive or redirect state read by render, such as tab redirects and prop-transition resets.
+- A bare `if (props.x !== previous) { ... }` in a component body runs **once** at setup. It cannot
+  track later prop changes. Track the previous value in a
   `let` and compare inside an effect instead.
 - Merge scope-reset and fetch logic into one effect. Splitting them across effects keyed on a
   shared string invites drift (the retry nonce that reset state without refetching is the example
@@ -38,14 +38,16 @@ fine-grained reactivity instead of carrying React-era assumptions forward.
 
 ## Rendering and lists
 
-- `For` is keyed by item identity — it works best with reconciled stores, where unchanged items
+- `For` is keyed by item identity. It works best with reconciled stores, where unchanged items
   keep the same proxy and their rows are not rebuilt. `Index` is for primitives that are
   recreated each render.
 - Do not wrap a single-group list in an extra grouping layer; it rebuilds the row identity every
   update.
-- Keep per-row `class`/`style` strings cheap: a plain concatenation beats `cn()` in rows rendered
-  hundreds at a time inside a virtualized list.
-- DOM refs and slots passed to children keep the `{ current }` object shape; pure-logic mutable
+- Keep per-row class computation cheap and statically readable. Use the shared `cn()` helper
+  with object-form conditional classes. Geometry belongs in shared layout primitives;
+  JSX inline styles and `classList` are prohibited by the web UI contract.
+- Use Solid callback refs for DOM elements. Retain `{ current }` objects only where a shared
+  component's API requires them. Pure-logic mutable
   slots (request ids, abort controllers, in-flight sets) are plain `let`/`const`, not
   `useRef`-style objects.
 
@@ -55,25 +57,26 @@ fine-grained reactivity instead of carrying React-era assumptions forward.
   shell itself is a static import so there is no entry→shell waterfall.
 - Scope-keyed bounded caches (`createBoundedCache`) provide stale-while-revalidate: a scope
   round-trip paints the remembered snapshot instantly while the fresh request revalidates it.
-  Bounded — never an unbounded `Map` on session data.
+  Keep session-data caches bounded.
 - Invalidate caches on every input that changes what the data means: settings saves clear the
   document and graph caches because a save can change workspaces, sources, or index scope.
-- Hover prefetch warms the detail cache (`prefetchDocument`) — a strong open intent at zero
+- Hover prefetch warms the detail cache (`prefetchDocument`), a strong open intent at zero
   idle-time cost beyond one deduplicated request per id.
 - Polling pauses on `useDesktopForeground()` going false; nothing should poll while hidden.
 
 ## Shared primitives
 
-- `createMediaQuery` (`src/lib/mediaQuery.ts`) — one shared `matchMedia` subscription per query
+- `createMediaQuery` (`src/lib/mediaQuery.ts`): one shared `matchMedia` subscription per query
   text; do not register per-component media listeners.
-- `useDesktopForeground` (`src/lib/foreground.ts`) — shared visibility/focus signal; never create
+- `useDesktopForeground` (`src/lib/foreground.ts`): shared visibility/focus signal; never create
   a second `visibilitychange` listener.
-- `createBoundedCache` (`src/lib/boundedCache.ts`) — insertion-ordered LRU for SWR snapshots.
-- `VariantButton` (`src/components/cortana/VariantButton.tsx`) — the shared Cortana variant
-  vocabulary over the shadcn button; do not add another local variant-mapping wrapper.
+- `createBoundedCache` (`src/lib/boundedCache.ts`): insertion-ordered LRU for SWR snapshots.
+- `ActionButton` and interactive `ListRow` from `@adea-ai/ui/components/*`: shared action
+  controls with an explicit, helpful `tooltip`. Use their variants rather than a local button
+  wrapper. See [the web UI contract](web-ui-standards.md).
 
 ## Budgets
 
 `scripts/check-web-bundle-budget.mjs` enforces the initial-graph, complete-graph, and CSS budgets
 in the build. The initial graph is the entry chunk plus the static `App.tsx` chain; lazy surfaces
-must stay outside it. Do not lower budgets to make a build pass — tighten the graph instead.
+must stay outside it. Tighten the graph to meet the budgets; do not lower them to make a build pass.

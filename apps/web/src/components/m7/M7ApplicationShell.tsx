@@ -707,7 +707,10 @@ export function M7ApplicationNavigation(props: {
           authenticated={false}
           showSession={false}
           label="Settings and utilities"
-          size="icon-sm"
+          railTrigger
+          placement="right-end"
+          gutter={4}
+          hideArrow
           data-active={utilitiesActive() ? '' : undefined}
         />
       </SideRailFooter>
