@@ -167,10 +167,7 @@ is unmoved. In the rare case where lightness alone cannot reach the floor, the c
 is blended toward the palette's own foreground, which is recorded on the entry and
 reported on every build. No colour is ever invented: every value in the catalogue is
 a value from the palette it is attributed to, viewed at a different brightness.
-
----
-
-# @adea-ai/ui 0.106.1 published notice
+# @adea-ai/ui 0.110.1 published notice
 
 Copyright 2026 0xPlayerOne
 
@@ -600,6 +597,19 @@ and its tests in t3code, issue #422, pinned at revision
 The shared component owns reusable geometry and pointer/keyboard controls only.
 T3 runtime state, streaming, Electron services, native picture-in-picture,
 notifications and content rendering are not included.
+
+## Annotation viewport adapted from Adea Dev View
+
+`packages/ui/src/components/ui/annotation-surface/` supplies the shared,
+pixel-free viewport, normalized pointer capture and keyboard start behavior for
+Adea's BrowserPane annotation adapter. That adapter is issue #718 and traces its
+region drag interaction to t3code's annotation implementation, pinned at
+`77bca8b2d76a1f42552e5eee7d277fcb1160347a`; the MIT license and copyright for
+that revision are recorded in the t3code section above. Adea's host captures a
+screenshot only when an annotation is submitted, so this shared component never
+reads or renders live pixels and receives no screenshot or permission authority.
+It owns presentation and pointer capture; the host owns normalized domain
+geometry, keyboard edits, annotation commands and capture timing.
 
 ## Catalog browser translated from KiroCrew (issue #425 selected unit)
 
