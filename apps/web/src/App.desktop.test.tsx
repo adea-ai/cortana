@@ -5841,12 +5841,15 @@ test('running source jobs stay visible in the shell after leaving the settings v
 
     // Leaving the settings view must not hide the running job: the status
     // bar indicator and the read-only source-panel strip keep it visible.
+    // The indicators live in the System status popover, which dismisses on
+    // the navigation click, so reopen it before reading its contents.
     fireEvent.click(
       await screen.findByRole('button', {
         name: 'Knowledge',
       })
     )
     await screen.findByLabelText('Search your knowledge')
+    openSystemStatus()
     expect(await screen.findByText('1 active source job')).toBeTruthy()
     const activeJobs = await findSystemAction({
       name: 'Open active source jobs',
