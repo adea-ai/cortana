@@ -74,6 +74,11 @@ surfaces, including the shared Updates dialog. It additionally records configure
 first-run, busy, success, warning, failure, cancellation, retry, and recovery states. Fixture paths
 use `/example` and no secret value is present in the DOM or screenshots.
 
+Cortana pins its appearance to dark. The capture accepts canonical dark catalogue ids only, resolves
+the legacy `blue` preference to `nord`, and checks the page's actual `data-theme` and
+`data-appearance` before it names or saves screenshots. A requested light theme fails the audit
+instead of producing a mislabeled image.
+
 `.github/workflows/m7-visual-evidence.yml` runs the same capture on the exact pull-request revision,
 audits every final-renderer theme/width against WCAG 2.2 AA automation, and uploads the complete
 non-secret matrix as a 30-day GitHub Actions artifact. Link the exact run from the issue or pull
