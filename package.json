@@ -41,7 +41,7 @@
     "@testing-library/dom": "^10.4.2",
     "@types/bun": "^1.4.2",
     "babel-preset-solid": "^1.9.15",
-    "code-foundry": "1.44.7",
+    "code-foundry": "1.44.11",
     "oxfmt": "^0.72.0",
     "oxlint": "^1.86.0",
     "playwright": "^1.63.0",
