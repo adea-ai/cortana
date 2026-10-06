@@ -1832,13 +1832,13 @@ test('desktop Help links surface native browser failures', async () => {
   )
   expect(state.openUrlCalls).toEqual(['https://github.com/adea-ai/cortana/tree/main/docs'])
 })
-test('desktop feedback opens the prefilled Adea feedback form', async () => {
+test('desktop feedback opens the prefilled Cortana feedback form', async () => {
   render(() => <App />)
   await openSidebarDestination('Send Feedback')
   await waitFor(() => expect(state.openUrlCalls).toHaveLength(1))
   const feedback = new URL(state.openUrlCalls[0])
   expect(`${feedback.origin}${feedback.pathname}`).toBe(
-    'https://github.com/adea-ai/adea/issues/new'
+    'https://github.com/adea-ai/cortana/issues/new'
   )
   expect(feedback.searchParams.get('template')).toBe('feedback.yml')
   expect(feedback.searchParams.get('context')).toContain('App: Cortana')
