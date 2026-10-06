@@ -193,7 +193,7 @@ async function openMobileRail() {
 async function openSidebarDestination(label: string) {
   fireEvent.pointerDown(
     screen.getByRole('button', {
-      name: 'Settings and utilities',
+      name: 'User settings',
     })
   )
   const item = await screen.findByRole('menuitem', {
@@ -819,7 +819,7 @@ test('settings navigation explains the desktop-only view in web mode', async () 
   await waitFor(() =>
     expect(
       screen.getByRole('button', {
-        name: 'Settings and utilities',
+        name: 'User settings',
       })
     ).toBeTruthy()
   )
