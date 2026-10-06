@@ -67,7 +67,10 @@ export function verifyWebBundleBudget() {
     ['initial application JavaScript graph', uniqueAssetBytes(manifest, initialKeys), 580_000],
     // Measured 752,955 before the shared theme adoption, 836,260 after it — the
     // same catalogue cost. The 0.77.0 component adoption measured 849,489.
-    ['complete production JavaScript graph', uniqueAssetBytes(manifest, productionKeys), 900_000],
+    // Shared-ui growth through 0.113.0 (the update-channel composite) measured
+    // 880,740; deferring the update composite out of the boot graph and the
+    // chunk split it adds measured 883,114 (2026-10-06).
+    ['complete production JavaScript graph', uniqueAssetBytes(manifest, productionKeys), 920_000],
     // The knowledge graph, vault picker, and accessibility states extend the
     // shared stylesheet to 208,626 bytes in the audited build; the shared theme
     // CSS plus the deleted local theme blocks measured 207,033 (2026-09-28).

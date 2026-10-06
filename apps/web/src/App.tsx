@@ -75,9 +75,7 @@ import { Workspace, type WorkspaceTab } from './components/Workspace'
 import { ActionButton as Button } from '@adea-ai/ui/components/composites/action-button'
 import { StatusChip } from '@adea-ai/ui/components/ui/status-chip'
 import { StatusBarItem } from '@adea-ai/ui/components/layout/status-bar'
-import { UpdateDialog } from '@adea-ai/ui/components/composites/update-dialog'
 import type { UpdateAdapter, UpdateState } from '@adea-ai/ui/components/composites/update-dialog'
-import { UpdateChannelControl } from './components/UpdateChannelControl'
 import { buildAgentContext, estimateTokens } from './context'
 import { embeddingLabel } from './operations'
 import {
@@ -148,6 +146,16 @@ const SettingsView = lazy(() =>
 const loadAboutDialog = () => import('@adea-ai/ui/components/composites/about-dialog')
 const AboutDialog = lazy(() =>
   loadAboutDialog().then((module) => ({ default: module.AboutDialog }))
+)
+// The update composite (and its markdown changelog renderer) only renders on
+// demand; keeping the import lazy keeps the composite out of the boot graph.
+const loadUpdateDialog = () => import('@adea-ai/ui/components/composites/update-dialog')
+const UpdateDialog = lazy(() =>
+  loadUpdateDialog().then((module) => ({ default: module.UpdateDialog }))
+)
+const loadUpdateChannelControl = () => import('./components/UpdateChannelControl')
+const UpdateChannelControl = lazy(() =>
+  loadUpdateChannelControl().then((module) => ({ default: module.UpdateChannelControl }))
 )
 const loadHelpCenterDialog = () => import('./components/help-center-dialog')
 const HelpCenterDialog = lazy(() =>
@@ -2517,26 +2525,28 @@ function CortanaApplication() {
                 </Suspense>
               </Show>
               <Show when={updateDialogMounted()}>
-                <UpdateDialog
-                  adapter={updateAdapter}
-                  appName="Cortana"
-                  appIcon="/app-icon.svg"
-                  fallbackVersion={desktopInfo()?.desktop_version}
-                  changelog={desktopUpdate()?.changelog}
-                  channelControl={
-                    isDesktopApp
-                      ? (controls) => (
-                          <UpdateChannelControl
-                            controls={controls}
-                            reloadOn={() => updateDialogOpen()}
-                          />
-                        )
-                      : undefined
-                  }
-                  open={updateDialogOpen()}
-                  onOpenChange={setUpdateDialogOpen}
-                  restoreFocusRef={() => updateDialogOpenerRef.current}
-                />
+                <Suspense>
+                  <UpdateDialog
+                    adapter={updateAdapter}
+                    appName="Cortana"
+                    appIcon="/app-icon.svg"
+                    fallbackVersion={desktopInfo()?.desktop_version}
+                    changelog={desktopUpdate()?.changelog}
+                    channelControl={
+                      isDesktopApp
+                        ? (controls) => (
+                            <UpdateChannelControl
+                              controls={controls}
+                              reloadOn={() => updateDialogOpen()}
+                            />
+                          )
+                        : undefined
+                    }
+                    open={updateDialogOpen()}
+                    onOpenChange={setUpdateDialogOpen}
+                    restoreFocusRef={() => updateDialogOpenerRef.current}
+                  />
+                </Suspense>
               </Show>
               <Show when={commandPaletteMounted()}>
                 <Suspense>
