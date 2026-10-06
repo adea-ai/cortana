@@ -24,7 +24,6 @@ import {
 } from 'lucide-solid'
 import { For, Show } from 'solid-js'
 
-import { openDesktopUrl } from '../api'
 import { codeRevisionLabel } from '../codeEvidence'
 import type {
   AnswerResponse,
@@ -35,10 +34,8 @@ import type {
 } from '../types'
 import { describeSourceJobProgress, recentCompletedJobs } from '../sourceJobs'
 import { describeSyncRunProgress } from '../operations'
-import { shortcutLabel } from '../shortcuts'
 import { useClipboardCopy } from '../useClipboardCopy'
 import { ActionButton as Button } from '@adea-ai/ui/components/composites/action-button'
-import { HelpCenter } from '@adea-ai/ui/components/composites/help-center'
 import { ListGroup, ListRow } from '@adea-ai/ui/components/composites/list-row'
 import { Badge } from '@adea-ai/ui/components/ui/badge'
 import { Table, TableBody, TableRow, TableCell, TableHead } from '@adea-ai/ui/components/ui/table'
@@ -78,11 +75,6 @@ const TITLES: Record<UtilityKind, { eyebrow: string; title: string; description:
     title: 'Index',
     description: 'Live document, chunk, source, and cache metrics reported by the brain.',
   },
-  help: {
-    eyebrow: 'Support',
-    title: 'Help',
-    description: 'Keyboard shortcuts and links to the project documentation.',
-  },
 }
 
 export function UtilityView(props: {
@@ -100,7 +92,6 @@ export function UtilityView(props: {
   contextLoading: boolean
   contextError: string
   contextTokens: number
-  desktopAvailable: boolean
   sourceJobError?: string
   onRetrySourceJobs?: () => void
   onSearchFocus: () => void
@@ -116,15 +107,13 @@ export function UtilityView(props: {
       class="utility-view m7-utility-view"
       data-m7-utility-view={props.kind}
     >
-      <Show when={props.kind !== 'help'}>
-        <header class="utility-header">
-          <div>
-            <span class="eyebrow">{titles().eyebrow}</span>
-            <h1>{titles().title}</h1>
-            <p>{titles().description}</p>
-          </div>
-        </header>
-      </Show>
+      <header class="utility-header">
+        <div>
+          <span class="eyebrow">{titles().eyebrow}</span>
+          <h1>{titles().title}</h1>
+          <p>{titles().description}</p>
+        </div>
+      </header>
       <div class="utility-body">
         <Show when={props.kind === 'inbox'}>
           <InboxView
@@ -166,9 +155,6 @@ export function UtilityView(props: {
             onOpenSettings={props.onOpenSettings}
             onRetryStatus={props.onRetryStatus}
           />
-        </Show>
-        <Show when={props.kind === 'help'}>
-          <HelpView desktopAvailable={props.desktopAvailable} />
         </Show>
       </div>
     </main>
@@ -886,33 +872,6 @@ function IndexView(props: {
         </>
       )}
     </Show>
-  )
-}
-
-function HelpView(props: { desktopAvailable: boolean }) {
-  return (
-    <HelpCenter
-      appName="Cortana"
-      shortcuts={[
-        { label: 'Focus the search bar', keys: [shortcutLabel('MOD'), 'K'] },
-        { label: 'Toggle the command palette', keys: [shortcutLabel('MOD'), 'P'] },
-        { label: 'Open the document filter', keys: [shortcutLabel('MOD'), '⇧', 'F'] },
-        { label: 'Close panels and the palette', keys: ['Esc'] },
-      ]}
-      links={[
-        {
-          label: 'GitHub project',
-          description: 'Source, releases, and issues.',
-          url: 'https://github.com/adea-ai/cortana',
-        },
-        {
-          label: 'Documentation',
-          description: 'Architecture, ingestion, query, and operations guides.',
-          url: 'https://github.com/adea-ai/cortana/tree/main/docs',
-        },
-      ]}
-      openExternal={props.desktopAvailable ? (url: string) => openDesktopUrl(url) : undefined}
-    />
   )
 }
 

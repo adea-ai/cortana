@@ -107,14 +107,7 @@ function useCortanaNavigation() {
   return value
 }
 
-export type AppView =
-  | 'knowledge'
-  | 'settings'
-  | 'inbox'
-  | 'conversations'
-  | 'agent-tools'
-  | 'index'
-  | 'help'
+export type AppView = 'knowledge' | 'settings' | 'inbox' | 'conversations' | 'agent-tools' | 'index'
 
 export type M7NavigationProps = {
   view: AppView
@@ -123,7 +116,7 @@ export type M7NavigationProps = {
   onOpenGraph: () => void
   /** Opens About after the utilities menu closes, returning focus to its trigger. */
   onOpenAbout?: (opener?: HTMLButtonElement) => void
-  /** Opens the Help Center destination. */
+  /** Opens the Help Center dialog after the utilities menu closes. */
   onOpenHelp?: (opener?: HTMLButtonElement) => void
   /** Opens the prefilled product feedback form. */
   onOpenFeedback?: (opener?: HTMLButtonElement) => void
@@ -516,8 +509,7 @@ export function M7ApplicationNavigation(props: {
 }) {
   const activeWorkspace = () => props.workspaces.find((item) => item.id === props.workspace)
   const currentView = () => props.navigation.view
-  const utilitiesActive = () =>
-    currentView() === 'index' || currentView() === 'help' || currentView() === 'settings'
+  const utilitiesActive = () => currentView() === 'index' || currentView() === 'settings'
   const {
     collapsed,
     isMobile,
@@ -555,10 +547,7 @@ export function M7ApplicationNavigation(props: {
       onAbout: (opener: HTMLButtonElement | undefined) =>
         runNavigation(() => props.navigation.onOpenAbout?.(dialogOpener(opener))),
       onHelp: (opener: HTMLButtonElement | undefined) =>
-        runNavigation(() => {
-          if (props.navigation.onOpenHelp) props.navigation.onOpenHelp(opener)
-          else props.navigation.onNavigate('help')
-        }),
+        runNavigation(() => props.navigation.onOpenHelp?.(dialogOpener(opener))),
       onFeedback: (opener: HTMLButtonElement | undefined) =>
         runNavigation(() => props.navigation.onOpenFeedback?.(opener)),
       onUpdates: (opener: HTMLButtonElement | undefined) =>
@@ -567,7 +556,6 @@ export function M7ApplicationNavigation(props: {
     })
   const mobileMenuItemActive = (item: AccountMenuItem) =>
     (item.id === 'index' && props.navigation.view === 'index') ||
-    (item.id === 'help' && props.navigation.view === 'help') ||
     (item.id === 'settings' && props.navigation.view === 'settings')
   const navActive = (view: 'knowledge' | 'conversations') =>
     props.navigation.view === view &&
@@ -706,7 +694,7 @@ export function M7ApplicationNavigation(props: {
           platform={isDesktopApp ? 'desktop' : 'web'}
           authenticated={false}
           showSession={false}
-          label="Settings and utilities"
+          label="User settings"
           railTrigger
           placement="right-end"
           gutter={4}

@@ -3,6 +3,7 @@ import { act } from './test/act'
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
 import { cleanup, fireEvent, render, screen, waitFor, within } from 'solid-testing-library'
 import { demoEvidence, demoStatus } from './demo'
+import { HelpCenterDialog } from './components/help-center-dialog'
 import { shortcutLabel } from './shortcuts'
 import { answerResponse } from './test/fixtures'
 import type {
@@ -134,7 +135,7 @@ const RAIL_LABELS = [
   'Agent tools',
   'Inbox',
   // The footer keeps one trigger for Index, support, and Settings.
-  'Settings and utilities',
+  'User settings',
 ]
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -160,7 +161,7 @@ function railButton(label: string) {
 async function openSidebarDestination(label: string) {
   fireEvent.pointerDown(
     screen.getByRole('button', {
-      name: 'Settings and utilities',
+      name: 'User settings',
     })
   )
   const item = await screen.findByRole('menuitem', { name: label })
@@ -199,7 +200,7 @@ test('the rail utilities menu keeps the footer destinations one step away', asyn
   // remains reachable from the single trigger.
   fireEvent.pointerDown(
     screen.getByRole('button', {
-      name: 'Settings and utilities',
+      name: 'User settings',
     })
   )
   const items = await screen.findAllByRole('menuitem')
@@ -808,7 +809,6 @@ test('Inbox does not claim clean sync history while runtime status is unavailabl
       contextLoading={false}
       contextError=""
       contextTokens={0}
-      desktopAvailable={false}
       onSearchFocus={() => {}}
       onRetrieveContext={() => {}}
       onOpenSettings={() => {}}
@@ -862,7 +862,6 @@ test('Inbox retains terminal source-job history after the job stops running', ()
       contextLoading={false}
       contextError=""
       contextTokens={0}
-      desktopAvailable={false}
       sourceJobError="Source job cancellation failed"
       onSearchFocus={() => {}}
       onRetrieveContext={() => {}}
@@ -912,7 +911,6 @@ test('Inbox keeps a cancelling source job visibly in progress until it exits', (
       contextLoading={false}
       contextError=""
       contextTokens={0}
-      desktopAvailable={false}
       onSearchFocus={() => {}}
       onRetrieveContext={() => {}}
       onOpenSettings={() => {}}
@@ -1017,7 +1015,6 @@ test('Agent tools copies the exact generated context bundle for local agent hand
         contextLoading={false}
         contextError=""
         contextTokens={contextBundle.metrics.estimated_tokens}
-        desktopAvailable={false}
         onSearchFocus={() => {}}
         onRetrieveContext={() => {}}
         onOpenSettings={() => {}}
@@ -1084,28 +1081,10 @@ test('Conversations shows the session state and offers search focus', async () =
   expect(screen.getByText(/Merge short-lived changes into main/)).toBeTruthy()
   expect(screen.getByText('How do releases work?')).toBeTruthy()
 })
-test('utility actions use the shared token-backed button primitive', () => {
-  render(() => (
-    <UtilityView
-      kind="help"
-      status={demoStatus}
-      sourceJobs={[]}
-      query=""
-      answer={null}
-      evidence={[]}
-      loading={false}
-      error=""
-      contextBundle={null}
-      contextLoading={false}
-      contextError=""
-      contextTokens={0}
-      desktopAvailable
-      onSearchFocus={() => {}}
-      onRetrieveContext={() => {}}
-      onOpenSettings={() => {}}
-    />
-  ))
-  const openProject = screen.getByRole('link', {
+test('the help dialog composes project links from the shared help page', () => {
+  render(() => <HelpCenterDialog open onClose={() => {}} />)
+  const dialog = screen.getByRole('dialog', { name: 'Help Center' })
+  const openProject = within(dialog).getByRole('link', {
     name: /GitHub project/,
   })
   expect(openProject.getAttribute('href')).toBe('https://github.com/adea-ai/cortana')
@@ -1125,7 +1104,6 @@ test('shadcn conversations compose cards and actions from the generated primitiv
       contextLoading={false}
       contextError=""
       contextTokens={0}
-      desktopAvailable
       onSearchFocus={() => {}}
       onRetrieveContext={() => {}}
       onOpenSettings={() => {}}
@@ -1209,32 +1187,21 @@ test('Help lists the real keyboard shortcuts and project links', async () => {
   state.answer = () => Promise.resolve(answerResponse)
   await renderApp()
   await openSidebarDestination('Help Center')
-  await waitFor(() =>
-    expect(
-      screen.getByRole('heading', {
-        level: 1,
-        name: 'Help Center',
-      })
-    ).toBeTruthy()
-  )
-  expect(screen.getByText('Focus the search bar')).toBeTruthy()
-  expect(screen.getByText('Toggle the command palette')).toBeTruthy()
-  expect(screen.getByText('Open the document filter')).toBeTruthy()
-  expect(screen.getByText('Close panels and the palette')).toBeTruthy()
-  const project = screen.getByRole('link', {
+  const dialog = await screen.findByRole('dialog', { name: 'Help Center' })
+  expect(within(dialog).getByText('Focus the search bar')).toBeTruthy()
+  expect(within(dialog).getByText('Toggle the command palette')).toBeTruthy()
+  expect(within(dialog).getByText('Open the document filter')).toBeTruthy()
+  expect(within(dialog).getByText('Close panels and the palette')).toBeTruthy()
+  const project = within(dialog).getByRole('link', {
     name: /GitHub project/,
   })
   expect(project.getAttribute('href')).toBe('https://github.com/adea-ai/cortana')
-  const docs = screen.getByRole('link', {
+  const docs = within(dialog).getByRole('link', {
     name: /Documentation/,
   })
   expect(docs.getAttribute('href')).toBe('https://github.com/adea-ai/cortana/tree/main/docs')
-  // The desktop-only project opener must not appear in web mode.
-  expect(
-    screen.queryByRole('button', {
-      name: 'Open project page',
-    })
-  ).toBeNull()
+  // Without the desktop bridge the links stay plain anchors, not intercepted.
+  expect(docs.getAttribute('rel')).toContain('noopener')
 })
 test('web support links treat noopener popups returning null as successful opens', async () => {
   const originalOpen = Object.getOwnPropertyDescriptor(window, 'open')
