@@ -149,6 +149,10 @@ const loadAboutDialog = () => import('@adea-ai/ui/components/composites/about-di
 const AboutDialog = lazy(() =>
   loadAboutDialog().then((module) => ({ default: module.AboutDialog }))
 )
+const loadHelpCenterDialog = () => import('./components/help-center-dialog')
+const HelpCenterDialog = lazy(() =>
+  loadHelpCenterDialog().then((module) => ({ default: module.HelpCenterDialog }))
+)
 const loadCommandPalette = () => import('./components/m7/M7CommandPalette')
 const M7CommandPalette = lazy(() =>
   loadCommandPalette().then((module) => ({
@@ -361,10 +365,13 @@ function CortanaApplication() {
   >('readiness')
   const [aboutOpen, setAboutOpen] = createSignal(false)
   const [aboutDialogMounted, setAboutDialogMounted] = createSignal(false)
+  const [helpOpen, setHelpOpen] = createSignal(false)
+  const [helpDialogMounted, setHelpDialogMounted] = createSignal(false)
   const [updateDialogOpen, setUpdateDialogOpen] = createSignal(false)
   const [updateDialogMounted, setUpdateDialogMounted] = createSignal(false)
   const [feedbackError, setFeedbackError] = createSignal('')
   const aboutOpenerRef: { current: HTMLElement | undefined } = { current: undefined }
+  const helpOpenerRef: { current: HTMLElement | undefined } = { current: undefined }
   const updateDialogOpenerRef: { current: HTMLElement | undefined } = { current: undefined }
   const [settingsDirty, setSettingsDirty] = createSignal(false)
   const [installerJob, setInstallerJob] = createSignal<DesktopInstallJob | null>(null)
@@ -1704,6 +1711,12 @@ function CortanaApplication() {
     setAboutDialogMounted(true)
     setAboutOpen(true)
   }
+  function openHelpDialog(opener?: HTMLButtonElement) {
+    if (!canLeaveSettings()) return
+    helpOpenerRef.current = opener
+    setHelpDialogMounted(true)
+    setHelpOpen(true)
+  }
   function openUpdateDialog(opener?: HTMLButtonElement) {
     if (!canLeaveSettings()) return
     updateDialogOpenerRef.current = opener
@@ -2109,7 +2122,7 @@ function CortanaApplication() {
                 onNavigate: navigate,
                 onOpenGraph: openGraph,
                 onOpenAbout: openAboutDialog,
-                onOpenHelp: () => navigate('help'),
+                onOpenHelp: openHelpDialog,
                 onOpenFeedback: openFeedback,
                 onOpenUpdates: openUpdateDialog,
               }}
@@ -2467,7 +2480,6 @@ function CortanaApplication() {
                     contextLoading={contextLoading()}
                     contextError={contextError()}
                     contextTokens={estimateTokens(agentContext())}
-                    desktopAvailable={isDesktopApp}
                     sourceJobError={sourceJobsError()}
                     onRetrySourceJobs={sourceJobsRetry()}
                     onSearchFocus={focusSearch}
@@ -2492,6 +2504,15 @@ function CortanaApplication() {
                     sourceUrl="https://github.com/adea-ai/cortana"
                     openExternal={openExternal}
                     restoreFocusRef={() => aboutOpenerRef.current}
+                  />
+                </Suspense>
+              </Show>
+              <Show when={helpDialogMounted()}>
+                <Suspense>
+                  <HelpCenterDialog
+                    open={helpOpen()}
+                    onClose={() => setHelpOpen(false)}
+                    openExternal={isDesktopApp ? openExternal : undefined}
                   />
                 </Suspense>
               </Show>

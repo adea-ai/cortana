@@ -100,7 +100,7 @@ async function openPage(theme, width, state = 'configured') {
 async function openRailDestination(page, destination) {
   // The compact rail folds these destinations into one trigger; the mobile
   // sheet keeps them as rows, so a missing trigger means a direct row click.
-  const trigger = page.getByRole('button', { name: 'Settings and utilities' })
+  const trigger = page.getByRole('button', { name: 'User settings' })
   if ((await trigger.count()) === 0) {
     await page.getByRole('button', { name: destination, exact: true }).click()
     return
@@ -144,6 +144,8 @@ async function openDestination(page, width, destination) {
   else await page.getByRole('button', { name: destination, exact: true }).click()
   if (width <= 768) await page.locator('[data-mobile="true"]').waitFor({ state: 'detached' })
   if (destination === 'Knowledge') await page.locator('.workspace').waitFor()
+  else if (destination === 'Help Center')
+    await page.getByRole('dialog', { name: 'Help Center' }).waitFor()
   else {
     try {
       await page.getByRole('heading', { name: destination, level: 1 }).waitFor()
@@ -635,7 +637,7 @@ async function auditAccessibility(page, label) {
         await auditAccessibility(page, 'settings write-only access')
         await screenshot(page, `settings-access-${theme}-1440`)
 
-        const menuTrigger = page.getByRole('button', { name: 'Settings and utilities' })
+        const menuTrigger = page.getByRole('button', { name: 'User settings' })
         await menuTrigger.click()
         const accountMenu = page.getByRole('menu')
         await accountMenu.waitFor()
@@ -648,7 +650,7 @@ async function auditAccessibility(page, label) {
         await page.keyboard.press('Escape')
         await accountMenu.waitFor({ state: 'detached' })
         await page.waitForFunction(
-          () => document.activeElement?.getAttribute('aria-label') === 'Settings and utilities'
+          () => document.activeElement?.getAttribute('aria-label') === 'User settings'
         )
 
         await page.getByRole('button', { name: 'Query', exact: true }).click()

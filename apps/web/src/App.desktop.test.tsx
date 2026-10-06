@@ -769,11 +769,11 @@ async function flushDesktopBootstrap() {
 // selects an item on pointerup.
 function utilitiesTrigger() {
   return screen.getByRole('button', {
-    name: 'Settings and utilities',
+    name: 'User settings',
   })
 }
 async function openSidebarDestination(label: string) {
-  const trigger = screen.queryByRole('button', { name: 'Settings and utilities' })
+  const trigger = screen.queryByRole('button', { name: 'User settings' })
   if (!trigger) {
     fireEvent.click(screen.getByRole('button', { name: label, exact: true }))
     return
@@ -1798,7 +1798,7 @@ test('desktop Help links use the native external URL bridge', async () => {
   await waitFor(() =>
     expect(
       screen.getByRole('button', {
-        name: 'Settings and utilities',
+        name: 'User settings',
       })
     ).toBeTruthy()
   )
@@ -1817,7 +1817,7 @@ test('desktop Help links surface native browser failures', async () => {
   await waitFor(() =>
     expect(
       screen.getByRole('button', {
-        name: 'Settings and utilities',
+        name: 'User settings',
       })
     ).toBeTruthy()
   )
@@ -3437,7 +3437,7 @@ test('settings navigation opens workspace and services first and exposes native 
   await waitFor(() =>
     expect(
       screen.getByRole('button', {
-        name: 'Settings and utilities',
+        name: 'User settings',
       })
     ).toBeTruthy()
   )
@@ -3495,7 +3495,7 @@ test('settings uses the shared catalogue default and exposes theme controls per 
   await waitFor(() =>
     expect(
       screen.getByRole('button', {
-        name: 'Settings and utilities',
+        name: 'User settings',
       })
     ).toBeTruthy()
   )
@@ -3548,7 +3548,7 @@ test('workspace theme controls persist and apply per workspace', async () => {
   await waitFor(() =>
     expect(
       screen.getByRole('button', {
-        name: 'Settings and utilities',
+        name: 'User settings',
       })
     ).toBeTruthy()
   )
@@ -4120,7 +4120,7 @@ test('the utilities menu opens the identity dialog with the packaged version', a
 test('the desktop utilities menu puts Index first and omits session actions', async () => {
   render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-  fireEvent.pointerDown(screen.getByRole('button', { name: 'Settings and utilities' }))
+  fireEvent.pointerDown(screen.getByRole('button', { name: 'User settings' }))
   const items = await screen.findAllByRole('menuitem')
   expect(items.map((item) => item.textContent)).toEqual([
     'Index',
