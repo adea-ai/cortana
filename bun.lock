@@ -5,7 +5,7 @@
     "": {
       "name": "cortana-workspace",
       "devDependencies": {
-        "@adea-ai/ui": "0.110.1",
+        "@adea-ai/ui": "0.112.0",
         "@axe-core/playwright": "^4.13.0",
         "@babel/core": "^8.0.6",
         "@babel/preset-typescript": "^8.0.1",
@@ -37,7 +37,7 @@
       "version": "0.66.6", // x-release-please-version
       "dependencies": {
         "@adea-ai/themes": "0.9.7",
-        "@adea-ai/ui": "0.110.1",
+        "@adea-ai/ui": "0.112.0",
         "@tauri-apps/api": "^2.12.1",
         "lucide-solid": "^1.51.0",
         "simple-icons": "^16.33.0",
@@ -53,7 +53,7 @@
   "packages": {
     "@adea-ai/themes": ["@adea-ai/themes@0.9.7", "", {}, "sha512-NY5Q7UxtBL+rp6WldvlotEmQkeGJ84IHZsgd2Zm2LKx3d7+JiccQuSHXDvkI/G/SK2NUBfW+4sMPSVJNpaA0Ng=="],
 
-    "@adea-ai/ui": ["@adea-ai/ui@0.110.1", "", { "dependencies": { "@adea-ai/themes": "^0.9.7", "@corvu/calendar": "^0.1.2", "@corvu/drawer": "^0.2.4", "@corvu/otp-field": "^0.1.4", "@corvu/resizable": "^0.2.5", "@fontsource-variable/geist": "^5.3.0", "@fontsource-variable/geist-mono": "^5.3.0", "@fontsource-variable/jetbrains-mono": "^5.3.0", "@fontsource-variable/space-grotesk": "^5.3.0", "@kobalte/core": "^0.13.14", "class-variance-authority": "^0.7.1", "cmdk-solid": "^1.2.0", "cn": "^0.4.0", "lucide-solid": "^1.51.0", "solid-motionone": "^1.0.4", "tw-animate-css": "^1.4.0" }, "peerDependencies": { "chart.js": "^4.5.1", "embla-carousel": "^8.6.0", "embla-carousel-solid": "^8.6.0", "solid-chartjs": "^1.3.11", "solid-js": "^1.9.0" }, "optionalPeers": ["chart.js", "embla-carousel", "embla-carousel-solid", "solid-chartjs"] }, "sha512-NWAALtGQ4NsR8aYKbzurMaerSyBDxNmSZ/f/pxzWzaPM00dr9Y694m7KCYAGF3lyQWu+/0lF+UUtyj0EJ2doJg=="],
+    "@adea-ai/ui": ["@adea-ai/ui@0.112.0", "", { "dependencies": { "@adea-ai/themes": "^0.9.7", "@corvu/calendar": "^0.1.2", "@corvu/drawer": "^0.2.4", "@corvu/otp-field": "^0.1.4", "@corvu/resizable": "^0.2.5", "@fontsource-variable/geist": "^5.3.0", "@fontsource-variable/geist-mono": "^5.3.0", "@fontsource-variable/jetbrains-mono": "^5.3.0", "@fontsource-variable/space-grotesk": "^5.3.0", "@kobalte/core": "^0.13.14", "class-variance-authority": "^0.7.1", "cmdk-solid": "^1.2.0", "cn": "^0.4.0", "lucide-solid": "^1.51.0", "solid-motionone": "^1.0.4", "tw-animate-css": "^1.4.0" }, "peerDependencies": { "chart.js": "^4.5.1", "embla-carousel": "^8.6.0", "embla-carousel-solid": "^8.6.0", "solid-chartjs": "^1.3.11", "solid-js": "^1.9.0" }, "optionalPeers": ["chart.js", "embla-carousel", "embla-carousel-solid", "solid-chartjs"] }, "sha512-skvD+o9iUt6DgT1dAwPqMJs1+5FFP5TsgM0idQws6Nw7wFhW1jebUPbOAJqk8hI6kZ6l1TCXCA8AaN0B9bShAg=="],
 
     "@axe-core/playwright": ["@axe-core/playwright@4.13.0", "", { "dependencies": { "axe-core": "~4.13.0" }, "peerDependencies": { "playwright-core": ">= 1.0.0" } }, "sha512-6YLx+kxXu5GJceG4ozFg+33a2EMTdjYwWGloJ3sb9Kta5pp+ZNS53uxGVog5JetIY8s++P5UrtX+cri+u0VAVg=="],
 
