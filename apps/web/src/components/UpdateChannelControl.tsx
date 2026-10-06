@@ -1,6 +1,6 @@
+import { SettingsRow } from '@adea-ai/ui/components/composites/settings'
 import { NativeSelect } from '@adea-ai/ui/components/ui/native-select'
-import { FormField } from '@adea-ai/ui/components/ui/field'
-import { createSignal, onMount } from 'solid-js'
+import { createSignal, onMount, Show } from 'solid-js'
 import type { UpdateDialogProps } from '@adea-ai/ui/components/composites/update-dialog'
 import {
   getDesktopUpdateChannel,
@@ -18,8 +18,8 @@ const CHANNEL_OPTIONS: ReadonlyArray<{ value: DesktopUpdateChannel; label: strin
 
 const CHANNEL_DESCRIPTIONS: Record<DesktopUpdateChannel, string> = {
   stable: 'Tested releases after about four days in pre-release.',
-  'pre-release': 'New releases while they are being tested, before they reach Stable.',
-  dev: 'Newest development builds from main. Best for development machines.',
+  'pre-release': 'Daily pre-release builds arrive early, with rough edges included.',
+  dev: 'Follows every dev build from main. Intended for development machines.',
 }
 
 export function UpdateChannelControl(props: { controls: UpdateDialogChannelControls }) {
@@ -71,20 +71,17 @@ export function UpdateChannelControl(props: { controls: UpdateDialogChannelContr
   }
 
   return (
-    <div class="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-      <FormField
-        label="Update channel"
-        hint={CHANNEL_DESCRIPTIONS[channel()]}
-        error={error() ?? undefined}
-        class="min-w-0"
-      >
+    <div class="flex flex-col gap-2">
+      <SettingsRow label="Update channel" description={CHANNEL_DESCRIPTIONS[channel()]}>
         <NativeSelect
+          aria-label="Update channel"
           disabled={!loaded() || saving() || props.controls.disabled()}
           value={channel()}
           options={[...CHANNEL_OPTIONS]}
           onChange={(event) => void saveChannel(event.currentTarget.value)}
         />
-      </FormField>
+      </SettingsRow>
+      <Show when={error()}>{(message) => <p role="alert">{message()}</p>}</Show>
     </div>
   )
 }
