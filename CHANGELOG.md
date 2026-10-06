@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.67.0](https://github.com/adea-ai/cortana/compare/v0.66.6...v0.67.0) (2026-10-06)
+
+
+### Features
+
+* **web:** open the Help Center as a dialog and name the rail trigger like adea ([#2524](https://github.com/adea-ai/cortana/issues/2524)) ([9dfd7f3](https://github.com/adea-ai/cortana/commit/9dfd7f3407f6776c396607d0e17c22a35714328a))
+
+
+### Bug Fixes
+
+* **deps:** override seroval past solid-js's pin and bump source-map-js ([#2526](https://github.com/adea-ai/cortana/issues/2526)) ([f650db4](https://github.com/adea-ai/cortana/commit/f650db49297d75eaacf9121574f6d21edc6140d3))
+* **web:** point Send Feedback at the cortana repository ([#2523](https://github.com/adea-ai/cortana/issues/2523)) ([694b55a](https://github.com/adea-ai/cortana/commit/694b55a6aef0a4011fdf8c49a3e372f7b69e5fe0))
+* **web:** render the update channel row with the shared SettingsRow ([#2525](https://github.com/adea-ai/cortana/issues/2525)) ([84d5520](https://github.com/adea-ai/cortana/commit/84d552095288001a961fdd0dca5753bab2d59ca0))
+
+
+### Maintenance
+
+* **ci:** bump the sccache install-action digest to v2 head ([#2527](https://github.com/adea-ai/cortana/issues/2527)) ([4017cd9](https://github.com/adea-ai/cortana/commit/4017cd90dc153a694e6a0bbfe37bfee8b917fd28))
+* **ci:** keep github-action digest bumps out of the external group ([#2518](https://github.com/adea-ai/cortana/issues/2518)) ([2710b63](https://github.com/adea-ai/cortana/commit/2710b6332e11a6a786f1675a7b3565086b689439))
+* **deps:** track @adea-ai/ui 0.112.0 ([#2521](https://github.com/adea-ai/cortana/issues/2521)) ([b13e2be](https://github.com/adea-ai/cortana/commit/b13e2be9bf21e594bda8d6cef059601f699d8172))
+* **deps:** update dependency code-foundry to v1.44.11 ([#2530](https://github.com/adea-ai/cortana/issues/2530)) ([9a511f9](https://github.com/adea-ai/cortana/commit/9a511f9d2ff2d50d3ded4a15170a3acb69341d5d))
+* **deps:** update external non-major dependencies ([#2522](https://github.com/adea-ai/cortana/issues/2522)) ([63e5f1a](https://github.com/adea-ai/cortana/commit/63e5f1aa037e14b21efa0a22ab5e9d288cb61467))
+* **deps:** update taiki-e/install-action digest to f7e5d7c ([#2529](https://github.com/adea-ai/cortana/issues/2529)) ([7fc1617](https://github.com/adea-ai/cortana/commit/7fc16177cb40b16dd990841544e4e5d70651f0ad))
+* **web:** adopt the shared update channel control from @adea-ai/ui ([#2528](https://github.com/adea-ai/cortana/issues/2528)) ([0e36aef](https://github.com/adea-ai/cortana/commit/0e36aef25a8402a1a93c215dbd32b43e477d7544))
+
 ## [0.66.6](https://github.com/adea-ai/cortana/compare/v0.66.5...v0.66.6) (2026-10-05)
 
 
