@@ -224,7 +224,7 @@ function cortanaFeedbackUrl(version: string | undefined, platform: 'desktop' | '
     template: 'feedback.yml',
     context: `App: Cortana\nVersion: ${version || 'unavailable'}\nPlatform: ${platform}`,
   })
-  return `https://github.com/adea-ai/adea/issues/new?${params.toString()}`
+  return `https://github.com/adea-ai/cortana/issues/new?${params.toString()}`
 }
 const paneWidthsStorageKey = 'cortana.pane-widths'
 
