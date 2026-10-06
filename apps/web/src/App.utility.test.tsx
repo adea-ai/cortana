@@ -1250,7 +1250,7 @@ test('web support links treat noopener popups returning null as successful opens
     await renderApp()
     await openSidebarDestination('Send Feedback')
     await waitFor(() => expect(openedUrls).toHaveLength(1))
-    expect(openedUrls[0]).toContain('https://github.com/adea-ai/adea/issues/new?')
+    expect(openedUrls[0]).toContain('https://github.com/adea-ai/cortana/issues/new?')
     expect(screen.queryByRole('alert') === null).toBe(true)
 
     await openSidebarDestination('About')

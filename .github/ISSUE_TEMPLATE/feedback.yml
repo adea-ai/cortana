@@ -1,0 +1,27 @@
+name: Send Feedback
+description: Tell us what worked, what did not, or what should improve
+title: '[feedback] '
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: App, version, and platform. This is prefilled when you send feedback from the app.
+      placeholder: |
+        App:
+        Version:
+        Platform:
+  - type: textarea
+    id: feedback
+    attributes:
+      label: Feedback
+      description: Describe what worked, what did not, or what you would like to see. Screenshots and links help.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and found no duplicate.
+          required: true
