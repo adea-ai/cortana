@@ -2525,7 +2525,12 @@ function CortanaApplication() {
                   changelog={desktopUpdate()?.changelog}
                   channelControl={
                     isDesktopApp
-                      ? (controls) => <UpdateChannelControl controls={controls} />
+                      ? (controls) => (
+                          <UpdateChannelControl
+                            controls={controls}
+                            reloadOn={() => updateDialogOpen()}
+                          />
+                        )
                       : undefined
                   }
                   open={updateDialogOpen()}
