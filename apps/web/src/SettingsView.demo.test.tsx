@@ -26,34 +26,34 @@ test('browser settings adopt a demo fixture that arrives after the view mounts',
     })
   ).toBeTruthy()
   expect(
-    screen.getByRole('button', {
+    screen.getByRole('tab', {
       name: 'Services',
     })
   ).toBeTruthy()
   expect(
     screen
-      .getByRole('button', {
+      .getByRole('tab', {
         name: 'Readiness',
       })
-      .getAttribute('aria-current')
-  ).toBe('page')
+      .getAttribute('aria-selected')
+  ).toBe('true')
   fireEvent.click(
-    screen.getByRole('button', {
+    screen.getByRole('tab', {
       name: 'Sources',
     })
   )
   expect(
     screen
-      .getByRole('button', {
+      .getByRole('tab', {
         name: 'Sources',
       })
-      .getAttribute('aria-current')
-  ).toBe('page')
+      .getAttribute('aria-selected')
+  ).toBe('true')
   expect(
     screen
-      .getByRole('button', {
+      .getByRole('tab', {
         name: 'Readiness',
       })
-      .hasAttribute('aria-current')
-  ).toBe(false)
+      .getAttribute('aria-selected')
+  ).toBe('false')
 })

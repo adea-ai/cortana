@@ -77,7 +77,22 @@ import type {
 } from '../types'
 import { Text } from '@adea-ai/ui/components/ui/typography'
 import { NumberField, FieldGroup } from '@adea-ai/ui/components/ui/field'
-import { SettingsSection } from '@adea-ai/ui/components/composites/settings'
+import {
+  SettingsLayout,
+  SettingsSection,
+  type SettingsNavigationGroup,
+} from '@adea-ai/ui/components/composites/settings'
+import { TabsContent } from '@adea-ai/ui/components/ui/tabs'
+import {
+  PageHeader,
+  PageHeaderActions,
+  PageHeaderContent,
+  PageHeaderDescription,
+  PageHeaderTitle,
+} from '@adea-ai/ui/components/layout/page'
+import { Separator } from '@adea-ai/ui/components/ui/separator'
+import { InlineCode } from '@adea-ai/ui/components/ui/code-block'
+import { EmptyState } from '@adea-ai/ui/components/ui/empty'
 import { Switch } from '@adea-ai/ui/components/ui/switch'
 const AdvancedSettingsSection = lazy(() =>
   import('./settings/AdvancedSettingsSection').then((module) => ({
@@ -124,14 +139,23 @@ type Section =
   | 'memory'
   | 'ingestion'
   | 'advanced'
-const SETTINGS_NAV_PRIMARY_SECTIONS: Section[] = ['services', 'workspaces', 'sources', 'readiness']
-const SETTINGS_NAV_SECONDARY_SECTIONS: Section[] = [
-  'access',
-  'audit',
-  'embedding',
-  'query',
-  'ingestion',
-  'advanced',
+const sectionLabel = (item: Section) => item[0].toUpperCase() + item.slice(1)
+// The navigation groups the everyday runtime controls above the provider,
+// access and storage configuration.
+const SETTINGS_NAV_GROUPS: SettingsNavigationGroup[] = [
+  {
+    label: 'Runtime',
+    items: (['services', 'workspaces', 'sources', 'readiness'] as const).map((value) => ({
+      value,
+      label: sectionLabel(value),
+    })),
+  },
+  {
+    label: 'Configuration',
+    items: (
+      ['access', 'audit', 'embedding', 'query', 'ingestion', 'advanced', 'memory'] as const
+    ).map((value) => ({ value, label: sectionLabel(value) })),
+  },
 ]
 function SettingsViewContent(incoming: {
   /** Shell-owned settings snapshot. Standalone renders fetch their own copy. */
@@ -208,9 +232,6 @@ function SettingsViewContent(incoming: {
   onCleanup(() => {
     componentMounted = false
   })
-  const settingsNavRef = {
-    current: null as HTMLElement | null,
-  }
   // Track the last shell snapshot actually adopted by this draft. The shell
   // can deliver the same prop again while a save is settling; re-applying it
   // whenever `dirty` changes would overwrite a just-saved draft with that
@@ -329,13 +350,6 @@ function SettingsViewContent(incoming: {
     if (next === previousInitialSection) return
     previousInitialSection = next
     setSection(next)
-  })
-  createEffect(() => {
-    if (typeof window.matchMedia !== 'function') return
-    if (!window.matchMedia('(max-width: 799px)').matches) return
-    const navigation = settingsNavRef.current
-    const active = navigation?.querySelector<HTMLElement>('.settings-nav-item[aria-current=page]')
-    if (navigation && active) navigation.scrollLeft = Math.max(0, active.offsetLeft - 10)
   })
   createEffect(() => {
     props.onDirtyChange?.(dirty())
@@ -543,48 +557,52 @@ function SettingsViewContent(incoming: {
     <SolidSwitch>
       <Match when={!isDesktopApp && !props.desktopSettings}>
         <>
-          <main tabIndex={-1} id="main-content" class="settings-view settings-unavailable">
-            <Settings2 size={34} aria-hidden="true" />
-            <h1>Desktop settings</h1>
-            <p>
-              Install Cortana Desktop to manage local models, secrets, workspaces, and services.
-            </p>
+          <main tabIndex={-1} id="main-content" class="settings-view">
+            <EmptyState
+              headingLevel={1}
+              icon={<Settings2 aria-hidden="true" />}
+              title="Desktop settings"
+              detail="Install Cortana Desktop to manage local models, secrets, workspaces, and services."
+            />
           </main>
         </>
       </Match>
       <Match when={!settings()}>
         <>
-          <main tabIndex={-1} id="main-content" class="settings-view settings-unavailable">
-            <Settings2 size={34} aria-hidden="true" />
-            <h1 role={error() ? 'alert' : 'status'}>{error() || 'Loading local settings…'}</h1>
-            {error() && (
-              <ActionButton
-                tooltip="Retry settings"
-                variant="secondary"
-                size="sm"
-                onClick={retrySettingsLoad}
-              >
-                <RefreshCw size={15} aria-hidden="true" /> Retry settings
-              </ActionButton>
-            )}
+          <main tabIndex={-1} id="main-content" class="settings-view">
+            <EmptyState
+              headingLevel={1}
+              icon={<Settings2 aria-hidden="true" />}
+              busy={!error()}
+              announceAs={error() ? 'alert' : 'status'}
+              title={error() ? 'Settings could not be loaded' : 'Loading local settings…'}
+              detail={error() || 'Reading the local Cortana configuration.'}
+              action={error() ? retrySettingsLoad : undefined}
+              actionLabel="Retry settings"
+              actionTooltip="Load the local settings again."
+            />
           </main>
         </>
       </Match>
       <Match when={true}>
         <>
           <main tabIndex={-1} id="main-content" class="settings-view">
-            <header class="settings-header">
-              <div>
-                <Text variant="overline" class="eyebrow">
+            <PageHeader>
+              <PageHeaderContent>
+                <Text variant="overline">
                   {settings()!.needs_setup ? 'Guided setup' : 'Control plane'}
                 </Text>
-                <h1>Settings</h1>
-                <p>
+                <PageHeaderTitle>Settings</PageHeaderTitle>
+                <PageHeaderDescription>
                   Changes are written locally and audited. Secret values never return to this
                   window.
+                </PageHeaderDescription>
+                <p class="settings-paths">
+                  Config{' '}
+                  <InlineCode title={settings()!.config_path}>{settings()!.config_path}</InlineCode>
                 </p>
-              </div>
-              <div class="settings-header-actions">
+              </PageHeaderContent>
+              <PageHeaderActions>
                 {dirty() && (
                   <ActionButton
                     tooltip="Discard unsaved configuration changes and restore the saved snapshot."
@@ -615,8 +633,9 @@ function SettingsViewContent(incoming: {
                 >
                   <Save size={16} aria-hidden="true" /> Save changes
                 </ActionButton>
-              </div>
-            </header>
+              </PageHeaderActions>
+            </PageHeader>
+            <Separator />
             {settings()!.needs_setup && (
               <SetupGuide
                 settings={settings()!}
@@ -625,61 +644,14 @@ function SettingsViewContent(incoming: {
                 onOpen={setSection}
               />
             )}
-            <div class="settings-layout">
-              <nav
-                ref={(el) => (settingsNavRef.current = el)}
-                class="settings-nav"
-                aria-label="Settings sections"
-              >
-                <For each={SETTINGS_NAV_PRIMARY_SECTIONS}>
-                  {(item) => (
-                    <ActionButton
-                      tooltip={`Open ${item} settings.`}
-                      variant={section() === item ? 'secondary' : 'ghost'}
-                      size="sm"
-                      type="button"
-                      class="settings-nav-item"
-                      aria-current={section() === item ? 'page' : undefined}
-                      onClick={() => setSection(item)}
-                    >
-                      {item[0].toUpperCase() + item.slice(1)}
-                    </ActionButton>
-                  )}
-                </For>
-                <div class="settings-nav-divider" aria-hidden="true" />
-                <For each={SETTINGS_NAV_SECONDARY_SECTIONS}>
-                  {(item) => (
-                    <ActionButton
-                      tooltip={`Open ${item} settings.`}
-                      variant={section() === item ? 'secondary' : 'ghost'}
-                      size="sm"
-                      type="button"
-                      class="settings-nav-item"
-                      aria-current={section() === item ? 'page' : undefined}
-                      onClick={() => setSection(item)}
-                    >
-                      {item[0].toUpperCase() + item.slice(1)}
-                    </ActionButton>
-                  )}
-                </For>
-                <ActionButton
-                  tooltip="Memory"
-                  variant={section() === 'memory' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  type="button"
-                  class="settings-nav-item"
-                  aria-current={section() === 'memory' ? 'page' : undefined}
-                  onClick={() => setSection('memory')}
-                >
-                  Memory
-                </ActionButton>
-                <div class="settings-paths">
-                  <span>Config</span>
-                  <code title={settings()!.config_path}>{settings()!.config_path}</code>
-                </div>
-              </nav>
+            <SettingsLayout
+              aria-label="Settings sections"
+              groups={SETTINGS_NAV_GROUPS}
+              value={section()}
+              onChange={(value) => setSection(value as Section)}
+            >
               <form id="settings-form" class="settings-form" onSubmit={submit}>
-                {section() === 'readiness' && (
+                <TabsContent value="readiness">
                   <ReadinessSection
                     autoScan={settings()!.needs_setup}
                     readiness={setupReadiness()}
@@ -691,8 +663,8 @@ function SettingsViewContent(incoming: {
                     onReadinessScan={props.onReadinessScan}
                     pollInstaller={props.installerJob === undefined}
                   />
-                )}
-                {section() === 'services' && (
+                </TabsContent>
+                <TabsContent value="services">
                   <ServicesSection
                     settings={settings()!}
                     dirty={dirty()}
@@ -715,8 +687,8 @@ function SettingsViewContent(incoming: {
                       )
                     }
                   />
-                )}
-                {section() === 'access' && (
+                </TabsContent>
+                <TabsContent value="access">
                   <Suspense fallback={<p role="status">Loading access settings…</p>}>
                     <AccessSection
                       settings={settings()!}
@@ -735,18 +707,18 @@ function SettingsViewContent(incoming: {
                       }}
                     />
                   </Suspense>
-                )}
-                {section() === 'audit' && (
+                </TabsContent>
+                <TabsContent value="audit">
                   <Suspense fallback={<p role="status">Loading audit trail…</p>}>
                     <AuditSection />
                   </Suspense>
-                )}
-                {section() === 'workspaces' && (
+                </TabsContent>
+                <TabsContent value="workspaces">
                   <Suspense fallback={<p role="status">Loading workspace settings…</p>}>
                     <WorkspaceSection settings={settings()!} update={update} />
                   </Suspense>
-                )}
-                {section() === 'sources' && (
+                </TabsContent>
+                <TabsContent value="sources">
                   <Suspense
                     fallback={
                       <SettingsSection
@@ -780,8 +752,8 @@ function SettingsViewContent(incoming: {
                       onPersistSources={persistConnectedSources}
                     />
                   </Suspense>
-                )}
-                {section() === 'embedding' && (
+                </TabsContent>
+                <TabsContent value="embedding">
                   <Suspense fallback={<p role="status">Loading embedding settings…</p>}>
                     <EmbeddingSection
                       settings={settings()!}
@@ -810,8 +782,8 @@ function SettingsViewContent(incoming: {
                       onRefreshModels={() => void refreshProviderModels('embedding')}
                     />
                   </Suspense>
-                )}
-                {section() === 'query' && (
+                </TabsContent>
+                <TabsContent value="query">
                   <Suspense fallback={<p role="status">Loading query settings…</p>}>
                     <QuerySection
                       settings={settings()!}
@@ -841,18 +813,18 @@ function SettingsViewContent(incoming: {
                       onRefreshModels={() => void refreshProviderModels('query')}
                     />
                   </Suspense>
-                )}
-                {section() === 'memory' && (
+                </TabsContent>
+                <TabsContent value="memory">
                   <Suspense fallback={<p role="status">Loading memory settings…</p>}>
                     <NativeMemorySection settings={settings()!} update={update} />
                   </Suspense>
-                )}
-                {section() === 'ingestion' && (
+                </TabsContent>
+                <TabsContent value="ingestion">
                   <Suspense fallback={<p role="status">Loading ingestion settings…</p>}>
                     <IngestionSection settings={settings()!} update={update} />
                   </Suspense>
-                )}
-                {section() === 'advanced' && (
+                </TabsContent>
+                <TabsContent value="advanced">
                   <Suspense
                     fallback={
                       <SettingsSection
@@ -870,9 +842,9 @@ function SettingsViewContent(incoming: {
                       dirty={dirty()}
                     />
                   </Suspense>
-                )}
+                </TabsContent>
               </form>
-            </div>
+            </SettingsLayout>
             {(error() || saved() || settings()!.restart_required) && (
               <Alert
                 class={cn('settings-banner', (error() || restartFailed()) && 'error')}

@@ -773,40 +773,21 @@ body,
   background: var(--background);
 }
 
-.settings-header {
-  display: flex;
-  align-items: flex-start;
-  padding: 28px 34px 22px;
-  gap: 24px;
-  border-bottom: 1px solid var(--border);
-}
-
-.settings-header > div {
+/* The config path is a single truncated line under the page description. */
+.settings-paths {
   min-width: 0;
-  flex: 1;
-}
-
-.settings-header-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.settings-header h1 {
-  margin: 2px 0 7px;
-  color: var(--foreground);
-  font-size: var(--text-2xl);
-  font-weight: var(--font-weight-medium);
-}
-
-.settings-header p {
-  max-width: 760px;
   margin: 0;
+  overflow: hidden;
   color: var(--muted-foreground);
-  font-size: var(--text-sm);
-  line-height: 1.55;
+  font-size: var(--text-2xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Leave room under the last section for the floating save banner. */
+.settings-form {
+  min-width: 0;
+  padding-bottom: 72px;
 }
 
 .setup-guide-heading {
@@ -850,58 +831,6 @@ body,
   margin-top: 9px;
 }
 
-.settings-layout {
-  display: grid;
-  min-height: 0;
-  flex: 1;
-  grid-template-columns: clamp(190px, 14vw, 230px) minmax(0, 1120px);
-  justify-content: center;
-  overflow: hidden;
-}
-
-.settings-nav {
-  display: flex;
-  min-height: 0;
-  padding: 25px 18px;
-  flex-direction: column;
-  border-right: 1px solid var(--border);
-}
-
-.settings-nav-item {
-  width: 100%;
-  justify-content: flex-start;
-  text-align: left;
-}
-
-.settings-nav-divider {
-  margin: 10px 0;
-  border-top: 1px solid var(--border);
-}
-
-.settings-paths {
-  min-width: 0;
-  margin-top: auto;
-  padding: 12px;
-  color: var(--muted-foreground);
-  border-top: 1px solid var(--border);
-  font-size: var(--text-2xs);
-}
-
-.settings-paths code {
-  display: block;
-  margin-top: 5px;
-  overflow: hidden;
-  color: var(--muted-foreground);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.settings-form {
-  min-width: 0;
-  padding: 30px 38px 90px;
-  overflow-y: auto;
-}
-
 .workspace-settings-grid {
   display: grid;
   margin: 24px 0 15px;
@@ -914,10 +843,6 @@ body,
 }
 
 @media (min-width: 1600px) {
-  .settings-layout {
-    grid-template-columns: clamp(190px, 14vw, 230px) minmax(0, 1440px);
-  }
-
   .workspace-settings-grid--4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -1113,13 +1038,8 @@ body,
 }
 
 @media (max-width: 760px) {
-  .settings-header,
   .setup-guide-heading {
     flex-wrap: wrap;
-  }
-
-  .settings-header {
-    padding: 22px 20px 18px;
   }
 
   .setup-guide-heading > span {
@@ -1593,24 +1513,6 @@ body,
   max-width: min(560px, calc(100vw - 50px));
 }
 
-.settings-unavailable {
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  color: var(--muted-foreground);
-  text-align: center;
-}
-
-.settings-unavailable h1 {
-  max-width: 680px;
-  color: var(--foreground);
-  font-size: var(--text-xl);
-}
-
-.settings-unavailable p {
-  max-width: 520px;
-}
-
 .principal-card,
 .audit-list article {
   padding: 16px;
@@ -1882,14 +1784,6 @@ body,
 }
 
 @media (max-width: 900px) {
-  .settings-layout {
-    grid-template-columns: 150px minmax(0, 1fr);
-  }
-
-  .settings-form {
-    padding: 24px 22px 80px;
-  }
-
   .workspace-settings-grid,
   .form-grid {
     grid-template-columns: 1fr;
@@ -1924,44 +1818,6 @@ body,
 }
 
 @media (max-width: 780px) {
-  .settings-header {
-    padding: 18px;
-  }
-
-  .settings-header p {
-    display: none;
-  }
-
-  .settings-layout {
-    display: block;
-    overflow-y: auto;
-  }
-
-  .settings-nav {
-    position: sticky;
-    z-index: 2;
-    top: 0;
-    display: flex;
-    padding: 7px 10px;
-    flex-direction: row;
-    overflow-x: auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
-    background: var(--background);
-  }
-
-  .settings-nav > button {
-    flex: 0 0 auto;
-  }
-
-  .settings-paths {
-    display: none;
-  }
-
-  .settings-form {
-    overflow: visible;
-  }
-
   .source-panel {
     position: fixed;
     z-index: 30;
@@ -2432,51 +2288,6 @@ body,
 }
 
 @media (max-width: 799px) {
-  .m7-production-shell .settings-header {
-    padding: 18px;
-  }
-
-  .m7-production-shell .settings-header p,
-  .m7-production-shell .settings-paths {
-    display: none;
-  }
-
-  .m7-production-shell .settings-layout {
-    display: block;
-    overflow-y: auto;
-  }
-
-  .m7-production-shell .settings-nav {
-    position: sticky;
-    z-index: 2;
-    top: 0;
-    display: flex;
-    padding: 7px 10px;
-    flex-direction: row;
-    overflow-x: auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
-    background: var(--background);
-  }
-
-  .m7-production-shell .settings-nav > button {
-    width: auto;
-    flex: 0 0 auto;
-  }
-
-  .m7-production-shell .settings-nav-divider {
-    align-self: stretch;
-    width: 1px;
-    margin: 4px 6px;
-    flex: 0 0 1px;
-    border-top: 0;
-    border-left: 1px solid var(--border);
-  }
-
-  .m7-production-shell .settings-form {
-    overflow: visible;
-  }
-
   .m7-production-shell .source-panel {
     position: fixed;
     z-index: 30;
@@ -2492,18 +2303,6 @@ body,
 
   .m7-production-shell .source-panel.mobile-open {
     transform: translateX(0);
-  }
-}
-
-@media (max-width: 480px) {
-  .m7-production-shell .settings-header {
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .m7-production-shell .settings-header-actions {
-    width: 100%;
-    justify-content: flex-start;
   }
 }
 

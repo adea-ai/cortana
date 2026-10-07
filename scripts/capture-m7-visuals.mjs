@@ -591,12 +591,12 @@ async function auditAccessibility(page, label) {
 
         await auditUpdatesSettingsRemoved(page)
 
-        await page.getByRole('button', { name: 'Services', exact: true }).click()
+        await page.getByRole('tab', { name: 'Services', exact: true }).click()
         await page.getByRole('heading', { name: 'Services', exact: true }).waitFor()
         await auditAccessibility(page, 'settings services and recovery')
         await screenshot(page, `settings-services-recovery-${theme}-1440`)
 
-        await page.getByRole('button', { name: 'Sources', exact: true }).click()
+        await page.getByRole('tab', { name: 'Sources', exact: true }).click()
         await page.getByRole('heading', { name: 'Ingestion sources' }).waitFor()
         const addSource = page.getByRole('button', { name: 'Add source', exact: true })
         await addSource.click()
@@ -632,7 +632,7 @@ async function auditAccessibility(page, label) {
         await removeSource.waitFor({ state: 'detached' })
         await page.waitForFunction(() => document.activeElement?.textContent?.trim() === 'Sources')
 
-        await page.getByRole('button', { name: 'Access', exact: true }).click()
+        await page.getByRole('tab', { name: 'Access', exact: true }).click()
         await page.getByRole('heading', { name: 'Agent access' }).waitFor()
         await auditAccessibility(page, 'settings write-only access')
         await screenshot(page, `settings-access-${theme}-1440`)
@@ -653,17 +653,17 @@ async function auditAccessibility(page, label) {
           () => document.activeElement?.getAttribute('aria-label') === 'User settings'
         )
 
-        await page.getByRole('button', { name: 'Query', exact: true }).click()
+        await page.getByRole('tab', { name: 'Query', exact: true }).click()
         await page.getByRole('heading', { name: 'Query and answer model' }).waitFor()
         await auditAccessibility(page, 'settings query model selector')
         await screenshot(page, `settings-query-${theme}-1440`)
 
-        await page.getByRole('button', { name: 'Memory', exact: true }).click()
+        await page.getByRole('tab', { name: 'Memory', exact: true }).click()
         await page.getByRole('heading', { name: 'Native agentic memory' }).waitFor()
         await auditAccessibility(page, 'settings memory control center')
         await screenshot(page, `settings-memory-${theme}-1440`)
 
-        await page.getByRole('button', { name: 'Advanced', exact: true }).click()
+        await page.getByRole('tab', { name: 'Advanced', exact: true }).click()
         await page.getByRole('heading', { name: 'Local runtime' }).waitFor()
         await auditAccessibility(page, 'settings backup and recovery')
         await screenshot(page, `settings-backup-recovery-${theme}-1440`)
@@ -752,7 +752,7 @@ async function auditAccessibility(page, label) {
     const { context, page } = await openPage(primaryTheme, 1440, state)
     await openSettings(page, 1440)
     if (state === 'success') {
-      await page.getByRole('button', { name: 'Services', exact: true }).click()
+      await page.getByRole('tab', { name: 'Services', exact: true }).click()
       await page.getByRole('heading', { name: 'Services', exact: true }).waitFor()
     }
     await auditAccessibility(page, `${state} settings state`)

@@ -126,7 +126,7 @@ async function approveMemoryCandidate(context) {
   const page = await openDemoApp(context)
   await openRailDestination(page, 'Settings')
   await page.locator('.settings-view').waitFor()
-  await page.getByRole('button', { name: 'Memory', exact: true }).click()
+  await page.getByRole('tab', { name: 'Memory', exact: true }).click()
 
   const queue = page.getByRole('list', { name: 'Memory candidate queue' })
   await queue.waitFor({ state: 'visible', timeout: JOURNEY_TIMEOUT_MS })
