@@ -39,7 +39,15 @@ import { ActionButton as Button } from '@adea-ai/ui/components/composites/action
 import { ListGroup, ListRow } from '@adea-ai/ui/components/composites/list-row'
 import { Badge } from '@adea-ai/ui/components/ui/badge'
 import { Table, TableBody, TableRow, TableCell, TableHead } from '@adea-ai/ui/components/ui/table'
-import { Card } from '@adea-ai/ui/components/ui/card'
+import { Card, CardContent, CardHeader } from '@adea-ai/ui/components/ui/card'
+import { CodeBlock } from '@adea-ai/ui/components/ui/code-block'
+import { Separator } from '@adea-ai/ui/components/ui/separator'
+import {
+  PageHeader,
+  PageHeaderContent,
+  PageHeaderDescription,
+  PageHeaderTitle,
+} from '@adea-ai/ui/components/layout/page'
 import {
   Empty,
   EmptyHeader,
@@ -52,7 +60,7 @@ import { Stat } from '@adea-ai/ui/components/composites/stat'
 import { StatusChip } from '@adea-ai/ui/components/ui/status-chip'
 
 import type { UtilityKind } from '../utilityKinds'
-import { Text } from '@adea-ai/ui/components/ui/typography'
+import { Heading, Text } from '@adea-ai/ui/components/ui/typography'
 export { isUtilityKind, type UtilityKind } from '../utilityKinds'
 
 const TITLES: Record<UtilityKind, { eyebrow: string; title: string; description: string }> = {
@@ -102,22 +110,19 @@ export function UtilityView(props: {
 }) {
   const titles = () => TITLES[props.kind]
   return (
-    <main
-      tabIndex={-1}
-      id="main-content"
-      class="utility-view m7-utility-view"
-      data-m7-utility-view={props.kind}
-    >
-      <header class="utility-header">
-        <div>
-          <Text variant="overline" class="eyebrow">
-            {titles().eyebrow}
-          </Text>
-          <h1>{titles().title}</h1>
-          <p>{titles().description}</p>
-        </div>
-      </header>
-      <div class="utility-body">
+    <main tabIndex={-1} id="main-content" class="utility-view" data-m7-utility-view={props.kind}>
+      <PageHeader>
+        <PageHeaderContent>
+          <Text variant="overline">{titles().eyebrow}</Text>
+          <PageHeaderTitle>{titles().title}</PageHeaderTitle>
+          <PageHeaderDescription>{titles().description}</PageHeaderDescription>
+        </PageHeaderContent>
+      </PageHeader>
+      <Separator />
+      <div
+        data-utility-body=""
+        class="grid min-h-0 flex-1 grid-cols-1 content-start gap-7 overflow-y-auto px-5 pt-5 pb-14 min-[1180px]:grid-cols-2"
+      >
         <Show when={props.kind === 'inbox'}>
           <InboxView
             status={props.status}
@@ -273,7 +278,7 @@ function InboxView(props: {
   return (
     <Show when={!empty()} fallback={emptyView}>
       <Show when={props.sourceJobError}>
-        <Alert variant="destructive" class="utility-error" role="alert">
+        <Alert variant="destructive" class="min-[1180px]:col-span-full" role="alert">
           <AlertDescription>{props.sourceJobError}</AlertDescription>
           <Show when={props.onRetrySourceJobs}>
             <AlertAction>
@@ -291,7 +296,7 @@ function InboxView(props: {
         </Alert>
       </Show>
       <Show when={props.statusError && props.status}>
-        <Alert variant="destructive" class="utility-error" role="status">
+        <Alert variant="destructive" class="min-[1180px]:col-span-full" role="status">
           <AlertDescription>
             {props.statusError} Showing the last known sync snapshot.
           </AlertDescription>
@@ -311,10 +316,8 @@ function InboxView(props: {
         </Alert>
       </Show>
       <Show when={attention().length > 0}>
-        <section class="utility-section">
-          <Text as="h2" variant="overline">
-            Sync attention
-          </Text>
+        <section class="flex min-w-0 flex-col gap-3">
+          <Heading size="section">Sync attention</Heading>
           <ListGroup>
             <For each={attention()}>
               {(run) => (
@@ -331,10 +334,8 @@ function InboxView(props: {
         </section>
       </Show>
       <Show when={activeJobs().length > 0}>
-        <section class="utility-section">
-          <Text as="h2" variant="overline">
-            Active source jobs
-          </Text>
+        <section class="flex min-w-0 flex-col gap-3">
+          <Heading size="section">Active source jobs</Heading>
           <ListGroup>
             <For each={activeJobs()}>
               {(job) => (
@@ -350,7 +351,6 @@ function InboxView(props: {
                           variant="outline"
                           size="xs"
                           type="button"
-                          class="utility-cancel"
                           disabled={job.status === 'cancelling'}
                           aria-label={`Cancel ${job.project} ${job.source} ${job.operation}`}
                           onClick={() => props.onCancelSourceJob?.(job.id)}
@@ -369,10 +369,8 @@ function InboxView(props: {
         </section>
       </Show>
       <Show when={completedJobs().length > 0}>
-        <section class="utility-section">
-          <Text as="h2" variant="overline">
-            Recent source jobs
-          </Text>
+        <section class="flex min-w-0 flex-col gap-3">
+          <Heading size="section">Recent source jobs</Heading>
           <ListGroup>
             <For each={completedJobs()}>
               {(job) => {
@@ -394,11 +392,11 @@ function InboxView(props: {
                       {job.source} · {job.operation}
                     </ListRow>
                     <Show when={job.log}>
-                      <Accordion collapsible class="utility-job-log">
+                      <Accordion collapsible class="mt-2">
                         <AccordionItem value="details">
                           <AccordionTrigger>View job log</AccordionTrigger>
                           <AccordionContent>
-                            <pre>{job.log}</pre>
+                            <CodeBlock code={job.log!} title="Log" maxHeight={180} wrap complete />
                           </AccordionContent>
                         </AccordionItem>
                       </Accordion>
@@ -410,7 +408,7 @@ function InboxView(props: {
           </ListGroup>
         </section>
       </Show>
-      <div class="utility-actions">
+      <div class="flex flex-wrap gap-2 min-[1180px]:col-span-full">
         <Button
           tooltip="Manage ingestion in settings"
           variant="secondary"
@@ -515,46 +513,48 @@ function ConversationsView(props: {
         >
           {(answer) => (
             <>
-              <section class="utility-section">
-                <Text as="h2" variant="overline">
-                  Current conversation
-                </Text>
-                <Card class="utility-card">
-                  <Text variant="overline" class="utility-card-eyebrow">
-                    <Sparkles size={14} aria-hidden="true" /> Query
-                  </Text>
-                  <h3>{props.query}</h3>
-                  <div class="utility-meta">
-                    <Badge variant="outline">{answer().mode}</Badge>
-                    <Badge variant="outline">
-                      {answer().retrieval_degraded
-                        ? 'lexical fallback'
-                        : answer().retrieval_mode || 'hybrid retrieval'}
-                    </Badge>
-                    <Badge variant="outline">
-                      {answer().cached ? 'cache hit' : `${answer().latency_ms} ms`}
-                    </Badge>
-                    <Badge variant="outline">
-                      {answer().plan.queries.length}{' '}
-                      {answer().plan.queries.length === 1 ? 'retrieval' : 'retrievals'}
-                    </Badge>
-                    <Badge variant="outline">{props.evidence.length} cited passages</Badge>
-                  </div>
-                  <p class="utility-answer">{answer().answer}</p>
-                  <For each={answer().warnings}>
-                    {(warning) => (
-                      <Alert variant="warning" class="answer-warning">
-                        <AlertDescription>{warning}</AlertDescription>
-                      </Alert>
-                    )}
-                  </For>
+              <section class="flex min-w-0 flex-col gap-3">
+                <Heading size="section">Current conversation</Heading>
+                <Card size="sm">
+                  <CardHeader class="gap-2">
+                    <Text variant="overline" class="flex items-center gap-1.5">
+                      <Sparkles size={14} aria-hidden="true" /> Query
+                    </Text>
+                    <Heading as="h3" size="title">
+                      {props.query}
+                    </Heading>
+                  </CardHeader>
+                  <CardContent class="flex flex-col gap-3">
+                    <div class="flex flex-wrap gap-2">
+                      <Badge variant="outline">{answer().mode}</Badge>
+                      <Badge variant="outline">
+                        {answer().retrieval_degraded
+                          ? 'lexical fallback'
+                          : answer().retrieval_mode || 'hybrid retrieval'}
+                      </Badge>
+                      <Badge variant="outline">
+                        {answer().cached ? 'cache hit' : `${answer().latency_ms} ms`}
+                      </Badge>
+                      <Badge variant="outline">
+                        {answer().plan.queries.length}{' '}
+                        {answer().plan.queries.length === 1 ? 'retrieval' : 'retrievals'}
+                      </Badge>
+                      <Badge variant="outline">{props.evidence.length} cited passages</Badge>
+                    </div>
+                    <Text class="whitespace-pre-wrap">{answer().answer}</Text>
+                    <For each={answer().warnings}>
+                      {(warning) => (
+                        <Alert variant="warning">
+                          <AlertDescription>{warning}</AlertDescription>
+                        </Alert>
+                      )}
+                    </For>
+                  </CardContent>
                 </Card>
               </section>
               <Show when={props.evidence.length > 0}>
-                <section class="utility-section">
-                  <Text as="h2" variant="overline">
-                    Cited evidence
-                  </Text>
+                <section class="flex min-w-0 flex-col gap-3">
+                  <Heading size="section">Cited evidence</Heading>
                   <ListGroup>
                     <For each={props.evidence.slice(0, 4)}>
                       {(item, index) => (
@@ -569,7 +569,7 @@ function ConversationsView(props: {
                   </ListGroup>
                 </section>
               </Show>
-              <div class="utility-actions">
+              <div class="flex flex-wrap gap-2 min-[1180px]:col-span-full">
                 <Button
                   tooltip="Search the brain"
                   variant="secondary"
@@ -600,10 +600,8 @@ function AgentToolsView(props: {
 
   return (
     <>
-      <section class="utility-section">
-        <Text as="h2" variant="overline">
-          Generated context
-        </Text>
+      <section class="flex min-w-0 flex-col gap-3">
+        <Heading size="section">Generated context</Heading>
         <Show
           when={!props.contextLoading}
           fallback={
@@ -683,12 +681,12 @@ function AgentToolsView(props: {
                   />
                 </div>
                 <Show when={contextBundle().retrieval_warning}>
-                  <Alert variant="warning" class="answer-warning" role="status">
+                  <Alert variant="warning" role="status">
                     <AlertDescription>{contextBundle().retrieval_warning}</AlertDescription>
                   </Alert>
                 </Show>
                 <Show when={contextBundle().evidence.length > 0}>
-                  <ListGroup class="utility-list-spaced">
+                  <ListGroup>
                     <For each={contextBundle().evidence}>
                       {(item) => (
                         <ListRow
@@ -701,7 +699,7 @@ function AgentToolsView(props: {
                     </For>
                   </ListGroup>
                 </Show>
-                <div class="utility-actions">
+                <div class="flex flex-wrap gap-2">
                   <Button
                     tooltip="Copy MCP-equivalent context"
                     variant="secondary"
@@ -717,7 +715,7 @@ function AgentToolsView(props: {
                     {copied() ? 'Context copied' : 'Copy MCP-equivalent context'}
                   </Button>
                   <Show when={copyError()}>
-                    <Alert variant="destructive" class="utility-error" role="alert">
+                    <Alert variant="destructive" role="alert">
                       <AlertDescription>{copyError()}</AlertDescription>
                     </Alert>
                   </Show>
@@ -727,24 +725,24 @@ function AgentToolsView(props: {
           </Show>
         </Show>
         <Show when={props.contextError}>
-          <Alert variant="destructive" class="utility-error" role="alert">
+          <Alert variant="destructive" role="alert">
             <AlertDescription>{props.contextError}</AlertDescription>
           </Alert>
         </Show>
       </section>
-      <section class="utility-section">
-        <Text as="h2" variant="overline">
-          Agent context window
-        </Text>
-        <Card class="utility-card">
-          <p class="utility-answer">
-            ~{props.contextTokens.toLocaleString()} tokens assembled from the active query and{' '}
-            {props.evidence.length} cited {props.evidence.length === 1 ? 'passage' : 'passages'}.
-          </p>
-          <p class="utility-note">
-            The window is rebuilt locally from the current session state and never leaves this
-            machine.
-          </p>
+      <section class="flex min-w-0 flex-col gap-3">
+        <Heading size="section">Agent context window</Heading>
+        <Card size="sm">
+          <CardContent class="flex flex-col gap-3">
+            <Text>
+              ~{props.contextTokens.toLocaleString()} tokens assembled from the active query and{' '}
+              {props.evidence.length} cited {props.evidence.length === 1 ? 'passage' : 'passages'}.
+            </Text>
+            <Text variant="caption" tone="muted" as="p">
+              The window is rebuilt locally from the current session state and never leaves this
+              machine.
+            </Text>
+          </CardContent>
         </Card>
       </section>
     </>
@@ -809,7 +807,7 @@ function IndexView(props: {
       {(status) => (
         <>
           <Show when={status().stats_stale}>
-            <Alert variant="warning" class="utility-warning" role="status">
+            <Alert variant="warning" class="min-[1180px]:col-span-full" role="status">
               <AlertDescription>
                 {status().stats_warning ?? 'Live database statistics are temporarily stale.'}
                 {typeof status().stats_age_seconds === 'number'
@@ -818,10 +816,8 @@ function IndexView(props: {
               </AlertDescription>
             </Alert>
           </Show>
-          <section class="utility-section">
-            <Text as="h2" variant="overline">
-              Live metrics
-            </Text>
+          <section class="flex min-w-0 flex-col gap-3">
+            <Heading size="section">Live metrics</Heading>
             <div class="utility-metrics">
               <Stat label="Documents" value={status().documents.toLocaleString()} />
               <Stat label="Chunks" value={status().chunks.toLocaleString()} />
@@ -851,15 +847,15 @@ function IndexView(props: {
               <Stat label="Expired memory" value={status().memory.expired.toLocaleString()} />
             </div>
           </section>
-          <section class="utility-section">
-            <Text as="h2" variant="overline">
-              Configuration
-            </Text>
+          <section class="flex min-w-0 flex-col gap-3">
+            <Heading size="section">Configuration</Heading>
             <Table aria-label="Index configuration">
               <TableBody>
                 <TableRow>
                   <TableHead scope="row">Embedding</TableHead>
-                  <TableCell class="break-words">{status().embedding_fingerprint ?? '—'}</TableCell>
+                  <TableCell class="wrap-anywhere">
+                    {status().embedding_fingerprint ?? '—'}
+                  </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableHead scope="row">Query mode</TableHead>
@@ -879,7 +875,7 @@ function IndexView(props: {
               </TableBody>
             </Table>
           </section>
-          <div class="utility-actions">
+          <div class="flex flex-wrap gap-2 min-[1180px]:col-span-full">
             <Button
               tooltip="Review configuration and resolve setup requirements."
               variant="secondary"
