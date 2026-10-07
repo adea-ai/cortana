@@ -1,8 +1,10 @@
-import { AlertDescription } from '@adea-ai/ui/components/ui/alert'
+import { AlertDescription, Alert } from '@adea-ai/ui/components/ui/alert'
 import type { DesktopSettings } from '../../types'
 import { MemoryReview } from '../MemoryReview'
-import { Field, SettingsSection, type SettingsSectionProps } from './SettingsLayout'
-import { SettingsAlert, SettingsFieldGroup, SettingsInput as Input } from './SettingsSurface'
+import { type SettingsSectionProps } from './settingsSectionProps'
+import { FormField, FieldGroup } from '@adea-ai/ui/components/ui/field'
+import { SettingsSection } from '@adea-ai/ui/components/composites/settings'
+import { Input } from '@adea-ai/ui/components/ui/input'
 
 export function NativeMemorySection(
   incoming: SettingsSectionProps & {
@@ -24,14 +26,14 @@ export function NativeMemorySection(
       title="Native agentic memory"
       description="Cortana keeps operational memory in its own private local store. Memory is explicit, scoped, auditable, and protected by the local data-directory permissions."
     >
-      <SettingsAlert class="safety-note" role="status">
+      <Alert class="safety-note" role="status">
         <AlertDescription>
           Knowledge documents remain source-backed. Agents may explicitly remember, recall, and
           redact bounded records through the native MCP, HTTP, or CLI interfaces.
         </AlertDescription>
-      </SettingsAlert>
-      <SettingsFieldGroup class="form-grid">
-        <Field label="Maximum active memories" hint="bounded local record count">
+      </Alert>
+      <FieldGroup columns={2}>
+        <FormField label="Maximum active memories" hint="bounded local record count">
           <Input
             type="number"
             min={1}
@@ -43,8 +45,8 @@ export function NativeMemorySection(
               })
             }
           />
-        </Field>
-        <Field label="Default confidence" hint="0 to 1; agents can override per record">
+        </FormField>
+        <FormField label="Default confidence" hint="0 to 1; agents can override per record">
           <Input
             type="number"
             min={0}
@@ -57,8 +59,8 @@ export function NativeMemorySection(
               })
             }
           />
-        </Field>
-        <Field label="Default importance" hint="0 to 1; used for review and ranking">
+        </FormField>
+        <FormField label="Default importance" hint="0 to 1; used for review and ranking">
           <Input
             type="number"
             min={0}
@@ -71,8 +73,8 @@ export function NativeMemorySection(
               })
             }
           />
-        </Field>
-      </SettingsFieldGroup>
+        </FormField>
+      </FieldGroup>
       <MemoryReview maxActive={props.settings.memory.max_active} />
     </SettingsSection>
   )

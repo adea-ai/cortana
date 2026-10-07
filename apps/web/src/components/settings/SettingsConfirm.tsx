@@ -53,7 +53,9 @@ export function SettingsConfirmProvider(props: { children: JSX.Element }) {
         return
       }
       const fallback =
-        current.scope?.querySelector<HTMLElement>('.settings-nav-item[aria-current=page]') ??
+        current.scope?.querySelector<HTMLElement>(
+          '[data-slot="settings-navigation-trigger"][aria-selected="true"]'
+        ) ??
         current.scope?.querySelector<HTMLElement>(
           'button:not([disabled]):not([aria-disabled=true]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])'
         )

@@ -1,8 +1,5 @@
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
-import {
-  Alert as SharedFeedbackAlert,
-  AlertDescription as SharedFeedbackDescription,
-} from '@adea-ai/ui/components/ui/alert'
+import { Alert, AlertDescription } from '@adea-ai/ui/components/ui/alert'
 import { InputGroup, InputGroupInput, InputGroupAddon } from '@adea-ai/ui/components/ui/input-group'
 import { ArrowDown, ArrowUp, Plus, Search, Trash2, Upload } from 'lucide-solid'
 import { useTheme } from '@adea-ai/ui/components/theme'
@@ -18,23 +15,24 @@ import {
   writeWorkspaceThemePreference,
 } from '../../workspaceThemePreference'
 import { useSettingsConfirm } from './SettingsConfirm'
-import { Field, SettingsSection } from './SettingsLayout'
 import {
   deriveWorkspaceIdentifier,
   ensureWorkspaceIdentifierUnique,
   isWorkspaceIdDerivedFromName,
 } from './SettingsSourceIdentity'
-import {
-  SettingsAccordion,
-  SettingsAccordionContent,
-  SettingsAccordionItem,
-  SettingsAccordionTrigger,
-  SettingsButton as Button,
-  SettingsCard,
-  SettingsInput as Input,
-  SettingsSelect as Select,
-} from './SettingsSurface'
 import { applyConfirmed } from './SettingsWorkflowUtils'
+import { FormField } from '@adea-ai/ui/components/ui/field'
+import { SettingsSection } from '@adea-ai/ui/components/composites/settings'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@adea-ai/ui/components/ui/accordion'
+import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
+import { Card, CardContent, CardHeader } from '@adea-ai/ui/components/ui/card'
+import { Input } from '@adea-ai/ui/components/ui/input'
+import { NativeSelect } from '@adea-ai/ui/components/ui/native-select'
 
 // Mirrors the desktop settings guard (apps/desktop/src-tauri/src/settings.rs).
 // The cap stays a backend safety bound: the surface never advertises it as a
@@ -174,7 +172,7 @@ export function WorkspaceSection(incoming: {
       description="Create isolated query scopes and assign each source or account to one workspace. Workspace logos stay local to this Desktop profile and never enter the index or portable settings export."
     >
       {props.settings.workspaces.length > 6 && (
-        <Field
+        <FormField
           label="Find workspace"
           hint={`${visibleWorkspaces().length} of ${props.settings.workspaces.length} shown`}
           class="col-span-full"
@@ -191,7 +189,7 @@ export function WorkspaceSection(incoming: {
               autocomplete="off"
             />
           </InputGroup>
-        </Field>
+        </FormField>
       )}
       <div class={`workspace-settings-grid workspace-settings-grid--${visibleWorkspaces().length}`}>
         <Index each={visibleWorkspaces()}>
@@ -201,182 +199,189 @@ export function WorkspaceSection(incoming: {
             const workspace = () => entry().workspace
             const index = () => entry().index
             return (
-              <SettingsCard class="workspace-card">
-                <div class="workspace-card-heading">
-                  <WorkspaceLogo workspace={workspace()} size="large" />
-                  <div class="workspace-card-title">
-                    <strong>{workspace().name || 'New workspace'}</strong>
-                    <small>Workspace identity</small>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    type="button"
-                    aria-label={`Upload logo for ${workspace().name}`}
-                    disabled={logoLoading() === workspace().id}
-                    tooltip={
-                      logoLoading() === workspace().id
-                        ? 'Saving workspace logo'
-                        : 'Upload workspace logo'
-                    }
-                    onClick={() => workspaceLogoInput(workspace().id)?.click()}
-                  >
-                    {logoLoading() === workspace().id ? (
-                      <Spinner size="sm" label="Saving workspace logo" />
-                    ) : (
-                      <Upload size={14} aria-hidden="true" />
-                    )}
-                  </Button>
-                  <Input
-                    ref={(element: HTMLInputElement) => logoInputs.set(workspace().id, element)}
-                    type="file"
-                    accept="image/*"
-                    aria-label={`Upload logo file for ${workspace().name}`}
-                    aria-hidden="true"
-                    tabIndex={-1}
-                    class="hidden"
-                    onInput={(event) => {
-                      void updateLogo(workspace().id, event.target.files?.[0])
-                      event.currentTarget.value = ''
-                    }}
-                  />
-                  {props.settings.workspaces.length > 1 && (
-                    <div class="workspace-order-actions">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        type="button"
-                        aria-label={`Move ${workspace().name} up`}
-                        disabled={index() === 0}
-                        tooltip="Move workspace up"
-                        onClick={() => moveWorkspace(index(), -1)}
-                      >
-                        <ArrowUp size={15} aria-hidden="true" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        type="button"
-                        aria-label={`Move ${workspace().name} down`}
-                        disabled={index() === props.settings.workspaces.length - 1}
-                        tooltip="Move workspace down"
-                        onClick={() => moveWorkspace(index(), 1)}
-                      >
-                        <ArrowDown size={15} aria-hidden="true" />
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="icon-sm"
-                        type="button"
-                        aria-label={`Remove ${workspace().name}`}
-                        disabled={hasWorkspaceSources(workspace().id)}
-                        tooltip={
-                          hasWorkspaceSources(workspace().id)
-                            ? 'Move assigned sources before removing this workspace'
-                            : 'Remove workspace'
-                        }
-                        onClick={() =>
-                          applyConfirmed(
-                            confirm(
-                              `Remove the ${workspace().name} workspace? This changes only the settings draft and does not delete indexed data.`
-                            ),
-                            () =>
-                              props.update((current) => ({
-                                ...current,
-                                workspaces: current.workspaces.filter(
-                                  (_, position) => position !== index()
-                                ),
-                              }))
-                          )
-                        }
-                      >
-                        <Trash2 size={15} aria-hidden="true" />
-                      </Button>
+              <Card size="sm">
+                <CardHeader>
+                  <div class="workspace-card-heading">
+                    <WorkspaceLogo workspace={workspace()} size="large" />
+                    <div class="workspace-card-title">
+                      <strong>{workspace().name || 'New workspace'}</strong>
+                      <small>Workspace identity</small>
                     </div>
-                  )}
-                </div>
-                <div class="workspace-identity-row">
-                  <Field label="Display name">
-                    <Input
-                      value={workspace().name}
-                      onInput={(event) =>
-                        changeWorkspace(index(), {
-                          name: event.target.value,
-                        })
+                    <ActionButton
+                      variant="ghost"
+                      size="icon-sm"
+                      type="button"
+                      aria-label={`Upload logo for ${workspace().name}`}
+                      disabled={logoLoading() === workspace().id}
+                      tooltip={
+                        logoLoading() === workspace().id
+                          ? 'Saving workspace logo'
+                          : 'Upload workspace logo'
                       }
-                      required
-                      maxLength={80}
-                    />
-                  </Field>
-                  <Field label="Workspace theme">
-                    <Select
-                      aria-label={`Theme for ${workspace().name || 'new workspace'}`}
-                      value={workspaceThemes()[workspace().id] ?? DEFAULT_THEME}
-                      onChange={(event) => {
-                        const next = (event.target as HTMLSelectElement).value as ThemeMode
-                        setWorkspaceThemes((current) => ({
-                          ...current,
-                          [workspace().id]: next,
-                        }))
-                        writeWorkspaceThemePreference(workspace().id, next)
+                      onClick={() => workspaceLogoInput(workspace().id)?.click()}
+                    >
+                      {logoLoading() === workspace().id ? (
+                        <Spinner size="sm" label="Saving workspace logo" />
+                      ) : (
+                        <Upload size={14} aria-hidden="true" />
+                      )}
+                    </ActionButton>
+                    <Input
+                      ref={(element: HTMLInputElement) => logoInputs.set(workspace().id, element)}
+                      type="file"
+                      accept="image/*"
+                      aria-label={`Upload logo file for ${workspace().name}`}
+                      aria-hidden="true"
+                      tabIndex={-1}
+                      class="hidden"
+                      onInput={(event) => {
+                        void updateLogo(workspace().id, event.target.files?.[0])
+                        event.currentTarget.value = ''
                       }}
-                      options={themes
-                        .filter((theme) => theme.appearance === 'dark')
-                        .map((theme) => ({ value: theme.id, label: themeDisplayName(theme) }))}
                     />
-                  </Field>
-                </div>
-                <SettingsAccordion collapsible>
-                  <SettingsAccordionItem value={`workspace-${workspace().id}`}>
-                    <SettingsAccordionTrigger>Advanced workspace details</SettingsAccordionTrigger>
-                    <SettingsAccordionContent class="workspace-advanced-fields">
-                      <small class="workspace-advanced-note">
-                        ID is internal; account labels are optional metadata.
-                      </small>
-                      <Field
-                        label="Scope ID"
-                        hint="generated from the display name; used internally"
-                      >
-                        <Input
-                          value={workspace().id}
-                          readOnly
+                    {props.settings.workspaces.length > 1 && (
+                      <div class="workspace-order-actions">
+                        <ActionButton
+                          variant="ghost"
+                          size="icon-sm"
+                          type="button"
+                          aria-label={`Move ${workspace().name} up`}
+                          disabled={index() === 0}
+                          tooltip="Move workspace up"
+                          onClick={() => moveWorkspace(index(), -1)}
+                        >
+                          <ArrowUp size={15} aria-hidden="true" />
+                        </ActionButton>
+                        <ActionButton
+                          variant="ghost"
+                          size="icon-sm"
+                          type="button"
+                          aria-label={`Move ${workspace().name} down`}
+                          disabled={index() === props.settings.workspaces.length - 1}
+                          tooltip="Move workspace down"
+                          onClick={() => moveWorkspace(index(), 1)}
+                        >
+                          <ArrowDown size={15} aria-hidden="true" />
+                        </ActionButton>
+                        <ActionButton
+                          variant="destructive"
+                          size="icon-sm"
+                          type="button"
+                          aria-label={`Remove ${workspace().name}`}
                           disabled={hasWorkspaceSources(workspace().id)}
-                          aria-disabled={hasWorkspaceSources(workspace().id)}
-                          title="Generated from the display name and used internally"
-                          required
-                          maxLength={32}
-                          pattern="[a-z0-9][a-z0-9_-]*"
-                        />
-                      </Field>
-                      <Field
-                        label="Account label"
-                        hint="optional display note; OAuth credentials belong to each source"
-                      >
-                        <Input
-                          value={workspace().account_label || ''}
-                          onInput={(event) =>
-                            changeWorkspace(index(), {
-                              account_label: event.target.value || null,
-                            })
+                          tooltip={
+                            hasWorkspaceSources(workspace().id)
+                              ? 'Move assigned sources before removing this workspace'
+                              : 'Remove workspace'
                           }
-                          maxLength={128}
-                          placeholder="e.g. Nifty League"
-                        />
-                      </Field>
-                    </SettingsAccordionContent>
-                  </SettingsAccordionItem>
-                </SettingsAccordion>
-              </SettingsCard>
+                          onClick={() =>
+                            applyConfirmed(
+                              confirm(
+                                `Remove the ${workspace().name} workspace? This changes only the settings draft and does not delete indexed data.`
+                              ),
+                              () =>
+                                props.update((current) => ({
+                                  ...current,
+                                  workspaces: current.workspaces.filter(
+                                    (_, position) => position !== index()
+                                  ),
+                                }))
+                            )
+                          }
+                        >
+                          <Trash2 size={15} aria-hidden="true" />
+                        </ActionButton>
+                      </div>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div class="workspace-identity-row">
+                    <FormField label="Display name">
+                      <Input
+                        value={workspace().name}
+                        onInput={(event) =>
+                          changeWorkspace(index(), {
+                            name: event.target.value,
+                          })
+                        }
+                        required
+                        maxLength={80}
+                      />
+                    </FormField>
+                    <FormField label="Workspace theme">
+                      <NativeSelect
+                        class="w-full"
+                        aria-label={`Theme for ${workspace().name || 'new workspace'}`}
+                        value={workspaceThemes()[workspace().id] ?? DEFAULT_THEME}
+                        onChange={(event) => {
+                          const next = (event.target as HTMLSelectElement).value as ThemeMode
+                          setWorkspaceThemes((current) => ({
+                            ...current,
+                            [workspace().id]: next,
+                          }))
+                          writeWorkspaceThemePreference(workspace().id, next)
+                        }}
+                        options={themes
+                          .filter((theme) => theme.appearance === 'dark')
+                          .map((theme) => ({ value: theme.id, label: themeDisplayName(theme) }))}
+                      />
+                    </FormField>
+                  </div>
+                  <Accordion collapsible>
+                    <AccordionItem value={`workspace-${workspace().id}`}>
+                      <AccordionTrigger>Advanced workspace details</AccordionTrigger>
+                      <AccordionContent>
+                        <div class="workspace-advanced-fields">
+                          <small class="workspace-advanced-note">
+                            ID is internal; account labels are optional metadata.
+                          </small>
+                          <FormField
+                            label="Scope ID"
+                            hint="generated from the display name; used internally"
+                          >
+                            <Input
+                              value={workspace().id}
+                              readOnly
+                              disabled={hasWorkspaceSources(workspace().id)}
+                              aria-disabled={hasWorkspaceSources(workspace().id)}
+                              title="Generated from the display name and used internally"
+                              required
+                              maxLength={32}
+                              pattern="[a-z0-9][a-z0-9_-]*"
+                            />
+                          </FormField>
+                          <FormField
+                            label="Account label"
+                            hint="optional display note; OAuth credentials belong to each source"
+                          >
+                            <Input
+                              value={workspace().account_label || ''}
+                              onInput={(event) =>
+                                changeWorkspace(index(), {
+                                  account_label: event.target.value || null,
+                                })
+                              }
+                              maxLength={128}
+                              placeholder="e.g. Nifty League"
+                            />
+                          </FormField>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                </CardContent>
+              </Card>
             )
           }}
         </Index>
       </div>
       {logoError() && (
-        <SharedFeedbackAlert variant="destructive" role="alert" class="my-2">
-          <SharedFeedbackDescription>{logoError()}</SharedFeedbackDescription>
-        </SharedFeedbackAlert>
+        <Alert variant="destructive" role="alert" class="my-2">
+          <AlertDescription>{logoError()}</AlertDescription>
+        </Alert>
       )}
-      <Button
+      <ActionButton
         variant="secondary"
         size="sm"
         type="button"
@@ -389,7 +394,7 @@ export function WorkspaceSection(incoming: {
         onClick={addWorkspace}
       >
         <Plus size={15} aria-hidden="true" /> Add workspace
-      </Button>
+      </ActionButton>
     </SettingsSection>
   )
 }

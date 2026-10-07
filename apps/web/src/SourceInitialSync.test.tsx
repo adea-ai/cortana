@@ -383,7 +383,7 @@ test('update channel controls are not duplicated in Settings navigation', async 
   render(() => (
     <SettingsView onSaved={() => {}} initialSection="services" desktopSettings={state.settings} />
   ))
-  await screen.findByRole('navigation', { name: 'Settings sections' })
+  await screen.findByRole('tablist', { name: 'Settings sections' })
   expect(screen.queryByRole('button', { name: 'Updates', exact: true })).toBeNull()
 })
 test('settings bridge failures expose a retry action', async () => {

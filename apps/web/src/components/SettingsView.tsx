@@ -1,8 +1,17 @@
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 import { ListRow } from '@adea-ai/ui/components/composites/list-row'
-import { Card } from '@adea-ai/ui/components/ui/card'
-import { AlertAction, AlertDescription } from '@adea-ai/ui/components/ui/alert'
-import { Label } from '@adea-ai/ui/components/ui/label'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@adea-ai/ui/components/ui/card'
+import { CodeBlock, InlineCode } from '@adea-ai/ui/components/ui/code-block'
+import { ScrollArea } from '@adea-ai/ui/components/ui/scroll-area'
+import { StatusChip } from '@adea-ai/ui/components/ui/status-chip'
+import { AlertAction, AlertDescription, Alert } from '@adea-ai/ui/components/ui/alert'
 import {
   Check,
   CircleStop,
@@ -17,7 +26,7 @@ import {
 import {
   lazy,
   Suspense,
-  Switch,
+  Switch as SolidSwitch,
   Match,
   Show,
   createEffect,
@@ -27,7 +36,7 @@ import {
   For,
 } from 'solid-js'
 import { cn } from '../lib/utils'
-import { ActionButton as AsyncButton } from '@adea-ai/ui/components/composites/action-button'
+import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
 import { normalizeProviderUrl, type ProviderModelsState } from './settings/providerUtils'
 import { SettingsConfirmProvider, useSettingsConfirm } from './settings/SettingsConfirm'
 import {
@@ -36,14 +45,6 @@ import {
 } from './settings/SettingsSourceIdentity'
 import { StatusGlyph } from './settings/SettingsWorkflowShared'
 import { useDesktopForeground } from './settings/SettingsWorkflowUtils'
-import { NumberField, SettingsSection } from './settings/SettingsLayout'
-import {
-  SettingsAlert,
-  SettingsButton as Button,
-  SettingsCard,
-  SettingsFieldGroup,
-  SettingsSwitch,
-} from './settings/SettingsSurface'
 import {
   cancelDesktopInstaller,
   getDesktopInstaller,
@@ -84,6 +85,24 @@ import type {
   SourceSettings,
 } from '../types'
 import { Text } from '@adea-ai/ui/components/ui/typography'
+import { NumberField, FieldGroup } from '@adea-ai/ui/components/ui/field'
+import {
+  SettingsLayout,
+  SettingsRow,
+  SettingsSection,
+  type SettingsNavigationGroup,
+} from '@adea-ai/ui/components/composites/settings'
+import { TabsContent } from '@adea-ai/ui/components/ui/tabs'
+import {
+  PageHeader,
+  PageHeaderActions,
+  PageHeaderContent,
+  PageHeaderDescription,
+  PageHeaderTitle,
+} from '@adea-ai/ui/components/layout/page'
+import { Separator } from '@adea-ai/ui/components/ui/separator'
+import { EmptyState } from '@adea-ai/ui/components/ui/empty'
+import { Switch } from '@adea-ai/ui/components/ui/switch'
 const AdvancedSettingsSection = lazy(() =>
   import('./settings/AdvancedSettingsSection').then((module) => ({
     default: module.AdvancedSettingsSection,
@@ -129,14 +148,23 @@ type Section =
   | 'memory'
   | 'ingestion'
   | 'advanced'
-const SETTINGS_NAV_PRIMARY_SECTIONS: Section[] = ['services', 'workspaces', 'sources', 'readiness']
-const SETTINGS_NAV_SECONDARY_SECTIONS: Section[] = [
-  'access',
-  'audit',
-  'embedding',
-  'query',
-  'ingestion',
-  'advanced',
+const sectionLabel = (item: Section) => item[0].toUpperCase() + item.slice(1)
+// The navigation groups the everyday runtime controls above the provider,
+// access and storage configuration.
+const SETTINGS_NAV_GROUPS: SettingsNavigationGroup[] = [
+  {
+    label: 'Runtime',
+    items: (['services', 'workspaces', 'sources', 'readiness'] as const).map((value) => ({
+      value,
+      label: sectionLabel(value),
+    })),
+  },
+  {
+    label: 'Configuration',
+    items: (
+      ['access', 'audit', 'embedding', 'query', 'ingestion', 'advanced', 'memory'] as const
+    ).map((value) => ({ value, label: sectionLabel(value) })),
+  },
 ]
 function SettingsViewContent(incoming: {
   /** Shell-owned settings snapshot. Standalone renders fetch their own copy. */
@@ -213,9 +241,6 @@ function SettingsViewContent(incoming: {
   onCleanup(() => {
     componentMounted = false
   })
-  const settingsNavRef = {
-    current: null as HTMLElement | null,
-  }
   // Track the last shell snapshot actually adopted by this draft. The shell
   // can deliver the same prop again while a save is settling; re-applying it
   // whenever `dirty` changes would overwrite a just-saved draft with that
@@ -334,13 +359,6 @@ function SettingsViewContent(incoming: {
     if (next === previousInitialSection) return
     previousInitialSection = next
     setSection(next)
-  })
-  createEffect(() => {
-    if (typeof window.matchMedia !== 'function') return
-    if (!window.matchMedia('(max-width: 799px)').matches) return
-    const navigation = settingsNavRef.current
-    const active = navigation?.querySelector<HTMLElement>('.settings-nav-item[aria-current=page]')
-    if (navigation && active) navigation.scrollLeft = Math.max(0, active.offsetLeft - 10)
   })
   createEffect(() => {
     props.onDirtyChange?.(dirty())
@@ -545,53 +563,57 @@ function SettingsViewContent(incoming: {
   const restartFailed = () =>
     Boolean(settings()?.restart_required) && props.serviceActivity?.status === 'failed'
   return (
-    <Switch>
+    <SolidSwitch>
       <Match when={!isDesktopApp && !props.desktopSettings}>
         <>
-          <main tabIndex={-1} id="main-content" class="settings-view settings-unavailable">
-            <Settings2 size={34} aria-hidden="true" />
-            <h1>Desktop settings</h1>
-            <p>
-              Install Cortana Desktop to manage local models, secrets, workspaces, and services.
-            </p>
+          <main tabIndex={-1} id="main-content" class="settings-view">
+            <EmptyState
+              headingLevel={1}
+              icon={<Settings2 aria-hidden="true" />}
+              title="Desktop settings"
+              detail="Install Cortana Desktop to manage local models, secrets, workspaces, and services."
+            />
           </main>
         </>
       </Match>
       <Match when={!settings()}>
         <>
-          <main tabIndex={-1} id="main-content" class="settings-view settings-unavailable">
-            <Settings2 size={34} aria-hidden="true" />
-            <h1 role={error() ? 'alert' : 'status'}>{error() || 'Loading local settings…'}</h1>
-            {error() && (
-              <Button
-                tooltip="Retry settings"
-                variant="secondary"
-                size="sm"
-                onClick={retrySettingsLoad}
-              >
-                <RefreshCw size={15} aria-hidden="true" /> Retry settings
-              </Button>
-            )}
+          <main tabIndex={-1} id="main-content" class="settings-view">
+            <EmptyState
+              headingLevel={1}
+              icon={<Settings2 aria-hidden="true" />}
+              busy={!error()}
+              announceAs={error() ? 'alert' : 'status'}
+              title={error() ? 'Settings could not be loaded' : 'Loading local settings…'}
+              detail={error() || 'Reading the local Cortana configuration.'}
+              action={error() ? retrySettingsLoad : undefined}
+              actionLabel="Retry settings"
+              actionTooltip="Load the local settings again."
+            />
           </main>
         </>
       </Match>
       <Match when={true}>
         <>
           <main tabIndex={-1} id="main-content" class="settings-view">
-            <header class="settings-header">
-              <div>
-                <Text variant="overline" class="eyebrow">
+            <PageHeader>
+              <PageHeaderContent>
+                <Text variant="overline">
                   {settings()!.needs_setup ? 'Guided setup' : 'Control plane'}
                 </Text>
-                <h1>Settings</h1>
-                <p>
+                <PageHeaderTitle>Settings</PageHeaderTitle>
+                <PageHeaderDescription>
                   Changes are written locally and audited. Secret values never return to this
                   window.
+                </PageHeaderDescription>
+                <p class="settings-paths">
+                  Config{' '}
+                  <InlineCode title={settings()!.config_path}>{settings()!.config_path}</InlineCode>
                 </p>
-              </div>
-              <div class="settings-header-actions">
+              </PageHeaderContent>
+              <PageHeaderActions>
                 {dirty() && (
-                  <Button
+                  <ActionButton
                     tooltip="Discard unsaved configuration changes and restore the saved snapshot."
                     variant="secondary"
                     size="sm"
@@ -600,9 +622,9 @@ function SettingsViewContent(incoming: {
                     onClick={() => void discard()}
                   >
                     <X size={15} aria-hidden="true" /> Discard
-                  </Button>
+                  </ActionButton>
                 )}
-                <AsyncButton
+                <ActionButton
                   variant="default"
                   size="sm"
                   type="submit"
@@ -619,9 +641,10 @@ function SettingsViewContent(incoming: {
                   }
                 >
                   <Save size={16} aria-hidden="true" /> Save changes
-                </AsyncButton>
-              </div>
-            </header>
+                </ActionButton>
+              </PageHeaderActions>
+            </PageHeader>
+            <Separator />
             {settings()!.needs_setup && (
               <SetupGuide
                 settings={settings()!}
@@ -630,61 +653,14 @@ function SettingsViewContent(incoming: {
                 onOpen={setSection}
               />
             )}
-            <div class="settings-layout">
-              <nav
-                ref={(el) => (settingsNavRef.current = el)}
-                class="settings-nav"
-                aria-label="Settings sections"
-              >
-                <For each={SETTINGS_NAV_PRIMARY_SECTIONS}>
-                  {(item) => (
-                    <Button
-                      tooltip={`Open ${item} settings.`}
-                      variant={section() === item ? 'secondary' : 'ghost'}
-                      size="sm"
-                      type="button"
-                      class="settings-nav-item"
-                      aria-current={section() === item ? 'page' : undefined}
-                      onClick={() => setSection(item)}
-                    >
-                      {item[0].toUpperCase() + item.slice(1)}
-                    </Button>
-                  )}
-                </For>
-                <div class="settings-nav-divider" aria-hidden="true" />
-                <For each={SETTINGS_NAV_SECONDARY_SECTIONS}>
-                  {(item) => (
-                    <Button
-                      tooltip={`Open ${item} settings.`}
-                      variant={section() === item ? 'secondary' : 'ghost'}
-                      size="sm"
-                      type="button"
-                      class="settings-nav-item"
-                      aria-current={section() === item ? 'page' : undefined}
-                      onClick={() => setSection(item)}
-                    >
-                      {item[0].toUpperCase() + item.slice(1)}
-                    </Button>
-                  )}
-                </For>
-                <Button
-                  tooltip="Memory"
-                  variant={section() === 'memory' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  type="button"
-                  class="settings-nav-item"
-                  aria-current={section() === 'memory' ? 'page' : undefined}
-                  onClick={() => setSection('memory')}
-                >
-                  Memory
-                </Button>
-                <div class="settings-paths">
-                  <span>Config</span>
-                  <code title={settings()!.config_path}>{settings()!.config_path}</code>
-                </div>
-              </nav>
+            <SettingsLayout
+              aria-label="Settings sections"
+              groups={SETTINGS_NAV_GROUPS}
+              value={section()}
+              onChange={(value) => setSection(value as Section)}
+            >
               <form id="settings-form" class="settings-form" onSubmit={submit}>
-                {section() === 'readiness' && (
+                <TabsContent value="readiness">
                   <ReadinessSection
                     autoScan={settings()!.needs_setup}
                     readiness={setupReadiness()}
@@ -696,8 +672,8 @@ function SettingsViewContent(incoming: {
                     onReadinessScan={props.onReadinessScan}
                     pollInstaller={props.installerJob === undefined}
                   />
-                )}
-                {section() === 'services' && (
+                </TabsContent>
+                <TabsContent value="services">
                   <ServicesSection
                     settings={settings()!}
                     dirty={dirty()}
@@ -720,8 +696,8 @@ function SettingsViewContent(incoming: {
                       )
                     }
                   />
-                )}
-                {section() === 'access' && (
+                </TabsContent>
+                <TabsContent value="access">
                   <Suspense fallback={<p role="status">Loading access settings…</p>}>
                     <AccessSection
                       settings={settings()!}
@@ -740,18 +716,18 @@ function SettingsViewContent(incoming: {
                       }}
                     />
                   </Suspense>
-                )}
-                {section() === 'audit' && (
+                </TabsContent>
+                <TabsContent value="audit">
                   <Suspense fallback={<p role="status">Loading audit trail…</p>}>
                     <AuditSection />
                   </Suspense>
-                )}
-                {section() === 'workspaces' && (
+                </TabsContent>
+                <TabsContent value="workspaces">
                   <Suspense fallback={<p role="status">Loading workspace settings…</p>}>
                     <WorkspaceSection settings={settings()!} update={update} />
                   </Suspense>
-                )}
-                {section() === 'sources' && (
+                </TabsContent>
+                <TabsContent value="sources">
                   <Suspense
                     fallback={
                       <SettingsSection
@@ -785,8 +761,8 @@ function SettingsViewContent(incoming: {
                       onPersistSources={persistConnectedSources}
                     />
                   </Suspense>
-                )}
-                {section() === 'embedding' && (
+                </TabsContent>
+                <TabsContent value="embedding">
                   <Suspense fallback={<p role="status">Loading embedding settings…</p>}>
                     <EmbeddingSection
                       settings={settings()!}
@@ -815,8 +791,8 @@ function SettingsViewContent(incoming: {
                       onRefreshModels={() => void refreshProviderModels('embedding')}
                     />
                   </Suspense>
-                )}
-                {section() === 'query' && (
+                </TabsContent>
+                <TabsContent value="query">
                   <Suspense fallback={<p role="status">Loading query settings…</p>}>
                     <QuerySection
                       settings={settings()!}
@@ -846,18 +822,18 @@ function SettingsViewContent(incoming: {
                       onRefreshModels={() => void refreshProviderModels('query')}
                     />
                   </Suspense>
-                )}
-                {section() === 'memory' && (
+                </TabsContent>
+                <TabsContent value="memory">
                   <Suspense fallback={<p role="status">Loading memory settings…</p>}>
                     <NativeMemorySection settings={settings()!} update={update} />
                   </Suspense>
-                )}
-                {section() === 'ingestion' && (
+                </TabsContent>
+                <TabsContent value="ingestion">
                   <Suspense fallback={<p role="status">Loading ingestion settings…</p>}>
                     <IngestionSection settings={settings()!} update={update} />
                   </Suspense>
-                )}
-                {section() === 'advanced' && (
+                </TabsContent>
+                <TabsContent value="advanced">
                   <Suspense
                     fallback={
                       <SettingsSection
@@ -875,11 +851,11 @@ function SettingsViewContent(incoming: {
                       dirty={dirty()}
                     />
                   </Suspense>
-                )}
+                </TabsContent>
               </form>
-            </div>
+            </SettingsLayout>
             {(error() || saved() || settings()!.restart_required) && (
-              <SettingsAlert
+              <Alert
                 class={cn('settings-banner', (error() || restartFailed()) && 'error')}
                 variant={error() || restartFailed() ? 'destructive' : 'default'}
                 role={error() || restartFailed() ? 'alert' : 'status'}
@@ -901,7 +877,7 @@ function SettingsViewContent(incoming: {
                   props.serviceActivity?.status !== 'running' && (
                     <AlertAction>
                       {restartFailed() && (
-                        <Button
+                        <ActionButton
                           tooltip="Retry restart"
                           variant="outline"
                           size="xs"
@@ -909,9 +885,9 @@ function SettingsViewContent(incoming: {
                           onClick={() => restartServices(settings()!)}
                         >
                           <RefreshCw size={14} aria-hidden="true" /> Retry restart
-                        </Button>
+                        </ActionButton>
                       )}
-                      <Button
+                      <ActionButton
                         tooltip="Review service health and restart requirements."
                         variant="outline"
                         size="xs"
@@ -919,15 +895,15 @@ function SettingsViewContent(incoming: {
                         onClick={() => setSection('services')}
                       >
                         Open services
-                      </Button>
+                      </ActionButton>
                     </AlertAction>
                   )}
-              </SettingsAlert>
+              </Alert>
             )}
           </main>
         </>
       </Match>
-    </Switch>
+    </SolidSwitch>
   )
 }
 type SettingsViewProps = Parameters<typeof SettingsViewContent>[0]
@@ -950,42 +926,48 @@ function SetupGuide(incoming: {
   const steps = buildSetupSteps(props.settings, props.readiness)
   const complete = steps.filter((step) => step.complete).length
   return (
-    <Card class="gap-3 p-4" role="region" aria-label="Guided setup progress">
-      <div class="setup-guide-heading">
-        <div>
-          <Text variant="overline">First launch</Text>
-          <strong>Set up Cortana safely</strong>
-          <p>
-            Review each step, then save. The guide itself never starts ingestion; recurring sync is
-            a separate validation-gated action in Services.
-          </p>
+    <Card size="sm" role="region" aria-label="Guided setup progress">
+      <CardHeader>
+        <div class="setup-guide-heading">
+          <div>
+            <Text variant="overline">First launch</Text>
+            <strong>Set up Cortana safely</strong>
+            <p>
+              Review each step, then save. The guide itself never starts ingestion; recurring sync
+              is a separate validation-gated action in Services.
+            </p>
+          </div>
+          <span>
+            {complete} of {steps.length} ready
+          </span>
         </div>
-        <span>
-          {complete} of {steps.length} ready
-        </span>
-      </div>
-      <div class="setup-steps">
-        <For each={steps}>
-          {(step, index) => (
-            <ListRow
-              as="button"
-              type="button"
-              tooltip={`${step.label}: ${step.detail}`}
-              onClick={() => props.onOpen(step.section)}
-              leading={step.complete ? <Check aria-hidden="true" /> : <span>{index() + 1}</span>}
-              description={step.detail}
-              class="w-full text-left"
-            >
-              {step.label}
-            </ListRow>
-          )}
-        </For>
-      </div>
-      <p class="setup-save-state">
-        {props.dirty
-          ? 'Unsaved setup changes are ready for review.'
-          : 'The Save changes button creates an owner-only configuration with a rollback copy.'}
-      </p>
+      </CardHeader>
+      <CardContent>
+        <div class="setup-steps">
+          <For each={steps}>
+            {(step, index) => (
+              <ListRow
+                as="button"
+                type="button"
+                tooltip={`${step.label}: ${step.detail}`}
+                onClick={() => props.onOpen(step.section)}
+                leading={step.complete ? <Check aria-hidden="true" /> : <span>{index() + 1}</span>}
+                description={step.detail}
+                class="w-full text-left"
+              >
+                {step.label}
+              </ListRow>
+            )}
+          </For>
+        </div>
+      </CardContent>
+      <CardFooter>
+        <p class="setup-save-state">
+          {props.dirty
+            ? 'Unsaved setup changes are ready for review.'
+            : 'The Save changes button creates an owner-only configuration with a rollback copy.'}
+        </p>
+      </CardFooter>
     </Card>
   )
 }
@@ -1426,21 +1408,18 @@ function ServicesSection(incoming: {
       title="Services"
       description="Inspect and control Cortana runtime services. Recurring ingestion stays absent until its dedicated, validation-gated action is confirmed."
     >
-      <Card class="service-autostart">
-        <Label class="source-enable">
-          <SettingsSwitch
+      <Card size="flush">
+        <SettingsRow
+          label="Open Cortana Desktop at login"
+          description="The window may be closed while the tray and runtime continue independently."
+        >
+          <Switch
             aria-label="Open Cortana Desktop at login"
             checked={info()?.autostart_enabled || false}
             disabled={!info() || busy() === 'autostart' || actionInFlight()}
             onChange={(checked: boolean) => void toggleAutostart(checked)}
           />
-          <span>
-            <strong>Open Cortana Desktop at login</strong>
-            <small>
-              The window may be closed while the tray and runtime continue independently.
-            </small>
-          </span>
-        </Label>
+        </SettingsRow>
       </Card>
       <div class="source-settings-toolbar">
         <span>
@@ -1451,7 +1430,7 @@ function ServicesSection(incoming: {
               : 'Checking services…'}
         </span>
         <div class="service-actions">
-          <Button
+          <ActionButton
             tooltip="Start all"
             variant="secondary"
             size="xs"
@@ -1459,8 +1438,8 @@ function ServicesSection(incoming: {
             onClick={() => void groupAction('start')}
           >
             <Play size={14} aria-hidden="true" /> Start all
-          </Button>
-          <Button
+          </ActionButton>
+          <ActionButton
             tooltip="Stop all"
             variant="secondary"
             size="xs"
@@ -1468,8 +1447,8 @@ function ServicesSection(incoming: {
             onClick={() => void groupAction('stop')}
           >
             <CircleStop size={14} aria-hidden="true" /> Stop all
-          </Button>
-          <Button
+          </ActionButton>
+          <ActionButton
             tooltip="Restart all"
             variant="secondary"
             size="xs"
@@ -1477,8 +1456,8 @@ function ServicesSection(incoming: {
             onClick={() => void groupAction('restart')}
           >
             <RefreshCw size={14} aria-hidden="true" /> Restart all
-          </Button>
-          <Button
+          </ActionButton>
+          <ActionButton
             tooltip="Refresh"
             variant="secondary"
             size="xs"
@@ -1486,9 +1465,9 @@ function ServicesSection(incoming: {
             onClick={() => void refresh()}
           >
             <RefreshCw size={14} aria-hidden="true" /> Refresh
-          </Button>
+          </ActionButton>
           {needsCoreInstall() && (
-            <Button
+            <ActionButton
               tooltip="Install core services"
               variant="default"
               size="sm"
@@ -1501,10 +1480,10 @@ function ServicesSection(incoming: {
                 <Download size={14} aria-hidden="true" />
               )}{' '}
               Install core services
-            </Button>
+            </ActionButton>
           )}
           {syncScheduleNeedsApply() && (
-            <Button
+            <ActionButton
               tooltip={'Install the sync connector and review its service status.'}
               variant="secondary"
               size="xs"
@@ -1519,12 +1498,12 @@ function ServicesSection(incoming: {
               {scheduleApplyPending() && !needsSyncInstall()
                 ? 'Apply recurring sync schedule'
                 : 'Enable recurring sync'}
-            </Button>
+            </ActionButton>
           )}
         </div>
       </div>
       {(error() || scheduleError() || actionMessage()) && (
-        <SettingsAlert
+        <Alert
           class="safety-note"
           variant={
             error() || scheduleError() || props.serviceActivity?.status === 'failed'
@@ -1538,55 +1517,57 @@ function ServicesSection(incoming: {
           }
         >
           <AlertDescription>{error() || scheduleError() || actionMessage()}</AlertDescription>
-        </SettingsAlert>
+        </Alert>
       )}
       {scheduleDraft() && (
-        <Card class="service-schedule">
-          <div>
-            <strong>Background schedule</strong>
-            <p>
+        <Card size="sm">
+          <CardHeader>
+            <CardTitle>Background schedule</CardTitle>
+            <CardDescription>
               These intervals apply only when you explicitly install recurring sync. Saving them
               never starts a service.
-            </p>
-          </div>
-          <SettingsFieldGroup class="form-grid compact">
-            <NumberField
-              label="Sync interval (seconds)"
-              hint="1 minute to 7 days"
-              value={scheduleDraft()!.sync_interval_seconds}
-              min={60}
-              max={604800}
-              onChange={(sync_interval_seconds) =>
-                setScheduleDraft((current) =>
-                  current
-                    ? {
-                        ...current,
-                        sync_interval_seconds,
-                      }
-                    : current
-                )
-              }
-            />
-            <NumberField
-              label="Backup interval (seconds)"
-              hint="5 minutes to 30 days"
-              value={scheduleDraft()!.backup_interval_seconds}
-              min={300}
-              max={2592000}
-              onChange={(backup_interval_seconds) =>
-                setScheduleDraft((current) =>
-                  current
-                    ? {
-                        ...current,
-                        backup_interval_seconds,
-                      }
-                    : current
-                )
-              }
-            />
-          </SettingsFieldGroup>
-          <div class="service-actions">
-            <Button
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FieldGroup columns={2}>
+              <NumberField
+                label="Sync interval (seconds)"
+                hint="1 minute to 7 days"
+                value={scheduleDraft()!.sync_interval_seconds}
+                min={60}
+                max={604800}
+                onChange={(sync_interval_seconds) =>
+                  setScheduleDraft((current) =>
+                    current
+                      ? {
+                          ...current,
+                          sync_interval_seconds,
+                        }
+                      : current
+                  )
+                }
+              />
+              <NumberField
+                label="Backup interval (seconds)"
+                hint="5 minutes to 30 days"
+                value={scheduleDraft()!.backup_interval_seconds}
+                min={300}
+                max={2592000}
+                onChange={(backup_interval_seconds) =>
+                  setScheduleDraft((current) =>
+                    current
+                      ? {
+                          ...current,
+                          backup_interval_seconds,
+                        }
+                      : current
+                  )
+                }
+              />
+            </FieldGroup>
+          </CardContent>
+          <CardFooter>
+            <ActionButton
               tooltip="Save schedule"
               variant="secondary"
               size="xs"
@@ -1605,20 +1586,20 @@ function ServicesSection(incoming: {
                 <Save size={14} aria-hidden="true" />
               )}{' '}
               Save schedule
-            </Button>
-          </div>
+            </ActionButton>
+          </CardFooter>
         </Card>
       )}
-      <div class="portable-settings">
-        <div>
-          <strong>Database recovery</strong>
-          <p>
+      <Card size="sm">
+        <CardHeader>
+          <CardTitle>Database recovery</CardTitle>
+          <CardDescription>
             Export a verified SQLite snapshot or restore one into the active index. Restore is
             blocked while any Cortana service is running and never starts recurring sync.
-          </p>
-        </div>
-        <div class="service-actions">
-          <Button
+          </CardDescription>
+        </CardHeader>
+        <CardFooter class="flex-wrap gap-2">
+          <ActionButton
             variant="secondary"
             size="xs"
             disabled={actionInFlight() || props.dirty}
@@ -1631,8 +1612,8 @@ function ServicesSection(incoming: {
               <Download size={14} aria-hidden="true" />
             )}{' '}
             Backup database
-          </Button>
-          <Button
+          </ActionButton>
+          <ActionButton
             variant="secondary"
             size="xs"
             disabled={
@@ -1658,11 +1639,11 @@ function ServicesSection(incoming: {
               <Upload size={14} aria-hidden="true" />
             )}{' '}
             Restore database
-          </Button>
-        </div>
-      </div>
+          </ActionButton>
+        </CardFooter>
+      </Card>
       {(databaseResult() || databaseError()) && (
-        <SettingsAlert
+        <Alert
           class="safety-note"
           variant={databaseError() ? 'destructive' : 'default'}
           role={databaseError() ? 'alert' : 'status'}
@@ -1673,40 +1654,44 @@ function ServicesSection(incoming: {
                 `${databaseResult()?.action === 'backup' ? 'Verified backup exported' : 'Database restored'} to ${databaseResult()?.path} (${databaseResult()?.bytes} bytes).`}
             </span>
           </AlertDescription>
-        </SettingsAlert>
+        </Alert>
       )}
       <div class="service-grid">
         {report()?.services.map((service) => {
           const running = service.loaded && service.state === 'running'
           const failed = service.last_exit_status !== null && service.last_exit_status !== 0
           return (
-            <SettingsCard class="service-card">
-              <header>
-                <i class={cn('service-state', running ? 'ready' : failed && 'failed')} />
-                <div>
-                  <strong>{service.name[0].toUpperCase() + service.name.slice(1)}</strong>
-                  <small>{service.label}</small>
-                </div>
-              </header>
-              <p>
-                {!service.installed
-                  ? 'Not installed'
-                  : service.loaded
-                    ? service.state || 'Loaded'
-                    : 'Installed, not loaded'}
-                {service.pid ? ` · PID ${service.pid}` : ''}
-                {failed ? ` · last exit ${service.last_exit_status}` : ''}
-              </p>
+            <Card size="sm" class="min-w-0">
+              <CardHeader>
+                <CardTitle>{service.name[0].toUpperCase() + service.name.slice(1)}</CardTitle>
+                <CardDescription>{service.label}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <StatusChip
+                  tone={running ? 'success' : failed ? 'danger' : 'neutral'}
+                  label={`${
+                    !service.installed
+                      ? 'Not installed'
+                      : service.loaded
+                        ? service.state || 'Loaded'
+                        : 'Installed, not loaded'
+                  }${service.pid ? ` · PID ${service.pid}` : ''}${
+                    failed ? ` · last exit ${service.last_exit_status}` : ''
+                  }`}
+                />
+              </CardContent>
               <Show
                 when={service.installed}
                 fallback={
                   // A bare "Not installed" is a dead end: name the control that
                   // installs this service and why it is not installed yet.
-                  <p class="service-install-hint">{installHint(service)}</p>
+                  <CardContent>
+                    <p class="service-install-hint">{installHint(service)}</p>
+                  </CardContent>
                 }
               >
-                <div class="service-actions">
-                  <Button
+                <CardFooter class="flex-wrap gap-2">
+                  <ActionButton
                     tooltip="Start"
                     variant="secondary"
                     size="xs"
@@ -1714,8 +1699,8 @@ function ServicesSection(incoming: {
                     onClick={() => void serviceAction(service, 'start')}
                   >
                     <Play size={14} aria-hidden="true" /> Start
-                  </Button>
-                  <Button
+                  </ActionButton>
+                  <ActionButton
                     tooltip="Stop"
                     variant="secondary"
                     size="xs"
@@ -1723,8 +1708,8 @@ function ServicesSection(incoming: {
                     onClick={() => void serviceAction(service, 'stop')}
                   >
                     <CircleStop size={14} aria-hidden="true" /> Stop
-                  </Button>
-                  <Button
+                  </ActionButton>
+                  <ActionButton
                     tooltip="Restart"
                     variant="secondary"
                     size="xs"
@@ -1732,10 +1717,10 @@ function ServicesSection(incoming: {
                     onClick={() => void serviceAction(service, 'restart')}
                   >
                     <RefreshCw size={14} aria-hidden="true" /> Restart
-                  </Button>
-                </div>
+                  </ActionButton>
+                </CardFooter>
               </Show>
-            </SettingsCard>
+            </Card>
           )
         })}
       </div>
@@ -1957,7 +1942,7 @@ function ReadinessSection(incoming: {
       description="A read-only scan checks local tools and Cortana's production gates. The first Connector environment install needs explicit approval here; previously installed environments are maintained automatically after Desktop updates. This scan never starts a connector, installs a schedule, or writes indexed data."
     >
       <div class="readiness-actions">
-        <Button
+        <ActionButton
           tooltip={'Check native tools, services, and configuration readiness.'}
           variant="secondary"
           size="sm"
@@ -1975,7 +1960,7 @@ function ReadinessSection(incoming: {
             : props.readiness
               ? 'Run again'
               : 'Run readiness scan'}
-        </Button>
+        </ActionButton>
         {props.readiness && (
           <span>
             Last checked{' '}
@@ -1984,103 +1969,120 @@ function ReadinessSection(incoming: {
         )}
       </div>
       {(error() || readinessActivityError()) && (
-        <SettingsAlert class="safety-note" variant="destructive" role="alert">
+        <Alert class="safety-note" variant="destructive" role="alert">
           <AlertDescription>
             <span>{error() || readinessActivityError()}</span>
           </AlertDescription>
-        </SettingsAlert>
+        </Alert>
       )}
       {migrationNotice() && (
-        <SettingsAlert class="safety-note" role="status">
+        <Alert class="safety-note" role="status">
           <AlertDescription>
             <span>{migrationNotice()}</span>
           </AlertDescription>
-        </SettingsAlert>
+        </Alert>
       )}
       {props.readiness && (
         <>
-          <SettingsCard class="flex-row items-start gap-3 p-4">
-            <StatusGlyph passed={props.readiness.tools_ready} />
-            <div data-readiness-copy="" class="flex min-w-0 flex-1 flex-col gap-1">
-              <strong>
-                {props.readiness.tools_ready ? 'Local tools ready' : 'Setup required'}
-              </strong>
-              <span>
-                {props.readiness.tools.filter((tool) => tool.required && !tool.available).length}{' '}
-                required components missing
-              </span>
-            </div>
-          </SettingsCard>
+          <Card size="sm">
+            <CardContent>
+              <div class="flex items-start gap-3">
+                <StatusGlyph passed={props.readiness.tools_ready} />
+                <div data-readiness-copy="" class="flex min-w-0 flex-1 flex-col gap-1">
+                  <strong>
+                    {props.readiness.tools_ready ? 'Local tools ready' : 'Setup required'}
+                  </strong>
+                  <span>
+                    {
+                      props.readiness.tools.filter((tool) => tool.required && !tool.available)
+                        .length
+                    }{' '}
+                    required components missing
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
           <div class="readiness-list">
             <For each={props.readiness.tools}>
               {(tool) => (
-                <SettingsCard role="article" class="flex-row flex-wrap items-start gap-3 p-4">
-                  <StatusGlyph passed={tool.available} optional={!tool.required} />
-                  <div data-readiness-copy="" class="flex min-w-0 flex-1 flex-col gap-1">
-                    <strong>
-                      {tool.label} {!tool.required && <small>optional</small>}
-                    </strong>
-                    <span>{tool.version || tool.detail}</span>
-                    {tool.path && <code>{tool.path}</code>}
-                  </div>
-                  {!tool.available && tool.install_supported && (
-                    <Button
-                      tooltip={`Install ${tool.label} using the managed Desktop installer.`}
-                      variant="secondary"
-                      size="xs"
-                      type="button"
-                      disabled={
-                        props.job?.status === 'running' || props.job?.status === 'cancelling'
-                      }
-                      onClick={() => void install(tool.id, tool.label)}
-                    >
-                      Install
-                    </Button>
-                  )}
-                </SettingsCard>
+                <Card size="sm" role="article">
+                  <CardContent>
+                    <div class="flex flex-wrap items-start gap-3">
+                      <StatusGlyph passed={tool.available} optional={!tool.required} />
+                      <div data-readiness-copy="" class="flex min-w-0 flex-1 flex-col gap-1">
+                        <strong>
+                          {tool.label} {!tool.required && <small>optional</small>}
+                        </strong>
+                        <span>{tool.version || tool.detail}</span>
+                        {tool.path && <code>{tool.path}</code>}
+                      </div>
+                      {!tool.available && tool.install_supported && (
+                        <ActionButton
+                          tooltip={`Install ${tool.label} using the managed Desktop installer.`}
+                          variant="secondary"
+                          size="xs"
+                          type="button"
+                          disabled={
+                            props.job?.status === 'running' || props.job?.status === 'cancelling'
+                          }
+                          onClick={() => void install(tool.id, tool.label)}
+                        >
+                          Install
+                        </ActionButton>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               )}
             </For>
           </div>
           <div class="core-readiness">
             <h3>Production gates</h3>
             {props.readiness.core_error && (
-              <SettingsAlert variant="warning" role="status">
+              <Alert variant="warning" role="status">
                 <AlertDescription>{props.readiness.core_error}</AlertDescription>
-              </SettingsAlert>
+              </Alert>
             )}
             {props.readiness.core?.checks.map((check) => (
-              <SettingsCard role="article" class="flex-row flex-wrap items-start gap-3 p-4">
-                <StatusGlyph passed={check.passed} />
-                <div data-readiness-copy="" class="flex min-w-0 flex-1 flex-col gap-1">
-                  <strong>{check.name.replaceAll('-', ' ')}</strong>
-                  <span>{check.detail}</span>
-                </div>
-              </SettingsCard>
+              <Card size="sm" role="article">
+                <CardContent>
+                  <div class="flex flex-wrap items-start gap-3">
+                    <StatusGlyph passed={check.passed} />
+                    <div data-readiness-copy="" class="flex min-w-0 flex-1 flex-col gap-1">
+                      <strong>{check.name.replaceAll('-', ' ')}</strong>
+                      <span>{check.detail}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
             {embeddingGenerationMismatch() && (
-              <SettingsAlert class="safety-note" variant="warning" role="status">
+              <Alert class="safety-note" variant="warning" role="status">
                 <AlertDescription>
                   <span>
                     The index uses a different embedding generation. Adopt it only after confirming
                     that the vectors are interchangeable; otherwise rebuild or import a new
                     generation.
                   </span>
-                  <Button
+                </AlertDescription>
+                <AlertAction>
+                  <ActionButton
                     tooltip="Adopt the stored embedding generation after confirming that its vectors are interchangeable."
-                    variant="secondary"
-                    size="sm"
+                    variant="outline"
+                    size="xs"
                     type="button"
                     disabled={readinessInFlight()}
                     onClick={() => void migrateGeneration()}
                   >
                     {migratingGeneration() ? 'Adopting generation…' : 'Adopt stored generation'}
-                  </Button>
-                </AlertDescription>
-              </SettingsAlert>
+                  </ActionButton>
+                </AlertAction>
+              </Alert>
             )}
           </div>
           {props.readiness.core && !props.readiness.core.passed && (
-            <SettingsAlert class="safety-note" role="status">
+            <Alert class="safety-note" role="status">
               <AlertDescription>
                 <span>
                   Readiness is blocked by:{' '}
@@ -2092,61 +2094,71 @@ function ReadinessSection(incoming: {
                   </strong>
                   . Review the failed check details above before retrying.
                 </span>
-                {props.onOpenServices &&
-                  props.readiness.core.checks.some(
-                    (check) =>
-                      !check.passed &&
-                      /api|service|server|embedding|backup/i.test(`${check.name} ${check.detail}`)
-                  ) && (
-                    <Button
+              </AlertDescription>
+              {props.onOpenServices &&
+                props.readiness.core.checks.some(
+                  (check) =>
+                    !check.passed &&
+                    /api|service|server|embedding|backup/i.test(`${check.name} ${check.detail}`)
+                ) && (
+                  <AlertAction>
+                    <ActionButton
                       tooltip="Check Services"
-                      variant="secondary"
-                      size="sm"
+                      variant="outline"
+                      size="xs"
                       onClick={props.onOpenServices}
                     >
                       Check Services
-                    </Button>
-                  )}
-              </AlertDescription>
-            </SettingsAlert>
+                    </ActionButton>
+                  </AlertAction>
+                )}
+            </Alert>
           )}
         </>
       )}
       {props.job && (
-        <SettingsCard class="installer-job p-4" role="status">
-          <div>
-            {['running', 'cancelling'].includes(props.job.status) ? (
-              <Spinner size="md" label={false} />
-            ) : (
-              <StatusGlyph passed={props.job.status === 'succeeded'} />
-            )}
-            <span class="installer-job-text">
-              <strong>{props.job.summary}</strong>
-              <small>Status: {props.job.status}</small>
-            </span>
-            {props.job!.status === 'running' && (
-              <Button
-                tooltip="Cancel this operation and return to the previous view."
-                variant="outline"
-                size="xs"
-                onClick={() => void cancel()}
-              >
-                Cancel
-              </Button>
-            )}
-            {props.job!.retryable && (
-              <Button
-                tooltip="Retry the last failed request."
-                variant="outline"
-                size="xs"
-                onClick={() => void install(props.job!.tool, props.job!.tool)}
-              >
-                Retry
-              </Button>
-            )}
-          </div>
-          {props.job!.log && <pre>{props.job!.log}</pre>}
-        </SettingsCard>
+        <Card size="sm" class="installer-job" role="status">
+          <CardContent>
+            <div class="installer-job-row">
+              {['running', 'cancelling'].includes(props.job.status) ? (
+                <Spinner size="md" label={false} />
+              ) : (
+                <StatusGlyph passed={props.job.status === 'succeeded'} />
+              )}
+              <span class="installer-job-text">
+                <strong>{props.job.summary}</strong>
+                <small>Status: {props.job.status}</small>
+              </span>
+              {props.job!.status === 'running' && (
+                <ActionButton
+                  tooltip="Cancel this operation and return to the previous view."
+                  variant="outline"
+                  size="xs"
+                  onClick={() => void cancel()}
+                >
+                  Cancel
+                </ActionButton>
+              )}
+              {props.job!.retryable && (
+                <ActionButton
+                  tooltip="Retry the last failed request."
+                  variant="outline"
+                  size="xs"
+                  onClick={() => void install(props.job!.tool, props.job!.tool)}
+                >
+                  Retry
+                </ActionButton>
+              )}
+            </div>
+          </CardContent>
+          {props.job!.log && (
+            <CardContent>
+              <ScrollArea class="max-h-48" aria-label="Installer log">
+                <CodeBlock code={props.job!.log} title="Installer log" complete />
+              </ScrollArea>
+            </CardContent>
+          )}
+        </Card>
       )}
     </SettingsSection>
   )

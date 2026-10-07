@@ -1,8 +1,9 @@
-import { AlertDescription } from '@adea-ai/ui/components/ui/alert'
+import { AlertDescription, Alert } from '@adea-ai/ui/components/ui/alert'
 
 import type { DesktopSettings } from '../../types'
-import { NumberField, SettingsSection, type SettingsSectionProps } from './SettingsLayout'
-import { SettingsAlert, SettingsFieldGroup } from './SettingsSurface'
+import { type SettingsSectionProps } from './settingsSectionProps'
+import { NumberField, FieldGroup } from '@adea-ai/ui/components/ui/field'
+import { SettingsSection } from '@adea-ai/ui/components/composites/settings'
 
 export function IngestionSection(incoming: SettingsSectionProps) {
   const props = incoming
@@ -20,7 +21,7 @@ export function IngestionSection(incoming: SettingsSectionProps) {
       title="Ingestion safety budgets"
       description="These hard limits protect the machine even when a connector returns more data than expected. Scheduled sync remains opt-in."
     >
-      <SettingsFieldGroup class="form-grid compact">
+      <FieldGroup columns={2}>
         <NumberField
           label="Documents per source"
           value={props.settings.ingestion.max_documents_per_source}
@@ -88,15 +89,15 @@ export function IngestionSection(incoming: SettingsSectionProps) {
             })
           }
         />
-      </SettingsFieldGroup>
-      <SettingsAlert class="safety-note">
+      </FieldGroup>
+      <Alert class="safety-note">
         <AlertDescription>
           <span>
             Saving these values does not start a sync. Source authorization and bounded sync
             controls are managed separately.
           </span>
         </AlertDescription>
-      </SettingsAlert>
+      </Alert>
     </SettingsSection>
   )
 }

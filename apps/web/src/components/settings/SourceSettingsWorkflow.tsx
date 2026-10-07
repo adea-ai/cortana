@@ -6,7 +6,7 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from '@adea-ai/ui/components/ui/accordion'
-import { AlertAction, AlertDescription } from '@adea-ai/ui/components/ui/alert'
+import { AlertAction, AlertDescription, Alert } from '@adea-ai/ui/components/ui/alert'
 import { Label } from '@adea-ai/ui/components/ui/label'
 import { EntityIcon } from '@adea-ai/ui/components/ui/entity-icon'
 import { Badge } from '@adea-ai/ui/components/ui/badge'
@@ -70,31 +70,23 @@ import type {
   SourceSettings,
 } from '../../types'
 import { useSettingsConfirm } from './SettingsConfirm'
-import { Field, SettingsSection, type SettingsSectionProps } from './SettingsLayout'
-import {
-  SettingsAccordion,
-  SettingsAccordionContent,
-  SettingsAccordionItem,
-  SettingsAccordionTrigger,
-  SettingsAlert,
-  SettingsButton as Button,
-  SettingsCard,
-  SettingsCheckbox,
-  SettingsFieldGroup,
-  SettingsInput as Input,
-  SettingsRadio,
-  SettingsRadioGroup,
-  SettingsSelect as Select,
-  SettingsSwitch,
-  SettingsTabs,
-  SettingsTabsContent,
-  SettingsTabsList,
-  SettingsTabsTrigger,
-  SettingsTextarea as Textarea,
-} from './SettingsSurface'
+import { type SettingsSectionProps } from './settingsSectionProps'
 import { StatusGlyph } from './SettingsWorkflowShared'
 import { applyConfirmed, useDesktopForeground } from './SettingsWorkflowUtils'
 import { Text } from '@adea-ai/ui/components/ui/typography'
+import { FormField, FieldGroup } from '@adea-ai/ui/components/ui/field'
+import { SettingsSection } from '@adea-ai/ui/components/composites/settings'
+import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
+import { Card, CardContent } from '@adea-ai/ui/components/ui/card'
+import { CodeBlock } from '@adea-ai/ui/components/ui/code-block'
+import { ScrollArea } from '@adea-ai/ui/components/ui/scroll-area'
+import { Checkbox } from '@adea-ai/ui/components/ui/checkbox'
+import { Input } from '@adea-ai/ui/components/ui/input'
+import { RadioGroupItem, RadioGroup } from '@adea-ai/ui/components/ui/radio-group'
+import { NativeSelect } from '@adea-ai/ui/components/ui/native-select'
+import { Switch } from '@adea-ai/ui/components/ui/switch'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@adea-ai/ui/components/ui/tabs'
+import { Textarea } from '@adea-ai/ui/components/ui/textarea'
 const SOURCE_KINDS: Array<{
   value: SourceKind
   label: string
@@ -968,7 +960,7 @@ export function SourcesSection(
               {props.settings.sources.length} configured
             </span>
             <DialogTrigger
-              as={Button}
+              as={ActionButton}
               tooltip="Choose a source to add to this workspace"
               variant="secondary"
               type="button"
@@ -978,7 +970,7 @@ export function SourcesSection(
             </DialogTrigger>
           </div>
 
-          <DialogContent class="source-type-dialog">
+          <DialogContent size="lg">
             <DialogHeader>
               <DialogTitle>Choose a source type</DialogTitle>
               <DialogDescription>
@@ -990,30 +982,33 @@ export function SourcesSection(
                 No content is indexed until you run validation or sync.
               </DialogDescription>
             </DialogHeader>
-            <SettingsRadioGroup
-              class="source-type-options"
+            <RadioGroup
+              class="sm:grid-cols-2"
               aria-label="Source type"
               value={sourceType()}
               onChange={(value) => setSourceType(value as SourceKind)}
             >
               <For each={SOURCE_KINDS}>
                 {(kind) => (
-                  <Label class="source-type-option">
-                    <SettingsRadio value={kind.value} />
-                    <EntityIcon
-                      name={kind.label}
-                      icon={<SourceIcon kind={kind.value} />}
-                      tone="neutral"
-                      monochrome
-                      aria-hidden="true"
-                    />
-                    <span>{kind.label}</span>
-                  </Label>
+                  <RadioGroupItem
+                    variant="card"
+                    value={kind.value}
+                    label={kind.label}
+                    media={
+                      <EntityIcon
+                        name={kind.label}
+                        icon={<SourceIcon kind={kind.value} />}
+                        tone="neutral"
+                        monochrome
+                        aria-hidden="true"
+                      />
+                    }
+                  />
                 )}
               </For>
-            </SettingsRadioGroup>
+            </RadioGroup>
             <DialogFooter>
-              <Button
+              <ActionButton
                 tooltip="Cancel this operation and return to the previous view."
                 variant="secondary"
                 size="sm"
@@ -1021,10 +1016,10 @@ export function SourcesSection(
                 onClick={() => setSourceTypeOpen(false)}
               >
                 Cancel
-              </Button>
+              </ActionButton>
               {sourceType() === 'filesystem' ? (
                 <>
-                  <Button
+                  <ActionButton
                     tooltip="Choose file"
                     variant="secondary"
                     size="sm"
@@ -1033,8 +1028,8 @@ export function SourcesSection(
                   >
                     <File size={15} aria-hidden="true" />
                     Choose file
-                  </Button>
-                  <Button
+                  </ActionButton>
+                  <ActionButton
                     tooltip="Choose folder"
                     variant="default"
                     size="sm"
@@ -1042,10 +1037,10 @@ export function SourcesSection(
                     onClick={() => void addFilesystemSource('directory')}
                   >
                     <FolderOpen size={15} aria-hidden="true" /> Choose folder
-                  </Button>
+                  </ActionButton>
                 </>
               ) : (
-                <Button
+                <ActionButton
                   tooltip={`Connect ${SOURCE_KINDS.find((kind) => kind.value === sourceType())?.label || 'source'} to the selected workspace.`}
                   variant="default"
                   size="sm"
@@ -1056,14 +1051,14 @@ export function SourcesSection(
                   {connectingSource() ? <Spinner size="md" label={false} /> : null}
                   {sourceType() === 'buzz' ? 'Add' : 'Connect'}{' '}
                   {SOURCE_KINDS.find((kind) => kind.value === sourceType())?.label || 'source'}
-                </Button>
+                </ActionButton>
               )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        <SettingsTabs value={sourceWorkspace()} onChange={setSourceWorkspace}>
-          <SettingsTabsList
+        <Tabs value={sourceWorkspace()} onChange={setSourceWorkspace}>
+          <TabsList
             class="source-workspace-tabs"
             aria-label="Source workspace"
             appearance="underline"
@@ -1075,28 +1070,28 @@ export function SourcesSection(
                   (source) => source.project === workspace.id
                 ).length
                 return (
-                  <SettingsTabsTrigger value={workspace.id}>
+                  <TabsTrigger value={workspace.id}>
                     <WorkspaceLogo workspace={workspace} size="small" />
                     <span>{workspace.name}</span>
                     <Badge variant="secondary" size="sm">
                       {count}
                     </Badge>
-                  </SettingsTabsTrigger>
+                  </TabsTrigger>
                 )
               }}
             </For>
             {unassignedSourceCount() > 0 && (
-              <SettingsTabsTrigger value={UNASSIGNED_WORKSPACE}>
+              <TabsTrigger value={UNASSIGNED_WORKSPACE}>
                 <AlertTriangle size={15} aria-hidden="true" />
                 <span>Needs assignment</span>
                 <Badge variant="secondary" size="sm">
                   {unassignedSourceCount()}
                 </Badge>
-              </SettingsTabsTrigger>
+              </TabsTrigger>
             )}
-          </SettingsTabsList>
+          </TabsList>
 
-          <SettingsTabsContent value={sourceWorkspace()}>
+          <TabsContent value={sourceWorkspace()}>
             <p class="source-workspace-caption">
               {selectedWorkspace()
                 ? `Showing sources assigned to ${selectedWorkspace()!.name}.`
@@ -1104,13 +1099,13 @@ export function SourcesSection(
             </p>
 
             {activeJob() && (
-              <SettingsAlert class="safety-note" role="status">
+              <Alert class="safety-note" role="status">
                 <AlertDescription>
                   Settings for {activeJob()!.source} are locked while its operation is running.
                   Other sources remain configurable, but source actions still wait until this
                   operation finishes.
                 </AlertDescription>
-              </SettingsAlert>
+              </Alert>
             )}
 
             <div class="source-settings-list">
@@ -1157,949 +1152,520 @@ export function SourcesSection(
                           : source().project === sourceWorkspace()
                       }
                     >
-                      <SettingsCard class="source-settings-card">
-                        <header>
-                          <div class="source-enable">
-                            <EntityIcon
-                              name={`${sourceLabel()} connector`}
-                              icon={<SourceIcon kind={source().kind} />}
-                              tone="neutral"
-                              monochrome
-                            />
-                            <span>
-                              <strong>
-                                {sourceDisplayName(source().kind, source().name || 'New source')}
-                              </strong>
-                              <small>{sourceSubtitle(source())}</small>
-                              <Show when={accessState(source())}>
-                                {(state) => (
-                                  <small class={`source-access source-access--${state().tone}`}>
-                                    {state().text}
-                                  </small>
-                                )}
-                              </Show>
-                            </span>
-                          </div>
-                          {!workspaceAssigned() && (
-                            <Label class="source-workspace-picker">
-                              <span>Assign workspace</span>
-                              <Select
-                                aria-label={`Workspace for ${source().name}`}
-                                value={source().project ?? ''}
-                                disabled={sourceLocked()}
-                                onChange={(event) =>
-                                  changeSource(index, {
-                                    project: event.target.value,
-                                  })
-                                }
-                                options={[
-                                  ...(source().project
-                                    ? [
-                                        {
-                                          value: source().project,
-                                          label: 'Unassigned: ' + source().project,
-                                        },
-                                      ]
-                                    : [{ value: '', label: 'Choose a workspace', disabled: true }]),
-                                  ...props.settings.workspaces.map((workspace) => ({
-                                    value: workspace.id,
-                                    label: workspace.name,
-                                  })),
-                                ]}
+                      <Card size="sm">
+                        <CardContent>
+                          <header class="source-settings-card-header">
+                            <div class="source-enable">
+                              <EntityIcon
+                                name={`${sourceLabel()} connector`}
+                                icon={<SourceIcon kind={source().kind} />}
+                                tone="neutral"
+                                monochrome
                               />
-                            </Label>
-                          )}
-                          <div class="source-card-actions">
-                            <div class="source-enabled-switch">
-                              <span>{source().enabled ? 'Enabled' : 'Disabled'}</span>
-                              <SettingsSwitch
-                                aria-label={`Enable ${source().name}`}
-                                checked={source().enabled}
-                                disabled={
-                                  sourceLocked() || (!workspaceAssigned() && !source().enabled)
-                                }
-                                title={
-                                  !workspaceAssigned()
-                                    ? 'Assign this source to a workspace before enabling it'
-                                    : undefined
-                                }
-                                onChange={(checked: boolean) =>
-                                  changeSource(index, {
-                                    enabled: checked,
-                                  })
-                                }
-                              />
+                              <span>
+                                <strong>
+                                  {sourceDisplayName(source().kind, source().name || 'New source')}
+                                </strong>
+                                <small>{sourceSubtitle(source())}</small>
+                                <Show when={accessState(source())}>
+                                  {(state) => (
+                                    <small class={`source-access source-access--${state().tone}`}>
+                                      {state().text}
+                                    </small>
+                                  )}
+                                </Show>
+                              </span>
                             </div>
-                            {hasBrowserSetup(source().kind) && (
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                type="button"
-                                aria-label={setupActionLabel(source().kind)}
-                                disabled={actionsBlocked()}
-                                tooltip={actionsReason() ?? setupActionLabel(source().kind)}
-                                onClick={() => void openSetup(source())}
-                              >
-                                <ExternalLink size={14} aria-hidden="true" />
-                              </Button>
+                            {!workspaceAssigned() && (
+                              <div class="source-workspace-picker">
+                                <Label for={`source-workspace-${index}`}>Assign workspace</Label>
+                                <NativeSelect
+                                  id={`source-workspace-${index}`}
+                                  class="w-33"
+                                  aria-label={`Workspace for ${source().name}`}
+                                  value={source().project ?? ''}
+                                  disabled={sourceLocked()}
+                                  onChange={(event) =>
+                                    changeSource(index, {
+                                      project: event.target.value,
+                                    })
+                                  }
+                                  options={[
+                                    ...(source().project
+                                      ? [
+                                          {
+                                            value: source().project,
+                                            label: 'Unassigned: ' + source().project,
+                                          },
+                                        ]
+                                      : [
+                                          {
+                                            value: '',
+                                            label: 'Choose a workspace',
+                                            disabled: true,
+                                          },
+                                        ]),
+                                    ...props.settings.workspaces.map((workspace) => ({
+                                      value: workspace.id,
+                                      label: workspace.name,
+                                    })),
+                                  ]}
+                                />
+                              </div>
                             )}
-                            {(isGoogleSource(source().kind) ||
-                              source().kind === 'github' ||
-                              source().kind === 'discord' ||
-                              source().kind === 'slack') &&
-                              canAuthorizeSource(source()) && (
-                                <Button
+                            <div class="source-card-actions">
+                              <div class="source-enabled-switch">
+                                <span>{source().enabled ? 'Enabled' : 'Disabled'}</span>
+                                <Switch
+                                  aria-label={`Enable ${source().name}`}
+                                  checked={source().enabled}
+                                  disabled={
+                                    sourceLocked() || (!workspaceAssigned() && !source().enabled)
+                                  }
+                                  title={
+                                    !workspaceAssigned()
+                                      ? 'Assign this source to a workspace before enabling it'
+                                      : undefined
+                                  }
+                                  onChange={(checked: boolean) =>
+                                    changeSource(index, {
+                                      enabled: checked,
+                                    })
+                                  }
+                                />
+                              </div>
+                              {hasBrowserSetup(source().kind) && (
+                                <ActionButton
                                   variant="ghost"
                                   size="icon-sm"
                                   type="button"
-                                  aria-label="Authorize"
+                                  aria-label={setupActionLabel(source().kind)}
                                   disabled={actionsBlocked()}
-                                  tooltip={actionsReason() ?? 'Authorize'}
-                                  onClick={() => void authorizeSource(source())}
+                                  tooltip={actionsReason() ?? setupActionLabel(source().kind)}
+                                  onClick={() => void openSetup(source())}
                                 >
-                                  <KeyRound size={14} aria-hidden="true" />
-                                </Button>
+                                  <ExternalLink size={14} aria-hidden="true" />
+                                </ActionButton>
                               )}
-                            {workspaceAssigned() && (
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                type="button"
-                                aria-label="Test connection"
-                                disabled={actionsBlocked()}
-                                tooltip={actionsReason() ?? 'Test connection'}
-                                onClick={() => void checkSourceConnection(source())}
-                              >
-                                <ShieldCheck size={14} aria-hidden="true" />
-                              </Button>
-                            )}
-                            {source().enabled && workspaceAssigned() && (
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                type="button"
-                                aria-label="Initial sync"
-                                disabled={actionsBlocked()}
-                                tooltip={actionsReason() ?? 'Initial sync'}
-                                onClick={() => openInitialSync(source())}
-                              >
-                                <Zap size={14} aria-hidden="true" />
-                              </Button>
-                            )}
-                            <Button
-                              variant="destructive"
-                              size="icon-sm"
-                              type="button"
-                              aria-label={`Remove ${source().name}`}
-                              tooltip={`Remove ${source().name}`}
-                              disabled={sourceLocked()}
-                              onClick={() => {
-                                const remove = () => {
-                                  if (initialSync()?.source === source().name) setInitialSync(null)
-                                  props.update((current) => ({
-                                    ...current,
-                                    sources: current.sources.filter(
-                                      (_, position) => position !== index
-                                    ),
-                                  }))
-                                }
-                                applyConfirmed(
-                                  confirm(
-                                    `Remove ${source().name} from configuration? Existing indexed data is not deleted.`
-                                  ),
-                                  remove
-                                )
-                              }}
-                            >
-                              <Trash2 size={14} aria-hidden="true" />
-                            </Button>
-                          </div>
-                        </header>
-
-                        {!source().editable && (
-                          <SettingsAlert class="mt-3" role="note">
-                            <AlertDescription>
-                              This external command is managed in the TOML file. Desktop can retain,
-                              disable, or remove it, but cannot edit or create shell commands.
-                            </AlertDescription>
-                          </SettingsAlert>
-                        )}
-
-                        {!workspaceAssigned() && (
-                          <SettingsAlert class="mt-3" variant="warning" role="alert">
-                            <AlertTriangle size={15} aria-hidden="true" />
-                            <AlertDescription>
-                              This source uses the legacy{' '}
-                              <code>{source().project || 'unassigned'}</code> scope. Assign it to a
-                              workspace below before enabling, validating, or syncing it.
-                            </AlertDescription>
-                          </SettingsAlert>
-                        )}
-
-                        <SettingsAccordion collapsible>
-                          <SettingsAccordionItem value={`source-${index}`}>
-                            <SettingsAccordionTrigger class="items-center justify-start gap-3 pt-2">
-                              <span>Advanced source settings</span>
-                              <small>Workspace, credentials, filters, and safety limits</small>
-                            </SettingsAccordionTrigger>
-                            <SettingsAccordionContent>
-                              <SettingsFieldGroup class="form-grid source-form-grid">
-                                <Field label="Source name" hint="stable lowercase identifier">
-                                  <Input
-                                    value={source().name}
-                                    disabled={sourceLocked() || !source().editable}
-                                    required
-                                    maxLength={64}
-                                    pattern="[a-z0-9][a-z0-9_-]*"
-                                    onInput={(event) =>
-                                      changeSource(index, {
-                                        name: event.target.value,
-                                      })
-                                    }
-                                  />
-                                </Field>
-                                <Field label="Connector">
-                                  <Select
-                                    value={source().kind}
-                                    disabled={sourceLocked() || !source().editable}
-                                    onChange={(event) => {
-                                      const kind = event.target.value as SourceKind
-                                      changeSource(index, {
-                                        kind,
-                                        token_env: defaultTokenEnv(kind),
-                                        ...(kind === 'apple-notes'
-                                          ? {}
-                                          : {
-                                              folders: [],
-                                              exclude_folders: [],
-                                            }),
-                                      })
-                                    }}
-                                    options={[
-                                      ...(source().kind === 'external'
-                                        ? [{ value: 'external', label: 'External command' }]
-                                        : []),
-                                      ...SOURCE_KINDS.map((kind) => ({
-                                        value: kind.value,
-                                        label: kind.label,
-                                      })),
-                                    ]}
-                                  />
-                                </Field>
-                                {source().kind === 'apple-notes' && (
-                                  <>
-                                    <Field
-                                      label="Include Apple Notes folders"
-                                      hint="one exact folder name per line; leave empty to include every folder. On first validation, allow Cortana or the invoking terminal under macOS Privacy & Security > Automation."
-                                      class="col-span-full"
-                                    >
-                                      <Textarea
-                                        aria-label="Include Apple Notes folders"
-                                        rows={3}
-                                        value={(source().folders ?? []).join('\n')}
-                                        disabled={sourceLocked() || !source().editable}
-                                        onInput={(event) =>
-                                          changeSource(index, {
-                                            folders: splitList(event.target.value),
-                                          })
-                                        }
-                                      />
-                                    </Field>
-                                    <Field
-                                      label="Exclude Apple Notes folders"
-                                      hint="one exact folder name per line; exclusions win when both lists match"
-                                      class="col-span-full"
-                                    >
-                                      <Textarea
-                                        aria-label="Exclude Apple Notes folders"
-                                        rows={3}
-                                        value={(source().exclude_folders ?? []).join('\n')}
-                                        disabled={sourceLocked() || !source().editable}
-                                        onInput={(event) =>
-                                          changeSource(index, {
-                                            exclude_folders: splitList(event.target.value),
-                                          })
-                                        }
-                                      />
-                                    </Field>
-                                  </>
-                                )}
-                                {(source().kind === 'filesystem' || source().kind === 'buzz') && (
-                                  <Field
-                                    label={
-                                      source().kind === 'buzz'
-                                        ? 'Buzz data directory'
-                                        : 'Root directory'
-                                    }
-                                    hint="absolute, non-root path"
-                                    class="col-span-full"
+                              {(isGoogleSource(source().kind) ||
+                                source().kind === 'github' ||
+                                source().kind === 'discord' ||
+                                source().kind === 'slack') &&
+                                canAuthorizeSource(source()) && (
+                                  <ActionButton
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    type="button"
+                                    aria-label="Authorize"
+                                    disabled={actionsBlocked()}
+                                    tooltip={actionsReason() ?? 'Authorize'}
+                                    onClick={() => void authorizeSource(source())}
                                   >
-                                    <div class="path-input">
-                                      <Input
-                                        value={source().root || ''}
-                                        disabled={sourceLocked() || !source().editable}
-                                        required={source().enabled}
-                                        placeholder="/Users/you/Documents"
-                                        onInput={(event) =>
-                                          changeSource(index, {
-                                            root: event.target.value || null,
-                                          })
-                                        }
-                                      />
-                                      <Button
-                                        variant="ghost"
-                                        size="icon-sm"
-                                        type="button"
-                                        disabled={sourceLocked() || !source().editable}
-                                        aria-label="Choose source directory"
-                                        tooltip="Choose source directory"
-
-                                        onClick={() => void choosePath(index, 'directory', 'root')}
-                                      >
-                                        <FolderOpen size={14} aria-hidden="true" />
-                                      </Button>
-                                    </div>
-                                  </Field>
+                                    <KeyRound size={14} aria-hidden="true" />
+                                  </ActionButton>
                                 )}
-                                {source().kind === 'buzz' && (
-                                  <Field
-                                    label="Community chooser"
-                                    hint="assign the communities this workspace may index; the list comes from Buzz's read-only agents/teams.json identity file in the configured data directory, so make sure the Buzz app has written it first"
-                                    group
-                                    class="col-span-full"
-                                  >
-                                    <div class="grid gap-4">
-                                      <Button
-                                        tooltip="Discover communities"
-                                        variant="secondary"
-                                        size="sm"
-                                        type="button"
-                                        aria-label="Discover communities"
-                                        disabled={
-                                          !props.canValidate ||
-                                          sourceLocked() ||
-                                          buzzCommunitiesLoading() === source().name
-                                        }
-                                        onClick={() => void discoverBuzzCommunities(source())}
-                                      >
-                                        {buzzCommunitiesLoading() === source().name ? (
-                                          <Spinner size="sm" label={false} />
-                                        ) : (
-                                          <RefreshCw size={14} aria-hidden="true" />
-                                        )}{' '}
-                                        Discover communities
-                                      </Button>
-                                      {buzzCommunities()[source().name] && (
-                                        <div class="grid gap-2">
-                                          {buzzCommunities()[source().name].communities.length ===
-                                          0 ? (
-                                            <small>
-                                              No communities recorded in the identity file.
-                                            </small>
-                                          ) : (
-                                            buzzCommunities()[source().name].communities.map(
-                                              (community) => (
-                                                <Label>
-                                                  <SettingsCheckbox
-                                                    aria-label={`Include ${community.name}`}
-                                                    checked={source().communities.includes(
-                                                      community.id
-                                                    )}
-                                                    disabled={sourceLocked() || !source().editable}
-                                                    onChange={() =>
-                                                      toggleBuzzCommunity(
-                                                        index,
-                                                        source(),
-                                                        community
-                                                      )
-                                                    }
-                                                  />
-                                                  <span>{community.name}</span>
-                                                </Label>
-                                              )
-                                            )
-                                          )}
-                                          {buzzCommunities()[source().name].truncated && (
-                                            <small>
-                                              Buzz returned more than 100 communities; only the
-                                              first 100 are shown.
-                                            </small>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </Field>
-                                )}
-                                <Field
-                                  label="Source label"
-                                  hint="identifier stored on indexed documents"
+                              {workspaceAssigned() && (
+                                <ActionButton
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  type="button"
+                                  aria-label="Test connection"
+                                  disabled={actionsBlocked()}
+                                  tooltip={actionsReason() ?? 'Test connection'}
+                                  onClick={() => void checkSourceConnection(source())}
                                 >
-                                  <Input
-                                    aria-label="Source label"
-                                    value={source().source || ''}
-                                    disabled={sourceLocked() || !source().editable}
-                                    maxLength={128}
-                                    placeholder={source().name}
-                                    onInput={(event) =>
-                                      changeSource(index, {
-                                        source: event.target.value || null,
-                                      })
-                                    }
-                                  />
-                                </Field>
-                                {source().kind === 'filesystem' && (
-                                  <Field
-                                    label="Excluded paths"
-                                    hint="comma or line separated, relative paths"
-                                  >
+                                  <ShieldCheck size={14} aria-hidden="true" />
+                                </ActionButton>
+                              )}
+                              {source().enabled && workspaceAssigned() && (
+                                <ActionButton
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  type="button"
+                                  aria-label="Initial sync"
+                                  disabled={actionsBlocked()}
+                                  tooltip={actionsReason() ?? 'Initial sync'}
+                                  onClick={() => openInitialSync(source())}
+                                >
+                                  <Zap size={14} aria-hidden="true" />
+                                </ActionButton>
+                              )}
+                              <ActionButton
+                                variant="destructive"
+                                size="icon-sm"
+                                type="button"
+                                aria-label={`Remove ${source().name}`}
+                                tooltip={`Remove ${source().name}`}
+                                disabled={sourceLocked()}
+                                onClick={() => {
+                                  const remove = () => {
+                                    if (initialSync()?.source === source().name)
+                                      setInitialSync(null)
+                                    props.update((current) => ({
+                                      ...current,
+                                      sources: current.sources.filter(
+                                        (_, position) => position !== index
+                                      ),
+                                    }))
+                                  }
+                                  applyConfirmed(
+                                    confirm(
+                                      `Remove ${source().name} from configuration? Existing indexed data is not deleted.`
+                                    ),
+                                    remove
+                                  )
+                                }}
+                              >
+                                <Trash2 size={14} aria-hidden="true" />
+                              </ActionButton>
+                            </div>
+                          </header>
+
+                          {!source().editable && (
+                            <Alert class="mt-3" role="note">
+                              <AlertDescription>
+                                This external command is managed in the TOML file. Desktop can
+                                retain, disable, or remove it, but cannot edit or create shell
+                                commands.
+                              </AlertDescription>
+                            </Alert>
+                          )}
+
+                          {!workspaceAssigned() && (
+                            <Alert class="mt-3" variant="warning" role="alert">
+                              <AlertTriangle size={15} aria-hidden="true" />
+                              <AlertDescription>
+                                This source uses the legacy{' '}
+                                <code>{source().project || 'unassigned'}</code> scope. Assign it to
+                                a workspace below before enabling, validating, or syncing it.
+                              </AlertDescription>
+                            </Alert>
+                          )}
+
+                          <Accordion collapsible>
+                            <AccordionItem value={`source-${index}`}>
+                              <AccordionTrigger>
+                                <span class="source-advanced-label">
+                                  <span>Advanced source settings</span>
+                                  <small>Workspace, credentials, filters, and safety limits</small>
+                                </span>
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                <FieldGroup columns={2}>
+                                  <FormField label="Source name" hint="stable lowercase identifier">
                                     <Input
-                                      value={source().exclude.join(', ')}
+                                      value={source().name}
                                       disabled={sourceLocked() || !source().editable}
+                                      required
+                                      maxLength={64}
+                                      pattern="[a-z0-9][a-z0-9_-]*"
                                       onInput={(event) =>
                                         changeSource(index, {
-                                          exclude: splitList(event.target.value),
+                                          name: event.target.value,
                                         })
                                       }
                                     />
-                                  </Field>
-                                )}
-                                {isGoogleSource(source().kind) && (
-                                  <>
-                                    <Field
-                                      label="Google OAuth token file"
-                                      hint="private token created by Cortana; optional when a token path environment variable is configured"
+                                  </FormField>
+                                  <FormField label="Connector">
+                                    <NativeSelect
+                                      class="w-full"
+                                      value={source().kind}
+                                      disabled={sourceLocked() || !source().editable}
+                                      onChange={(event) => {
+                                        const kind = event.target.value as SourceKind
+                                        changeSource(index, {
+                                          kind,
+                                          token_env: defaultTokenEnv(kind),
+                                          ...(kind === 'apple-notes'
+                                            ? {}
+                                            : {
+                                                folders: [],
+                                                exclude_folders: [],
+                                              }),
+                                        })
+                                      }}
+                                      options={[
+                                        ...(source().kind === 'external'
+                                          ? [{ value: 'external', label: 'External command' }]
+                                          : []),
+                                        ...SOURCE_KINDS.map((kind) => ({
+                                          value: kind.value,
+                                          label: kind.label,
+                                        })),
+                                      ]}
+                                    />
+                                  </FormField>
+                                  {source().kind === 'apple-notes' && (
+                                    <>
+                                      <FormField
+                                        label="Include Apple Notes folders"
+                                        hint="one exact folder name per line; leave empty to include every folder. On first validation, allow Cortana or the invoking terminal under macOS Privacy & Security > Automation."
+                                        class="col-span-full"
+                                      >
+                                        <Textarea
+                                          aria-label="Include Apple Notes folders"
+                                          rows={3}
+                                          value={(source().folders ?? []).join('\n')}
+                                          disabled={sourceLocked() || !source().editable}
+                                          onInput={(event) =>
+                                            changeSource(index, {
+                                              folders: splitList(event.target.value),
+                                            })
+                                          }
+                                        />
+                                      </FormField>
+                                      <FormField
+                                        label="Exclude Apple Notes folders"
+                                        hint="one exact folder name per line; exclusions win when both lists match"
+                                        class="col-span-full"
+                                      >
+                                        <Textarea
+                                          aria-label="Exclude Apple Notes folders"
+                                          rows={3}
+                                          value={(source().exclude_folders ?? []).join('\n')}
+                                          disabled={sourceLocked() || !source().editable}
+                                          onInput={(event) =>
+                                            changeSource(index, {
+                                              exclude_folders: splitList(event.target.value),
+                                            })
+                                          }
+                                        />
+                                      </FormField>
+                                    </>
+                                  )}
+                                  {(source().kind === 'filesystem' || source().kind === 'buzz') && (
+                                    <FormField
+                                      label={
+                                        source().kind === 'buzz'
+                                          ? 'Buzz data directory'
+                                          : 'Root directory'
+                                      }
+                                      hint="absolute, non-root path"
                                       class="col-span-full"
                                     >
                                       <div class="path-input">
                                         <Input
-                                          value={source().token_path || ''}
+                                          value={source().root || ''}
                                           disabled={sourceLocked() || !source().editable}
-                                          required={source().enabled && !source().token_env}
-                                          placeholder="/Users/you/.config/cortana/google-token.json"
+                                          required={source().enabled}
+                                          placeholder="/Users/you/Documents"
                                           onInput={(event) =>
                                             changeSource(index, {
-                                              token_path: event.target.value || null,
+                                              root: event.target.value || null,
                                             })
                                           }
                                         />
-                                        <Button
+                                        <ActionButton
                                           variant="ghost"
                                           size="icon-sm"
                                           type="button"
                                           disabled={sourceLocked() || !source().editable}
-                                          aria-label="Choose Google token destination"
-                                          tooltip="Choose Google token destination"
+                                          aria-label="Choose source directory"
+                                          tooltip="Choose source directory"
 
                                           onClick={() =>
-                                            void choosePath(index, 'google-token', 'token_path')
+                                            void choosePath(index, 'directory', 'root')
                                           }
                                         >
                                           <FolderOpen size={14} aria-hidden="true" />
-                                        </Button>
+                                        </ActionButton>
                                       </div>
-                                    </Field>
-                                    <Field
-                                      label="Google Desktop OAuth client JSON"
-                                      hint="downloaded from Google Cloud Console; required to authorize"
-                                      class="col-span-full"
-                                    >
-                                      <div class="path-input">
-                                        <Input
-                                          value={source().oauth_client_path || ''}
-                                          disabled={sourceLocked() || !source().editable}
-                                          placeholder="/Users/you/Downloads/google-oauth-client.json"
-                                          onInput={(event) =>
-                                            changeSource(index, {
-                                              oauth_client_path: event.target.value || null,
-                                            })
-                                          }
-                                        />
-                                        <Button
-                                          variant="ghost"
-                                          size="icon-sm"
-                                          type="button"
-                                          disabled={sourceLocked() || !source().editable}
-                                          aria-label="Choose Google OAuth client JSON"
-                                          tooltip="Choose Google OAuth client JSON"
-
-                                          onClick={() =>
-                                            void choosePath(
-                                              index,
-                                              'oauth-client',
-                                              'oauth_client_path'
-                                            )
-                                          }
-                                        >
-                                          <FolderOpen size={14} aria-hidden="true" />
-                                        </Button>
-                                      </div>
-                                    </Field>
-                                    <Field
-                                      label="Google token path environment variable"
-                                      hint="optional; its value must be an absolute OAuth token JSON path"
-                                    >
-                                      <Input
-                                        value={source().token_env || ''}
-                                        disabled={sourceLocked() || !source().editable}
-                                        pattern="[A-Z_][A-Z0-9_]*"
-                                        placeholder="CORTANA_GOOGLE_TOKEN_PATH"
-                                        onInput={(event) =>
-                                          changeSource(index, {
-                                            token_env: event.target.value || null,
-                                          })
-                                        }
-                                      />
-                                    </Field>
-                                    <Field
-                                      label="Google token path value"
-                                      hint="write-only path; leave blank to keep the existing value"
-                                    >
-                                      <div class="secret-input">
-                                        <Input
-                                          type="password"
-                                          autocomplete="new-password"
-                                          disabled={
-                                            sourceLocked() ||
-                                            !source().editable ||
-                                            !source().token_env
-                                          }
-                                          value={
-                                            source().token_env
-                                              ? props.secretValues[source().token_env!] || ''
-                                              : ''
-                                          }
-                                          onInput={(event) => {
-                                            if (source().token_env) {
-                                              props.onSecret({
-                                                ...props.secretValues,
-                                                [source().token_env!]: event.target.value,
-                                              })
-                                            }
-                                          }}
-                                        />
-                                        {source().token_env &&
-                                          secret()?.configured &&
-                                          !props.clearedSecrets.has(secret()!.name) && (
-                                            <Button
-                                              tooltip="Clear"
-                                              variant="destructive"
-                                              size="sm"
-                                              type="button"
-                                              disabled={sourceLocked()}
-                                              onClick={() =>
-                                                applyConfirmed(
-                                                  confirm(
-                                                    `Clear the stored Google token path for ${source().name}? The change remains a draft until you save settings.`
-                                                  ),
-                                                  () => props.onClearSecret(source().token_env!)
-                                                )
-                                              }
-                                            >
-                                              Clear
-                                            </Button>
-                                          )}
-                                      </div>
-                                    </Field>
-                                    <Field
-                                      label="Google query"
-                                      hint="optional provider-native filter"
-                                      class="col-span-full"
-                                    >
-                                      <Input
-                                        value={source().query || ''}
-                                        disabled={sourceLocked() || !source().editable}
-                                        maxLength={2048}
-                                        placeholder={
-                                          source().kind === 'gmail' ? 'newer_than:1y' : ''
-                                        }
-                                        onInput={(event) =>
-                                          changeSource(index, {
-                                            query: event.target.value || null,
-                                          })
-                                        }
-                                      />
-                                    </Field>
-                                  </>
-                                )}
-                                {source().kind === 'github' && (
-                                  <>
-                                    <Field
-                                      label="Repository chooser"
-                                      hint="discover accessible repositories, then select only the ones Cortana may index"
+                                    </FormField>
+                                  )}
+                                  {source().kind === 'buzz' && (
+                                    <FormField
+                                      label="Community chooser"
+                                      hint="assign the communities this workspace may index; the list comes from Buzz's read-only agents/teams.json identity file in the configured data directory, so make sure the Buzz app has written it first"
                                       group
                                       class="col-span-full"
                                     >
                                       <div class="grid gap-4">
-                                        <Button
-                                          tooltip="Discover repositories"
+                                        <ActionButton
+                                          tooltip="Discover communities"
                                           variant="secondary"
                                           size="sm"
                                           type="button"
+                                          aria-label="Discover communities"
                                           disabled={
                                             !props.canValidate ||
                                             sourceLocked() ||
-                                            githubRepositoriesLoading() === source().name
+                                            buzzCommunitiesLoading() === source().name
                                           }
-                                          onClick={() => void discoverGithubRepositories(source())}
+                                          onClick={() => void discoverBuzzCommunities(source())}
                                         >
-                                          {githubRepositoriesLoading() === source().name ? (
+                                          {buzzCommunitiesLoading() === source().name ? (
                                             <Spinner size="sm" label={false} />
                                           ) : (
                                             <RefreshCw size={14} aria-hidden="true" />
                                           )}{' '}
-                                          Discover repositories
-                                        </Button>
-                                        {githubRepositories()[source().name] && (
+                                          Discover communities
+                                        </ActionButton>
+                                        {buzzCommunities()[source().name] && (
                                           <div class="grid gap-2">
-                                            {githubRepositories()[source().name].items.length ===
+                                            {buzzCommunities()[source().name].communities.length ===
                                             0 ? (
-                                              <small>No accessible repositories returned.</small>
+                                              <small>
+                                                No communities recorded in the identity file.
+                                              </small>
                                             ) : (
-                                              githubRepositories()[source().name].items.map(
-                                                (repository) => (
+                                              buzzCommunities()[source().name].communities.map(
+                                                (community) => (
                                                   <Label>
-                                                    <SettingsCheckbox
-                                                      aria-label={`Include ${repository.full_name}`}
-                                                      checked={source().repositories.includes(
-                                                        repository.full_name
+                                                    <Checkbox
+                                                      aria-label={`Include ${community.name}`}
+                                                      checked={source().communities.includes(
+                                                        community.id
                                                       )}
                                                       disabled={
                                                         sourceLocked() || !source().editable
                                                       }
                                                       onChange={() =>
-                                                        toggleGithubRepository(
+                                                        toggleBuzzCommunity(
                                                           index,
                                                           source(),
-                                                          repository.full_name
+                                                          community
                                                         )
                                                       }
                                                     />
-                                                    <span>
-                                                      {repository.full_name}
-                                                      {repository.private ? ' · private' : ''}
-                                                    </span>
+                                                    <span>{community.name}</span>
                                                   </Label>
                                                 )
                                               )
                                             )}
+                                            {buzzCommunities()[source().name].truncated && (
+                                              <small>
+                                                Buzz returned more than 100 communities; only the
+                                                first 100 are shown.
+                                              </small>
+                                            )}
                                           </div>
                                         )}
                                       </div>
-                                    </Field>
-                                    <Field
-                                      label="GitHub OAuth token file"
-                                      hint="private token created by Cortana; use this for OAuth or leave blank for an environment token"
-                                      class="col-span-full"
-                                    >
-                                      <div class="path-input">
-                                        <Input
-                                          value={source().token_path || ''}
-                                          disabled={sourceLocked() || !source().editable}
-                                          required={source().enabled && !source().token_env}
-                                          placeholder="/Users/you/.config/cortana/github-token.json"
-                                          onInput={(event) =>
-                                            changeSource(index, {
-                                              token_path: event.target.value || null,
-                                            })
-                                          }
-                                        />
-                                        <Button
-                                          variant="ghost"
-                                          size="icon-sm"
-                                          type="button"
-                                          disabled={sourceLocked() || !source().editable}
-                                          aria-label="Choose GitHub token destination"
-                                          tooltip="Choose GitHub token destination"
-
-                                          onClick={() =>
-                                            void choosePath(index, 'github-token', 'token_path')
-                                          }
-                                        >
-                                          <FolderOpen size={14} aria-hidden="true" />
-                                        </Button>
-                                      </div>
-                                    </Field>
-                                  </>
-                                )}
-                                {(source().kind === 'github' ||
-                                  source().kind === 'slack' ||
-                                  source().kind === 'discord') && (
-                                  <>
-                                    {source().kind === 'discord' && (
-                                      <Field
-                                        label="Server chooser"
-                                        hint="assign the servers this workspace may index; approve Cortana in Discord Desktop first, then discover and check the servers to assign"
-                                        group
-                                        class="col-span-full"
-                                      >
-                                        <div class="grid gap-4">
-                                          <Button
-                                            tooltip="Discover servers"
-                                            variant="secondary"
-                                            size="sm"
-                                            type="button"
-                                            aria-label="Discover servers"
-                                            disabled={
-                                              !props.canValidate ||
-                                              sourceLocked() ||
-                                              discordServersLoading() === source().name
-                                            }
-                                            onClick={() => void discoverDiscordServers(source())}
-                                          >
-                                            {discordServersLoading() === source().name ? (
-                                              <Spinner size="sm" label={false} />
-                                            ) : (
-                                              <RefreshCw size={14} aria-hidden="true" />
-                                            )}{' '}
-                                            Discover servers
-                                          </Button>
-                                          {discordServers()[source().name] && (
-                                            <div class="grid gap-2">
-                                              {discordServers()[source().name].guilds.length ===
-                                              0 ? (
-                                                <small>No accessible servers returned.</small>
-                                              ) : (
-                                                discordServers()[source().name].guilds.map(
-                                                  (guild) => (
-                                                    <Label>
-                                                      <SettingsCheckbox
-                                                        aria-label={`Include ${guild.name}`}
-                                                        checked={source().servers.includes(
-                                                          guild.id
-                                                        )}
-                                                        disabled={
-                                                          sourceLocked() || !source().editable
-                                                        }
-                                                        onChange={() =>
-                                                          toggleDiscordServer(
-                                                            index,
-                                                            source(),
-                                                            guild.id
-                                                          )
-                                                        }
-                                                      />
-                                                      <span>{guild.name}</span>
-                                                    </Label>
-                                                  )
-                                                )
-                                              )}
-                                              {discordServers()[source().name].truncated && (
-                                                <small>
-                                                  Discord returned more than 100 servers; only the
-                                                  first 100 are shown.
-                                                </small>
-                                              )}
-                                            </div>
-                                          )}
-                                        </div>
-                                      </Field>
-                                    )}
-                                    {source().kind === 'discord' && (
-                                      <Field
-                                        label="Channel chooser"
-                                        hint="discover channels through the running Discord Desktop RPC client, then select only the channels Cortana may index; channels outside assigned servers stay available when no servers are assigned"
-                                        group
-                                        class="col-span-full"
-                                      >
-                                        <div class="grid gap-4">
-                                          <Button
-                                            tooltip="Discover channels"
-                                            variant="secondary"
-                                            size="sm"
-                                            type="button"
-                                            aria-label="Discover channels"
-                                            disabled={
-                                              !props.canValidate ||
-                                              sourceLocked() ||
-                                              discordChannelsLoading() === source().name
-                                            }
-                                            onClick={() => void discoverDiscordChannels(source())}
-                                          >
-                                            {discordChannelsLoading() === source().name ? (
-                                              <Spinner size="sm" label={false} />
-                                            ) : (
-                                              <RefreshCw size={14} aria-hidden="true" />
-                                            )}{' '}
-                                            Discover channels
-                                          </Button>
-                                          {discordChannels()[source().name] && (
-                                            <div class="grid gap-2">
-                                              <Button
-                                                tooltip="Select all Discord text channels"
-                                                variant="secondary"
-                                                size="sm"
-                                                type="button"
-                                                aria-label="Select all Discord text channels"
-                                                disabled={sourceLocked() || !source().editable}
-                                                onClick={() =>
-                                                  selectAllDiscordTextChannels(
-                                                    index,
-                                                    source(),
-                                                    discordChannels()[source().name]
-                                                  )
-                                                }
-                                              >
-                                                Select all text channels
-                                              </Button>
-                                              <small>
-                                                Selects text and announcement channels in assigned
-                                                servers; voice, forum, stage, and category channels
-                                                are excluded.
-                                              </small>
-                                              {discordChannels()[source().name].guilds.length ===
-                                              0 ? (
-                                                <small>No accessible servers returned.</small>
-                                              ) : (
-                                                discordChannels()[source().name].guilds.map(
-                                                  (guild) => {
-                                                    const serversAssigned =
-                                                      source().servers.length > 0
-                                                    const assigned =
-                                                      !serversAssigned ||
-                                                      source().servers.includes(guild.id)
-                                                    return (
-                                                      <div
-                                                        class={cn(
-                                                          'discord-guild',
-                                                          !assigned && 'discord-guild-unassigned'
-                                                        )}
-                                                      >
-                                                        <strong>{guild.name}</strong>
-                                                        {!assigned && (
-                                                          <small>
-                                                            {' '}
-                                                            · not assigned to this workspace
-                                                          </small>
-                                                        )}
-                                                        {guild.truncated && (
-                                                          <small> · first 100 channels</small>
-                                                        )}
-                                                        {guild.channels.length === 0 ? (
-                                                          <small>No channels returned.</small>
-                                                        ) : (
-                                                          guild.channels.map((channel) => (
-                                                            <Label
-                                                              title={
-                                                                assigned
-                                                                  ? undefined
-                                                                  : 'Assign this server in the server chooser before selecting its channels'
-                                                              }
-                                                            >
-                                                              <SettingsCheckbox
-                                                                aria-label={`${channel.name} · ${channel.kind}`}
-                                                                checked={source().channels.includes(
-                                                                  channel.id
-                                                                )}
-                                                                disabled={
-                                                                  sourceLocked() ||
-                                                                  !source().editable
-                                                                }
-                                                                onChange={() =>
-                                                                  toggleDiscordChannel(
-                                                                    index,
-                                                                    source(),
-                                                                    channel.id
-                                                                  )
-                                                                }
-                                                              />
-                                                              <span>
-                                                                {channel.name} · {channel.kind}
-                                                              </span>
-                                                            </Label>
-                                                          ))
-                                                        )}
-                                                      </div>
-                                                    )
-                                                  }
-                                                )
-                                              )}
-                                              {discordChannels()[source().name].truncated && (
-                                                <small>
-                                                  Discord returned more than 100 servers; only the
-                                                  first 100 are shown.
-                                                </small>
-                                              )}
-                                            </div>
-                                          )}
-                                        </div>
-                                      </Field>
-                                    )}
-                                    <Field
-                                      label={
-                                        source().kind === 'github' ? 'Repositories' : 'Channel IDs'
+                                    </FormField>
+                                  )}
+                                  <FormField
+                                    label="Source label"
+                                    hint="identifier stored on indexed documents"
+                                  >
+                                    <Input
+                                      aria-label="Source label"
+                                      value={source().source || ''}
+                                      disabled={sourceLocked() || !source().editable}
+                                      maxLength={128}
+                                      placeholder={source().name}
+                                      onInput={(event) =>
+                                        changeSource(index, {
+                                          source: event.target.value || null,
+                                        })
                                       }
-                                      hint={
-                                        source().kind === 'github'
-                                          ? 'one owner/repository per line; only these repositories are indexed'
-                                          : 'comma or line separated'
-                                      }
-                                      class="col-span-full"
+                                    />
+                                  </FormField>
+                                  {source().kind === 'filesystem' && (
+                                    <FormField
+                                      label="Excluded paths"
+                                      hint="comma or line separated, relative paths"
                                     >
-                                      <Textarea
-                                        value={
-                                          source().kind === 'github'
-                                            ? source().repositories.join('\n')
-                                            : source().channels.join(', ')
-                                        }
+                                      <Input
+                                        value={source().exclude.join(', ')}
                                         disabled={sourceLocked() || !source().editable}
-                                        required={source().enabled}
-                                        rows={source().kind === 'github' ? 3 : 1}
-                                        placeholder={
-                                          source().kind === 'github'
-                                            ? 'owner/repository'
-                                            : 'Channel IDs'
+                                        onInput={(event) =>
+                                          changeSource(index, {
+                                            exclude: splitList(event.target.value),
+                                          })
                                         }
-                                        aria-label={
-                                          source().kind === 'github'
-                                            ? 'GitHub repositories'
-                                            : 'Channel IDs'
-                                        }
-                                        onInput={(event) => {
-                                          const values = splitList(event.target.value)
-                                          changeSource(
-                                            index,
-                                            source().kind === 'github'
-                                              ? {
-                                                  repositories: values,
-                                                }
-                                              : {
-                                                  channels: values,
-                                                }
-                                          )
-                                        }}
                                       />
-                                    </Field>
-                                    {source().kind !== 'discord' && (
-                                      <Field
-                                        label="Token variable"
-                                        hint={
-                                          secret()?.configured &&
-                                          !props.clearedSecrets.has(secret()!.name)
-                                            ? `Configured via ${secret()!.source}`
-                                            : 'stored in Cortana owner-only secret file'
-                                        }
+                                    </FormField>
+                                  )}
+                                  {isGoogleSource(source().kind) && (
+                                    <>
+                                      <FormField
+                                        label="Google OAuth token file"
+                                        hint="private token created by Cortana; optional when a token path environment variable is configured"
+                                        class="col-span-full"
+                                      >
+                                        <div class="path-input">
+                                          <Input
+                                            value={source().token_path || ''}
+                                            disabled={sourceLocked() || !source().editable}
+                                            required={source().enabled && !source().token_env}
+                                            placeholder="/Users/you/.config/cortana/google-token.json"
+                                            onInput={(event) =>
+                                              changeSource(index, {
+                                                token_path: event.target.value || null,
+                                              })
+                                            }
+                                          />
+                                          <ActionButton
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            type="button"
+                                            disabled={sourceLocked() || !source().editable}
+                                            aria-label="Choose Google token destination"
+                                            tooltip="Choose Google token destination"
+
+                                            onClick={() =>
+                                              void choosePath(index, 'google-token', 'token_path')
+                                            }
+                                          >
+                                            <FolderOpen size={14} aria-hidden="true" />
+                                          </ActionButton>
+                                        </div>
+                                      </FormField>
+                                      <FormField
+                                        label="Google Desktop OAuth client JSON"
+                                        hint="downloaded from Google Cloud Console; required to authorize"
+                                        class="col-span-full"
+                                      >
+                                        <div class="path-input">
+                                          <Input
+                                            value={source().oauth_client_path || ''}
+                                            disabled={sourceLocked() || !source().editable}
+                                            placeholder="/Users/you/Downloads/google-oauth-client.json"
+                                            onInput={(event) =>
+                                              changeSource(index, {
+                                                oauth_client_path: event.target.value || null,
+                                              })
+                                            }
+                                          />
+                                          <ActionButton
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            type="button"
+                                            disabled={sourceLocked() || !source().editable}
+                                            aria-label="Choose Google OAuth client JSON"
+                                            tooltip="Choose Google OAuth client JSON"
+
+                                            onClick={() =>
+                                              void choosePath(
+                                                index,
+                                                'oauth-client',
+                                                'oauth_client_path'
+                                              )
+                                            }
+                                          >
+                                            <FolderOpen size={14} aria-hidden="true" />
+                                          </ActionButton>
+                                        </div>
+                                      </FormField>
+                                      <FormField
+                                        label="Google token path environment variable"
+                                        hint="optional; its value must be an absolute OAuth token JSON path"
                                       >
                                         <Input
                                           value={source().token_env || ''}
                                           disabled={sourceLocked() || !source().editable}
-                                          required={
-                                            source().enabled &&
-                                            source().kind !== 'github' &&
-                                            !source().token_path
-                                          }
                                           pattern="[A-Z_][A-Z0-9_]*"
+                                          placeholder="CORTANA_GOOGLE_TOKEN_PATH"
                                           onInput={(event) =>
                                             changeSource(index, {
                                               token_env: event.target.value || null,
                                             })
                                           }
                                         />
-                                      </Field>
-                                    )}
-                                    {source().kind !== 'discord' && (
-                                      <Field
-                                        label="New token"
-                                        hint="write-only; leave blank to keep existing"
+                                      </FormField>
+                                      <FormField
+                                        label="Google token path value"
+                                        hint="write-only path; leave blank to keep the existing value"
                                       >
                                         <div class="secret-input">
                                           <Input
@@ -2127,7 +1693,7 @@ export function SourcesSection(
                                           {source().token_env &&
                                             secret()?.configured &&
                                             !props.clearedSecrets.has(secret()!.name) && (
-                                              <Button
+                                              <ActionButton
                                                 tooltip="Clear"
                                                 variant="destructive"
                                                 size="sm"
@@ -2136,393 +1702,868 @@ export function SourcesSection(
                                                 onClick={() =>
                                                   applyConfirmed(
                                                     confirm(
-                                                      `Clear the stored token for ${source().name}? The change remains a draft until you save settings.`
+                                                      `Clear the stored Google token path for ${source().name}? The change remains a draft until you save settings.`
                                                     ),
                                                     () => props.onClearSecret(source().token_env!)
                                                   )
                                                 }
                                               >
                                                 Clear
-                                              </Button>
+                                              </ActionButton>
                                             )}
                                         </div>
-                                      </Field>
-                                    )}
-                                    {source().kind === 'discord' && (
-                                      <>
-                                        <Field
-                                          label="Discord RPC token file"
-                                          hint="private access token created through Discord Desktop RPC; used for server, channel, and message reads"
-                                          class="col-span-full"
-                                        >
-                                          <div class="path-input">
-                                            <Input
-                                              value={source().token_path || ''}
-                                              disabled={sourceLocked() || !source().editable}
-                                              placeholder="/Users/you/.config/cortana/discord-rpc-token.json"
-                                              onInput={(event) =>
-                                                changeSource(index, {
-                                                  token_path: event.target.value || null,
-                                                })
-                                              }
-                                            />
-                                            <Button
-                                              variant="ghost"
-                                              size="icon-sm"
-                                              type="button"
-                                              disabled={sourceLocked() || !source().editable}
-                                              aria-label="Choose Discord RPC token destination"
-                                              tooltip="Choose Discord RPC token destination"
-
-                                              onClick={() =>
-                                                void choosePath(
-                                                  index,
-                                                  'discord-token',
-                                                  'token_path'
+                                      </FormField>
+                                      <FormField
+                                        label="Google query"
+                                        hint="optional provider-native filter"
+                                        class="col-span-full"
+                                      >
+                                        <Input
+                                          value={source().query || ''}
+                                          disabled={sourceLocked() || !source().editable}
+                                          maxLength={2048}
+                                          placeholder={
+                                            source().kind === 'gmail' ? 'newer_than:1y' : ''
+                                          }
+                                          onInput={(event) =>
+                                            changeSource(index, {
+                                              query: event.target.value || null,
+                                            })
+                                          }
+                                        />
+                                      </FormField>
+                                    </>
+                                  )}
+                                  {source().kind === 'github' && (
+                                    <>
+                                      <FormField
+                                        label="Repository chooser"
+                                        hint="discover accessible repositories, then select only the ones Cortana may index"
+                                        group
+                                        class="col-span-full"
+                                      >
+                                        <div class="grid gap-4">
+                                          <ActionButton
+                                            tooltip="Discover repositories"
+                                            variant="secondary"
+                                            size="sm"
+                                            type="button"
+                                            disabled={
+                                              !props.canValidate ||
+                                              sourceLocked() ||
+                                              githubRepositoriesLoading() === source().name
+                                            }
+                                            onClick={() =>
+                                              void discoverGithubRepositories(source())
+                                            }
+                                          >
+                                            {githubRepositoriesLoading() === source().name ? (
+                                              <Spinner size="sm" label={false} />
+                                            ) : (
+                                              <RefreshCw size={14} aria-hidden="true" />
+                                            )}{' '}
+                                            Discover repositories
+                                          </ActionButton>
+                                          {githubRepositories()[source().name] && (
+                                            <div class="grid gap-2">
+                                              {githubRepositories()[source().name].items.length ===
+                                              0 ? (
+                                                <small>No accessible repositories returned.</small>
+                                              ) : (
+                                                githubRepositories()[source().name].items.map(
+                                                  (repository) => (
+                                                    <Label>
+                                                      <Checkbox
+                                                        aria-label={`Include ${repository.full_name}`}
+                                                        checked={source().repositories.includes(
+                                                          repository.full_name
+                                                        )}
+                                                        disabled={
+                                                          sourceLocked() || !source().editable
+                                                        }
+                                                        onChange={() =>
+                                                          toggleGithubRepository(
+                                                            index,
+                                                            source(),
+                                                            repository.full_name
+                                                          )
+                                                        }
+                                                      />
+                                                      <span>
+                                                        {repository.full_name}
+                                                        {repository.private ? ' · private' : ''}
+                                                      </span>
+                                                    </Label>
+                                                  )
                                                 )
-                                              }
-                                            >
-                                              <FolderOpen size={14} aria-hidden="true" />
-                                            </Button>
-                                          </div>
-                                        </Field>
-                                        <Field
-                                          label="Discord RPC client JSON"
-                                          hint="JSON containing the Discord application client_id and optional client_secret"
-                                          class="col-span-full"
-                                        >
-                                          <div class="path-input">
-                                            <Input
-                                              value={source().oauth_client_path || ''}
-                                              disabled={sourceLocked() || !source().editable}
-                                              placeholder="/Users/you/.config/cortana/discord-rpc-client.json"
-                                              onInput={(event) =>
-                                                changeSource(index, {
-                                                  oauth_client_path: event.target.value || null,
-                                                })
-                                              }
-                                            />
-                                            <Button
-                                              variant="ghost"
-                                              size="icon-sm"
-                                              type="button"
-                                              disabled={sourceLocked() || !source().editable}
-                                              aria-label="Choose Discord RPC client JSON"
-                                              tooltip="Choose Discord RPC client JSON"
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </FormField>
+                                      <FormField
+                                        label="GitHub OAuth token file"
+                                        hint="private token created by Cortana; use this for OAuth or leave blank for an environment token"
+                                        class="col-span-full"
+                                      >
+                                        <div class="path-input">
+                                          <Input
+                                            value={source().token_path || ''}
+                                            disabled={sourceLocked() || !source().editable}
+                                            required={source().enabled && !source().token_env}
+                                            placeholder="/Users/you/.config/cortana/github-token.json"
+                                            onInput={(event) =>
+                                              changeSource(index, {
+                                                token_path: event.target.value || null,
+                                              })
+                                            }
+                                          />
+                                          <ActionButton
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            type="button"
+                                            disabled={sourceLocked() || !source().editable}
+                                            aria-label="Choose GitHub token destination"
+                                            tooltip="Choose GitHub token destination"
 
-                                              onClick={() =>
-                                                void choosePath(
-                                                  index,
-                                                  'oauth-client',
-                                                  'oauth_client_path'
-                                                )
-                                              }
-                                            >
-                                              <FolderOpen size={14} aria-hidden="true" />
-                                            </Button>
-                                          </div>
-                                        </Field>
-                                      </>
-                                    )}
-                                    {source().kind === 'slack' && (
-                                      <>
-                                        <Field
-                                          label="Workspace chooser"
-                                          hint="assign the workspace this source may index; authorize with Slack first, then discover and check the workspace to assign. A Slack user token is scoped to exactly one workspace, so at most one team can be assigned per source"
+                                            onClick={() =>
+                                              void choosePath(index, 'github-token', 'token_path')
+                                            }
+                                          >
+                                            <FolderOpen size={14} aria-hidden="true" />
+                                          </ActionButton>
+                                        </div>
+                                      </FormField>
+                                    </>
+                                  )}
+                                  {(source().kind === 'github' ||
+                                    source().kind === 'slack' ||
+                                    source().kind === 'discord') && (
+                                    <>
+                                      {source().kind === 'discord' && (
+                                        <FormField
+                                          label="Server chooser"
+                                          hint="assign the servers this workspace may index; approve Cortana in Discord Desktop first, then discover and check the servers to assign"
                                           group
                                           class="col-span-full"
                                         >
                                           <div class="grid gap-4">
-                                            <Button
-                                              tooltip="Discover workspaces"
+                                            <ActionButton
+                                              tooltip="Discover servers"
                                               variant="secondary"
                                               size="sm"
                                               type="button"
-                                              aria-label="Discover workspaces"
+                                              aria-label="Discover servers"
                                               disabled={
                                                 !props.canValidate ||
                                                 sourceLocked() ||
-                                                slackWorkspacesLoading() === source().name
+                                                discordServersLoading() === source().name
                                               }
-                                              onClick={() => void discoverSlackWorkspaces(source())}
+                                              onClick={() => void discoverDiscordServers(source())}
                                             >
-                                              {slackWorkspacesLoading() === source().name ? (
+                                              {discordServersLoading() === source().name ? (
                                                 <Spinner size="sm" label={false} />
                                               ) : (
                                                 <RefreshCw size={14} aria-hidden="true" />
                                               )}{' '}
-                                              Discover workspaces
-                                            </Button>
-                                            {slackWorkspaces()[source().name] && (
+                                              Discover servers
+                                            </ActionButton>
+                                            {discordServers()[source().name] && (
                                               <div class="grid gap-2">
-                                                {slackWorkspaces()[source().name].teams.length ===
+                                                {discordServers()[source().name].guilds.length ===
                                                 0 ? (
-                                                  <small>No accessible workspaces returned.</small>
+                                                  <small>No accessible servers returned.</small>
                                                 ) : (
-                                                  slackWorkspaces()[source().name].teams.map(
-                                                    (team) => (
+                                                  discordServers()[source().name].guilds.map(
+                                                    (guild) => (
                                                       <Label>
-                                                        <SettingsCheckbox
-                                                          aria-label={`Include ${team.name}`}
-                                                          checked={source().teams.includes(team.id)}
+                                                        <Checkbox
+                                                          aria-label={`Include ${guild.name}`}
+                                                          checked={source().servers.includes(
+                                                            guild.id
+                                                          )}
                                                           disabled={
                                                             sourceLocked() || !source().editable
                                                           }
                                                           onChange={() =>
-                                                            toggleSlackTeam(index, source(), team)
+                                                            toggleDiscordServer(
+                                                              index,
+                                                              source(),
+                                                              guild.id
+                                                            )
                                                           }
                                                         />
-                                                        <span>{team.name}</span>
+                                                        <span>{guild.name}</span>
                                                       </Label>
                                                     )
                                                   )
                                                 )}
-                                                {slackWorkspaces()[source().name].truncated && (
+                                                {discordServers()[source().name].truncated && (
                                                   <small>
-                                                    Slack returned more than 100 teams; only the
+                                                    Discord returned more than 100 servers; only the
                                                     first 100 are shown.
                                                   </small>
                                                 )}
                                               </div>
                                             )}
                                           </div>
-                                        </Field>
-                                        <Field
-                                          label="Slack OAuth token file"
-                                          hint="private user token created by Cortana; used only to list the workspace for assignment. The SLACK_BOT_TOKEN environment variable is separate and stays the message-sync credential"
+                                        </FormField>
+                                      )}
+                                      {source().kind === 'discord' && (
+                                        <FormField
+                                          label="Channel chooser"
+                                          hint="discover channels through the running Discord Desktop RPC client, then select only the channels Cortana may index; channels outside assigned servers stay available when no servers are assigned"
+                                          group
                                           class="col-span-full"
                                         >
-                                          <div class="path-input">
-                                            <Input
-                                              value={source().token_path || ''}
-                                              disabled={sourceLocked() || !source().editable}
-                                              placeholder="/Users/you/.config/cortana/slack-user-token.json"
-                                              onInput={(event) =>
-                                                changeSource(index, {
-                                                  token_path: event.target.value || null,
-                                                })
-                                              }
-                                            />
-                                            <Button
-                                              variant="ghost"
-                                              size="icon-sm"
+                                          <div class="grid gap-4">
+                                            <ActionButton
+                                              tooltip="Discover channels"
+                                              variant="secondary"
+                                              size="sm"
                                               type="button"
-                                              disabled={sourceLocked() || !source().editable}
-                                              aria-label="Choose Slack OAuth token destination"
-                                              tooltip="Choose Slack OAuth token destination"
-
-                                              onClick={() =>
-                                                void choosePath(index, 'slack-token', 'token_path')
+                                              aria-label="Discover channels"
+                                              disabled={
+                                                !props.canValidate ||
+                                                sourceLocked() ||
+                                                discordChannelsLoading() === source().name
                                               }
+                                              onClick={() => void discoverDiscordChannels(source())}
                                             >
-                                              <FolderOpen size={14} aria-hidden="true" />
-                                            </Button>
+                                              {discordChannelsLoading() === source().name ? (
+                                                <Spinner size="sm" label={false} />
+                                              ) : (
+                                                <RefreshCw size={14} aria-hidden="true" />
+                                              )}{' '}
+                                              Discover channels
+                                            </ActionButton>
+                                            {discordChannels()[source().name] && (
+                                              <div class="grid gap-2">
+                                                <ActionButton
+                                                  tooltip="Select all Discord text channels"
+                                                  variant="secondary"
+                                                  size="sm"
+                                                  type="button"
+                                                  aria-label="Select all Discord text channels"
+                                                  disabled={sourceLocked() || !source().editable}
+                                                  onClick={() =>
+                                                    selectAllDiscordTextChannels(
+                                                      index,
+                                                      source(),
+                                                      discordChannels()[source().name]
+                                                    )
+                                                  }
+                                                >
+                                                  NativeSelect all text channels
+                                                </ActionButton>
+                                                <small>
+                                                  Selects text and announcement channels in assigned
+                                                  servers; voice, forum, stage, and category
+                                                  channels are excluded.
+                                                </small>
+                                                {discordChannels()[source().name].guilds.length ===
+                                                0 ? (
+                                                  <small>No accessible servers returned.</small>
+                                                ) : (
+                                                  discordChannels()[source().name].guilds.map(
+                                                    (guild) => {
+                                                      const serversAssigned =
+                                                        source().servers.length > 0
+                                                      const assigned =
+                                                        !serversAssigned ||
+                                                        source().servers.includes(guild.id)
+                                                      return (
+                                                        <div
+                                                          class={cn(
+                                                            'discord-guild',
+                                                            !assigned && 'discord-guild-unassigned'
+                                                          )}
+                                                        >
+                                                          <strong>{guild.name}</strong>
+                                                          {!assigned && (
+                                                            <small>
+                                                              {' '}
+                                                              · not assigned to this workspace
+                                                            </small>
+                                                          )}
+                                                          {guild.truncated && (
+                                                            <small> · first 100 channels</small>
+                                                          )}
+                                                          {guild.channels.length === 0 ? (
+                                                            <small>No channels returned.</small>
+                                                          ) : (
+                                                            guild.channels.map((channel) => (
+                                                              <Label
+                                                                title={
+                                                                  assigned
+                                                                    ? undefined
+                                                                    : 'Assign this server in the server chooser before selecting its channels'
+                                                                }
+                                                              >
+                                                                <Checkbox
+                                                                  aria-label={`${channel.name} · ${channel.kind}`}
+                                                                  checked={source().channels.includes(
+                                                                    channel.id
+                                                                  )}
+                                                                  disabled={
+                                                                    sourceLocked() ||
+                                                                    !source().editable
+                                                                  }
+                                                                  onChange={() =>
+                                                                    toggleDiscordChannel(
+                                                                      index,
+                                                                      source(),
+                                                                      channel.id
+                                                                    )
+                                                                  }
+                                                                />
+                                                                <span>
+                                                                  {channel.name} · {channel.kind}
+                                                                </span>
+                                                              </Label>
+                                                            ))
+                                                          )}
+                                                        </div>
+                                                      )
+                                                    }
+                                                  )
+                                                )}
+                                                {discordChannels()[source().name].truncated && (
+                                                  <small>
+                                                    Discord returned more than 100 servers; only the
+                                                    first 100 are shown.
+                                                  </small>
+                                                )}
+                                              </div>
+                                            )}
                                           </div>
-                                        </Field>
-                                        <Field
-                                          label="Slack OAuth client JSON"
-                                          hint="JSON containing the OAuth app client_id; required for browser authorization. Register the loopback redirect URI http://127.0.0.1:47521/callback in the Slack app first"
-                                          class="col-span-full"
+                                        </FormField>
+                                      )}
+                                      <FormField
+                                        label={
+                                          source().kind === 'github'
+                                            ? 'Repositories'
+                                            : 'Channel IDs'
+                                        }
+                                        hint={
+                                          source().kind === 'github'
+                                            ? 'one owner/repository per line; only these repositories are indexed'
+                                            : 'comma or line separated'
+                                        }
+                                        class="col-span-full"
+                                      >
+                                        <Textarea
+                                          value={
+                                            source().kind === 'github'
+                                              ? source().repositories.join('\n')
+                                              : source().channels.join(', ')
+                                          }
+                                          disabled={sourceLocked() || !source().editable}
+                                          required={source().enabled}
+                                          rows={source().kind === 'github' ? 3 : 1}
+                                          placeholder={
+                                            source().kind === 'github'
+                                              ? 'owner/repository'
+                                              : 'Channel IDs'
+                                          }
+                                          aria-label={
+                                            source().kind === 'github'
+                                              ? 'GitHub repositories'
+                                              : 'Channel IDs'
+                                          }
+                                          onInput={(event) => {
+                                            const values = splitList(event.target.value)
+                                            changeSource(
+                                              index,
+                                              source().kind === 'github'
+                                                ? {
+                                                    repositories: values,
+                                                  }
+                                                : {
+                                                    channels: values,
+                                                  }
+                                            )
+                                          }}
+                                        />
+                                      </FormField>
+                                      {source().kind !== 'discord' && (
+                                        <FormField
+                                          label="Token variable"
+                                          hint={
+                                            secret()?.configured &&
+                                            !props.clearedSecrets.has(secret()!.name)
+                                              ? `Configured via ${secret()!.source}`
+                                              : 'stored in Cortana owner-only secret file'
+                                          }
                                         >
-                                          <div class="path-input">
+                                          <Input
+                                            value={source().token_env || ''}
+                                            disabled={sourceLocked() || !source().editable}
+                                            required={
+                                              source().enabled &&
+                                              source().kind !== 'github' &&
+                                              !source().token_path
+                                            }
+                                            pattern="[A-Z_][A-Z0-9_]*"
+                                            onInput={(event) =>
+                                              changeSource(index, {
+                                                token_env: event.target.value || null,
+                                              })
+                                            }
+                                          />
+                                        </FormField>
+                                      )}
+                                      {source().kind !== 'discord' && (
+                                        <FormField
+                                          label="New token"
+                                          hint="write-only; leave blank to keep existing"
+                                        >
+                                          <div class="secret-input">
                                             <Input
-                                              value={source().oauth_client_path || ''}
-                                              disabled={sourceLocked() || !source().editable}
-                                              placeholder="/Users/you/.config/cortana/slack-oauth-client.json"
-                                              onInput={(event) =>
-                                                changeSource(index, {
-                                                  oauth_client_path: event.target.value || null,
-                                                })
+                                              type="password"
+                                              autocomplete="new-password"
+                                              disabled={
+                                                sourceLocked() ||
+                                                !source().editable ||
+                                                !source().token_env
                                               }
+                                              value={
+                                                source().token_env
+                                                  ? props.secretValues[source().token_env!] || ''
+                                                  : ''
+                                              }
+                                              onInput={(event) => {
+                                                if (source().token_env) {
+                                                  props.onSecret({
+                                                    ...props.secretValues,
+                                                    [source().token_env!]: event.target.value,
+                                                  })
+                                                }
+                                              }}
                                             />
-                                            <Button
-                                              variant="ghost"
-                                              size="icon-sm"
-                                              type="button"
-                                              disabled={sourceLocked() || !source().editable}
-                                              aria-label="Choose Slack OAuth client JSON"
-                                              tooltip="Choose Slack OAuth client JSON"
-
-                                              onClick={() =>
-                                                void choosePath(
-                                                  index,
-                                                  'oauth-client',
-                                                  'oauth_client_path'
-                                                )
-                                              }
-                                            >
-                                              <FolderOpen size={14} aria-hidden="true" />
-                                            </Button>
+                                            {source().token_env &&
+                                              secret()?.configured &&
+                                              !props.clearedSecrets.has(secret()!.name) && (
+                                                <ActionButton
+                                                  tooltip="Clear"
+                                                  variant="destructive"
+                                                  size="sm"
+                                                  type="button"
+                                                  disabled={sourceLocked()}
+                                                  onClick={() =>
+                                                    applyConfirmed(
+                                                      confirm(
+                                                        `Clear the stored token for ${source().name}? The change remains a draft until you save settings.`
+                                                      ),
+                                                      () => props.onClearSecret(source().token_env!)
+                                                    )
+                                                  }
+                                                >
+                                                  Clear
+                                                </ActionButton>
+                                              )}
                                           </div>
-                                        </Field>
-                                      </>
-                                    )}
-                                  </>
+                                        </FormField>
+                                      )}
+                                      {source().kind === 'discord' && (
+                                        <>
+                                          <FormField
+                                            label="Discord RPC token file"
+                                            hint="private access token created through Discord Desktop RPC; used for server, channel, and message reads"
+                                            class="col-span-full"
+                                          >
+                                            <div class="path-input">
+                                              <Input
+                                                value={source().token_path || ''}
+                                                disabled={sourceLocked() || !source().editable}
+                                                placeholder="/Users/you/.config/cortana/discord-rpc-token.json"
+                                                onInput={(event) =>
+                                                  changeSource(index, {
+                                                    token_path: event.target.value || null,
+                                                  })
+                                                }
+                                              />
+                                              <ActionButton
+                                                variant="ghost"
+                                                size="icon-sm"
+                                                type="button"
+                                                disabled={sourceLocked() || !source().editable}
+                                                aria-label="Choose Discord RPC token destination"
+                                                tooltip="Choose Discord RPC token destination"
+
+                                                onClick={() =>
+                                                  void choosePath(
+                                                    index,
+                                                    'discord-token',
+                                                    'token_path'
+                                                  )
+                                                }
+                                              >
+                                                <FolderOpen size={14} aria-hidden="true" />
+                                              </ActionButton>
+                                            </div>
+                                          </FormField>
+                                          <FormField
+                                            label="Discord RPC client JSON"
+                                            hint="JSON containing the Discord application client_id and optional client_secret"
+                                            class="col-span-full"
+                                          >
+                                            <div class="path-input">
+                                              <Input
+                                                value={source().oauth_client_path || ''}
+                                                disabled={sourceLocked() || !source().editable}
+                                                placeholder="/Users/you/.config/cortana/discord-rpc-client.json"
+                                                onInput={(event) =>
+                                                  changeSource(index, {
+                                                    oauth_client_path: event.target.value || null,
+                                                  })
+                                                }
+                                              />
+                                              <ActionButton
+                                                variant="ghost"
+                                                size="icon-sm"
+                                                type="button"
+                                                disabled={sourceLocked() || !source().editable}
+                                                aria-label="Choose Discord RPC client JSON"
+                                                tooltip="Choose Discord RPC client JSON"
+
+                                                onClick={() =>
+                                                  void choosePath(
+                                                    index,
+                                                    'oauth-client',
+                                                    'oauth_client_path'
+                                                  )
+                                                }
+                                              >
+                                                <FolderOpen size={14} aria-hidden="true" />
+                                              </ActionButton>
+                                            </div>
+                                          </FormField>
+                                        </>
+                                      )}
+                                      {source().kind === 'slack' && (
+                                        <>
+                                          <FormField
+                                            label="Workspace chooser"
+                                            hint="assign the workspace this source may index; authorize with Slack first, then discover and check the workspace to assign. A Slack user token is scoped to exactly one workspace, so at most one team can be assigned per source"
+                                            group
+                                            class="col-span-full"
+                                          >
+                                            <div class="grid gap-4">
+                                              <ActionButton
+                                                tooltip="Discover workspaces"
+                                                variant="secondary"
+                                                size="sm"
+                                                type="button"
+                                                aria-label="Discover workspaces"
+                                                disabled={
+                                                  !props.canValidate ||
+                                                  sourceLocked() ||
+                                                  slackWorkspacesLoading() === source().name
+                                                }
+                                                onClick={() =>
+                                                  void discoverSlackWorkspaces(source())
+                                                }
+                                              >
+                                                {slackWorkspacesLoading() === source().name ? (
+                                                  <Spinner size="sm" label={false} />
+                                                ) : (
+                                                  <RefreshCw size={14} aria-hidden="true" />
+                                                )}{' '}
+                                                Discover workspaces
+                                              </ActionButton>
+                                              {slackWorkspaces()[source().name] && (
+                                                <div class="grid gap-2">
+                                                  {slackWorkspaces()[source().name].teams.length ===
+                                                  0 ? (
+                                                    <small>
+                                                      No accessible workspaces returned.
+                                                    </small>
+                                                  ) : (
+                                                    slackWorkspaces()[source().name].teams.map(
+                                                      (team) => (
+                                                        <Label>
+                                                          <Checkbox
+                                                            aria-label={`Include ${team.name}`}
+                                                            checked={source().teams.includes(
+                                                              team.id
+                                                            )}
+                                                            disabled={
+                                                              sourceLocked() || !source().editable
+                                                            }
+                                                            onChange={() =>
+                                                              toggleSlackTeam(index, source(), team)
+                                                            }
+                                                          />
+                                                          <span>{team.name}</span>
+                                                        </Label>
+                                                      )
+                                                    )
+                                                  )}
+                                                  {slackWorkspaces()[source().name].truncated && (
+                                                    <small>
+                                                      Slack returned more than 100 teams; only the
+                                                      first 100 are shown.
+                                                    </small>
+                                                  )}
+                                                </div>
+                                              )}
+                                            </div>
+                                          </FormField>
+                                          <FormField
+                                            label="Slack OAuth token file"
+                                            hint="private user token created by Cortana; used only to list the workspace for assignment. The SLACK_BOT_TOKEN environment variable is separate and stays the message-sync credential"
+                                            class="col-span-full"
+                                          >
+                                            <div class="path-input">
+                                              <Input
+                                                value={source().token_path || ''}
+                                                disabled={sourceLocked() || !source().editable}
+                                                placeholder="/Users/you/.config/cortana/slack-user-token.json"
+                                                onInput={(event) =>
+                                                  changeSource(index, {
+                                                    token_path: event.target.value || null,
+                                                  })
+                                                }
+                                              />
+                                              <ActionButton
+                                                variant="ghost"
+                                                size="icon-sm"
+                                                type="button"
+                                                disabled={sourceLocked() || !source().editable}
+                                                aria-label="Choose Slack OAuth token destination"
+                                                tooltip="Choose Slack OAuth token destination"
+
+                                                onClick={() =>
+                                                  void choosePath(
+                                                    index,
+                                                    'slack-token',
+                                                    'token_path'
+                                                  )
+                                                }
+                                              >
+                                                <FolderOpen size={14} aria-hidden="true" />
+                                              </ActionButton>
+                                            </div>
+                                          </FormField>
+                                          <FormField
+                                            label="Slack OAuth client JSON"
+                                            hint="JSON containing the OAuth app client_id; required for browser authorization. Register the loopback redirect URI http://127.0.0.1:47521/callback in the Slack app first"
+                                            class="col-span-full"
+                                          >
+                                            <div class="path-input">
+                                              <Input
+                                                value={source().oauth_client_path || ''}
+                                                disabled={sourceLocked() || !source().editable}
+                                                placeholder="/Users/you/.config/cortana/slack-oauth-client.json"
+                                                onInput={(event) =>
+                                                  changeSource(index, {
+                                                    oauth_client_path: event.target.value || null,
+                                                  })
+                                                }
+                                              />
+                                              <ActionButton
+                                                variant="ghost"
+                                                size="icon-sm"
+                                                type="button"
+                                                disabled={sourceLocked() || !source().editable}
+                                                aria-label="Choose Slack OAuth client JSON"
+                                                tooltip="Choose Slack OAuth client JSON"
+
+                                                onClick={() =>
+                                                  void choosePath(
+                                                    index,
+                                                    'oauth-client',
+                                                    'oauth_client_path'
+                                                  )
+                                                }
+                                              >
+                                                <FolderOpen size={14} aria-hidden="true" />
+                                              </ActionButton>
+                                            </div>
+                                          </FormField>
+                                        </>
+                                      )}
+                                    </>
+                                  )}
+                                  {source().editable && (
+                                    <>
+                                      <FormField
+                                        label="Document limit"
+                                        hint="blank uses global budget"
+                                      >
+                                        <Input
+                                          type="number"
+                                          disabled={sourceLocked()}
+                                          min={1}
+                                          max={1000000}
+                                          value={source().max_documents ?? ''}
+                                          onInput={(event) =>
+                                            changeSource(index, {
+                                              max_documents: optionalNumber(event.target.value),
+                                            })
+                                          }
+                                        />
+                                      </FormField>
+                                      <FormField
+                                        label="Content limit (bytes)"
+                                        hint="blank uses global budget"
+                                      >
+                                        <Input
+                                          type="number"
+                                          disabled={sourceLocked()}
+                                          min={1024}
+                                          max={1099511627776}
+                                          value={source().max_bytes ?? ''}
+                                          onInput={(event) =>
+                                            changeSource(index, {
+                                              max_bytes: optionalNumber(event.target.value),
+                                            })
+                                          }
+                                        />
+                                      </FormField>
+                                      <FormField
+                                        label="Content limit (characters)"
+                                        hint="blank uses connector defaults"
+                                      >
+                                        <Input
+                                          type="number"
+                                          disabled={sourceLocked()}
+                                          min={1}
+                                          max={10000000}
+                                          value={source().max_content_chars ?? ''}
+                                          onInput={(event) =>
+                                            changeSource(index, {
+                                              max_content_chars: optionalNumber(event.target.value),
+                                            })
+                                          }
+                                        />
+                                      </FormField>
+                                      <FormField
+                                        label="Duration limit (seconds)"
+                                        hint="blank uses the global budget"
+                                      >
+                                        <Input
+                                          type="number"
+                                          disabled={sourceLocked()}
+                                          min={1}
+                                          max={86400}
+                                          value={source().max_duration_seconds ?? ''}
+                                          onInput={(event) =>
+                                            changeSource(index, {
+                                              max_duration_seconds: optionalNumber(
+                                                event.target.value
+                                              ),
+                                            })
+                                          }
+                                        />
+                                      </FormField>
+                                      <FormField
+                                        label="Document labels"
+                                        hint="comma or line separated"
+                                        class="col-span-full"
+                                      >
+                                        <Input
+                                          disabled={sourceLocked()}
+                                          value={source().labels.join(', ')}
+                                          onInput={(event) =>
+                                            changeSource(index, {
+                                              labels: splitList(event.target.value),
+                                            })
+                                          }
+                                        />
+                                      </FormField>
+                                      <FormField
+                                        label="Document ACL labels"
+                                        hint="comma or line separated; leave blank only for public data"
+                                        class="col-span-full"
+                                      >
+                                        <Input
+                                          disabled={sourceLocked()}
+                                          value={source().acl.join(', ')}
+                                          onInput={(event) =>
+                                            changeSource(index, {
+                                              acl: splitList(event.target.value),
+                                            })
+                                          }
+                                        />
+                                      </FormField>
+                                    </>
+                                  )}
+                                </FieldGroup>
+                              </AccordionContent>
+                            </AccordionItem>
+                          </Accordion>
+                          {observedJob()?.source === source().name && (
+                            <div class={`source-validation-job ${observedJob()!.status}`}>
+                              <div>
+                                <StatusGlyph
+                                  passed={observedJob()!.status === 'succeeded'}
+                                  optional={observedJob()!.status === 'cancelled'}
+                                  pending={['running', 'cancelling'].includes(
+                                    observedJob()!.status
+                                  )}
+                                />
+                                <span class="source-validation-job-text">
+                                  <strong>
+                                    {sourceJobOperationLabel(observedJob()!.operation)} ·{' '}
+                                    {observedJob()!.status}
+                                  </strong>
+                                  <small>{observedJob()!.summary}</small>
+                                </span>
+                                {['running', 'cancelling'].includes(observedJob()!.status) && (
+                                  <ActionButton
+                                    tooltip="Cancel this operation and return to the previous view."
+                                    variant="outline"
+                                    size="xs"
+                                    type="button"
+                                    disabled={observedJob()!.status === 'cancelling'}
+                                    onClick={() => void cancel()}
+                                  >
+                                    <CircleStop size={14} aria-hidden="true" /> Cancel
+                                  </ActionButton>
                                 )}
-                                {source().editable && (
-                                  <>
-                                    <Field label="Document limit" hint="blank uses global budget">
-                                      <Input
-                                        type="number"
-                                        disabled={sourceLocked()}
-                                        min={1}
-                                        max={1000000}
-                                        value={source().max_documents ?? ''}
-                                        onInput={(event) =>
-                                          changeSource(index, {
-                                            max_documents: optionalNumber(event.target.value),
-                                          })
-                                        }
-                                      />
-                                    </Field>
-                                    <Field
-                                      label="Content limit (bytes)"
-                                      hint="blank uses global budget"
-                                    >
-                                      <Input
-                                        type="number"
-                                        disabled={sourceLocked()}
-                                        min={1024}
-                                        max={1099511627776}
-                                        value={source().max_bytes ?? ''}
-                                        onInput={(event) =>
-                                          changeSource(index, {
-                                            max_bytes: optionalNumber(event.target.value),
-                                          })
-                                        }
-                                      />
-                                    </Field>
-                                    <Field
-                                      label="Content limit (characters)"
-                                      hint="blank uses connector defaults"
-                                    >
-                                      <Input
-                                        type="number"
-                                        disabled={sourceLocked()}
-                                        min={1}
-                                        max={10000000}
-                                        value={source().max_content_chars ?? ''}
-                                        onInput={(event) =>
-                                          changeSource(index, {
-                                            max_content_chars: optionalNumber(event.target.value),
-                                          })
-                                        }
-                                      />
-                                    </Field>
-                                    <Field
-                                      label="Duration limit (seconds)"
-                                      hint="blank uses the global budget"
-                                    >
-                                      <Input
-                                        type="number"
-                                        disabled={sourceLocked()}
-                                        min={1}
-                                        max={86400}
-                                        value={source().max_duration_seconds ?? ''}
-                                        onInput={(event) =>
-                                          changeSource(index, {
-                                            max_duration_seconds: optionalNumber(
-                                              event.target.value
-                                            ),
-                                          })
-                                        }
-                                      />
-                                    </Field>
-                                    <Field
-                                      label="Document labels"
-                                      hint="comma or line separated"
-                                      class="col-span-full"
-                                    >
-                                      <Input
-                                        disabled={sourceLocked()}
-                                        value={source().labels.join(', ')}
-                                        onInput={(event) =>
-                                          changeSource(index, {
-                                            labels: splitList(event.target.value),
-                                          })
-                                        }
-                                      />
-                                    </Field>
-                                    <Field
-                                      label="Document ACL labels"
-                                      hint="comma or line separated; leave blank only for public data"
-                                      class="col-span-full"
-                                    >
-                                      <Input
-                                        disabled={sourceLocked()}
-                                        value={source().acl.join(', ')}
-                                        onInput={(event) =>
-                                          changeSource(index, {
-                                            acl: splitList(event.target.value),
-                                          })
-                                        }
-                                      />
-                                    </Field>
-                                  </>
+                                {observedJob()!.retryable && (
+                                  <ActionButton
+                                    tooltip="Retry the last failed request."
+                                    variant="outline"
+                                    size="xs"
+                                    type="button"
+                                    disabled={!props.canValidate || Boolean(activeJob())}
+                                    onClick={() => {
+                                      if (observedJob()!.operation === 'authorization')
+                                        void authorizeSource(source())
+                                      else if (observedJob()!.operation === 'trial-sync')
+                                        void trialSyncSource(source())
+                                      else if (
+                                        observedJob()!.operation === 'initial-sync' ||
+                                        observedJob()!.operation === 'validation'
+                                      ) {
+                                        void openInitialSync(
+                                          source(),
+                                          (observedJob()!.budget as InitialSyncBudget | null) ||
+                                            'small'
+                                        )
+                                      } else void checkSourceConnection(source())
+                                    }}
+                                  >
+                                    <RefreshCw size={14} aria-hidden="true" /> Retry
+                                  </ActionButton>
                                 )}
-                              </SettingsFieldGroup>
-                            </SettingsAccordionContent>
-                          </SettingsAccordionItem>
-                        </SettingsAccordion>
-                        {observedJob()?.source === source().name && (
-                          <div class={`source-validation-job ${observedJob()!.status}`}>
-                            <div>
-                              <StatusGlyph
-                                passed={observedJob()!.status === 'succeeded'}
-                                optional={observedJob()!.status === 'cancelled'}
-                                pending={['running', 'cancelling'].includes(observedJob()!.status)}
-                              />
-                              <span class="source-validation-job-text">
-                                <strong>
-                                  {sourceJobOperationLabel(observedJob()!.operation)} ·{' '}
-                                  {observedJob()!.status}
-                                </strong>
-                                <small>{observedJob()!.summary}</small>
-                              </span>
-                              {['running', 'cancelling'].includes(observedJob()!.status) && (
-                                <Button
-                                  tooltip="Cancel this operation and return to the previous view."
-                                  variant="outline"
-                                  size="xs"
-                                  type="button"
-                                  disabled={observedJob()!.status === 'cancelling'}
-                                  onClick={() => void cancel()}
-                                >
-                                  <CircleStop size={14} aria-hidden="true" /> Cancel
-                                </Button>
-                              )}
-                              {observedJob()!.retryable && (
-                                <Button
-                                  tooltip="Retry the last failed request."
-                                  variant="outline"
-                                  size="xs"
-                                  type="button"
-                                  disabled={!props.canValidate || Boolean(activeJob())}
-                                  onClick={() => {
-                                    if (observedJob()!.operation === 'authorization')
-                                      void authorizeSource(source())
-                                    else if (observedJob()!.operation === 'trial-sync')
-                                      void trialSyncSource(source())
-                                    else if (
-                                      observedJob()!.operation === 'initial-sync' ||
-                                      observedJob()!.operation === 'validation'
-                                    ) {
-                                      void openInitialSync(
-                                        source(),
-                                        (observedJob()!.budget as InitialSyncBudget | null) ||
-                                          'small'
-                                      )
-                                    } else void checkSourceConnection(source())
-                                  }}
-                                >
-                                  <RefreshCw size={14} aria-hidden="true" /> Retry
-                                </Button>
+                              </div>
+                              {observedJob()!.log && (
+                                <ScrollArea class="mt-3 max-h-44" aria-label="Source job log">
+                                  <CodeBlock
+                                    code={observedJob()!.log!}
+                                    title="Source job log"
+                                    complete
+                                  />
+                                </ScrollArea>
                               )}
                             </div>
-                            {observedJob()!.log && <pre>{observedJob()!.log}</pre>}
-                          </div>
-                        )}
-                      </SettingsCard>
+                          )}
+                        </CardContent>
+                      </Card>
                     </Show>
                   )
                 }}
@@ -2536,7 +2577,7 @@ export function SourcesSection(
                   if (!open) setInitialSync(null)
                 }}
               >
-                <DialogContent class="initial-sync-dialog">
+                <DialogContent size="xl">
                   <DialogHeader>
                     <DialogTitle>Initial sync</DialogTitle>
                     <DialogDescription>
@@ -2567,9 +2608,9 @@ export function SourcesSection(
             )}
 
             {error() && (
-              <SettingsAlert class="safety-note" variant="destructive" role="alert">
+              <Alert class="safety-note" variant="destructive" role="alert">
                 <AlertDescription>{error()}</AlertDescription>
-              </SettingsAlert>
+              </Alert>
             )}
             <Accordion collapsible>
               <AccordionItem value="details">
@@ -2589,8 +2630,8 @@ export function SourcesSection(
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
-          </SettingsTabsContent>
-        </SettingsTabs>
+          </TabsContent>
+        </Tabs>
       </div>
     </SettingsSection>
   )
@@ -2673,8 +2714,8 @@ function InitialSyncFlow(incoming: {
   const plan = () => props.flow.plan
   return (
     <section class="initial-sync-flow" aria-label={`Initial sync plan for ${props.source.name}`}>
-      <SettingsRadioGroup
-        class="initial-sync-budgets"
+      <RadioGroup
+        class="md:grid-cols-3"
         role="radiogroup"
         aria-label="Initial sync budget"
         value={props.flow.budget}
@@ -2682,25 +2723,21 @@ function InitialSyncFlow(incoming: {
       >
         <For each={INITIAL_SYNC_BUDGETS}>
           {(tier) => (
-            <Label>
-              <SettingsRadio
-                value={tier.budget}
-
-                disabled={props.flow.planning || props.busy}
-              />
-              <span>
-                <strong>{tier.budget[0].toUpperCase() + tier.budget.slice(1)}</strong>
-                <small>{budgetLabel(tier.budget)}</small>
-              </span>
-            </Label>
+            <RadioGroupItem
+              variant="card"
+              value={tier.budget}
+              label={tier.budget[0].toUpperCase() + tier.budget.slice(1)}
+              description={budgetLabel(tier.budget)}
+              disabled={props.flow.planning || props.busy}
+            />
           )}
         </For>
-      </SettingsRadioGroup>
+      </RadioGroup>
       {props.flow.planning && <p class="initial-sync-state">Requesting a native plan…</p>}
       {props.flow.flowError && (
-        <SettingsAlert class="safety-note" variant="destructive" role="alert">
+        <Alert class="safety-note" variant="destructive" role="alert">
           <AlertDescription>{props.flow.flowError}</AlertDescription>
-        </SettingsAlert>
+        </Alert>
       )}
       <Show when={plan()} keyed>
         {(currentPlan) => (
@@ -2736,14 +2773,14 @@ function InitialSyncFlow(incoming: {
               </div>
             </dl>
             {!currentPlan.enabled && (
-              <SettingsAlert class="safety-note" variant="warning">
+              <Alert class="safety-note" variant="warning">
                 <AlertDescription>
                   <span>Enable this source and save before an initial sync.</span>
                 </AlertDescription>
-              </SettingsAlert>
+              </Alert>
             )}
             {currentPlan.validation_covers_budget !== true && (
-              <SettingsAlert class="safety-note" variant="warning">
+              <Alert class="safety-note" variant="warning">
                 <AlertDescription>
                   <span>
                     {currentPlan.validation_covers_budget === false
@@ -2753,20 +2790,20 @@ function InitialSyncFlow(incoming: {
                 </AlertDescription>
                 {!props.busy && (
                   <AlertAction>
-                    <Button
+                    <ActionButton
                       tooltip="Validate for this budget"
                       variant="outline"
                       size="xs"
                       onClick={props.onValidate}
                     >
                       Validate for this budget
-                    </Button>
+                    </ActionButton>
                   </AlertAction>
                 )}
-              </SettingsAlert>
+              </Alert>
             )}
             <div class="initial-sync-actions">
-              <Button
+              <ActionButton
                 tooltip="Start initial sync"
                 variant="outline"
                 size="sm"
@@ -2779,7 +2816,7 @@ function InitialSyncFlow(incoming: {
                 onClick={props.onStart}
               >
                 <Zap size={15} aria-hidden="true" /> Start initial sync
-              </Button>
+              </ActionButton>
               <span>
                 Execution requires explicit confirmation and reuses the native validation-gated,
                 no-reconcile source-job boundary.

@@ -1309,7 +1309,7 @@ test('desktop settings navigation opens the audit trail and renders both event s
 
   // Section navigation into the audit trail.
   fireEvent.click(
-    screen.getByRole('button', {
+    screen.getByRole('tab', {
       name: 'Audit',
     })
   )
@@ -1343,7 +1343,7 @@ test('audit trail reports a failure shared by both event sources once', async ()
     ).toBeTruthy()
   )
   fireEvent.click(
-    screen.getByRole('button', {
+    screen.getByRole('tab', {
       name: 'Audit',
     })
   )
@@ -1404,7 +1404,7 @@ test('audit trail export downloads exactly the loaded redacted events as JSON', 
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Audit',
       })
     )
@@ -1468,7 +1468,7 @@ test('advanced settings export is blocked while draft is dirty', async () => {
     ).toBeTruthy()
   )
   fireEvent.click(
-    screen.getByRole('button', {
+    screen.getByRole('tab', {
       name: 'Advanced',
     })
   )
@@ -1516,7 +1516,7 @@ test('advanced settings export shows redacted notice and calls the export bridge
     ).toBeTruthy()
   )
   fireEvent.click(
-    screen.getByRole('button', {
+    screen.getByRole('tab', {
       name: 'Advanced',
     })
   )
@@ -1557,7 +1557,7 @@ test('advanced settings exports an explicit workspace set as a derived vault', a
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Advanced',
       })
     )
@@ -1622,7 +1622,7 @@ test('advanced import preview cancellation keeps draft values unchanged', async 
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Advanced',
       })
     )
@@ -1684,7 +1684,7 @@ test('advanced settings import preview applies as unsaved draft and requires exp
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Advanced',
       })
     )
@@ -1970,7 +1970,7 @@ test('query number fields expose deterministic errors and recover to the saved b
     ).toBeTruthy()
   )
   fireEvent.click(
-    screen.getByRole('button', {
+    screen.getByRole('tab', {
       name: 'Query',
     })
   )
@@ -2030,7 +2030,7 @@ test('embedding settings explain local service command ownership', async () => {
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Embedding',
       })
     )
@@ -2065,7 +2065,7 @@ test('embedding model field supports preset catalog with custom fallback', async
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Embedding',
       })
     )
@@ -2101,7 +2101,7 @@ test('query model field remains a dropdown and preserves the current model until
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Query',
       })
     )
@@ -2174,7 +2174,7 @@ test('settings add controls avoid reusing removed identifiers', async () => {
       name: 'Settings',
     })
     fireEvent.click(
-      await screen.findByRole('button', {
+      await screen.findByRole('tab', {
         name: 'Workspaces',
       })
     )
@@ -2199,7 +2199,7 @@ test('settings add controls avoid reusing removed identifiers', async () => {
       (screen.getAllByLabelText(/Scope ID/) as HTMLInputElement[]).map((input) => input.value)
     ).toContain('new-workspace')
     fireEvent.click(
-      await screen.findByRole('button', {
+      await screen.findByRole('tab', {
         name: 'Sources',
       })
     )
@@ -2259,7 +2259,7 @@ test('settings add controls avoid reusing removed identifiers', async () => {
       })
     ).toBeNull()
     fireEvent.click(
-      await screen.findByRole('button', {
+      await screen.findByRole('tab', {
         name: 'Access',
       })
     )
@@ -2295,7 +2295,7 @@ test('adding files and code opens the native picker before creating a populated 
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Sources',
       })
     )
@@ -2356,7 +2356,7 @@ test('connecting a provider collects its files before persisting and authorizing
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Sources',
       })
     )
@@ -2416,7 +2416,7 @@ test('cancelling provider connection creates no source', async () => {
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Sources',
       })
     )
@@ -2467,7 +2467,7 @@ test('workspace controls protect scopes assigned to sources', async () => {
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Workspaces',
       })
     )
@@ -2553,7 +2553,7 @@ test('source cards report authorization and validation state', async () => {
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Sources',
       })
     )
@@ -2589,14 +2589,15 @@ test('source actions stay visible while the settings form has unsaved changes', 
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Sources',
       })
     )
     // Sources are grouped in workspace tabs; the fixture source lives under Work.
     fireEvent.click(
       await screen.findByRole('tab', {
-        name: /Work/,
+        // The source workspace tab, not the Workspaces settings tab.
+        name: /Work(?!spaces)/,
       })
     )
     const actions = ['Test connection', 'Initial sync']
@@ -2651,7 +2652,7 @@ test('workspace cards show display name and advanced details', async () => {
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Workspaces',
       })
     )
@@ -2690,7 +2691,7 @@ test('new workspace display names keep focus while typing', async () => {
     ).toBeTruthy()
   )
   fireEvent.click(
-    screen.getByRole('button', {
+    screen.getByRole('tab', {
       name: 'Workspaces',
     })
   )
@@ -2743,7 +2744,7 @@ test('workspace settings keep 25 workspaces searchable and keyboard-operable', a
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Workspaces',
       })
     )
@@ -2800,7 +2801,7 @@ test('settings warns before discarding dirty changes', async () => {
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Workspaces',
       })
     )
@@ -2853,7 +2854,7 @@ test('settings can discard a draft without leaving the control plane', async () 
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Workspaces',
       })
     )
@@ -2919,7 +2920,7 @@ test('settings can discard a draft without leaving the control plane', async () 
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Workspaces',
       })
     )
@@ -2965,7 +2966,7 @@ test('late desktop bootstrap settings cannot overwrite a shell-reconciled snapsh
     )
     state.deferredDesktopSettings[0]!(originalSettings)
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Workspaces',
       })
     )
@@ -3045,7 +3046,7 @@ test('the footer updates shortcut respects unsaved settings changes', async () =
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Workspaces',
       })
     )
@@ -3081,10 +3082,10 @@ test('source settings opens the Sources section directly', async () => {
       })
     ).toBeTruthy()
   )
-  const sources = screen.getByRole('button', {
+  const sources = screen.getByRole('tab', {
     name: 'Sources',
   })
-  expect(sources.getAttribute('aria-current')).toBe('page')
+  expect(sources.getAttribute('aria-selected')).toBe('true')
 })
 test('Inbox and Index settings actions open their relevant settings sections', async () => {
   render(() => <App />)
@@ -3116,11 +3117,11 @@ test('Inbox and Index settings actions open their relevant settings sections', a
   )
   expect(
     screen
-      .getByRole('button', {
+      .getByRole('tab', {
         name: 'Sources',
       })
-      .getAttribute('aria-current')
-  ).toBe('page')
+      .getAttribute('aria-selected')
+  ).toBe('true')
   await openSidebarDestination('Index')
   await waitFor(() =>
     expect(
@@ -3144,12 +3145,12 @@ test('Inbox and Index settings actions open their relevant settings sections', a
   )
   expect(
     screen
-      .getByRole('button', {
+      .getByRole('tab', {
         // The Index page's settings action routes to the Sources section.
         name: 'Sources',
       })
-      .getAttribute('aria-current')
-  ).toBe('page')
+      .getAttribute('aria-selected')
+  ).toBe('true')
 })
 test('source settings use workspace tabs without repeating assigned workspace controls', async () => {
   const originalSettings = state.settings
@@ -3177,7 +3178,7 @@ test('source settings use workspace tabs without repeating assigned workspace co
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Sources',
       })
     )
@@ -3200,7 +3201,8 @@ test('source settings use workspace tabs without repeating assigned workspace co
     expect(screen.queryByText('Enabled')).toBeNull()
     fireEvent.click(
       screen.getByRole('tab', {
-        name: /Work/,
+        // The source workspace tab, not the Workspaces settings tab.
+        name: /Work(?!spaces)/,
       })
     )
     const summary = screen.getByRole('button', {
@@ -3247,7 +3249,7 @@ test('Apple Notes sources expose exact include and exclude folder filters', asyn
       name: 'Settings',
     })
     fireEvent.click(
-      await screen.findByRole('button', {
+      await screen.findByRole('tab', {
         name: 'Sources',
       })
     )
@@ -3301,7 +3303,7 @@ test('source settings quarantine legacy scopes and offer workspace assignment', 
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Sources',
       })
     )
@@ -3360,7 +3362,7 @@ test('GitHub code sources expose an explicit workspace-scoped repository allowli
       name: 'Settings',
     })
     fireEvent.click(
-      await screen.findByRole('button', {
+      await screen.findByRole('tab', {
         name: 'Sources',
       })
     )
@@ -3446,7 +3448,7 @@ test('settings refuses duplicate canonical source labels in one workspace', asyn
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Workspaces',
       })
     )
@@ -3485,27 +3487,27 @@ test('settings navigation opens workspace and services first and exposes native 
       })
     ).toBeTruthy()
   )
-  const navigation = screen.getByRole('navigation', {
+  const navigation = screen.getByRole('tablist', {
     name: 'Settings sections',
   })
-  const buttons = within(navigation).getAllByRole('button')
-  const labels = buttons.map((button) => button.textContent)
+  const tabs = within(navigation).getAllByRole('tab')
+  const labels = tabs.map((tab) => tab.textContent)
   expect(labels[0]).toBe('Services')
   expect(labels[1]).toBe('Workspaces')
   expect(labels[2]).toBe('Sources')
   expect(labels[3]).toBe('Readiness')
   fireEvent.click(
-    screen.getByRole('button', {
+    screen.getByRole('tab', {
       name: 'Memory',
     })
   )
   expect(
     screen
-      .getByRole('button', {
+      .getByRole('tab', {
         name: 'Memory',
       })
-      .getAttribute('aria-current')
-  ).toBe('page')
+      .getAttribute('aria-selected')
+  ).toBe('true')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {
@@ -3550,7 +3552,7 @@ test('settings uses the shared catalogue default and exposes theme controls per 
   ).toBeNull()
   expect(document.documentElement.getAttribute('data-theme')).toBe('adea-dark')
   fireEvent.click(
-    screen.getByRole('button', {
+    screen.getByRole('tab', {
       name: 'Workspaces',
     })
   )
@@ -3597,7 +3599,7 @@ test('workspace theme controls persist and apply per workspace', async () => {
     ).toBeTruthy()
   )
   fireEvent.click(
-    screen.getByRole('button', {
+    screen.getByRole('tab', {
       name: 'Workspaces',
     })
   )
@@ -3654,7 +3656,7 @@ test('settings refuses padded or control-character source labels before save', a
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Workspaces',
       })
     )
@@ -3753,7 +3755,7 @@ test('Services settings stay a process-health surface with no source enablement 
     ).toBeTruthy()
   )
   fireEvent.click(
-    screen.getByRole('button', {
+    screen.getByRole('tab', {
       name: 'Services',
     })
   )
@@ -3804,7 +3806,7 @@ test('services settings offers an explicit safe core-service install', async () 
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Services',
       })
     )
@@ -3852,7 +3854,7 @@ test('services settings enables recurring sync only through its explicit action'
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Services',
       })
     )
@@ -3884,7 +3886,7 @@ test('services settings saves bounded recurring sync and backup intervals', asyn
     ).toBeTruthy()
   )
   fireEvent.click(
-    screen.getByRole('button', {
+    screen.getByRole('tab', {
       name: 'Services',
     })
   )
@@ -3942,7 +3944,7 @@ test('services settings requires explicit apply after changing an installed sche
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Services',
       })
     )
@@ -3984,7 +3986,7 @@ test('services settings refuses recurring sync while settings changes are unsave
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Workspaces',
       })
     )
@@ -3994,7 +3996,7 @@ test('services settings refuses recurring sync while settings changes are unsave
       },
     })
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Services',
       })
     )
@@ -4023,7 +4025,7 @@ test('services settings reuses the shell service snapshot without a duplicate po
     ).toBeTruthy()
   )
   fireEvent.click(
-    screen.getByRole('button', {
+    screen.getByRole('tab', {
       name: 'Services',
     })
   )
@@ -4392,7 +4394,7 @@ test('services settings name the install path for services that are not installe
     ).toBeTruthy()
   )
   fireEvent.click(
-    screen.getByRole('button', {
+    screen.getByRole('tab', {
       name: 'Services',
     })
   )
@@ -4421,7 +4423,7 @@ test('services settings exports a verified database backup with explicit confirm
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Services',
       })
     )
@@ -4471,7 +4473,7 @@ test('services settings permits restore with an installed but idle backup job an
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Services',
       })
     )
@@ -4496,12 +4498,12 @@ test('services settings permits restore with an installed but idle backup job an
       state: 'running',
     }
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Readiness',
       })
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Services',
       })
     )
@@ -4555,7 +4557,7 @@ test('settings save refreshes shell service metadata immediately', async () => {
     ).toBeTruthy()
   )
   fireEvent.click(
-    screen.getByRole('button', {
+    screen.getByRole('tab', {
       name: 'Workspaces',
     })
   )
@@ -4589,7 +4591,7 @@ test('successful service actions clear a stale shell service error immediately',
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Services',
       })
     )
@@ -4648,7 +4650,7 @@ test('saving settings clears stale local service errors', async () => {
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Services',
       })
     )
@@ -4666,7 +4668,7 @@ test('saving settings clears stale local service errors', async () => {
     )
     await waitFor(() => expect(screen.getByText('service status transport failed')).toBeTruthy())
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Workspaces',
       })
     )
@@ -4690,7 +4692,7 @@ test('saving settings clears stale local service errors', async () => {
     )
     await waitFor(() => expect(state.saveSettingsCalls).toBe(1))
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Services',
       })
     )
@@ -4728,7 +4730,7 @@ test('service activity survives leaving Settings while a native action is runnin
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Services',
       })
     )
@@ -5318,7 +5320,7 @@ test('installer progress survives settings section changes', async () => {
     )
     await waitFor(() => expect(screen.getByText('Installing uv')).toBeTruthy())
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Services',
       })
     )
@@ -5330,7 +5332,7 @@ test('installer progress survives settings section changes', async () => {
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Readiness',
       })
     )
@@ -5393,7 +5395,7 @@ test('saving settings with restart_required triggers a background restart and cl
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Workspaces',
       })
     )
@@ -5498,7 +5500,7 @@ test('a failed background restart after saving names the failure and offers reco
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Workspaces',
       })
     )
@@ -5634,7 +5636,7 @@ test('services settings keeps repair available for a partial core install', asyn
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Services',
       })
     )
@@ -5671,7 +5673,7 @@ test('services settings surfaces a non-zero last exit as a failed service', asyn
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Services',
       })
     )
@@ -5697,7 +5699,7 @@ test('services settings disables aggregate actions when the platform backend is 
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Services',
       })
     )
@@ -5733,7 +5735,7 @@ test('Google source settings expose env-backed token credentials', async () => {
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Sources',
       })
     )
@@ -5772,7 +5774,7 @@ test('Google source authorization action starts a tracked browser job', async ()
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Sources',
       })
     )
@@ -5816,7 +5818,7 @@ test('Google authorization accepts a token path supplied through the configured 
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Sources',
       })
     )
@@ -5851,7 +5853,7 @@ test('running source jobs stay visible in the shell after leaving the settings v
       name: 'Settings',
     })
     fireEvent.click(
-      await screen.findByRole('button', {
+      await screen.findByRole('tab', {
         name: 'Sources',
       })
     )
@@ -5935,7 +5937,7 @@ test('completed source jobs refresh source health without waiting for the status
       ).toBeTruthy()
     )
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: 'Sources',
       })
     )
@@ -5979,7 +5981,7 @@ test('local runtime section opens active secret file path in desktop', async () 
     name: 'Settings',
   })
   fireEvent.click(
-    await screen.findByRole('button', {
+    await screen.findByRole('tab', {
       name: 'Advanced',
     })
   )
