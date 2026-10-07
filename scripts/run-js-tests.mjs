@@ -89,7 +89,11 @@ const maxParallel = resolveMaxParallel(groups.length)
 // that a fast failure that names the group's files and dumps their partial
 // output. Five minutes is far above any healthy group wall — the whole js lane
 // normally settles in under 150 seconds.
-const groupTimeoutMs = Number(process.env.JS_GROUP_TIMEOUT_MS ?? 300_000)
+// The shared non-isolated group holds ~44 files and settled in ~250s on CI
+// runners before brushing the old ceiling (three "exceeded 300s" lane kills on
+// 2026-10-05/06/07, each green on rerun — real work near the wall, not a
+// wedge). 420s restores headroom; JS_GROUP_TIMEOUT_MS still overrides.
+const groupTimeoutMs = Number(process.env.JS_GROUP_TIMEOUT_MS ?? 420_000)
 
 // Bun spawns its own worker processes, and a signal to the direct child does
 // not reach them — the orphan keeps the output pipe open and `close` never
