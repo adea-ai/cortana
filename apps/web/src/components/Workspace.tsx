@@ -17,6 +17,7 @@ import {
   Match,
   Show,
   Switch,
+  type JSX,
   lazy,
   on,
   Suspense,
@@ -44,7 +45,18 @@ import type {
   Evidence,
   ReflectResponse,
 } from '../types'
-import { Text } from '@adea-ai/ui/components/ui/typography'
+import { Heading, Text } from '@adea-ai/ui/components/ui/typography'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@adea-ai/ui/components/ui/breadcrumb'
+import { PanelActions, PanelHeader } from '@adea-ai/ui/components/layout/panel'
+import { Separator } from '@adea-ai/ui/components/ui/separator'
+import { ScrollArea } from '@adea-ai/ui/components/ui/scroll-area'
+import { PropertyList, PropertyTerm, PropertyValue } from '@adea-ai/ui/components/composites/stat'
 
 const tabs = [
   { id: 'answer', label: 'Answer', icon: AppIcon },
@@ -320,49 +332,48 @@ function BrainDocumentView(props: {
   }
   return (
     <article class="document canonical-document">
-      <div class="breadcrumbs">
-        <span>Brain</span> / <span>{props.document.project}</span> /{' '}
-        <span>{props.document.source}</span> / <strong>{props.document.title}</strong>
-        <div>
-          <Button
+      <DocumentPathBar
+        segments={['Brain', props.document.project, props.document.source]}
+        title={props.document.title}
+      >
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          type="button"
+          aria-label={favorite() ? 'Remove favorite' : 'Add favorite'}
+          aria-pressed={favorite()}
+          tooltip={favorite() ? 'Remove favorite' : 'Add favorite'}
+          onClick={() => setFavorite(toggleFavoriteDocument(props.document.id))}
+        >
+          <Star fill={favorite() ? 'currentColor' : 'none'} aria-hidden="true" />
+        </Button>
+        <Show when={sourceHref()}>
+          <ActionButton
+            as="a"
             variant="ghost"
             size="icon-sm"
-            type="button"
-            aria-label={favorite() ? 'Remove favorite' : 'Add favorite'}
-            aria-pressed={favorite()}
-            tooltip={favorite() ? 'Remove favorite' : 'Add favorite'}
-            onClick={() => setFavorite(toggleFavoriteDocument(props.document.id))}
+            tooltip="Open original source"
+            href={sourceHref()!}
+            target={isDesktopApp ? undefined : '_blank'}
+            rel={isDesktopApp ? undefined : 'noreferrer'}
+            aria-label="Open original source"
+            onClick={(event: MouseEvent & { currentTarget: HTMLAnchorElement }) => {
+              if (!isDesktopApp) return
+              const uri = sourceHref()!
+              event.preventDefault()
+              setSourceOpenError(false)
+              void openSourceLink(uri).then((opened) => {
+                if (!opened) setSourceOpenError(true)
+                return null
+              })
+            }}
           >
-            <Star size={17} fill={favorite() ? 'currentColor' : 'none'} aria-hidden="true" />
-          </Button>
-          <Show when={sourceHref()}>
-            <ActionButton
-              as="a"
-              variant="ghost"
-              size="icon-sm"
-              tooltip="Open original source"
-              href={sourceHref()!}
-              target={isDesktopApp ? undefined : '_blank'}
-              rel={isDesktopApp ? undefined : 'noreferrer'}
-              aria-label="Open original source"
-              onClick={(event: MouseEvent & { currentTarget: HTMLAnchorElement }) => {
-                if (!isDesktopApp) return
-                const uri = sourceHref()!
-                event.preventDefault()
-                setSourceOpenError(false)
-                void openSourceLink(uri).then((opened) => {
-                  if (!opened) setSourceOpenError(true)
-                  return null
-                })
-              }}
-            >
-              <Link2 size={17} aria-hidden="true" />
-            </ActionButton>
-          </Show>
-        </div>
-      </div>
+            <Link2 aria-hidden="true" />
+          </ActionButton>
+        </Show>
+      </DocumentPathBar>
       <Show when={sourceOpenError()}>
-        <Alert variant="warning" class="answer-warning source-link-error" role="alert">
+        <Alert variant="warning" class="source-link-error" role="alert">
           <AlertDescription>
             Cortana could not open the original source. Check that the source app is installed and
             try again.
@@ -370,13 +381,15 @@ function BrainDocumentView(props: {
         </Alert>
       </Show>
       <div class="document-grid">
-        <div class="document-body">
-          <h1>{props.document.title}</h1>
-          <p class="byline">
-            {props.document.project} · {props.document.source} ·{' '}
-            {new Date(props.document.updated_at).toLocaleString()} · {props.document.chunk_count}{' '}
-            indexed chunks
-          </p>
+        <div>
+          <div class="flex flex-col gap-2">
+            <Heading size="title">{props.document.title}</Heading>
+            <Text variant="caption" tone="muted" as="p">
+              {props.document.project} · {props.document.source} ·{' '}
+              {new Date(props.document.updated_at).toLocaleString()} · {props.document.chunk_count}{' '}
+              indexed chunks
+            </Text>
+          </div>
           <div class="document-labels" aria-label="Document security and provenance">
             <Badge variant="outline">Workspace: {props.document.project}</Badge>
             <Badge variant="outline">Source ID: {props.document.source_id}</Badge>
@@ -412,14 +425,14 @@ function BrainDocumentView(props: {
               {copyStatus()}
             </span>
           </div>
-          <div class="rule" />
+          <Separator class="my-6" />
           <div class="canonical-content">
             <For each={props.document.content.split(/\n{2,}/)}>
-              {(paragraph) => <p>{paragraph}</p>}
+              {(paragraph) => <Text>{paragraph}</Text>}
             </For>
           </div>
           <Show when={props.document.truncated}>
-            <Alert variant="warning" class="answer-warning">
+            <Alert variant="warning">
               <AlertDescription>
                 This unusually large document was safely truncated at the desktop display limit.
                 Open the original source for the complete content.
@@ -429,8 +442,10 @@ function BrainDocumentView(props: {
           <Show when={props.document.backlinks.length > 0 || props.document.surrounding.length > 0}>
             <div class="document-relations">
               <Show when={props.document.backlinks.length > 0}>
-                <section>
-                  <h2>Backlinks</h2>
+                <section class="flex min-w-0 flex-col gap-1">
+                  <Heading as="h2" size="subsection">
+                    Backlinks
+                  </Heading>
                   <For each={props.document.backlinks}>
                     {(related) => (
                       <ListRow
@@ -448,8 +463,10 @@ function BrainDocumentView(props: {
                 </section>
               </Show>
               <Show when={props.document.surrounding.length > 0}>
-                <section>
-                  <h2>Surrounding documents</h2>
+                <section class="flex min-w-0 flex-col gap-1">
+                  <Heading as="h2" size="subsection">
+                    Surrounding documents
+                  </Heading>
                   <For each={props.document.surrounding}>
                     {(related) => (
                       <ListRow
@@ -470,35 +487,74 @@ function BrainDocumentView(props: {
           </Show>
         </div>
         <aside class="document-outline">
-          <strong>Indexed document</strong>
-          <span>{props.document.content_chars.toLocaleString()} characters</span>
-          <span>{props.document.chunk_count.toLocaleString()} retrieval chunks</span>
-          <span>{props.document.source}</span>
-          <span title={props.document.source_id}>{props.document.source_id}</span>
+          <Text variant="label" as="p">
+            Indexed document
+          </Text>
+          <Text variant="caption" tone="muted" as="p">
+            {props.document.content_chars.toLocaleString()} characters
+          </Text>
+          <Text variant="caption" tone="muted" as="p">
+            {props.document.chunk_count.toLocaleString()} retrieval chunks
+          </Text>
+          <Text variant="caption" tone="muted" as="p">
+            {props.document.source}
+          </Text>
+          <Text variant="caption" tone="muted" as="p" title={props.document.source_id}>
+            {props.document.source_id}
+          </Text>
           <Show when={metadata().length > 0}>
             <Accordion collapsible class="document-metadata">
               <AccordionItem value="details">
                 <AccordionTrigger>Metadata ({metadata().length})</AccordionTrigger>
                 <AccordionContent>
-                  <dl>
-                    <For each={metadata()}>
-                      {([key, value]) => (
-                        <div>
-                          <dt>{key}</dt>
-                          <dd>{formatMetadata(value)}</dd>
-                        </div>
-                      )}
-                    </For>
-                  </dl>
+                  <ScrollArea class="max-h-65" aria-label="Document metadata">
+                    <PropertyList class="grid-cols-1 gap-y-1">
+                      <For each={metadata()}>
+                        {([key, value]) => (
+                          <>
+                            <PropertyTerm>{key}</PropertyTerm>
+                            <PropertyValue>{formatMetadata(value)}</PropertyValue>
+                          </>
+                        )}
+                      </For>
+                    </PropertyList>
+                  </ScrollArea>
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
           </Show>
-          <BookOpen size={56} aria-hidden="true" />
-          <small>Canonical content protected by workspace ACLs</small>
+          <BookOpen size={56} class="document-outline-icon" aria-hidden="true" />
+          <Text variant="caption" tone="muted" as="p" class="document-outline-note">
+            Canonical content protected by workspace ACLs
+          </Text>
         </aside>
       </div>
     </article>
+  )
+}
+
+function DocumentPathBar(props: { segments: string[]; title: string; children: JSX.Element }) {
+  return (
+    <PanelHeader>
+      <Breadcrumb aria-label="Document path" class="min-w-0 flex-1">
+        <BreadcrumbList class="flex-nowrap">
+          <For each={props.segments}>
+            {(segment) => (
+              <>
+                <BreadcrumbItem class="max-[780px]:hidden">{segment}</BreadcrumbItem>
+                <BreadcrumbSeparator class="max-[780px]:hidden" />
+              </>
+            )}
+          </For>
+          <BreadcrumbItem class="min-w-0">
+            <BreadcrumbPage class="min-w-0">
+              <span class="block truncate">{props.title}</span>
+            </BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+      <PanelActions>{props.children}</PanelActions>
+    </PanelHeader>
   )
 }
 
@@ -529,61 +585,61 @@ function DocumentView(props: {
 
   return (
     <article class="document">
-      <div class="breadcrumbs">
-        <span>Brain</span> / <span>{props.active.source}</span> /{' '}
-        <strong>{props.active.title}</strong>
-        <div>
-          <Button
+      <DocumentPathBar segments={['Brain', props.active.source]} title={props.active.title}>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          type="button"
+          aria-label={favorite() ? 'Remove favorite' : 'Add favorite'}
+          aria-pressed={favorite()}
+          tooltip={favorite() ? 'Remove favorite' : 'Add favorite'}
+          onClick={() => setFavorite(toggleFavoriteDocument(props.active.chunk_id))}
+        >
+          <Star fill={favorite() ? 'currentColor' : 'none'} aria-hidden="true" />
+        </Button>
+        <Show when={sourceHref()}>
+          <ActionButton
+            as="a"
             variant="ghost"
             size="icon-sm"
-            type="button"
-            aria-label={favorite() ? 'Remove favorite' : 'Add favorite'}
-            aria-pressed={favorite()}
-            tooltip={favorite() ? 'Remove favorite' : 'Add favorite'}
-            onClick={() => setFavorite(toggleFavoriteDocument(props.active.chunk_id))}
+            tooltip="Open original source"
+            href={sourceHref()!}
+            target={isDesktopApp ? undefined : '_blank'}
+            rel={isDesktopApp ? undefined : 'noreferrer'}
+            aria-label="Open original source"
+            onClick={(event: MouseEvent & { currentTarget: HTMLAnchorElement }) => {
+              if (!isDesktopApp) return
+              event.preventDefault()
+              setSourceOpenError(false)
+              void openSourceLink(sourceHref()!).then((opened) => {
+                if (!opened) setSourceOpenError(true)
+                return null
+              })
+            }}
           >
-            <Star size={17} fill={favorite() ? 'currentColor' : 'none'} aria-hidden="true" />
-          </Button>
-          <Show when={sourceHref()}>
-            <ActionButton
-              as="a"
-              variant="ghost"
-              size="icon-sm"
-              tooltip="Open original source"
-              href={sourceHref()!}
-              target={isDesktopApp ? undefined : '_blank'}
-              rel={isDesktopApp ? undefined : 'noreferrer'}
-              aria-label="Open original source"
-              onClick={(event: MouseEvent & { currentTarget: HTMLAnchorElement }) => {
-                if (!isDesktopApp) return
-                event.preventDefault()
-                setSourceOpenError(false)
-                void openSourceLink(sourceHref()!).then((opened) => {
-                  if (!opened) setSourceOpenError(true)
-                  return null
-                })
-              }}
-            >
-              <Link2 size={17} aria-hidden="true" />
-            </ActionButton>
-          </Show>
-        </div>
-      </div>
+            <Link2 aria-hidden="true" />
+          </ActionButton>
+        </Show>
+      </DocumentPathBar>
       <div class="document-grid">
-        <div class="document-body">
-          <h1>{props.active.title}</h1>
-          <p class="byline">
-            Retrieved from {props.active.source} ·{' '}
-            {new Date(props.active.updated_at).toLocaleString()}
-          </p>
-          <div class="rule" />
-          <div id="passage">
+        <div>
+          <div class="flex flex-col gap-2">
+            <Heading size="title">{props.active.title}</Heading>
+            <Text variant="caption" tone="muted" as="p">
+              Retrieved from {props.active.source} ·{' '}
+              {new Date(props.active.updated_at).toLocaleString()}
+            </Text>
+          </div>
+          <Separator class="my-6" />
+          <div id="passage" class="canonical-content">
             <For each={props.active.content.split(/\n{2,}/)}>
-              {(paragraph) => <p>{paragraph}</p>}
+              {(paragraph) => <Text>{paragraph}</Text>}
             </For>
           </div>
           <div id="related" class="evidence-footer">
-            <h2>Related evidence</h2>
+            <Heading as="h2" size="subsection">
+              Related evidence
+            </Heading>
             <div class="evidence-footer-list">
               <For each={props.evidence.slice(0, 6)}>
                 {(item, index) => (
@@ -603,7 +659,9 @@ function DocumentView(props: {
           </div>
         </div>
         <aside class="document-outline">
-          <strong>In this evidence</strong>
+          <Text variant="label" as="p">
+            In this evidence
+          </Text>
           <div class="flex flex-col items-start gap-1">
             <Button
               as="a"
@@ -626,12 +684,14 @@ function DocumentView(props: {
               Related evidence
             </Button>
           </div>
-          <Network size={56} aria-hidden="true" />
-          <small>{props.evidence.length} linked results</small>
+          <Network size={56} class="document-outline-icon" aria-hidden="true" />
+          <Text variant="caption" tone="muted" as="p" class="document-outline-note">
+            {props.evidence.length} linked results
+          </Text>
         </aside>
       </div>
       <Show when={sourceOpenError()}>
-        <Alert variant="warning" class="answer-warning source-link-error" role="alert">
+        <Alert variant="warning" class="source-link-error" role="alert">
           <AlertDescription>
             Cortana could not open the original source. Check that the source app is installed and
             try again.
@@ -667,8 +727,10 @@ function ReflectionView(props: { response: ReflectResponse }) {
       <Text variant="overline" class="eyebrow">
         Derived reflection · not canonical memory
       </Text>
-      <h1>{props.response.objective}</h1>
-      <Alert variant="warning" class="answer-warning">
+      <Heading size="title" class="mb-2">
+        {props.response.objective}
+      </Heading>
+      <Alert variant="warning">
         <AlertDescription>
           {props.response.status}· {props.response.provider.selected}· memory revision{' '}
           {props.response.memory_revision}
@@ -678,49 +740,55 @@ function ReflectionView(props: { response: ReflectResponse }) {
         <For each={statements()}>
           {(item) => (
             <section class="answer-memory-entry">
-              <p>{item.text}</p>
-              <small>
+              <Text>{item.text}</Text>
+              <Text variant="caption" tone="muted">
                 Supporting memory: {item.ids.join(', ') || 'none'}
                 {'evidenceIds' in item && item.evidenceIds?.length
                   ? ` · evidence: ${item.evidenceIds.join(', ')}`
                   : ''}
-              </small>
+              </Text>
             </section>
           )}
         </For>
       </div>
       <Show when={props.response.chronology.length > 0}>
         <section class="answer-memory" aria-label="Reflection chronology">
-          <h2>Chronology</h2>
+          <Heading as="h2" size="subsection" class="mb-3">
+            Chronology
+          </Heading>
           <For each={props.response.chronology}>
             {(item) => (
-              <p>
+              <Text>
                 {item.observed_at} · {item.title} · supporting memory {item.memory_id}
-              </p>
+              </Text>
             )}
           </For>
         </section>
       </Show>
       <Show when={props.response.proposed_candidates.length > 0}>
         <section class="answer-memory" aria-label="Review-only proposed memories">
-          <h2>Proposed memories requiring approval</h2>
+          <Heading as="h2" size="subsection" class="mb-3">
+            Proposed memories requiring approval
+          </Heading>
           <For each={props.response.proposed_candidates}>
             {(item) => (
               <article class="answer-memory-entry">
-                <h3>{item.title}</h3>
-                <p>{item.content}</p>
-                <small>
+                <Heading as="h3" size="subsection">
+                  {item.title}
+                </Heading>
+                <Text>{item.content}</Text>
+                <Text variant="caption" tone="muted">
                   {item.content_type} · {item.retention_tier} · {item.scope} · support{' '}
                   {item.supporting_memory_ids.join(', ')}
-                </small>
+                </Text>
               </article>
             )}
           </For>
         </section>
       </Show>
-      <p class="lead">
+      <Text tone="muted" class="lead">
         {props.response.metrics.memories_included} memories included · canonical memory unchanged
-      </p>
+      </Text>
     </article>
   )
 }
@@ -736,7 +804,7 @@ function AnswerView(props: {
       <Text variant="overline" class="eyebrow">
         <AppIcon size={14} /> Evidence brief
       </Text>
-      <h1>{props.query}</h1>
+      <Heading size="title">{props.query}</Heading>
       <Show when={props.response}>
         {(response) => (
           <div class="answer-meta">
@@ -762,7 +830,7 @@ function AnswerView(props: {
             /\n{2,}/
           )}
         >
-          {(paragraph) => <p>{paragraph}</p>}
+          {(paragraph) => <Text>{paragraph}</Text>}
         </For>
       </div>
       <Show when={props.response && props.response.plan.queries.length > 1}>
@@ -781,36 +849,42 @@ function AnswerView(props: {
       </Show>
       <For each={props.response?.warnings ?? []}>
         {(warning) => (
-          <Alert variant="warning" class="answer-warning">
+          <Alert variant="warning">
             <AlertDescription>{warning}</AlertDescription>
           </Alert>
         )}
       </For>
       <Show when={props.response?.retrieval_degraded}>
-        <Alert variant="warning" class="answer-warning" role="status">
+        <Alert variant="warning" role="status">
           <AlertDescription>
             Embedding retrieval is temporarily unavailable; these citations came from exact-term
             search.
           </AlertDescription>
         </Alert>
       </Show>
-      <p class="lead">{props.evidence.length} cited passages</p>
+      <Text tone="muted" class="lead">
+        {props.evidence.length} cited passages
+      </Text>
       <Show when={props.response?.memories && props.response.memories.length > 0}>
         <section class="answer-memory" aria-label="Native agent memory">
-          <p class="lead">{props.response!.memories!.length} native memory entries</p>
+          <Text variant="label" as="p" class="mb-3">
+            {props.response!.memories!.length} native memory entries
+          </Text>
           <For each={props.response!.memories!.slice(0, 4)}>
             {(memory) => (
               <article class="answer-memory-entry">
-                <h2>{memory.title}</h2>
-                <p>{memory.content}</p>
-                <small>
+                <Heading as="h2" size="subsection">
+                  {memory.title}
+                </Heading>
+                <Text>{memory.content}</Text>
+                <Text variant="caption" tone="muted">
                   {memory.content_type ?? memory.kind} · {memory.retention_tier ?? 'durable'} ·{' '}
                   {memory.scope ?? 'workspace'} · {memory.project} · confidence{' '}
                   {memory.confidence.toFixed(2)}
                   {memory.valid_until
                     ? ` · expires ${new Date(memory.valid_until).toLocaleDateString()}`
                     : ''}
-                </small>
+                </Text>
               </article>
             )}
           </For>
@@ -832,16 +906,18 @@ function AnswerView(props: {
                   {item.title}
                 </ListRow>
               </h2>
-              <p>{item.content}</p>
+              <Text>{item.content}</Text>
             </CardContent>
           </Card>
         )}
       </For>
-      <p class="answer-note">
-        {props.response?.mode === 'synthesized'
-          ? 'Synthesized from the cited passages. Open a source to inspect the original evidence.'
-          : 'Extractive mode keeps citations stable when no synthesis model is configured.'}
-      </p>
+      <div class="answer-note">
+        <Text variant="caption" tone="muted" as="p">
+          {props.response?.mode === 'synthesized'
+            ? 'Synthesized from the cited passages. Open a source to inspect the original evidence.'
+            : 'Extractive mode keeps citations stable when no synthesis model is configured.'}
+        </Text>
+      </div>
     </article>
   )
 }
@@ -849,7 +925,9 @@ function AnswerView(props: {
 function TimelineView(props: { evidence: Evidence[]; onSelect: (chunkId: string) => void }) {
   return (
     <div class="timeline-view">
-      <h1>Evidence timeline</h1>
+      <Heading size="page" class="mb-6">
+        Evidence timeline
+      </Heading>
       <For
         each={props.evidence.toSorted((left, right) =>
           right.updated_at.localeCompare(left.updated_at)

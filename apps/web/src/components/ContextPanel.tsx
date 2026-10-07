@@ -6,7 +6,6 @@ import { ListRow } from '@adea-ai/ui/components/composites/list-row'
 import { Check, Copy, RefreshCw, X } from 'lucide-solid'
 import { For, Show } from 'solid-js'
 
-import { cn } from '@/lib/utils'
 import { createMediaQuery } from '@/lib/mediaQuery'
 
 import type { AnswerResponse, BrainStatus, ContextBundle, Evidence } from '../types'
@@ -15,13 +14,21 @@ import { useClipboardCopy } from '../useClipboardCopy'
 import { Alert, AlertDescription } from '@adea-ai/ui/components/ui/alert'
 import { Badge } from '@adea-ai/ui/components/ui/badge'
 import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
-import { Card } from '@adea-ai/ui/components/ui/card'
-import { ScrollArea } from '@adea-ai/ui/components/ui/scroll-area'
-import { PanelActions, PanelHeader, PanelTitle } from '@adea-ai/ui/components/layout/panel'
+import { Card, CardContent } from '@adea-ai/ui/components/ui/card'
+import { PropertyList, PropertyTerm, PropertyValue } from '@adea-ai/ui/components/composites/stat'
+import { Separator } from '@adea-ai/ui/components/ui/separator'
+import { Heading, Text } from '@adea-ai/ui/components/ui/typography'
+import {
+  Panel,
+  PanelActions,
+  PanelBody,
+  PanelFooter,
+  PanelHeader,
+  PanelTitle,
+} from '@adea-ai/ui/components/layout/panel'
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 
 export function ContextPanel(props: {
-  open: boolean
   query: string
   evidence: Evidence[]
   answer: AnswerResponse | null
@@ -42,10 +49,7 @@ export function ContextPanel(props: {
   )
 
   return (
-    <aside
-      class={cn('context-panel m7-context-panel', props.open && 'mobile-open')}
-      data-m7-context-panel=""
-    >
+    <Panel data-m7-context-panel="">
       <PanelHeader>
         <PanelTitle>Agent context</PanelTitle>
         <PanelActions>
@@ -57,49 +61,58 @@ export function ContextPanel(props: {
               tooltip="Close agent context"
               onClick={props.onClose}
             >
-              <X size={17} aria-hidden="true" />
+              <X aria-hidden="true" />
             </ActionButton>
           </Show>
         </PanelActions>
       </PanelHeader>
-      <ScrollArea class="context-scroll">
-        <Card class="gap-2 px-4">
-          <span>Query</span>
-          <p>{props.query}</p>
+      <PanelBody class="flex flex-col gap-4">
+        <Card size="sm">
+          <CardContent class="flex flex-col gap-1">
+            <Text variant="overline">Query</Text>
+            <Text>{props.query}</Text>
+          </CardContent>
         </Card>
         <Show when={props.answer}>
           {(answer) => (
-            <section class="retrieval-diagnostics">
-              <span class="text-sm font-medium">Retrieval diagnostics</span>
-              <dl>
-                <div>
-                  <dt>Mode</dt>
-                  <dd>{answer().mode}</dd>
-                </div>
-                <div>
-                  <dt>Latency</dt>
-                  <dd>{answer().cached ? 'cache hit' : `${answer().latency_ms} ms`}</dd>
-                </div>
-                <div>
-                  <dt>Planned queries</dt>
-                  <dd>{answer().plan.queries.length}</dd>
-                </div>
-                <div>
-                  <dt>Evidence</dt>
-                  <dd>{answer().evidence.length}</dd>
-                </div>
-              </dl>
-              <ol>
-                <For each={answer().plan.queries}>{(planned) => <li>{planned}</li>}</For>
+            <section class="flex flex-col gap-2">
+              <Heading as="h3" size="subsection">
+                Retrieval diagnostics
+              </Heading>
+              <PropertyList>
+                <PropertyTerm>Mode</PropertyTerm>
+                <PropertyValue>{answer().mode}</PropertyValue>
+                <PropertyTerm>Latency</PropertyTerm>
+                <PropertyValue>
+                  {answer().cached ? 'cache hit' : `${answer().latency_ms} ms`}
+                </PropertyValue>
+                <PropertyTerm>Planned queries</PropertyTerm>
+                <PropertyValue>{answer().plan.queries.length}</PropertyValue>
+                <PropertyTerm>Evidence</PropertyTerm>
+                <PropertyValue>{answer().evidence.length}</PropertyValue>
+              </PropertyList>
+              <ol class="list-decimal ps-5 marker:text-muted-foreground">
+                <For each={answer().plan.queries}>
+                  {(planned) => (
+                    <li>
+                      <Text variant="caption" tone="muted">
+                        {planned}
+                      </Text>
+                    </li>
+                  )}
+                </For>
               </ol>
             </section>
           )}
         </Show>
-        <section class="section-label">
-          <span>Retrieved evidence</span>
-          <Badge variant="outline">{props.evidence.length}</Badge>
-        </section>
-        <div class="evidence-list">
+        <Separator />
+        <section class="flex flex-col gap-1">
+          <div class="flex items-center justify-between gap-2">
+            <Heading as="h3" size="subsection">
+              Retrieved evidence
+            </Heading>
+            <Badge variant="outline">{props.evidence.length}</Badge>
+          </div>
           <For each={props.evidence}>
             {(item, index) => (
               <ListRow
@@ -117,13 +130,15 @@ export function ContextPanel(props: {
               </ListRow>
             )}
           </For>
-        </div>
+        </section>
         <Show when={props.serverContext?.memories && props.serverContext.memories.length > 0}>
-          <section class="section-label">
-            <span>Native agent memory</span>
-            <Badge variant="outline">{props.serverContext!.memories?.length}</Badge>
-          </section>
-          <div class="evidence-list">
+          <section class="flex flex-col gap-1">
+            <div class="flex items-center justify-between gap-2">
+              <Heading as="h3" size="subsection">
+                Native agent memory
+              </Heading>
+              <Badge variant="outline">{props.serverContext!.memories?.length}</Badge>
+            </div>
             <For each={props.serverContext!.memories}>
               {(memory) => (
                 <ListRow
@@ -133,33 +148,43 @@ export function ContextPanel(props: {
                 </ListRow>
               )}
             </For>
-          </div>
+          </section>
         </Show>
         <Show when={props.serverContext?.degradation}>
-          <SharedFeedbackAlert variant="warning" role="status" class="my-2">
+          <SharedFeedbackAlert variant="warning" role="status">
             <SharedFeedbackDescription>
               Degraded retrieval:{' '}
               {props.serverContext!.degradation!.detail || props.serverContext!.degradation!.code}
             </SharedFeedbackDescription>
           </SharedFeedbackAlert>
         </Show>
-        <section class="provenance">
-          <span class="text-sm font-medium">Embedding</span>
-          <p>{props.status?.embedding_fingerprint ?? 'unavailable'}</p>
+        <Separator />
+        <section class="flex flex-col gap-1 break-all">
+          <Heading as="h3" size="subsection">
+            Embedding
+          </Heading>
+          <Text variant="caption" tone="muted" as="p">
+            {props.status?.embedding_fingerprint ?? 'unavailable'}
+          </Text>
           <Show when={props.serverContext?.context_bundle_id}>
-            <p>Bundle {props.serverContext!.context_bundle_id!.slice(0, 16)}…</p>
+            <Text variant="caption" tone="muted" as="p">
+              Bundle {props.serverContext!.context_bundle_id!.slice(0, 16)}…
+            </Text>
           </Show>
-          <p>
+          <Text variant="caption" tone="muted" as="p">
             {props.contextTokens.toLocaleString()} context tokens ·{' '}
             {(props.status?.embedding_cache_hits ?? 0).toLocaleString()} cache hits
-          </p>
+          </Text>
         </section>
-        <section class="server-context">
-          <span class="text-sm font-medium">Agent integration bundle</span>
-          <p>
+        <Separator />
+        <section class="flex flex-col gap-2">
+          <Heading as="h3" size="subsection">
+            Agent integration bundle
+          </Heading>
+          <Text variant="caption" tone="muted" as="p">
             Build the exact bounded context returned by the HTTP and MCP query layer for this
             workspace scope.
-          </p>
+          </Text>
           <ActionButton
             tooltip={'Retrieve a bounded workspace context bundle for agent integrations.'}
             variant="outline"
@@ -168,7 +193,7 @@ export function ContextPanel(props: {
             disabled={props.contextLoading}
             onClick={props.onRetrieveContext}
           >
-            {props.contextLoading ? <Spinner /> : <RefreshCw size={15} aria-hidden="true" />}
+            {props.contextLoading ? <Spinner /> : <RefreshCw aria-hidden="true" />}
             {props.serverContext
               ? 'Refresh MCP-equivalent context'
               : 'Build MCP-equivalent context'}
@@ -180,28 +205,22 @@ export function ContextPanel(props: {
           </Show>
           <Show when={props.serverContext}>
             {(serverContext) => (
-              <dl>
-                <div>
-                  <dt>Included</dt>
-                  <dd>{serverContext().metrics.included}</dd>
-                </div>
-                <div>
-                  <dt>Omitted</dt>
-                  <dd>{serverContext().metrics.omitted}</dd>
-                </div>
-                <div>
-                  <dt>Tokens</dt>
-                  <dd>
-                    {serverContext().metrics.estimated_tokens.toLocaleString()} /{' '}
-                    {serverContext().metrics.max_tokens.toLocaleString()}
-                  </dd>
-                </div>
-              </dl>
+              <PropertyList>
+                <PropertyTerm>Included</PropertyTerm>
+                <PropertyValue>{serverContext().metrics.included}</PropertyValue>
+                <PropertyTerm>Omitted</PropertyTerm>
+                <PropertyValue>{serverContext().metrics.omitted}</PropertyValue>
+                <PropertyTerm>Tokens</PropertyTerm>
+                <PropertyValue>
+                  {serverContext().metrics.estimated_tokens.toLocaleString()} /{' '}
+                  {serverContext().metrics.max_tokens.toLocaleString()}
+                </PropertyValue>
+              </PropertyList>
             )}
           </Show>
         </section>
-      </ScrollArea>
-      <div class="copy-area">
+      </PanelBody>
+      <PanelFooter class="flex-col items-stretch">
         <ActionButton
           variant="default"
           size="sm"
@@ -210,11 +229,7 @@ export function ContextPanel(props: {
           tooltip="Copy agent context"
           onClick={() => void copy()}
         >
-          {copied() ? (
-            <Check size={17} aria-hidden="true" />
-          ) : (
-            <Copy size={17} aria-hidden="true" />
-          )}
+          {copied() ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
           {copied()
             ? 'Context copied'
             : props.serverContext
@@ -226,7 +241,7 @@ export function ContextPanel(props: {
             <AlertDescription>{copyError()}</AlertDescription>
           </Alert>
         </Show>
-      </div>
-    </aside>
+      </PanelFooter>
+    </Panel>
   )
 }

@@ -418,7 +418,10 @@ async function auditAccessibility(page, label) {
           .getByRole('menuitem', { name: 'Open sources' })
           .dispatchEvent('keydown', { key: 'Enter' })
         await page.getByRole('dialog', { name: 'Sources and documents' }).waitFor()
-        await page.locator('aside.source-panel.mobile-open').waitFor()
+        await page
+          .getByRole('dialog', { name: 'Sources and documents' })
+          .locator('[data-m7-source-panel]')
+          .waitFor()
         await auditAccessibility(page, 'mobile sources and documents')
         await screenshot(page, `source-panel-${theme}-768`)
         await page.keyboard.press('Escape')
@@ -809,7 +812,7 @@ async function auditAccessibility(page, label) {
   })
   await compactPage.locator('[data-m7-production-shell-ready]').waitFor({ state: 'attached' })
   const compactLayout = await compactPage.evaluate(() => {
-    const source = document.querySelector('.source-panel')
+    const source = document.querySelector('[data-m7-source-panel]')
     const workspace = document.querySelector('#main-content')
     if (!workspace) return null
     return {

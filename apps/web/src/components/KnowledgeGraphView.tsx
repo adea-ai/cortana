@@ -18,6 +18,13 @@ import {
 } from '@adea-ai/ui/components/composites/action-button'
 import { EmptyState } from '@adea-ai/ui/components/ui/empty'
 import { Card } from '@adea-ai/ui/components/ui/card'
+import {
+  DetailPanelBody,
+  DetailPanelField,
+  DetailPanelHeader,
+  DetailPanelSection,
+} from '@adea-ai/ui/components/ui/detail-panel'
+import { Text } from '@adea-ai/ui/components/ui/typography'
 import { OrbitItem, OrbitLayout } from '@adea-ai/ui/components/layout/orbit-layout'
 import { createMediaQuery } from '../lib/mediaQuery'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@adea-ai/ui/components/ui/input-group'
@@ -496,92 +503,123 @@ export default function KnowledgeGraphView(props: {
             <Show when={activeGraphNode()}>
               {(selectedNode) => (
                 <Card
+                  size="flush"
                   role="complementary"
-                  class="graph-selection gap-1 p-3"
+                  class="graph-selection"
                   aria-label="Selected graph node"
                   aria-live="polite"
                 >
-                  <strong>{selectedNode().label}</strong>
-                  <span>
-                    {selectedNode().kind === 'workspace'
-                      ? 'Workspace'
-                      : selectedNode().kind === 'source'
-                        ? `Source in ${selectedNode().project || 'Unscoped'}`
-                        : `${selectedNode().project || 'Unscoped'} · ${selectedNode().source || 'Unknown source'}`}
-                  </span>
-                  <small>
-                    {selectedEdges().length} related link{selectedEdges().length === 1 ? '' : 's'}
-                    {pinnedNodeIds().has(selectedNode().id) ? ' · pinned' : ''}
-                  </small>
-                  <Show when={selectedEdges().length > 0}>
-                    <ul>
-                      <For each={selectedEdges()}>
-                        {(edge) => (
-                          <li>
-                            <span>
-                              {edge.kind === 'contains'
-                                ? 'Contained by its workspace or source'
-                                : edge.kind}
-                            </span>
-                            <Show when={edge.origin}>
-                              <small>
-                                {edge.origin === 'inferred'
-                                  ? `Inferred relationship${edge.confidence == null ? '' : ` · ${Math.round(edge.confidence * 100)}% confidence`}`
-                                  : `${edge.origin![0].toUpperCase()}${edge.origin!.slice(1)} relationship`}
-                                {edge.support
-                                  ? ` · ${edge.support.record_ids.length} supporting record${edge.support.record_ids.length === 1 ? '' : 's'}`
-                                  : ''}
-                                {edge.citation_authority
-                                  ? ' · citation-capable'
-                                  : ' · not citation evidence'}
-                              </small>
-                            </Show>
-                          </li>
-                        )}
-                      </For>
-                    </ul>
-                  </Show>
-                  <Show when={selectedNode().document_id}>
-                    <div class="graph-selection-actions">
-                      <WorkspaceButton
-                        tooltip={
-                          pinnedNodeIds().has(selectedNode().id)
-                            ? 'Release this node from the pinned graph focus.'
-                            : 'Keep this node in focus while exploring the graph.'
-                        }
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          setPinnedNodeIds((current) => {
-                            const next = new Set(current)
-                            if (next.has(selectedNode().id)) next.delete(selectedNode().id)
-                            else next.add(selectedNode().id)
-                            return next
-                          })
-                        }
-                      >
-                        {pinnedNodeIds().has(selectedNode().id) ? 'Unpin node' : 'Pin node'}
-                      </WorkspaceButton>
-                      <WorkspaceButton
-                        tooltip="Open document"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => props.onSelectDocument(selectedNode().document_id!)}
-                      >
-                        Open document
-                      </WorkspaceButton>
-                      <Show when={props.onFocusGraphNode}>
+                  <DetailPanelHeader
+                    eyebrow={
+                      selectedNode().kind === 'workspace'
+                        ? 'Workspace'
+                        : selectedNode().kind === 'source'
+                          ? 'Source'
+                          : 'Document'
+                    }
+                    title={selectedNode().label}
+                  />
+                  <DetailPanelBody class="flex flex-col gap-4">
+                    <DetailPanelSection title="Node">
+                      <Show when={selectedNode().kind !== 'workspace'}>
+                        <DetailPanelField
+                          name="Workspace"
+                          value={selectedNode().project || 'Unscoped'}
+                          muted={!selectedNode().project}
+                        />
+                      </Show>
+                      <Show when={selectedNode().kind === 'document'}>
+                        <DetailPanelField
+                          name="Source"
+                          value={selectedNode().source || 'Unknown source'}
+                          muted={!selectedNode().source}
+                        />
+                      </Show>
+                      <DetailPanelField
+                        name="Related links"
+                        value={String(selectedEdges().length)}
+                      />
+                      <Show when={pinnedNodeIds().has(selectedNode().id)}>
+                        <DetailPanelField name="Pinned" value="Yes" />
+                      </Show>
+                    </DetailPanelSection>
+                    <Show when={selectedEdges().length > 0}>
+                      <div class="flex flex-col gap-2">
+                        <Text as="h3" variant="overline">
+                          Relationships
+                        </Text>
+                        <ul class="flex flex-col gap-2">
+                          <For each={selectedEdges()}>
+                            {(edge) => (
+                              <li class="flex flex-col gap-0.5">
+                                <Text variant="label">
+                                  {edge.kind === 'contains'
+                                    ? 'Contained by its workspace or source'
+                                    : edge.kind}
+                                </Text>
+                                <Show when={edge.origin}>
+                                  <Text variant="caption" tone="muted">
+                                    {edge.origin === 'inferred'
+                                      ? `Inferred relationship${edge.confidence == null ? '' : ` · ${Math.round(edge.confidence * 100)}% confidence`}`
+                                      : `${edge.origin![0].toUpperCase()}${edge.origin!.slice(1)} relationship`}
+                                    {edge.support
+                                      ? ` · ${edge.support.record_ids.length} supporting record${edge.support.record_ids.length === 1 ? '' : 's'}`
+                                      : ''}
+                                    {edge.citation_authority
+                                      ? ' · citation-capable'
+                                      : ' · not citation evidence'}
+                                  </Text>
+                                </Show>
+                              </li>
+                            )}
+                          </For>
+                        </ul>
+                      </div>
+                    </Show>
+                    <Show when={selectedNode().document_id}>
+                      <div class="flex flex-wrap items-center gap-2">
                         <WorkspaceButton
-                          tooltip="Expand one-hop relationships"
+                          tooltip={
+                            pinnedNodeIds().has(selectedNode().id)
+                              ? 'Release this node from the pinned graph focus.'
+                              : 'Keep this node in focus while exploring the graph.'
+                          }
                           variant="ghost"
                           size="sm"
-                          onClick={() => props.onFocusGraphNode!(selectedNode() as BrainGraphNode)}
+                          onClick={() =>
+                            setPinnedNodeIds((current) => {
+                              const next = new Set(current)
+                              if (next.has(selectedNode().id)) next.delete(selectedNode().id)
+                              else next.add(selectedNode().id)
+                              return next
+                            })
+                          }
                         >
-                          Expand one-hop relationships
+                          {pinnedNodeIds().has(selectedNode().id) ? 'Unpin node' : 'Pin node'}
                         </WorkspaceButton>
-                      </Show>
-                    </div>
-                  </Show>
+                        <WorkspaceButton
+                          tooltip="Open document"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => props.onSelectDocument(selectedNode().document_id!)}
+                        >
+                          Open document
+                        </WorkspaceButton>
+                        <Show when={props.onFocusGraphNode}>
+                          <WorkspaceButton
+                            tooltip="Expand one-hop relationships"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              props.onFocusGraphNode!(selectedNode() as BrainGraphNode)
+                            }
+                          >
+                            Expand one-hop relationships
+                          </WorkspaceButton>
+                        </Show>
+                      </div>
+                    </Show>
+                  </DetailPanelBody>
                 </Card>
               )}
             </Show>

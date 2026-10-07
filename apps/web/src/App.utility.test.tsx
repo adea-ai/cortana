@@ -358,7 +358,7 @@ test('Graph expands to full width and hides the source and context panels', asyn
   await renderApp()
 
   // The tablet document layout keeps sources inline and context in its Sheet.
-  expect(document.querySelector('.source-panel')).toBeTruthy()
+  expect(document.querySelector('[data-m7-source-panel]')).toBeTruthy()
   expect(screen.queryByText('Agent context')?.textContent ?? null).toBeNull()
   fireEvent.click(railButton('Graph'))
   await waitFor(() =>
@@ -371,7 +371,7 @@ test('Graph expands to full width and hides the source and context panels', asyn
 
   // Full-screen graph: no source panel, no context panel, no workspace tabs,
   // and the shell marks the layout so the graph spans the full width.
-  expect(document.querySelector('.source-panel')?.tagName ?? null).toBeNull()
+  expect(document.querySelector('[data-m7-source-panel]')?.tagName ?? null).toBeNull()
   expect(screen.queryByText('Agent context')?.textContent ?? null).toBeNull()
   expect(
     screen.queryByRole('tab', {
@@ -383,7 +383,7 @@ test('Graph expands to full width and hides the source and context panels', asyn
   // The title-bar source action leaves the full-screen graph so the panel
   // becomes reachable again instead of silently doing nothing.
   await selectHeaderAction('Open sources')
-  await waitFor(() => expect(document.querySelector('.source-panel')).toBeTruthy())
+  await waitFor(() => expect(document.querySelector('[data-m7-source-panel]')).toBeTruthy())
   expect(
     screen
       .getByRole('tab', {
@@ -401,9 +401,9 @@ test('Graph expands to full width and hides the source and context panels', asyn
       })
     ).toBeTruthy()
   )
-  expect(document.querySelector('.source-panel')?.tagName ?? null).toBeNull()
+  expect(document.querySelector('[data-m7-source-panel]')?.tagName ?? null).toBeNull()
   fireEvent.click(railButton('Knowledge'))
-  await waitFor(() => expect(document.querySelector('.source-panel')).toBeTruthy())
+  await waitFor(() => expect(document.querySelector('[data-m7-source-panel]')).toBeTruthy())
   expect(screen.queryByText('Agent context')?.textContent ?? null).toBeNull()
 })
 test('graph and timeline evidence actions open the selected source', async () => {

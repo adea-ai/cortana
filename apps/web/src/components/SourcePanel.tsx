@@ -21,14 +21,27 @@ import { createStore, reconcile } from 'solid-js/store'
 import { activeJobs, describeSourceJobProgress } from '../sourceJobs'
 import { operationalSources, sourceHealth, type OperationalSource } from '../operations'
 import { SourceIcon } from './sourceIcons'
-import { cn } from '@/lib/utils'
 import { createMediaQuery } from '@/lib/mediaQuery'
 
 import { sourceDisplayName } from './sourceIconData'
 import { ActionButton as Button } from '@adea-ai/ui/components/composites/action-button'
 import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
 import { EmptyState } from '@adea-ai/ui/components/ui/empty'
-import { PanelActions, PanelHeader, PanelTitle } from '@adea-ai/ui/components/layout/panel'
+import {
+  Panel,
+  PanelActions,
+  PanelHeader,
+  PanelTitle,
+  PanelToolbar,
+} from '@adea-ai/ui/components/layout/panel'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@adea-ai/ui/components/ui/breadcrumb'
+import { Text } from '@adea-ai/ui/components/ui/typography'
 import { Progress } from '@adea-ai/ui/components/ui/progress'
 import { Skeleton } from '@adea-ai/ui/components/ui/skeleton'
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
@@ -45,7 +58,6 @@ import { VirtualDocumentList } from './VirtualDocumentList'
 const EMPTY_JOBS: DesktopSourceJob[] = []
 
 export function SourcePanel(props: {
-  open: boolean
   status: BrainStatus | null
   statusError: string
   onRetryStatus?: () => void
@@ -116,10 +128,7 @@ export function SourcePanel(props: {
         : 'loading status…'
 
   return (
-    <aside
-      class={cn('source-panel m7-source-panel', props.open && 'mobile-open')}
-      data-m7-source-panel=""
-    >
+    <Panel data-m7-source-panel="">
       <PanelHeader>
         <PanelTitle>Sources</PanelTitle>
         <PanelActions>
@@ -154,14 +163,14 @@ export function SourcePanel(props: {
           </ActionButton>
         </PanelActions>
       </PanelHeader>
-      <div class="source-mode">
+      <PanelToolbar>
         <StatusChip
           tone={
             props.statusError ? 'warning' : props.status?.ingestion.scheduled ? 'info' : 'neutral'
           }
           label={`Ingestion ${statusLoading() ? 'loading status…' : sourceModeLabel()}`}
         />
-      </div>
+      </PanelToolbar>
       <Show when={active().length > 0}>
         <div class="source-jobs-strip" aria-label="Active source jobs">
           <For each={active()}>
@@ -460,8 +469,8 @@ export function SourcePanel(props: {
         </Show>
       </Show>
       <section class="document-explorer" aria-label="Document explorer">
-        <div class="document-explorer-heading">
-          <strong
+        <div class="flex min-w-0 items-center gap-2 px-2 pb-2">
+          <Breadcrumb
             aria-label={`Documents in ${
               selectedWorkspace()?.name || selectedWorkspaceId() || 'Documents'
             } / ${
@@ -469,20 +478,29 @@ export function SourcePanel(props: {
                 ? sourceDisplayName(selectedSource()!.kind, selectedSource()!.source)
                 : 'All sources'
             }`}
+            class="min-w-0 flex-1"
           >
-            <span class="explorer-workspace">
-              {selectedWorkspace()?.name || selectedWorkspaceId() || 'Documents'}
-            </span>
-            <span class="explorer-separator" aria-hidden="true">
-              /
-            </span>
-            <span class="explorer-scope">
-              {selectedSource()
-                ? sourceDisplayName(selectedSource()!.kind, selectedSource()!.source)
-                : 'All sources'}
-            </span>
-          </strong>
-          <span>{props.documents.length.toLocaleString()} loaded</span>
+            <BreadcrumbList class="flex-nowrap">
+              <BreadcrumbItem class="min-w-0">
+                <span class="truncate">
+                  {selectedWorkspace()?.name || selectedWorkspaceId() || 'Documents'}
+                </span>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem class="min-w-0">
+                <BreadcrumbPage class="min-w-0">
+                  <span class="block truncate">
+                    {selectedSource()
+                      ? sourceDisplayName(selectedSource()!.kind, selectedSource()!.source)
+                      : 'All sources'}
+                  </span>
+                </BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <Text variant="caption" tone="muted" class="shrink-0">
+            {props.documents.length.toLocaleString()} loaded
+          </Text>
         </div>
         <InputGroup class="mb-2 shrink-0">
           <InputGroupAddon>
@@ -565,6 +583,6 @@ export function SourcePanel(props: {
           </ActionButton>
         </Show>
       </section>
-    </aside>
+    </Panel>
   )
 }

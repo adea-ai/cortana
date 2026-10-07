@@ -121,7 +121,8 @@ export function VirtualDocumentList(props: {
   return (
     <ScrollArea
       ref={(el) => (viewportRef = el)}
-      class="virtual-document-list"
+      orientation="both"
+      class="min-h-25 flex-1"
       role="listbox"
       aria-label="Documents"
       aria-busy={props.loading}

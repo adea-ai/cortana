@@ -36,7 +36,6 @@ function renderPanel(
   const noJobs: DesktopSourceJob[] = []
   const panel = (
     <SourcePanel
-      open={false}
       status={statusValue}
       statusError={statusError}
       onRetryStatus={onRetryStatus}
@@ -115,7 +114,6 @@ test('source panel uses the shell workspace scope without a duplicate picker', (
 test('SourcePanel never falls back to an all-workspaces source tree', () => {
   render(() => (
     <SourcePanel
-      open={false}
       status={demoStatus}
       statusError=""
       workspace=""
@@ -178,7 +176,6 @@ test('SourcePanel exposes a retry action for document list failures', () => {
   let retries = 0
   render(() => (
     <SourcePanel
-      open={false}
       status={demoStatus}
       statusError=""
       workspace="work"
@@ -218,7 +215,6 @@ test('document filter exposes a clear action only when text is present', () => {
   let nextQuery = 'unchanged'
   render(() => (
     <SourcePanel
-      open={false}
       status={demoStatus}
       statusError=""
       workspace="work"
@@ -267,7 +263,6 @@ test('SourcePanel source and settings shortcuts open the Sources settings sectio
   }
   render(() => (
     <SourcePanel
-      open={false}
       status={null}
       statusError=""
       workspace="work"
@@ -349,7 +344,6 @@ test('source selection is scoped to the active workspace when names repeat', () 
   }
   render(() => (
     <SourcePanel
-      open={false}
       status={duplicateStatus}
       statusError=""
       workspace="work"
@@ -379,7 +373,6 @@ test('source selection is scoped to the active workspace when names repeat', () 
 test('source-select button is rendered as a button control', () => {
   render(() => (
     <SourcePanel
-      open={false}
       status={demoStatus}
       statusError=""
       workspace="work"
@@ -458,7 +451,6 @@ test('source panel exposes setup and browser authorization actions only when req
   })
   render(() => (
     <SourcePanel
-      open={false}
       status={actionStatus}
       statusError=""
       workspace="work"
@@ -504,7 +496,6 @@ test('source panel exposes setup and browser authorization actions only when req
   cleanup()
   render(() => (
     <SourcePanel
-      open={false}
       status={actionStatus}
       statusError=""
       workspace="personal"
@@ -564,7 +555,6 @@ test('Google setup action identifies the source editor instead of a provider URL
   }
   render(() => (
     <SourcePanel
-      open={false}
       status={actionStatus}
       statusError=""
       workspace="personal"
@@ -617,7 +607,6 @@ test('active source jobs expose a cancellation control in the source panel', () 
   }
   render(() => (
     <SourcePanel
-      open={false}
       status={demoStatus}
       statusError=""
       workspace="work"
@@ -675,7 +664,6 @@ const explorerDocs: BrainDocumentSummary[] = [
 function renderExplorer(selected: string) {
   return render(() => (
     <SourcePanel
-      open={false}
       status={demoStatus}
       statusError=""
       workspace="work"
@@ -738,7 +726,7 @@ test('source panel is the only Knowledge surface with enable switches', () => {
   const switches = container.querySelectorAll('[role="switch"]')
   expect(switches.length).toBeGreaterThan(0)
   for (const control of Array.from(switches)) {
-    expect(control.closest('.source-panel')).toBeTruthy()
+    expect(control.closest('[data-m7-source-panel]')).toBeTruthy()
   }
   // The document explorer itself never offers an enable/disable control.
   expect(container.querySelector('.document-explorer [role="switch"]')).toBeNull()
@@ -784,7 +772,6 @@ test('active source jobs lock a source that uses a canonical label', () => {
   }
   render(() => (
     <SourcePanel
-      open={false}
       status={labeledStatus}
       statusError=""
       workspace="work"
