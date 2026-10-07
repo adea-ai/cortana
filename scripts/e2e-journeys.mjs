@@ -158,7 +158,7 @@ async function approveMemoryCandidate(context) {
 
   // Demo approval resolves as "review": the candidate stays queued and the
   // review surface must say no canonical memory changed.
-  const notice = page.locator('.memory-review-message')
+  const notice = page.getByRole('status').filter({ hasText: 'remain in review' })
   await notice.waitFor({ state: 'visible', timeout: JOURNEY_TIMEOUT_MS })
   ensure(
     (await notice.textContent())?.includes('remain in review'),
