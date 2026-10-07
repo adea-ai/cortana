@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.68.0](https://github.com/adea-ai/cortana/compare/v0.67.0...v0.68.0) (2026-10-07)
+
+
+### Features
+
+* **desktop:** align the app icon with the adea-dark theme ([#2533](https://github.com/adea-ai/cortana/issues/2533)) ([7245ae6](https://github.com/adea-ai/cortana/commit/7245ae61e8ea07c8930dd9564b8711c546de2d30))
+
+
+### Bug Fixes
+
+* **web:** adopt @adea-ai/ui 0.118.3 for deferred design-system bugs ([#2537](https://github.com/adea-ai/cortana/issues/2537)) ([1a37971](https://github.com/adea-ai/cortana/commit/1a379719ca2350c0d85aaba2c45706ad3c3ebc11))
+* **web:** design-system bugs and dead CSS ([#2536](https://github.com/adea-ai/cortana/issues/2536)) ([0776c6a](https://github.com/adea-ai/cortana/commit/0776c6a58441cd4880e65ea7d7a70f182a4913d2))
+
+
+### Performance
+
+* **web:** defer the update composite out of the boot graph ([#2532](https://github.com/adea-ai/cortana/issues/2532)) ([04fb0fe](https://github.com/adea-ai/cortana/commit/04fb0fef6597fdba276ea5c7fcfe9d1afafdff20))
+
+
+### Tests
+
+* **capture:** wait for CSS transitions before the axe audit ([#2539](https://github.com/adea-ai/cortana/issues/2539)) ([c2b57df](https://github.com/adea-ai/cortana/commit/c2b57df03f8b98fa5d04492c5c06c97b62ec34f2))
+
+
+### Maintenance
+
+* **lint:** close the web UI contract gaps ([#2543](https://github.com/adea-ai/cortana/issues/2543)) ([bcd633b](https://github.com/adea-ai/cortana/commit/bcd633b4e8cc8d4daef9b8e4f062d489a6fc8769))
+* **web/memory:** memory review on shared components ([#2542](https://github.com/adea-ai/cortana/issues/2542)) ([3f333c4](https://github.com/adea-ai/cortana/commit/3f333c43f2106e93577c5f0d9dac68d3563d6b2a))
+* **web/settings:** adopt @adea-ai/ui settings composites ([#2538](https://github.com/adea-ai/cortana/issues/2538)) ([c4da28c](https://github.com/adea-ai/cortana/commit/c4da28c1fa403bd4999733cea03fbebc38627633))
+* **web/utility+activity:** PageHeader, Heading, CodeBlock, Card size ([#2541](https://github.com/adea-ai/cortana/issues/2541)) ([826852e](https://github.com/adea-ai/cortana/commit/826852e623b261eb0fb251119514ea6bbf715d97))
+* **web/workspace:** panes and knowledge views on shared layout ([#2540](https://github.com/adea-ai/cortana/issues/2540)) ([d8ce30a](https://github.com/adea-ai/cortana/commit/d8ce30aee73bbfdb722bacaaccb8963c25212a94))
+
 ## [0.67.0](https://github.com/adea-ai/cortana/compare/v0.66.6...v0.67.0) (2026-10-06)
 
 
