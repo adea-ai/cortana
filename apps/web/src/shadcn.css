@@ -962,7 +962,6 @@ body,
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .initial-sync-budgets,
   .initial-sync-plan {
     grid-template-columns: 1fr;
   }
@@ -998,33 +997,7 @@ body,
   font-size: var(--text-2xs);
 }
 
-.source-type-dialog {
-  max-width: 620px;
-}
-
-.initial-sync-dialog {
-  max-width: 720px;
-}
-
-.source-type-options {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.source-type-option {
-  display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr);
-  align-items: center;
-  padding: 10px;
-  gap: 10px;
-}
-
-.source-settings-card {
-  padding: 14px 15px;
-}
-
-.source-settings-card > header,
+.source-settings-card-header,
 .source-enable,
 .source-card-actions,
 .source-validation-job > div {
@@ -1032,7 +1005,7 @@ body,
   align-items: center;
 }
 
-.source-settings-card > header {
+.source-settings-card-header {
   justify-content: space-between;
   align-items: center;
   gap: 14px;
@@ -1051,18 +1024,27 @@ body,
   flex-direction: column;
 }
 
+/* The trigger owns its row layout; this groups the title and its hint as one label. */
+.source-advanced-label {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.source-advanced-label small {
+  color: var(--muted-foreground);
+  font-size: var(--text-2xs);
+  font-weight: var(--font-weight-normal);
+}
+
 .source-workspace-picker {
   display: inline-flex;
   min-width: 150px;
   align-items: center;
   padding: 3px 6px;
   gap: 6px;
-}
-
-.source-workspace-picker select,
-.source-workspace-picker [role='combobox'] {
-  min-width: 0;
-  width: 132px;
 }
 
 .source-enable strong {
@@ -1097,11 +1079,6 @@ body,
   gap: 8px;
 }
 
-.source-form-grid {
-  margin-top: 17px;
-  padding-top: 17px;
-}
-
 .source-validation-job {
   margin-top: 16px;
   padding: 13px 15px;
@@ -1117,36 +1094,6 @@ body,
   flex-direction: column;
   border: 1px solid var(--border);
   background: var(--warning-subtle);
-}
-
-.initial-sync-budgets {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.initial-sync-budgets label {
-  display: flex;
-  align-items: flex-start;
-  padding: 10px 11px;
-  gap: 9px;
-}
-
-.initial-sync-budgets label > span {
-  display: flex;
-  gap: 3px;
-  flex-direction: column;
-}
-
-.initial-sync-budgets strong {
-  color: var(--foreground);
-  font-size: var(--text-2xs);
-}
-
-.initial-sync-budgets small {
-  color: var(--muted-foreground);
-  font-size: var(--text-2xs);
-  line-height: 1.4;
 }
 
 .initial-sync-state {
@@ -1213,29 +1160,6 @@ body,
 .source-validation-job small {
   color: var(--muted-foreground);
   font-size: var(--text-2xs);
-}
-
-.source-validation-job pre {
-  max-height: 180px;
-  margin: 12px 0 0;
-  padding: 10px;
-  overflow: auto;
-  color: var(--muted-foreground);
-  background: var(--muted);
-  font-size: var(--text-2xs);
-  line-height: 1.45;
-  white-space: pre-wrap;
-}
-
-.form-grid {
-  display: grid;
-  margin-top: 24px;
-  gap: 18px;
-  grid-template-columns: 1fr 1fr;
-}
-
-.form-grid.compact {
-  padding-top: 20px;
 }
 
 /* Provider-advertised model selector with the refresh action below it. */
@@ -1637,18 +1561,13 @@ body,
 }
 
 @media (max-width: 900px) {
-  .workspace-settings-grid,
-  .form-grid {
+  .workspace-settings-grid {
     grid-template-columns: 1fr;
   }
 
   .memory-policy,
   .memory-review-layout,
   .memory-layer-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .source-type-options {
     grid-template-columns: 1fr;
   }
 }
@@ -2200,6 +2119,3 @@ body,
 }
 
 /* Full-width controls follow the form grid column rather than intrinsic option text. */
-.form-grid [data-slot='native-select'] {
-  width: 100%;
-}
