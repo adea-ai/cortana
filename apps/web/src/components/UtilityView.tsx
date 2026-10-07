@@ -5,7 +5,7 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from '@adea-ai/ui/components/ui/accordion'
-import { Alert, AlertDescription } from '@adea-ai/ui/components/ui/alert'
+import { Alert, AlertAction, AlertDescription } from '@adea-ai/ui/components/ui/alert'
 import {
   AlertTriangle,
   Check,
@@ -52,6 +52,7 @@ import { Stat } from '@adea-ai/ui/components/composites/stat'
 import { StatusChip } from '@adea-ai/ui/components/ui/status-chip'
 
 import type { UtilityKind } from '../utilityKinds'
+import { Text } from '@adea-ai/ui/components/ui/typography'
 export { isUtilityKind, type UtilityKind } from '../utilityKinds'
 
 const TITLES: Record<UtilityKind, { eyebrow: string; title: string; description: string }> = {
@@ -109,7 +110,9 @@ export function UtilityView(props: {
     >
       <header class="utility-header">
         <div>
-          <span class="eyebrow">{titles().eyebrow}</span>
+          <Text variant="overline" class="eyebrow">
+            {titles().eyebrow}
+          </Text>
           <h1>{titles().title}</h1>
           <p>{titles().description}</p>
         </div>
@@ -271,46 +274,47 @@ function InboxView(props: {
     <Show when={!empty()} fallback={emptyView}>
       <Show when={props.sourceJobError}>
         <Alert variant="destructive" class="utility-error" role="alert">
-          <AlertDescription>
-            {props.sourceJobError}
-            <Show when={props.onRetrySourceJobs}>
-              {' '}
+          <AlertDescription>{props.sourceJobError}</AlertDescription>
+          <Show when={props.onRetrySourceJobs}>
+            <AlertAction>
               <Button
                 tooltip="Retry source jobs"
                 variant="outline"
                 size="xs"
                 type="button"
-                class="link-button"
                 onClick={props.onRetrySourceJobs}
               >
                 Retry source jobs
               </Button>
-            </Show>
-          </AlertDescription>
+            </AlertAction>
+          </Show>
         </Alert>
       </Show>
       <Show when={props.statusError && props.status}>
         <Alert variant="destructive" class="utility-error" role="status">
           <AlertDescription>
-            {props.statusError} Showing the last known sync snapshot.{' '}
-            <Show when={props.onRetryStatus}>
+            {props.statusError} Showing the last known sync snapshot.
+          </AlertDescription>
+          <Show when={props.onRetryStatus}>
+            <AlertAction>
               <Button
                 tooltip="Retry status"
                 variant="outline"
                 size="xs"
                 type="button"
-                class="link-button"
                 onClick={props.onRetryStatus}
               >
                 Retry status
               </Button>
-            </Show>
-          </AlertDescription>
+            </AlertAction>
+          </Show>
         </Alert>
       </Show>
       <Show when={attention().length > 0}>
         <section class="utility-section">
-          <h2>Sync attention</h2>
+          <Text as="h2" variant="overline">
+            Sync attention
+          </Text>
           <ListGroup>
             <For each={attention()}>
               {(run) => (
@@ -328,7 +332,9 @@ function InboxView(props: {
       </Show>
       <Show when={activeJobs().length > 0}>
         <section class="utility-section">
-          <h2>Active source jobs</h2>
+          <Text as="h2" variant="overline">
+            Active source jobs
+          </Text>
           <ListGroup>
             <For each={activeJobs()}>
               {(job) => (
@@ -364,7 +370,9 @@ function InboxView(props: {
       </Show>
       <Show when={completedJobs().length > 0}>
         <section class="utility-section">
-          <h2>Recent source jobs</h2>
+          <Text as="h2" variant="overline">
+            Recent source jobs
+          </Text>
           <ListGroup>
             <For each={completedJobs()}>
               {(job) => {
@@ -508,11 +516,13 @@ function ConversationsView(props: {
           {(answer) => (
             <>
               <section class="utility-section">
-                <h2>Current conversation</h2>
+                <Text as="h2" variant="overline">
+                  Current conversation
+                </Text>
                 <Card class="utility-card">
-                  <span class="utility-card-eyebrow">
+                  <Text variant="overline" class="utility-card-eyebrow">
                     <Sparkles size={14} aria-hidden="true" /> Query
-                  </span>
+                  </Text>
                   <h3>{props.query}</h3>
                   <div class="utility-meta">
                     <Badge variant="outline">{answer().mode}</Badge>
@@ -542,7 +552,9 @@ function ConversationsView(props: {
               </section>
               <Show when={props.evidence.length > 0}>
                 <section class="utility-section">
-                  <h2>Cited evidence</h2>
+                  <Text as="h2" variant="overline">
+                    Cited evidence
+                  </Text>
                   <ListGroup>
                     <For each={props.evidence.slice(0, 4)}>
                       {(item, index) => (
@@ -589,7 +601,9 @@ function AgentToolsView(props: {
   return (
     <>
       <section class="utility-section">
-        <h2>Generated context</h2>
+        <Text as="h2" variant="overline">
+          Generated context
+        </Text>
         <Show
           when={!props.contextLoading}
           fallback={
@@ -719,7 +733,9 @@ function AgentToolsView(props: {
         </Show>
       </section>
       <section class="utility-section">
-        <h2>Agent context window</h2>
+        <Text as="h2" variant="overline">
+          Agent context window
+        </Text>
         <Card class="utility-card">
           <p class="utility-answer">
             ~{props.contextTokens.toLocaleString()} tokens assembled from the active query and{' '}
@@ -803,7 +819,9 @@ function IndexView(props: {
             </Alert>
           </Show>
           <section class="utility-section">
-            <h2>Live metrics</h2>
+            <Text as="h2" variant="overline">
+              Live metrics
+            </Text>
             <div class="utility-metrics">
               <Stat label="Documents" value={status().documents.toLocaleString()} />
               <Stat label="Chunks" value={status().chunks.toLocaleString()} />
@@ -834,7 +852,9 @@ function IndexView(props: {
             </div>
           </section>
           <section class="utility-section">
-            <h2>Configuration</h2>
+            <Text as="h2" variant="overline">
+              Configuration
+            </Text>
             <Table aria-label="Index configuration">
               <TableBody>
                 <TableRow>

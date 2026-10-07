@@ -19,7 +19,7 @@ import { For, Show } from 'solid-js'
 import { describeSyncRunProgress } from '@/operations'
 import { describeSourceJobProgress, recentCompletedJobs } from '@/sourceJobs'
 import type { BrainStatus, DesktopSourceJob, SourceSyncSummary } from '@/types'
-import { Alert, AlertDescription, AlertTitle } from '@adea-ai/ui/components/ui/alert'
+import { Alert, AlertAction, AlertDescription, AlertTitle } from '@adea-ai/ui/components/ui/alert'
 import { StatusChip } from '@adea-ai/ui/components/ui/status-chip'
 import { ActionButton as Button } from '@adea-ai/ui/components/composites/action-button'
 import {
@@ -39,6 +39,7 @@ import {
   EmptyTitle,
 } from '@adea-ai/ui/components/ui/empty'
 import { Progress } from '@adea-ai/ui/components/ui/progress'
+import { Text } from '@adea-ai/ui/components/ui/typography'
 
 export type M7ActivityInboxProps = {
   status: BrainStatus | null
@@ -286,7 +287,9 @@ export function M7ActivityInbox(props: M7ActivityInboxProps) {
     >
       <header class="utility-header">
         <div>
-          <span class="eyebrow">Attention</span>
+          <Text variant="overline" class="eyebrow">
+            Attention
+          </Text>
           <h1>Inbox</h1>
           <p>Current sync health and source-job activity. Nothing here is fabricated history.</p>
         </div>
@@ -298,8 +301,7 @@ export function M7ActivityInbox(props: M7ActivityInboxProps) {
             <AlertTitle>Source jobs unavailable</AlertTitle>
             <AlertDescription>{sourceJobError()}</AlertDescription>
             <Show when={props.onRetrySourceJobs}>
-              {/* The shared Alert has no action slot; the retry rides inside it. */}
-              <div class="activity-alert-action">
+              <AlertAction>
                 <Button
                   tooltip="Retry the last failed request."
                   variant="outline"
@@ -308,7 +310,7 @@ export function M7ActivityInbox(props: M7ActivityInboxProps) {
                 >
                   Retry
                 </Button>
-              </div>
+              </AlertAction>
             </Show>
           </Alert>
         </Show>
@@ -318,8 +320,7 @@ export function M7ActivityInbox(props: M7ActivityInboxProps) {
             <AlertTitle>Showing the last known sync snapshot</AlertTitle>
             <AlertDescription>{statusError()}</AlertDescription>
             <Show when={props.onRetryStatus}>
-              {/* The shared Alert has no action slot; the retry rides inside it. */}
-              <div class="activity-alert-action">
+              <AlertAction>
                 <Button
                   tooltip="Retry the last failed request."
                   variant="outline"
@@ -328,7 +329,7 @@ export function M7ActivityInbox(props: M7ActivityInboxProps) {
                 >
                   Retry
                 </Button>
-              </div>
+              </AlertAction>
             </Show>
           </Alert>
         </Show>

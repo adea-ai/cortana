@@ -3,8 +3,9 @@ import { Dynamic } from 'solid-js/web'
 import { sourceBrandForKind, sourceIconForKind } from './sourceIconData'
 
 // Brand marks render in the surrounding ink: several brand hexes (GitHub,
-// Slack, Apple) are near-invisible on the dark-only chrome, and the shared
-// icon tiles own their own contrast.
+// Slack, Apple) are near-invisible on the dark-only chrome. Inside a shared
+// tile, `EntityIcon monochrome` owns that repaint and its contrast; bare marks
+// (the source tree) inherit the row's ink.
 export function SourceIcon(props: { kind: string; size?: number }) {
   const brand = () => sourceBrandForKind(props.kind)
   const size = () => props.size ?? 17

@@ -17,6 +17,7 @@ import { Badge } from '@adea-ai/ui/components/ui/badge'
 import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
 import { Card } from '@adea-ai/ui/components/ui/card'
 import { ScrollArea } from '@adea-ai/ui/components/ui/scroll-area'
+import { PanelActions, PanelHeader, PanelTitle } from '@adea-ai/ui/components/layout/panel'
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 
 export function ContextPanel(props: {
@@ -45,21 +46,22 @@ export function ContextPanel(props: {
       class={cn('context-panel m7-context-panel', props.open && 'mobile-open')}
       data-m7-context-panel=""
     >
-      <div class="context-heading">
-        <strong>Agent context</strong>
-        <Show when={compact()}>
-          <ActionButton
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Close agent context"
-            tooltip="Close agent context"
-
-            onClick={props.onClose}
-          >
-            <X size={17} aria-hidden="true" />
-          </ActionButton>
-        </Show>
-      </div>
+      <PanelHeader>
+        <PanelTitle>Agent context</PanelTitle>
+        <PanelActions>
+          <Show when={compact()}>
+            <ActionButton
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Close agent context"
+              tooltip="Close agent context"
+              onClick={props.onClose}
+            >
+              <X size={17} aria-hidden="true" />
+            </ActionButton>
+          </Show>
+        </PanelActions>
+      </PanelHeader>
       <ScrollArea class="context-scroll">
         <Card class="gap-2 px-4">
           <span>Query</span>

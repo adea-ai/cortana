@@ -6,7 +6,7 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from '@adea-ai/ui/components/ui/accordion'
-import { AlertDescription } from '@adea-ai/ui/components/ui/alert'
+import { AlertAction, AlertDescription } from '@adea-ai/ui/components/ui/alert'
 import { Label } from '@adea-ai/ui/components/ui/label'
 import { EntityIcon } from '@adea-ai/ui/components/ui/entity-icon'
 import { Badge } from '@adea-ai/ui/components/ui/badge'
@@ -94,6 +94,7 @@ import {
 } from './SettingsSurface'
 import { StatusGlyph } from './SettingsWorkflowShared'
 import { applyConfirmed, useDesktopForeground } from './SettingsWorkflowUtils'
+import { Text } from '@adea-ai/ui/components/ui/typography'
 const SOURCE_KINDS: Array<{
   value: SourceKind
   label: string
@@ -1003,6 +1004,7 @@ export function SourcesSection(
                       name={kind.label}
                       icon={<SourceIcon kind={kind.value} />}
                       tone="neutral"
+                      monochrome
                       aria-hidden="true"
                     />
                     <span>{kind.label}</span>
@@ -1065,6 +1067,7 @@ export function SourcesSection(
             class="source-workspace-tabs"
             aria-label="Source workspace"
             appearance="underline"
+            scrollable
           >
             <For each={props.settings.workspaces}>
               {(workspace) => {
@@ -1161,6 +1164,7 @@ export function SourcesSection(
                               name={`${sourceLabel()} connector`}
                               icon={<SourceIcon kind={source().kind} />}
                               tone="neutral"
+                              monochrome
                             />
                             <span>
                               <strong>
@@ -2536,10 +2540,12 @@ export function SourcesSection(
                   <DialogHeader>
                     <DialogTitle>Initial sync</DialogTitle>
                     <DialogDescription>
-                      <span class="eyebrow">Guided initial sync</span> Review the bounded
-                      first-import plan for {initialSyncSource()!.name}. Check the connection first,
-                      then start the sync only when the selected budget is covered by a successful
-                      validation.
+                      <Text variant="overline" class="eyebrow">
+                        Guided initial sync
+                      </Text>{' '}
+                      Review the bounded first-import plan for {initialSyncSource()!.name}. Check
+                      the connection first, then start the sync only when the selected budget is
+                      covered by a successful validation.
                     </DialogDescription>
                   </DialogHeader>
                   <InitialSyncFlow
@@ -2746,8 +2752,7 @@ function InitialSyncFlow(incoming: {
                   </span>
                 </AlertDescription>
                 {!props.busy && (
-                  // The shared Alert has no action slot; the action rides inside it.
-                  <div class="activity-alert-action">
+                  <AlertAction>
                     <Button
                       tooltip="Validate for this budget"
                       variant="outline"
@@ -2756,7 +2761,7 @@ function InitialSyncFlow(incoming: {
                     >
                       Validate for this budget
                     </Button>
-                  </div>
+                  </AlertAction>
                 )}
               </SettingsAlert>
             )}

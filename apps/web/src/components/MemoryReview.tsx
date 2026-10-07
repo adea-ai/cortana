@@ -43,6 +43,7 @@ import { Textarea } from '@adea-ai/ui/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@adea-ai/ui/components/ui/toggle-group'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@adea-ai/ui/components/ui/input-group'
 import { useSettingsConfirm } from './settings/SettingsConfirm'
+import { Text } from '@adea-ai/ui/components/ui/typography'
 
 type QueueView =
   | 'all'
@@ -427,7 +428,9 @@ export function MemoryReview(props: {
     >
       <header class="memory-review-header">
         <div>
-          <span class="eyebrow">Review before retention</span>
+          <Text variant="overline" class="eyebrow">
+            Review before retention
+          </Text>
           <h3 id="memory-review-title">Memory control center</h3>
           <p>Inspect candidates, canonical recall, and derived reasoning as separate layers.</p>
         </div>
@@ -575,7 +578,9 @@ function CandidateDetail(props: {
     >
       {(selected) => (
         <article class="memory-candidate-detail" aria-live="polite">
-          <span class="eyebrow">Candidate · not canonical</span>
+          <Text variant="overline" class="eyebrow">
+            Candidate · not canonical
+          </Text>
           <h4>{selected().title}</h4>
           {props.editing ? (
             <div class="memory-edit-fields">
@@ -847,7 +852,9 @@ function MemoryLayers(props: { canonical: AgentMemory[]; derived: DerivedMemoryR
   return (
     <div class="memory-layer-grid">
       <section aria-labelledby="canonical-memory-title">
-        <span class="eyebrow">Recall</span>
+        <Text variant="overline" class="eyebrow">
+          Recall
+        </Text>
         <h4 id="canonical-memory-title">Canonical memory</h4>
         <p>Durable records eligible for recall and evidence-backed answers.</p>
         <ul>
@@ -867,7 +874,9 @@ function MemoryLayers(props: { canonical: AgentMemory[]; derived: DerivedMemoryR
         </ul>
       </section>
       <section aria-labelledby="derived-memory-title">
-        <span class="eyebrow">Reflect</span>
+        <Text variant="overline" class="eyebrow">
+          Reflect
+        </Text>
         <h4 id="derived-memory-title">Derived · not canonical</h4>
         <p>Recomputed interpretations are never source evidence or citation authority.</p>
         <ul>
