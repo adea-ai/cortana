@@ -62,7 +62,7 @@ const uiRules = [
   'shadcn/no-unknown-classes',
   'shadcn/require-static-classes',
 ]
-const restyleDenyCategories = ['color', 'typography', 'shape', 'effects', 'motion']
+const restyleDenyCategories = ['color', 'typography', 'shape', 'effects', 'motion', 'spacing']
 
 const removedFiles = [
   'LegacyRenderer.tsx',
@@ -1001,6 +1001,180 @@ function primitiveImportFailures(root, sourceRoot, data) {
   return failures
 }
 
+const sharedComponentModule = /^@adea-ai\/ui\/components\//
+
+/**
+ * App modules may not re-export shared components. A re-export barrel renames a
+ * primitive (`SettingsCard`), and `shadcn/no-restyle` no longer recognizes the
+ * alias, so utilities on it escape the restyle contract.
+ */
+function sharedReexportFailures(sourceRoot, data) {
+  const failures = []
+  for (const [file, item] of data) {
+    const directImports = new Set()
+    for (const statement of item.sf.statements) {
+      if (
+        ts.isImportDeclaration(statement) &&
+        ts.isStringLiteral(statement.moduleSpecifier) &&
+        sharedComponentModule.test(statement.moduleSpecifier.text)
+      ) {
+        for (const binding of importedNames(statement.importClause))
+          directImports.add(binding.local)
+        const bindings = statement.importClause?.namedBindings
+        if (bindings && ts.isNamespaceImport(bindings)) directImports.add(bindings.name.text)
+      }
+    }
+    const report = (node, name) =>
+      failures.push(
+        `${relativeSourcePath(sourceRoot, file)}:${lineAt(item.source, node.getStart(item.sf))} re-exports shared component ${name}; import it from @adea-ai/ui/components/* where it is used`
+      )
+    for (const statement of item.sf.statements) {
+      if (ts.isExportDeclaration(statement)) {
+        const moduleName =
+          statement.moduleSpecifier && ts.isStringLiteral(statement.moduleSpecifier)
+            ? statement.moduleSpecifier.text
+            : null
+        if (moduleName && sharedComponentModule.test(moduleName)) {
+          const clause = statement.exportClause
+          if (clause && ts.isNamedExports(clause))
+            for (const element of clause.elements) report(statement, element.name.text)
+          else report(statement, clause ? clause.name.text : `* from ${moduleName}`)
+        } else if (
+          !moduleName &&
+          statement.exportClause &&
+          ts.isNamedExports(statement.exportClause)
+        ) {
+          for (const element of statement.exportClause.elements) {
+            const local = element.propertyName?.text ?? element.name.text
+            if (directImports.has(local)) report(statement, element.name.text)
+          }
+        }
+      } else if (
+        ts.isExportAssignment(statement) &&
+        ts.isIdentifier(statement.expression) &&
+        directImports.has(statement.expression.text)
+      ) {
+        report(statement, statement.expression.text)
+      } else if (ts.isVariableStatement(statement) && hasExportModifier(statement)) {
+        for (const declaration of statement.declarationList.declarations) {
+          const initializer = declaration.initializer && unwrapExpression(declaration.initializer)
+          const root =
+            initializer && ts.isPropertyAccessExpression(initializer)
+              ? initializer.expression
+              : initializer
+          if (root && ts.isIdentifier(root) && directImports.has(root.text))
+            report(statement, ts.isIdentifier(declaration.name) ? declaration.name.text : root.text)
+        }
+      }
+    }
+  }
+  return failures
+}
+
+const colorAttributes = new Set([
+  'color',
+  'fill',
+  'stroke',
+  'stop-color',
+  'stopColor',
+  'flood-color',
+  'floodColor',
+  'lighting-color',
+  'lightingColor',
+])
+
+/** JSX colour attributes (`fill`, `stroke`, `color`) must use theme tokens or currentColor. */
+function jsxColorFailures(sourceRoot, data) {
+  const failures = []
+  for (const [file, item] of data) {
+    const visit = (node) => {
+      if (
+        ts.isJsxAttribute(node) &&
+        node.initializer &&
+        colorAttributes.has(node.name.getText(item.sf))
+      ) {
+        const initializer = node.initializer
+        const parts = ts.isStringLiteral(initializer)
+          ? [initializer.text]
+          : ts.isJsxExpression(initializer)
+            ? staticStringParts(initializer.expression)
+            : []
+        // `#${hex}` builds a literal colour from data the theme cannot reach.
+        if (parts.some((part) => isLiteralColor(part) || part.endsWith('#'))) {
+          failures.push(
+            `${relativeSourcePath(sourceRoot, file)}:${lineAt(item.source, node.getStart(item.sf))} sets a literal color in JSX ${node.name.getText(item.sf)}; use currentColor with a theme token class`
+          )
+        }
+      }
+      ts.forEachChild(node, visit)
+    }
+    visit(item.sf)
+  }
+  return failures
+}
+
+/** The data-slot values the installed @adea-ai/ui source renders. */
+function installedSharedSlots(root) {
+  const directory = resolve(root, 'node_modules/@adea-ai/ui/src/components')
+  if (!existsSync(directory)) return null
+  const slots = new Set()
+  for (const file of filesBelow(directory, true)) {
+    if (!/\.[jt]sx?$/.test(file)) continue
+    for (const line of readFileSync(file, 'utf8').split('\n')) {
+      if (!line.includes('data-slot')) continue
+      for (const match of line.matchAll(/["'`]([a-z][a-z0-9-]*)["'`]/g))
+        if (match[1] !== 'data-slot') slots.add(match[1])
+      for (const match of line.matchAll(/data-slot=([a-z][a-z0-9-]*)/g)) slots.add(match[1])
+    }
+  }
+  return slots
+}
+
+/** Every slot the contract protects must exist, or the protection is false assurance. */
+function sharedSlotFailures(root) {
+  const installed = installedSharedSlots(root)
+  if (!installed) return []
+  return [...sharedControlSlots, ...sharedControlFlowSlots]
+    .filter((slot) => !installed.has(slot))
+    .map(
+      (slot) =>
+        `check-web-ui-contract protects data-slot "${slot}", which the installed @adea-ai/ui never renders; remove it from the protected slots`
+    )
+}
+
+/** label-has-associated-control may only trust shared controls, not app-defined names. */
+function labelControlFailures(root, data) {
+  const path = resolve(root, '.oxlintrc.json')
+  if (!existsSync(path)) return []
+  let config
+  try {
+    config = JSON.parse(readFileSync(path, 'utf8'))
+  } catch {
+    return []
+  }
+  const localNames = new Set()
+  for (const item of data.values()) {
+    for (const alias of item.aliases) localNames.add(alias.exported)
+    for (const wrapper of item.wrappers) localNames.add(wrapper.name)
+  }
+  const failures = []
+  const settings = [
+    config.rules?.['jsx-a11y/label-has-associated-control'],
+    ...(config.overrides ?? []).map(
+      (override) => override.rules?.['jsx-a11y/label-has-associated-control']
+    ),
+  ].filter((setting) => setting !== undefined)
+  for (const [index, setting] of settings.entries()) {
+    for (const name of options(setting).controlComponents ?? []) {
+      if (localNames.has(name))
+        failures.push(
+          `.oxlintrc.json label-has-associated-control setting ${index} trusts app component ${name}; label shared controls directly`
+        )
+    }
+  }
+  return failures
+}
+
 function bareSharedButtonFailures(sourceRoot, data) {
   const failures = []
   for (const [file, item] of data) {
@@ -1637,7 +1811,19 @@ const sharedControlPrimitives = new Set([
   'ListRow',
 ])
 
-const sharedControlRootPrimitives = new Set([...sharedControlPrimitives, 'ListRow'])
+const sharedControlRootPrimitives = new Set([
+  ...sharedControlPrimitives,
+  'Label',
+  'TabsList',
+  'RadioGroup',
+  'Alert',
+  'InputGroup',
+])
+
+// Control roots and scroll containers own their text flow, overflow, alignment
+// and stacking; app CSS may not change them.
+const sharedControlFlowPrimitives = new Set([...sharedControlRootPrimitives, 'ScrollArea'])
+const sharedControlFlowSlots = new Set(['scroll-area'])
 
 const sharedControlSlots = new Set([
   'action-button',
@@ -1653,7 +1839,6 @@ const sharedControlSlots = new Set([
   'slider',
   'input',
   'kbd',
-  'meter',
   'progress',
   'table',
   'native-select',
@@ -2040,6 +2225,85 @@ function selectorAttributes(selector) {
   }))
 }
 
+const controlTagPattern = /^(?:a|button|input|select|textarea|label)(?=$|[.#:]|\[)/i
+// State attributes only shared components set; a selector keyed on them is
+// styling the component's states.
+const sharedStateAttributes = new Set(['data-pressed', 'data-selected', 'data-highlighted'])
+
+function sharedControlFlowProperty(name) {
+  return /^(?:text-align|white-space|text-overflow|overflow(?:-x|-y)?|justify-content|z-index)$/.test(
+    name
+  )
+}
+
+function selectorCompounds(selector) {
+  const compounds = []
+  let start = 0
+  let parens = 0
+  let brackets = 0
+  let quote = ''
+  for (let index = 0; index < selector.length; index += 1) {
+    const character = selector[index]
+    if (quote) {
+      if (character === '\\') index += 1
+      else if (character === quote) quote = ''
+      continue
+    }
+    if (character === '"' || character === "'") quote = character
+    else if (character === '(') parens += 1
+    else if (character === ')') parens -= 1
+    else if (character === '[') brackets += 1
+    else if (character === ']') brackets -= 1
+    else if (
+      parens === 0 &&
+      brackets === 0 &&
+      (character === '>' || character === '+' || character === '~' || /\s/.test(character))
+    ) {
+      compounds.push(selector.slice(start, index))
+      start = index + 1
+    }
+  }
+  compounds.push(selector.slice(start))
+  return compounds.map((compound) => compound.trim()).filter(Boolean)
+}
+
+/** Whether the ancestor part of a complex selector sits inside a shared control or shared usage. */
+function selectorContext(ancestors, usages) {
+  const context = { control: false, shared: false }
+  if (!ancestors.trim()) return context
+  for (const alternative of expandSelectorAlternatives(ancestors)) {
+    for (const compound of selectorCompounds(alternative.selector)) {
+      const classes = selectorClasses(compound)
+      const matched = [...usages.values()].filter(
+        (usage) => classes.length > 0 && classes.every((name) => usage.classes.has(name))
+      )
+      const attributes = selectorAttributes(compound)
+      if (
+        matched.some((usage) =>
+          [...usage.primitives].some((primitive) => sharedControlPrimitives.has(primitive))
+        ) ||
+        attributes.some(
+          (attribute) =>
+            (attribute.name === 'data-slot' && sharedControlSlots.has(attribute.value)) ||
+            (attribute.name === 'role' && sharedControlRoles.has(attribute.value))
+        ) ||
+        controlTagPattern.test(compound)
+      )
+        context.control = true
+      if (
+        matched.length > 0 ||
+        attributes.some(
+          (attribute) =>
+            attribute.name === 'data-slot' ||
+            (attribute.name === 'role' && sharedRoles.has(attribute.value))
+        )
+      )
+        context.shared = true
+    }
+  }
+  return context
+}
+
 function sharedCssFailures(root, sourceRoot, files, sharedClasses) {
   const failures = []
   const usages = new Map()
@@ -2058,7 +2322,9 @@ function sharedCssFailures(root, sourceRoot, files, sharedClasses) {
   for (const file of files.filter((path) => path.endsWith('.css'))) {
     const source = withoutComments(readFileSync(file, 'utf8'))
     for (const rule of parseCssRules(source)) {
-      for (const subject of splitSelectorList(rule.selector).map(subjectSelector)) {
+      for (const complex of splitSelectorList(rule.selector)) {
+        const subject = subjectSelector(complex)
+        const context = selectorContext(complex.slice(0, complex.length - subject.length), usages)
         for (const alternative of expandSelectorAlternatives(subject)) {
           const selectorClassesFound = selectorClasses(alternative.selector)
           const matchedUsages = [...usages.values()].filter(
@@ -2081,14 +2347,31 @@ function sharedCssFailures(root, sourceRoot, files, sharedClasses) {
           const rawTag = alternative.selector.match(
             /^(a|button|details|fieldset|input|label|legend|option|select|summary|textarea)(?=$|[.#:]|\[)/i
           )?.[1]
-          if (matchedUsages.length === 0 && !dataSlot && !role && !rawTag) continue
+          // A class-less element subject (`.badge-host span`) inside a shared control
+          // reaches into the control's own rendering.
+          const elementTag =
+            selectorClassesFound.length === 0 && !rawTag
+              ? alternative.selector.match(/^([a-z][a-z0-9-]*)(?=$|[.#:]|\[)/i)?.[1]
+              : undefined
+          const controlElement = Boolean(elementTag) && context.control
+          const stateAttribute = attributes.find((attribute) =>
+            sharedStateAttributes.has(attribute.name)
+          )?.name
+          const ariaAttribute =
+            selectorClassesFound.length === 0 && (context.control || context.shared)
+              ? attributes.find((attribute) => attribute.name.startsWith('aria-'))?.name
+              : undefined
+          const descendantTarget = controlElement || Boolean(stateAttribute || ariaAttribute)
+          if (matchedUsages.length === 0 && !dataSlot && !role && !rawTag && !descendantTarget)
+            continue
           const controlTarget =
             matchedUsages.some((usage) =>
               [...usage.primitives].some((primitive) => sharedControlPrimitives.has(primitive))
             ) ||
             controlDataSlot ||
             controlRole ||
-            /^(?:a|button|input|select)(?=$|[.#:]|\[)/i.test(alternative.selector)
+            controlTagPattern.test(alternative.selector) ||
+            descendantTarget
           const controlBoxTarget =
             controlTarget && !/::(?:before|after)(?:\b|$)/i.test(alternative.selector)
           const controlRootTarget =
@@ -2098,6 +2381,18 @@ function sharedCssFailures(root, sourceRoot, files, sharedClasses) {
             controlDataSlot ||
             controlRole ||
             /^(?:a|button|input|select)(?=$|[.#:]|\[)/i.test(alternative.selector)
+          const controlFlowTarget =
+            !/::(?:before|after)(?:\b|$)/i.test(alternative.selector) &&
+            (matchedUsages.some((usage) =>
+              [...usage.primitives].some((primitive) => sharedControlFlowPrimitives.has(primitive))
+            ) ||
+              controlDataSlot ||
+              attributes.some(
+                (attribute) =>
+                  attribute.name === 'data-slot' && sharedControlFlowSlots.has(attribute.value)
+              ) ||
+              controlRole ||
+              controlTagPattern.test(alternative.selector))
           const properties = [
             ...new Set(
               rule.declarations
@@ -2105,7 +2400,8 @@ function sharedCssFailures(root, sourceRoot, files, sharedClasses) {
                   (entry) =>
                     visualProperty(entry.name) ||
                     (controlRootTarget && sharedControlRootDisplay(entry.name, entry.value)) ||
-                    (controlBoxTarget && sharedControlSizeProperty(entry.name))
+                    (controlBoxTarget && sharedControlSizeProperty(entry.name)) ||
+                    (controlFlowTarget && sharedControlFlowProperty(entry.name))
                 )
                 .map((entry) => entry.name)
             ),
@@ -2113,7 +2409,15 @@ function sharedCssFailures(root, sourceRoot, files, sharedClasses) {
           if (properties.length === 0) continue
           const subjectName =
             selectorClassesFound.map((name) => `.${name}`).join('') ||
-            (dataSlot ? '[data-slot]' : role ? `[role="${role}"]` : `<${rawTag}>`)
+            (dataSlot
+              ? '[data-slot]'
+              : role
+                ? `[role="${role}"]`
+                : rawTag
+                  ? `<${rawTag}>`
+                  : stateAttribute || ariaAttribute
+                    ? `[${stateAttribute ?? ariaAttribute}]`
+                    : `<${elementTag}> inside a shared control`)
           const labels = new Set()
           for (const usage of matchedUsages) for (const label of usage.labels) labels.add(label)
           const references = matchedUsages.length > 0 ? ` used by ${[...labels].join(', ')}` : ''
@@ -2478,7 +2782,11 @@ export function collectWebUiContractFailures(root = defaultRoot) {
   failures.push(...cssFailures(root, sourceRoot, files))
   failures.push(...sharedCssFailures(root, sourceRoot, files, collectSharedClasses(root)))
   failures.push(...sharedControlClassFailures(sourceRoot, data))
+  failures.push(...sharedReexportFailures(sourceRoot, data))
+  failures.push(...jsxColorFailures(sourceRoot, data))
+  failures.push(...sharedSlotFailures(root))
   failures.push(...lintConfigFailures(root))
+  failures.push(...labelControlFailures(root, data))
   return failures
 }
 

@@ -244,73 +244,75 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
             validates a bounded preview and never writes until you save.
           </CardDescription>
         </CardHeader>
-        <CardFooter class="flex-wrap gap-2">
-          <ActionButton
-            variant="secondary"
-            size="sm"
-            type="button"
-            disabled={Boolean(portableBusy()) || props.dirty}
-            tooltip={
-              props.dirty ? 'Save or discard draft changes before exporting' : 'Export settings'
-            }
-            onClick={() => void exportSettings()}
-          >
-            {portableBusy() === 'export' ? (
-              <Spinner size="sm" label={false} />
-            ) : (
-              <Download size={14} aria-hidden="true" />
-            )}
-            Export
-          </ActionButton>
-          <ActionButton
-            tooltip="Import preview"
-            variant="secondary"
-            size="sm"
-            type="button"
-            disabled={Boolean(portableBusy())}
-            onClick={() => void importSettings()}
-          >
-            {portableBusy() === 'import' ? (
-              <Spinner size="sm" label={false} />
-            ) : (
-              <Upload size={14} aria-hidden="true" />
-            )}
-            Import preview
-          </ActionButton>
-          <ActionButton
-            tooltip="Open secret file"
-            variant="secondary"
-            size="sm"
-            type="button"
-            disabled={Boolean(portableBusy())}
-            onClick={() => void openSecretFile()}
-          >
-            {portableBusy() === 'open-secret' ? (
-              <Spinner size="sm" label={false} />
-            ) : (
-              <FolderOpen size={14} aria-hidden="true" />
-            )}
-            Open secret file
-          </ActionButton>
-          <ActionButton
-            variant="secondary"
-            size="sm"
-            type="button"
-            disabled={Boolean(portableBusy()) || props.dirty}
-            tooltip={
-              props.dirty
-                ? 'Save or discard draft changes before migrating secrets'
-                : 'Migrate secrets'
-            }
-            onClick={() => void migrateSecrets()}
-          >
-            {portableBusy() === 'migrate-secrets' ? (
-              <Spinner size="sm" label={false} />
-            ) : (
-              <KeyRound size={14} aria-hidden="true" />
-            )}
-            Migrate to secure storage
-          </ActionButton>
+        <CardFooter>
+          <div class="flex flex-wrap items-center gap-2">
+            <ActionButton
+              variant="secondary"
+              size="sm"
+              type="button"
+              disabled={Boolean(portableBusy()) || props.dirty}
+              tooltip={
+                props.dirty ? 'Save or discard draft changes before exporting' : 'Export settings'
+              }
+              onClick={() => void exportSettings()}
+            >
+              {portableBusy() === 'export' ? (
+                <Spinner size="sm" label={false} />
+              ) : (
+                <Download size={14} aria-hidden="true" />
+              )}
+              Export
+            </ActionButton>
+            <ActionButton
+              tooltip="Import preview"
+              variant="secondary"
+              size="sm"
+              type="button"
+              disabled={Boolean(portableBusy())}
+              onClick={() => void importSettings()}
+            >
+              {portableBusy() === 'import' ? (
+                <Spinner size="sm" label={false} />
+              ) : (
+                <Upload size={14} aria-hidden="true" />
+              )}
+              Import preview
+            </ActionButton>
+            <ActionButton
+              tooltip="Open secret file"
+              variant="secondary"
+              size="sm"
+              type="button"
+              disabled={Boolean(portableBusy())}
+              onClick={() => void openSecretFile()}
+            >
+              {portableBusy() === 'open-secret' ? (
+                <Spinner size="sm" label={false} />
+              ) : (
+                <FolderOpen size={14} aria-hidden="true" />
+              )}
+              Open secret file
+            </ActionButton>
+            <ActionButton
+              variant="secondary"
+              size="sm"
+              type="button"
+              disabled={Boolean(portableBusy()) || props.dirty}
+              tooltip={
+                props.dirty
+                  ? 'Save or discard draft changes before migrating secrets'
+                  : 'Migrate secrets'
+              }
+              onClick={() => void migrateSecrets()}
+            >
+              {portableBusy() === 'migrate-secrets' ? (
+                <Spinner size="sm" label={false} />
+              ) : (
+                <KeyRound size={14} aria-hidden="true" />
+              )}
+              Migrate to secure storage
+            </ActionButton>
+          </div>
         </CardFooter>
       </Card>
       <Show when={portableNotice() || portableError()}>
@@ -355,48 +357,50 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
             </For>
           </FieldSet>
         </CardContent>
-        <CardFooter class="flex-wrap gap-2">
-          <ActionButton
-            variant="secondary"
-            size="sm"
-            type="button"
-            disabled={props.dirty || vaultJobRunning()}
-            tooltip={
-              props.dirty ? 'Save or discard workspace changes first' : 'Preview vault export'
-            }
-            onClick={() => void startVaultExport(true)}
-          >
-            <Download size={14} aria-hidden="true" /> Preview vault export
-          </ActionButton>
-          <ActionButton
-            variant="secondary"
-            size="sm"
-            type="button"
-            disabled={props.dirty || vaultJobRunning()}
-            tooltip={
-              props.dirty ? 'Save or discard workspace changes first' : 'Export Obsidian vault'
-            }
-            onClick={() => void startVaultExport(false)}
-          >
-            {vaultJob()?.status === 'running' ? (
-              <Spinner size="sm" label={false} />
-            ) : (
-              <FolderOpen size={14} aria-hidden="true" />
-            )}
-            Export vault
-          </ActionButton>
-          <Show when={vaultJobRunning()}>
+        <CardFooter>
+          <div class="flex flex-wrap items-center gap-2">
             <ActionButton
-              tooltip="Cancel vault export"
-              variant="destructive"
+              variant="secondary"
               size="sm"
               type="button"
-              disabled={vaultJob()!.status === 'cancelling'}
-              onClick={() => void cancelVaultExport()}
+              disabled={props.dirty || vaultJobRunning()}
+              tooltip={
+                props.dirty ? 'Save or discard workspace changes first' : 'Preview vault export'
+              }
+              onClick={() => void startVaultExport(true)}
             >
-              <CircleStop size={14} aria-hidden="true" /> Cancel vault export
+              <Download size={14} aria-hidden="true" /> Preview vault export
             </ActionButton>
-          </Show>
+            <ActionButton
+              variant="secondary"
+              size="sm"
+              type="button"
+              disabled={props.dirty || vaultJobRunning()}
+              tooltip={
+                props.dirty ? 'Save or discard workspace changes first' : 'Export Obsidian vault'
+              }
+              onClick={() => void startVaultExport(false)}
+            >
+              {vaultJob()?.status === 'running' ? (
+                <Spinner size="sm" label={false} />
+              ) : (
+                <FolderOpen size={14} aria-hidden="true" />
+              )}
+              Export vault
+            </ActionButton>
+            <Show when={vaultJobRunning()}>
+              <ActionButton
+                tooltip="Cancel vault export"
+                variant="destructive"
+                size="sm"
+                type="button"
+                disabled={vaultJob()!.status === 'cancelling'}
+                onClick={() => void cancelVaultExport()}
+              >
+                <CircleStop size={14} aria-hidden="true" /> Cancel vault export
+              </ActionButton>
+            </Show>
+          </div>
         </CardFooter>
       </Card>
       <Show when={vaultJob()}>

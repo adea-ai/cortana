@@ -63,10 +63,6 @@ body,
   white-space: nowrap;
 }
 
-.source-tree button {
-  text-align: left;
-}
-
 .source-row {
   display: flex;
   min-width: 0;
@@ -84,6 +80,7 @@ body,
 
 .source-select-content {
   display: grid;
+  text-align: start;
   min-width: 0;
   width: 100%;
   gap: 8px;
@@ -871,13 +868,6 @@ body,
   display: block;
   margin-bottom: 3px;
   font-size: var(--text-xs);
-}
-
-.discord-guild label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 0;
 }
 
 .discord-guild-unassigned {

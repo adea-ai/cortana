@@ -61,7 +61,7 @@ function fixtureRoot() {
   const rules = Object.fromEntries(requiredUiRules.map((rule) => [rule, 'error']))
   rules['shadcn/no-restyle'] = [
     'error',
-    { deny: ['color', 'typography', 'shape', 'effects', 'motion'] },
+    { deny: ['color', 'typography', 'shape', 'effects', 'motion', 'spacing'] },
   ]
   rules['shadcn/no-inline-styles'] = 'error'
   rules['shadcn/no-unknown-classes'] = 'error'
@@ -866,7 +866,9 @@ export function SettingsForm() {
   ).toHaveLength(4)
   expect(failures).toContain('<SettingsFieldGroup> requires a shared FieldLegend child')
   expect(failures).toContain('<FieldSet> requires a shared FieldLegend child')
-  expect(failures).not.toContain('SettingsSurface.tsx:')
+  expect(failures).not.toMatch(/SettingsSurface\.tsx:\d+ </)
+  // The barrel itself is still rejected; alias resolution keeps checking its consumers.
+  expect(failures).toContain('SettingsSurface.tsx:3 re-exports shared component SettingsFieldGroup')
 })
 
 test('requires explicit help on shared ActionButton imports and pure local adapters', () => {
@@ -924,7 +926,10 @@ export function ActionConsumers(props: { tooltip: string }) {
 `
   )
 
-  expect(collectWebUiContractFailures(root)).toEqual([])
+  // Only the re-export barrel fails; help resolves through it and the local adapter.
+  expect(collectWebUiContractFailures(root)).toEqual([
+    'components/SettingsSurface.tsx:1 re-exports shared component SettingsButton; import it from @adea-ai/ui/components/* where it is used',
+  ])
 })
 
 test('rejects missing or empty explicit help even when a spread may contain it', () => {
@@ -1383,4 +1388,258 @@ test('protects the central policy against external inheritance and default ignor
   expect(failures).toContain('must keep accessibility lint enabled')
   expect(failures).toContain('must own the complete web lint policy')
   expect(failures).toContain('ignores apps/web source')
+})
+
+test('requires shadcn/no-restyle to deny spacing on shared components', () => {
+  const root = fixtureRoot()
+  const configPath = resolve(root, '.oxlintrc.json')
+  const config = JSON.parse(readFileSync(configPath, 'utf8'))
+  config.rules['shadcn/no-restyle'] = [
+    'error',
+    { deny: ['color', 'typography', 'shape', 'effects', 'motion'] },
+  ]
+  writeFileSync(configPath, JSON.stringify(config, null, 2))
+
+  const failures = collectWebUiContractFailures(root).join('\n')
+  expect(failures).toContain('shadcn/no-restyle setting 0 must deny spacing')
+  expect(failures).not.toContain('must deny color')
+})
+
+test('rejects app modules that re-export shared components under any spelling', () => {
+  const root = fixtureRoot()
+  writeFixtureFile(
+    root,
+    'apps/web/src/components/Barrels.ts',
+    `import { Card } from '@adea-ai/ui/components/ui/card'
+import * as Field from '@adea-ai/ui/components/ui/field'
+import { cn } from '@adea-ai/ui/lib/utils'
+export { Badge as SettingsBadge } from '@adea-ai/ui/components/ui/badge'
+export * from '@adea-ai/ui/components/ui/alert'
+export * as Tabs from '@adea-ai/ui/components/ui/tabs'
+export { Card as SettingsCard }
+export const SettingsLabel = Field.FieldLabel
+export const SettingsPanel = Card
+export default Card
+export { cn }
+`
+  )
+  writeFixtureFile(
+    root,
+    'apps/web/src/components/Adapter.tsx',
+    `import { Card } from '@adea-ai/ui/components/ui/card'
+
+export function DomainCard(props: { children?: unknown }) {
+  return <Card>{props.children}</Card>
+}
+export { DomainCard as WorkspaceCard }
+`
+  )
+
+  const failures = collectWebUiContractFailures(root)
+  const reexports = failures.filter((failure) => failure.includes('re-exports shared component'))
+  expect(reexports).toHaveLength(7)
+  for (const name of [
+    'SettingsBadge',
+    '* from @adea-ai/ui/components/ui/alert',
+    'component Tabs;',
+    'SettingsCard',
+    'SettingsLabel',
+    'SettingsPanel',
+    'component Card;',
+  ])
+    expect(reexports.join('\n')).toContain(name)
+  expect(failures.join('\n')).not.toContain('component cn')
+  expect(failures.join('\n')).not.toContain('Adapter.tsx')
+})
+
+test('rejects app-defined names in label-has-associated-control controlComponents', () => {
+  const root = fixtureRoot()
+  writeFixtureFile(
+    root,
+    'apps/web/src/components/MemoryFields.tsx',
+    `import { Input } from '@adea-ai/ui/components/ui/input'
+
+export function MemoryInput(props: { value?: string }) {
+  return <Input {...props} />
+}
+`
+  )
+  const configPath = resolve(root, '.oxlintrc.json')
+  const config = JSON.parse(readFileSync(configPath, 'utf8'))
+  config.rules['jsx-a11y/label-has-associated-control'] = [
+    'error',
+    { depth: 5, controlComponents: ['Checkbox', 'Input', 'MemoryInput'] },
+  ]
+  writeFileSync(configPath, JSON.stringify(config, null, 2))
+
+  const failures = collectWebUiContractFailures(root).join('\n')
+  expect(failures).toContain(
+    'label-has-associated-control setting 0 trusts app component MemoryInput'
+  )
+  expect(failures).not.toContain('app component Input')
+  expect(failures).not.toContain('app component Checkbox')
+})
+
+test('flags element and state-attribute subjects inside shared controls but not inside layout cards', () => {
+  const root = fixtureRoot()
+  writeFixtureFile(
+    root,
+    'apps/web/src/components/Descendants.tsx',
+    `import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
+import { Card } from '@adea-ai/ui/components/ui/card'
+
+export function Descendants() {
+  return <>
+    <ActionButton class="relation-action" tooltip="Open relation" />
+    <Card class="summary-card" />
+    <ol class="native-list" />
+  </>
+}
+`
+  )
+  writeFixtureFile(
+    root,
+    'apps/web/src/descendants.css',
+    `.relation-action small { color: var(--muted-foreground); }
+.document-relations button span { font-weight: 600; }
+[data-slot='badge'] > svg { fill: var(--primary); }
+.view-switcher [data-pressed] { background: var(--accent); }
+.choices [data-highlighted] { color: var(--foreground); }
+.summary-card [aria-selected='true'] { border-color: var(--primary); }
+.relation-action i { height: 4px; }
+.summary-card h2 { color: var(--foreground); }
+.native-list [aria-current='true'] { color: var(--primary); }
+.relation-action span { overflow: hidden; text-overflow: ellipsis; }
+`
+  )
+
+  const failures = collectWebUiContractFailures(root).join('\n')
+  expect(failures).toContain('selector <small> inside a shared control restyles shared UI: color')
+  expect(failures).toContain(
+    'selector <span> inside a shared control restyles shared UI: font-weight'
+  )
+  expect(failures).toContain('selector <svg> inside a shared control restyles shared UI: fill')
+  expect(failures).toContain('selector [data-pressed] restyles shared UI: background')
+  expect(failures).toContain('selector [data-highlighted] restyles shared UI: color')
+  expect(failures).toContain('selector [aria-selected] restyles shared UI: border-color')
+  expect(failures).toContain('selector <i> inside a shared control restyles shared UI: height')
+  expect(failures).not.toContain('<h2>')
+  expect(failures).not.toContain('[aria-current]')
+  expect(failures).not.toContain('overflow')
+})
+
+test('rejects textarea and label sizing and flow overrides on control roots and ScrollArea', () => {
+  const root = fixtureRoot()
+  writeFixtureFile(
+    root,
+    'apps/web/src/components/Flow.tsx',
+    `import { Alert } from '@adea-ai/ui/components/ui/alert'
+import { Card } from '@adea-ai/ui/components/ui/card'
+import { Input } from '@adea-ai/ui/components/ui/input'
+import { InputGroup } from '@adea-ai/ui/components/ui/input-group'
+import { Label } from '@adea-ai/ui/components/ui/label'
+import { RadioGroup } from '@adea-ai/ui/components/ui/radio-group'
+import { ScrollArea } from '@adea-ai/ui/components/ui/scroll-area'
+import { TabsList } from '@adea-ai/ui/components/ui/tabs'
+
+export function Flow() {
+  return <>
+    <Input class="query-input" />
+    <ScrollArea class="results-scroll" />
+    <Card class="layout-card" />
+    <Label class="toggle-row" />
+    <TabsList class="workspace-tabs" />
+    <RadioGroup class="budget-options" />
+    <Alert class="safety-note" />
+    <InputGroup class="secret-group" />
+  </>
+}
+`
+  )
+  writeFixtureFile(
+    root,
+    'apps/web/src/flow.css',
+    `.memory-edit textarea { min-height: 110px; }
+.toggle-host label { padding: 2px 0; }
+.query-input { text-align: center; white-space: nowrap; z-index: 2; }
+.results-scroll { overflow: visible; }
+[data-slot='scroll-area'] { overflow-y: auto; }
+.layout-card { overflow: hidden; justify-content: center; }
+.toggle-row { display: grid; }
+.workspace-tabs { display: block; }
+.budget-options { display: flex; }
+.safety-note { display: flex; }
+.secret-group { display: grid; }
+`
+  )
+
+  const failures = collectWebUiContractFailures(root).join('\n')
+  expect(failures).toContain('selector <textarea> restyles shared UI: min-height')
+  expect(failures).toContain('selector <label> restyles shared UI: padding')
+  expect(failures).toContain('.query-input')
+  expect(failures).toContain('text-align, white-space, z-index')
+  expect(failures).toContain('selector .results-scroll used by <ScrollArea>')
+  expect(failures).toContain('restyles shared UI: overflow;')
+  expect(failures).toContain('selector [data-slot] restyles shared UI: overflow-y')
+  for (const name of [
+    '.toggle-row',
+    '.workspace-tabs',
+    '.budget-options',
+    '.safety-note',
+    '.secret-group',
+  ])
+    expect(failures).toContain(`selector ${name} used by`)
+  expect(failures).not.toContain('.layout-card')
+})
+
+test('asserts every protected data-slot exists in the installed shared package', () => {
+  const root = fixtureRoot()
+  writeFixtureFile(
+    root,
+    'node_modules/@adea-ai/ui/src/components/ui/controls.tsx',
+    `export const slots = <>
+  <button data-slot="button" />
+  <span data-slot={props.slot ?? 'badge'} />
+</>
+export const actionProps = { 'data-slot': rest['data-slot'] ?? 'action-button' }
+`
+  )
+
+  const failures = collectWebUiContractFailures(root).join('\n')
+  expect(failures).toContain(
+    'protects data-slot "toggle", which the installed @adea-ai/ui never renders'
+  )
+  expect(failures).toContain('protects data-slot "scroll-area"')
+  for (const slot of ['button', 'badge', 'action-button'])
+    expect(failures).not.toContain(`protects data-slot "${slot}"`)
+})
+
+test('rejects literal colours in JSX fill, stroke and color attributes', () => {
+  const root = fixtureRoot()
+  writeFixtureFile(
+    root,
+    'apps/web/src/components/Icons.tsx',
+    `export function Icons(props: { hex: string; on: boolean }) {
+  return <svg>
+    <path fill="#ffffff" />
+    <path fill={\`#\${props.hex}\`} />
+    <path stroke="rgb(0 0 0)" />
+    <stop stopColor="white" />
+    <path color={props.on ? 'red' : 'currentColor'} />
+    <path fill="currentColor" />
+    <path fill={props.on ? 'currentColor' : 'none'} />
+    <path stroke="var(--primary)" />
+  </svg>
+}
+`
+  )
+
+  const failures = collectWebUiContractFailures(root)
+  const colours = failures.filter((failure) => failure.includes('sets a literal color in JSX'))
+  expect(colours).toHaveLength(5)
+  expect(colours.join('\n')).toContain('Icons.tsx:3 sets a literal color in JSX fill')
+  expect(colours.join('\n')).toContain('Icons.tsx:4 sets a literal color in JSX fill')
+  expect(colours.join('\n')).toContain('Icons.tsx:5 sets a literal color in JSX stroke')
+  expect(colours.join('\n')).toContain('Icons.tsx:6 sets a literal color in JSX stopColor')
+  expect(colours.join('\n')).toContain('Icons.tsx:7 sets a literal color in JSX color')
 })

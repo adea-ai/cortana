@@ -516,39 +516,43 @@ function ConversationsView(props: {
               <section class="flex min-w-0 flex-col gap-3">
                 <Heading size="section">Current conversation</Heading>
                 <Card size="sm">
-                  <CardHeader class="gap-2">
-                    <Text variant="overline" class="flex items-center gap-1.5">
-                      <Sparkles size={14} aria-hidden="true" /> Query
+                  <CardHeader>
+                    <Text variant="overline">
+                      <span class="inline-flex items-center gap-1.5">
+                        <Sparkles size={14} aria-hidden="true" /> Query
+                      </span>
                     </Text>
                     <Heading as="h3" size="title">
                       {props.query}
                     </Heading>
                   </CardHeader>
-                  <CardContent class="flex flex-col gap-3">
-                    <div class="flex flex-wrap gap-2">
-                      <Badge variant="outline">{answer().mode}</Badge>
-                      <Badge variant="outline">
-                        {answer().retrieval_degraded
-                          ? 'lexical fallback'
-                          : answer().retrieval_mode || 'hybrid retrieval'}
-                      </Badge>
-                      <Badge variant="outline">
-                        {answer().cached ? 'cache hit' : `${answer().latency_ms} ms`}
-                      </Badge>
-                      <Badge variant="outline">
-                        {answer().plan.queries.length}{' '}
-                        {answer().plan.queries.length === 1 ? 'retrieval' : 'retrievals'}
-                      </Badge>
-                      <Badge variant="outline">{props.evidence.length} cited passages</Badge>
+                  <CardContent>
+                    <div class="flex flex-col gap-3">
+                      <div class="flex flex-wrap gap-2">
+                        <Badge variant="outline">{answer().mode}</Badge>
+                        <Badge variant="outline">
+                          {answer().retrieval_degraded
+                            ? 'lexical fallback'
+                            : answer().retrieval_mode || 'hybrid retrieval'}
+                        </Badge>
+                        <Badge variant="outline">
+                          {answer().cached ? 'cache hit' : `${answer().latency_ms} ms`}
+                        </Badge>
+                        <Badge variant="outline">
+                          {answer().plan.queries.length}{' '}
+                          {answer().plan.queries.length === 1 ? 'retrieval' : 'retrievals'}
+                        </Badge>
+                        <Badge variant="outline">{props.evidence.length} cited passages</Badge>
+                      </div>
+                      <Text class="whitespace-pre-wrap">{answer().answer}</Text>
+                      <For each={answer().warnings}>
+                        {(warning) => (
+                          <Alert variant="warning">
+                            <AlertDescription>{warning}</AlertDescription>
+                          </Alert>
+                        )}
+                      </For>
                     </div>
-                    <Text class="whitespace-pre-wrap">{answer().answer}</Text>
-                    <For each={answer().warnings}>
-                      {(warning) => (
-                        <Alert variant="warning">
-                          <AlertDescription>{warning}</AlertDescription>
-                        </Alert>
-                      )}
-                    </For>
                   </CardContent>
                 </Card>
               </section>
@@ -733,15 +737,18 @@ function AgentToolsView(props: {
       <section class="flex min-w-0 flex-col gap-3">
         <Heading size="section">Agent context window</Heading>
         <Card size="sm">
-          <CardContent class="flex flex-col gap-3">
-            <Text>
-              ~{props.contextTokens.toLocaleString()} tokens assembled from the active query and{' '}
-              {props.evidence.length} cited {props.evidence.length === 1 ? 'passage' : 'passages'}.
-            </Text>
-            <Text variant="caption" tone="muted" as="p">
-              The window is rebuilt locally from the current session state and never leaves this
-              machine.
-            </Text>
+          <CardContent>
+            <div class="flex flex-col gap-3">
+              <Text>
+                ~{props.contextTokens.toLocaleString()} tokens assembled from the active query and{' '}
+                {props.evidence.length} cited {props.evidence.length === 1 ? 'passage' : 'passages'}
+                .
+              </Text>
+              <Text variant="caption" tone="muted" as="p">
+                The window is rebuilt locally from the current session state and never leaves this
+                machine.
+              </Text>
+            </div>
           </CardContent>
         </Card>
       </section>

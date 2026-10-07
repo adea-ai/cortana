@@ -70,16 +70,7 @@
       "error",
       {
         "depth": 5,
-        "controlComponents": [
-          "Checkbox",
-          "Input",
-          "MemoryInput",
-          "MemoryTextarea",
-          "Select",
-          "SettingsCheckbox",
-          "SettingsRadio",
-          "SettingsSwitch"
-        ]
+        "controlComponents": ["Checkbox", "Input", "Select"]
       }
     ],
     "jsx-a11y/click-events-have-key-events": "warn",
@@ -90,7 +81,7 @@
     "shadcn/no-restyle": [
       "error",
       {
-        "deny": ["color", "typography", "shape", "effects", "motion"]
+        "deny": ["color", "typography", "shape", "effects", "motion", "spacing"]
       }
     ],
     "shadcn/no-raw-colors": "error",

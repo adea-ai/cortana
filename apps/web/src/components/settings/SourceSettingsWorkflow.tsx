@@ -1992,36 +1992,38 @@ export function SourcesSection(
                                                           {guild.channels.length === 0 ? (
                                                             <small>No channels returned.</small>
                                                           ) : (
-                                                            guild.channels.map((channel) => (
-                                                              <Label
-                                                                title={
-                                                                  assigned
-                                                                    ? undefined
-                                                                    : 'Assign this server in the server chooser before selecting its channels'
-                                                                }
-                                                              >
-                                                                <Checkbox
-                                                                  aria-label={`${channel.name} · ${channel.kind}`}
-                                                                  checked={source().channels.includes(
-                                                                    channel.id
-                                                                  )}
-                                                                  disabled={
-                                                                    sourceLocked() ||
-                                                                    !source().editable
+                                                            <div class="flex flex-col gap-1">
+                                                              {guild.channels.map((channel) => (
+                                                                <Label
+                                                                  title={
+                                                                    assigned
+                                                                      ? undefined
+                                                                      : 'Assign this server in the server chooser before selecting its channels'
                                                                   }
-                                                                  onChange={() =>
-                                                                    toggleDiscordChannel(
-                                                                      index,
-                                                                      source(),
+                                                                >
+                                                                  <Checkbox
+                                                                    aria-label={`${channel.name} · ${channel.kind}`}
+                                                                    checked={source().channels.includes(
                                                                       channel.id
-                                                                    )
-                                                                  }
-                                                                />
-                                                                <span>
-                                                                  {channel.name} · {channel.kind}
-                                                                </span>
-                                                              </Label>
-                                                            ))
+                                                                    )}
+                                                                    disabled={
+                                                                      sourceLocked() ||
+                                                                      !source().editable
+                                                                    }
+                                                                    onChange={() =>
+                                                                      toggleDiscordChannel(
+                                                                        index,
+                                                                        source(),
+                                                                        channel.id
+                                                                      )
+                                                                    }
+                                                                  />
+                                                                  <span>
+                                                                    {channel.name} · {channel.kind}
+                                                                  </span>
+                                                                </Label>
+                                                              ))}
+                                                            </div>
                                                           )}
                                                         </div>
                                                       )
