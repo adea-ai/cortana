@@ -1067,11 +1067,7 @@ export function SourcesSection(
                   (source) => source.project === workspace.id
                 ).length
                 return (
-                  <SettingsTabsTrigger
-                    value={workspace.id}
-                    aria-selected={sourceWorkspace() === workspace.id}
-                    class={cn(sourceWorkspace() === workspace.id && 'active')}
-                  >
+                  <SettingsTabsTrigger value={workspace.id}>
                     <WorkspaceLogo workspace={workspace} size="small" />
                     <span>{workspace.name}</span>
                     <small>{count}</small>
@@ -1080,11 +1076,7 @@ export function SourcesSection(
               }}
             </For>
             {unassignedSourceCount() > 0 && (
-              <SettingsTabsTrigger
-                value={UNASSIGNED_WORKSPACE}
-                aria-selected={sourceWorkspace() === UNASSIGNED_WORKSPACE}
-                class={cn('warning', sourceWorkspace() === UNASSIGNED_WORKSPACE && 'active')}
-              >
+              <SettingsTabsTrigger value={UNASSIGNED_WORKSPACE}>
                 <AlertTriangle size={15} aria-hidden="true" />
                 <span>Needs assignment</span>
                 <small>{unassignedSourceCount()}</small>

@@ -234,7 +234,7 @@ export function WorkspaceSection(incoming: {
                     aria-label={`Upload logo file for ${workspace().name}`}
                     aria-hidden="true"
                     tabIndex={-1}
-                    class="visually-hidden"
+                    class="hidden"
                     onInput={(event) => {
                       void updateLogo(workspace().id, event.target.files?.[0])
                       event.currentTarget.value = ''

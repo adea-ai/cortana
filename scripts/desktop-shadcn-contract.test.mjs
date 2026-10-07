@@ -41,10 +41,17 @@ describe('Desktop shadcn renderer contract', () => {
   })
 
   test('disables renderer motion when the operating system requests it', () => {
+    // The shared base stylesheet owns the reduced-motion override; the app
+    // imports it instead of keeping a second copy.
     const css = readFileSync(resolve(root, 'apps/web/src/shadcn.css'), 'utf8')
+    const base = readFileSync(
+      Bun.resolveSync('@adea-ai/ui/base.css', resolve(root, 'apps/web')),
+      'utf8'
+    )
 
-    expect(css).toContain('@media (prefers-reduced-motion: reduce)')
-    expect(css).toContain('animation-duration: 0.01ms !important')
-    expect(css).toContain('transition-duration: 0.01ms !important')
+    expect(css).toContain("@import '@adea-ai/ui/base.css';")
+    expect(base).toContain('@media (prefers-reduced-motion: reduce)')
+    expect(base).toContain('animation-duration: 0.01ms !important')
+    expect(base).toContain('transition-duration: 0.01ms !important')
   })
 })
