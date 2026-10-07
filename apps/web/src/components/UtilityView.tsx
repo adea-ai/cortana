@@ -277,8 +277,8 @@ function InboxView(props: {
               {' '}
               <Button
                 tooltip="Retry source jobs"
-                variant="ghost"
-                size="sm"
+                variant="outline"
+                size="xs"
                 type="button"
                 class="link-button"
                 onClick={props.onRetrySourceJobs}
@@ -296,8 +296,8 @@ function InboxView(props: {
             <Show when={props.onRetryStatus}>
               <Button
                 tooltip="Retry status"
-                variant="ghost"
-                size="sm"
+                variant="outline"
+                size="xs"
                 type="button"
                 class="link-button"
                 onClick={props.onRetryStatus}
@@ -341,7 +341,7 @@ function InboxView(props: {
                       <Show when={props.onCancelSourceJob}>
                         <Button
                           tooltip={`Cancel ${job.project} ${job.source} ${job.operation}`}
-                          variant="secondary"
+                          variant="outline"
                           size="xs"
                           type="button"
                           class="utility-cancel"
@@ -515,20 +515,20 @@ function ConversationsView(props: {
                   </span>
                   <h3>{props.query}</h3>
                   <div class="utility-meta">
-                    <Badge variant="secondary">{answer().mode}</Badge>
-                    <Badge variant="secondary">
+                    <Badge variant="outline">{answer().mode}</Badge>
+                    <Badge variant="outline">
                       {answer().retrieval_degraded
                         ? 'lexical fallback'
                         : answer().retrieval_mode || 'hybrid retrieval'}
                     </Badge>
-                    <Badge variant="secondary">
+                    <Badge variant="outline">
                       {answer().cached ? 'cache hit' : `${answer().latency_ms} ms`}
                     </Badge>
-                    <Badge variant="secondary">
+                    <Badge variant="outline">
                       {answer().plan.queries.length}{' '}
                       {answer().plan.queries.length === 1 ? 'retrieval' : 'retrievals'}
                     </Badge>
-                    <Badge variant="secondary">{props.evidence.length} cited passages</Badge>
+                    <Badge variant="outline">{props.evidence.length} cited passages</Badge>
                   </div>
                   <p class="utility-answer">{answer().answer}</p>
                   <For each={answer().warnings}>

@@ -197,8 +197,8 @@ export function SourcePanel(props: {
               {' '}
               <ActionButton
                 tooltip="Retry source jobs"
-                variant="ghost"
-                size="sm"
+                variant="outline"
+                size="xs"
                 type="button"
                 class="link-button"
                 onClick={props.onRetrySourceJobs}
@@ -226,8 +226,8 @@ export function SourcePanel(props: {
             <Show when={props.onRetryStatus}>
               <ActionButton
                 tooltip="Retry status"
-                variant="ghost"
-                size="sm"
+                variant="outline"
+                size="xs"
                 type="button"
                 class="link-button"
                 onClick={props.onRetryStatus}
@@ -261,8 +261,8 @@ export function SourcePanel(props: {
                 <Show when={props.onRetryStatus}>
                   <ActionButton
                     tooltip="Retry status"
-                    variant="ghost"
-                    size="sm"
+                    variant="outline"
+                    size="xs"
                     type="button"
                     class="link-button"
                     onClick={props.onRetryStatus}
@@ -519,8 +519,8 @@ export function SourcePanel(props: {
                 <Show when={props.onRetryDocuments}>
                   <ActionButton
                     tooltip="Retry documents"
-                    variant="ghost"
-                    size="sm"
+                    variant="outline"
+                    size="xs"
                     type="button"
                     class="link-button"
                     onClick={props.onRetryDocuments}

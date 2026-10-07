@@ -22,7 +22,7 @@ import { OrbitItem, OrbitLayout } from '@adea-ai/ui/components/layout/orbit-layo
 import { createMediaQuery } from '../lib/mediaQuery'
 import { Input } from '@adea-ai/ui/components/ui/input'
 import { NativeSelect } from '@adea-ai/ui/components/ui/native-select'
-import { Toggle } from '@adea-ai/ui/components/ui/toggle'
+import { ToggleGroup, ToggleGroupItem } from '@adea-ai/ui/components/ui/toggle-group'
 import type { BrainGraphNode, BrainGraphPage, Evidence } from '../types'
 
 const EMPTY_GRAPH_NODES: BrainGraphNode[] = []
@@ -214,7 +214,7 @@ export default function KnowledgeGraphView(props: {
               </div>
             </Show>
             <div class="graph-controls">
-              <Card class="graph-toolbar flex-row flex-wrap gap-2 p-2" role="search">
+              <Card class="graph-toolbar flex-row flex-wrap items-center gap-2 p-2" role="search">
                 <Search size={14} aria-hidden="true" />
                 <Input
                   type="search"
@@ -298,16 +298,22 @@ export default function KnowledgeGraphView(props: {
                 />
               </Card>
               <Show when={props.graph && !usingEvidenceFallback()}>
-                <div class="graph-kind-filter" role="group" aria-label="Filter graph node types">
+                <ToggleGroup
+                  class="max-w-full flex-wrap"
+                  aria-label="Filter graph node types"
+                  value={kindFilter()}
+                  onChange={(value: string | null) =>
+                    value && setKindFilter(value as BrainGraphNode['kind'] | 'all')
+                  }
+                >
                   <For each={['all', 'workspace', 'source', 'document'] as const}>
                     {(kind) => (
                       <Tooltip>
                         <TooltipTrigger
-                          as={Toggle}
+                          as={ToggleGroupItem}
+                          value={kind}
                           size="xs"
                           variant="outline"
-                          pressed={kindFilter() === kind}
-                          onChange={(pressed: boolean) => pressed && setKindFilter(kind)}
                         >
                           {kind === 'all'
                             ? 'All'
@@ -323,7 +329,7 @@ export default function KnowledgeGraphView(props: {
                       </Tooltip>
                     )}
                   </For>
-                </div>
+                </ToggleGroup>
               </Show>
               <div class="graph-summary" role="status">
                 <span>

@@ -31,7 +31,8 @@ export function AuditSection() {
       .map((result) =>
         result.reason instanceof Error ? result.reason.message : 'Audit source unavailable'
       )
-    setError(errors.join(' · '))
+    // Both endpoints often fail for the same reason; say it once.
+    setError([...new Set(errors)].join(' · '))
     setLoading(false)
   }
   createEffect(() => {
@@ -91,7 +92,7 @@ export function AuditSection() {
                 : 'Download the currently loaded, redacted audit events as JSON.'
             }
             variant="secondary"
-            size="sm"
+            size="xs"
             type="button"
             disabled={loading()}
             onClick={exportAudit}
@@ -101,7 +102,7 @@ export function AuditSection() {
         </div>
       </div>
       {error() && (
-        <SettingsAlert class="safety-note error" variant="destructive" role="alert">
+        <SettingsAlert class="safety-note" variant="destructive" role="alert">
           <AlertDescription>{error()}</AlertDescription>
         </SettingsAlert>
       )}

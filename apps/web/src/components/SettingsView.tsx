@@ -603,6 +603,7 @@ function SettingsViewContent(incoming: {
                 )}
                 <AsyncButton
                   variant="default"
+                  size="sm"
                   type="submit"
                   form="settings-form"
                   busy={saving()}
@@ -1525,10 +1526,7 @@ function ServicesSection(incoming: {
       </div>
       {(error() || scheduleError() || actionMessage()) && (
         <SettingsAlert
-          class={cn(
-            'safety-note',
-            (error() || scheduleError() || props.serviceActivity?.status === 'failed') && 'error'
-          )}
+          class="safety-note"
           variant={
             error() || scheduleError() || props.serviceActivity?.status === 'failed'
               ? 'destructive'
@@ -1666,7 +1664,7 @@ function ServicesSection(incoming: {
       </div>
       {(databaseResult() || databaseError()) && (
         <SettingsAlert
-          class={cn('safety-note', databaseError() && 'error')}
+          class="safety-note"
           variant={databaseError() ? 'destructive' : 'default'}
           role={databaseError() ? 'alert' : 'status'}
         >
@@ -1987,7 +1985,7 @@ function ReadinessSection(incoming: {
         )}
       </div>
       {(error() || readinessActivityError()) && (
-        <SettingsAlert class="safety-note error" variant="destructive" role="alert">
+        <SettingsAlert class="safety-note" variant="destructive" role="alert">
           <AlertDescription>
             <span>{error() || readinessActivityError()}</span>
           </AlertDescription>
@@ -2061,7 +2059,7 @@ function ReadinessSection(incoming: {
               </SettingsCard>
             ))}
             {embeddingGenerationMismatch() && (
-              <SettingsAlert class="safety-note" role="status">
+              <SettingsAlert class="safety-note" variant="warning" role="status">
                 <AlertDescription>
                   <span>
                     The index uses a different embedding generation. Adopt it only after confirming
@@ -2123,14 +2121,14 @@ function ReadinessSection(incoming: {
             ) : (
               <StatusGlyph passed={props.job.status === 'succeeded'} />
             )}
-            <span>
+            <span class="installer-job-text">
               <strong>{props.job.summary}</strong>
               <small>Status: {props.job.status}</small>
             </span>
             {props.job!.status === 'running' && (
               <Button
                 tooltip="Cancel this operation and return to the previous view."
-                variant="secondary"
+                variant="outline"
                 size="xs"
                 onClick={() => void cancel()}
               >
@@ -2140,7 +2138,7 @@ function ReadinessSection(incoming: {
             {props.job!.retryable && (
               <Button
                 tooltip="Retry the last failed request."
-                variant="secondary"
+                variant="outline"
                 size="xs"
                 onClick={() => void install(props.job!.tool, props.job!.tool)}
               >

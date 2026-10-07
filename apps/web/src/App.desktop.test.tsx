@@ -114,6 +114,7 @@ afterEach(() => {
   state.checkDesktopUpdateCalls = 0
   state.checkedUpdateChannels = []
   state.desktopUpdateCheckError = null
+  state.auditError = null
   state.installDesktopUpdateCalls = 0
   state.lastInstallDesktopUpdate = null
   state.installDesktopUpdateError = null
@@ -225,6 +226,7 @@ const state = {
   checkDesktopUpdateCalls: 0,
   checkedUpdateChannels: [] as string[],
   desktopUpdateCheckError: null as Error | null,
+  auditError: null as Error | null,
   installDesktopUpdateCalls: 0,
   lastInstallDesktopUpdate: null as {
     expectedVersion: string
@@ -536,8 +538,14 @@ mock.module('./api', () => ({
     const available_version = state.updateChannel === 'dev' ? '10.0.0-dev.1' : '9.9.9'
     return Promise.resolve({ ...desktopUpdate, available_version })
   },
-  getRuntimeAudit: (limit: number) => Promise.resolve(runtimeAuditEvents.slice(0, limit)),
-  getDesktopAudit: (limit: number) => Promise.resolve(desktopAuditEvents.slice(0, limit)),
+  getRuntimeAudit: (limit: number) =>
+    state.auditError
+      ? Promise.reject(state.auditError)
+      : Promise.resolve(runtimeAuditEvents.slice(0, limit)),
+  getDesktopAudit: (limit: number) =>
+    state.auditError
+      ? Promise.reject(state.auditError)
+      : Promise.resolve(desktopAuditEvents.slice(0, limit)),
   getDesktopUpdate: () => {
     state.getDesktopUpdateCalls += 1
     return Promise.resolve(desktopUpdate)
@@ -1320,6 +1328,34 @@ test('desktop settings navigation opens the audit trail and renders both event s
     })
   )
   await waitFor(() => expect(screen.getByText('2 runtime · 1 Desktop events')).toBeTruthy())
+})
+test('audit trail reports a failure shared by both event sources once', async () => {
+  state.auditError = new Error('Audit is available in Cortana Desktop')
+  render(() => <App />)
+
+  await openSidebarDestination('Settings')
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Audit',
+    })
+  )
+  const alert = await waitFor(() =>
+    screen.getByText((_, element) =>
+      Boolean(
+        element?.matches('[role="alert"]') &&
+        element.textContent?.includes('Audit is available in Cortana Desktop')
+      )
+    )
+  )
+  expect(alert.textContent?.match(/Audit is available in Cortana Desktop/g)).toHaveLength(1)
 })
 test('audit trail export downloads exactly the loaded redacted events as JSON', async () => {
   // Capture the browser download plumbing instead of letting happy-dom resolve

@@ -321,6 +321,8 @@ test('source icons keep brand fidelity for Notes and Drive and fall back to luci
   const drivePath = driveContainer.querySelector('svg path')
   expect(drivePath).toBeTruthy()
   expect(drivePath?.getAttribute('d')).toBe(sourceBrandForKind('google-drive')?.path)
+  // Brand marks take the surrounding ink; raw brand hexes vanish on dark chrome.
+  expect(driveContainer.querySelector('svg')?.getAttribute('fill')).toBe('currentColor')
 
   // Connectors without a brand glyph render their lucide fallback icon.
   const { container: filesContainer } = render(() => <SourceIcon kind="filesystem" />)

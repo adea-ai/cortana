@@ -210,7 +210,7 @@ export function WorkspaceSection(incoming: {
                   </div>
                   <Button
                     variant="ghost"
-                    size="sm"
+                    size="icon-sm"
                     type="button"
                     aria-label={`Upload logo for ${workspace().name}`}
                     disabled={logoLoading() === workspace().id}
@@ -234,7 +234,7 @@ export function WorkspaceSection(incoming: {
                     aria-label={`Upload logo file for ${workspace().name}`}
                     aria-hidden="true"
                     tabIndex={-1}
-                    class="visually-hidden"
+                    class="hidden"
                     onInput={(event) => {
                       void updateLogo(workspace().id, event.target.files?.[0])
                       event.currentTarget.value = ''
@@ -244,7 +244,7 @@ export function WorkspaceSection(incoming: {
                     <div class="workspace-order-actions">
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon-sm"
                         type="button"
                         aria-label={`Move ${workspace().name} up`}
                         disabled={index() === 0}
@@ -255,7 +255,7 @@ export function WorkspaceSection(incoming: {
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon-sm"
                         type="button"
                         aria-label={`Move ${workspace().name} down`}
                         disabled={index() === props.settings.workspaces.length - 1}
@@ -266,9 +266,8 @@ export function WorkspaceSection(incoming: {
                       </Button>
                       <Button
                         variant="destructive"
-                        size="sm"
+                        size="icon-sm"
                         type="button"
-
                         aria-label={`Remove ${workspace().name}`}
                         disabled={hasWorkspaceSources(workspace().id)}
                         tooltip={

@@ -792,6 +792,23 @@ test('shadcn Inbox shares the responsive utility-page spacing contract', () => {
   expect(inbox?.querySelector('[data-slot="card-description"]')?.textContent).toContain('started')
   expect(inbox?.querySelector('.max-w-5xl')).toBeNull()
 })
+test('Inbox shows an indeterminate bar for a running sync without a document budget', () => {
+  const status = {
+    ...demoStatus,
+    sync_runs: [
+      {
+        ...demoStatus.sync_runs[0],
+        source: 'unbounded-drive',
+        status: 'running' as const,
+        completed_at: null,
+        budget_documents: 0,
+      },
+    ],
+  }
+  render(() => <M7ActivityInbox status={status} sourceJobs={[]} onOpenSettings={() => {}} />)
+  const bar = screen.getByRole('progressbar', { name: 'unbounded-drive sync progress' })
+  expect(bar.querySelector('.animate-indeterminate')).toBeTruthy()
+})
 test('Inbox does not claim clean sync history while runtime status is unavailable', () => {
   let retries = 0
   render(() => (

@@ -8,6 +8,8 @@ import {
 } from '@adea-ai/ui/components/ui/accordion'
 import { AlertDescription } from '@adea-ai/ui/components/ui/alert'
 import { Label } from '@adea-ai/ui/components/ui/label'
+import { EntityIcon } from '@adea-ai/ui/components/ui/entity-icon'
+import { Badge } from '@adea-ai/ui/components/ui/badge'
 import {
   AlertTriangle,
   CircleStop,
@@ -997,9 +999,12 @@ export function SourcesSection(
                 {(kind) => (
                   <Label class="source-type-option">
                     <SettingsRadio value={kind.value} />
-                    <span class={`source-service-icon source-service-icon--${kind.value}`}>
-                      <SourceIcon kind={kind.value} size={18} />
-                    </span>
+                    <EntityIcon
+                      name={kind.label}
+                      icon={<SourceIcon kind={kind.value} />}
+                      tone="neutral"
+                      aria-hidden="true"
+                    />
                     <span>{kind.label}</span>
                   </Label>
                 )}
@@ -1067,27 +1072,23 @@ export function SourcesSection(
                   (source) => source.project === workspace.id
                 ).length
                 return (
-                  <SettingsTabsTrigger
-                    value={workspace.id}
-                    aria-selected={sourceWorkspace() === workspace.id}
-                    class={cn(sourceWorkspace() === workspace.id && 'active')}
-                  >
+                  <SettingsTabsTrigger value={workspace.id}>
                     <WorkspaceLogo workspace={workspace} size="small" />
                     <span>{workspace.name}</span>
-                    <small>{count}</small>
+                    <Badge variant="secondary" size="sm">
+                      {count}
+                    </Badge>
                   </SettingsTabsTrigger>
                 )
               }}
             </For>
             {unassignedSourceCount() > 0 && (
-              <SettingsTabsTrigger
-                value={UNASSIGNED_WORKSPACE}
-                aria-selected={sourceWorkspace() === UNASSIGNED_WORKSPACE}
-                class={cn('warning', sourceWorkspace() === UNASSIGNED_WORKSPACE && 'active')}
-              >
+              <SettingsTabsTrigger value={UNASSIGNED_WORKSPACE}>
                 <AlertTriangle size={15} aria-hidden="true" />
                 <span>Needs assignment</span>
-                <small>{unassignedSourceCount()}</small>
+                <Badge variant="secondary" size="sm">
+                  {unassignedSourceCount()}
+                </Badge>
               </SettingsTabsTrigger>
             )}
           </SettingsTabsList>
@@ -1156,13 +1157,11 @@ export function SourcesSection(
                       <SettingsCard class="source-settings-card">
                         <header>
                           <div class="source-enable">
-                            <span
-                              class={`source-service-icon source-service-icon--${source().kind}`}
-                              aria-label={`${sourceLabel()} connector`}
-                              role="img"
-                            >
-                              <SourceIcon kind={source().kind} size={17} />
-                            </span>
+                            <EntityIcon
+                              name={`${sourceLabel()} connector`}
+                              icon={<SourceIcon kind={source().kind} />}
+                              tone="neutral"
+                            />
                             <span>
                               <strong>
                                 {sourceDisplayName(source().kind, source().name || 'New source')}
@@ -2469,7 +2468,7 @@ export function SourcesSection(
                                 optional={observedJob()!.status === 'cancelled'}
                                 pending={['running', 'cancelling'].includes(observedJob()!.status)}
                               />
-                              <span>
+                              <span class="source-validation-job-text">
                                 <strong>
                                   {sourceJobOperationLabel(observedJob()!.operation)} ·{' '}
                                   {observedJob()!.status}
@@ -2479,7 +2478,7 @@ export function SourcesSection(
                               {['running', 'cancelling'].includes(observedJob()!.status) && (
                                 <Button
                                   tooltip="Cancel this operation and return to the previous view."
-                                  variant="secondary"
+                                  variant="outline"
                                   size="xs"
                                   type="button"
                                   disabled={observedJob()!.status === 'cancelling'}
@@ -2491,7 +2490,7 @@ export function SourcesSection(
                               {observedJob()!.retryable && (
                                 <Button
                                   tooltip="Retry the last failed request."
-                                  variant="secondary"
+                                  variant="outline"
                                   size="xs"
                                   type="button"
                                   disabled={!props.canValidate || Boolean(activeJob())}
@@ -2562,7 +2561,7 @@ export function SourcesSection(
             )}
 
             {error() && (
-              <SettingsAlert class="safety-note error" variant="destructive" role="alert">
+              <SettingsAlert class="safety-note" variant="destructive" role="alert">
                 <AlertDescription>{error()}</AlertDescription>
               </SettingsAlert>
             )}
@@ -2693,7 +2692,7 @@ function InitialSyncFlow(incoming: {
       </SettingsRadioGroup>
       {props.flow.planning && <p class="initial-sync-state">Requesting a native plan…</p>}
       {props.flow.flowError && (
-        <SettingsAlert class="safety-note error" variant="destructive" role="alert">
+        <SettingsAlert class="safety-note" variant="destructive" role="alert">
           <AlertDescription>{props.flow.flowError}</AlertDescription>
         </SettingsAlert>
       )}
@@ -2731,31 +2730,34 @@ function InitialSyncFlow(incoming: {
               </div>
             </dl>
             {!currentPlan.enabled && (
-              <SettingsAlert class="safety-note">
+              <SettingsAlert class="safety-note" variant="warning">
                 <AlertDescription>
                   <span>Enable this source and save before an initial sync.</span>
                 </AlertDescription>
               </SettingsAlert>
             )}
             {currentPlan.validation_covers_budget !== true && (
-              <SettingsAlert class="safety-note">
+              <SettingsAlert class="safety-note" variant="warning">
                 <AlertDescription>
                   <span>
                     {currentPlan.validation_covers_budget === false
                       ? 'The latest validation used smaller limits. Run a read-only validation with this budget before syncing.'
                       : 'This source has no validation record. Run a read-only validation with this budget before syncing.'}
                   </span>
-                  {!props.busy && (
+                </AlertDescription>
+                {!props.busy && (
+                  // The shared Alert has no action slot; the action rides inside it.
+                  <div class="activity-alert-action">
                     <Button
                       tooltip="Validate for this budget"
-                      variant="secondary"
+                      variant="outline"
                       size="xs"
                       onClick={props.onValidate}
                     >
                       Validate for this budget
                     </Button>
-                  )}
-                </AlertDescription>
+                  </div>
+                )}
               </SettingsAlert>
             )}
             <div class="initial-sync-actions">

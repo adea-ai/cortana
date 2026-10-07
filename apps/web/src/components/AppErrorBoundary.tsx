@@ -1,7 +1,7 @@
 import { ErrorBoundary, type JSX } from 'solid-js'
 import { AlertTriangle } from 'lucide-solid'
 
-import { ActionButton as Button } from '@adea-ai/ui/components/composites/action-button'
+import { EmptyState } from '@adea-ai/ui/components/ui/empty'
 
 /** Keeps a renderer exception from leaving the desktop window blank. */
 export function AppErrorBoundary(props: { children: JSX.Element }) {
@@ -10,20 +10,15 @@ export function AppErrorBoundary(props: { children: JSX.Element }) {
       fallback={(error) => {
         console.error('Cortana renderer failed', error)
         return (
-          <main class="empty-state runtime-error" role="alert">
-            <AlertTriangle size={30} aria-hidden="true" />
-            <h1>Cortana needs a reload</h1>
-            <p>
-              The workspace hit an unexpected renderer error. Your local index and settings are
-              safe.
-            </p>
-            <Button
-              tooltip="Reload workspace"
-              variant="secondary"
-              onClick={() => window.location.reload()}
-            >
-              Reload workspace
-            </Button>
+          <main class="flex h-full w-full">
+            <EmptyState
+              announceAs="alert"
+              icon={<AlertTriangle aria-hidden="true" />}
+              title="Cortana needs a reload"
+              detail="The workspace hit an unexpected renderer error. Your local index and settings are safe."
+              action={() => window.location.reload()}
+              actionLabel="Reload workspace"
+            />
           </main>
         )
       }}
