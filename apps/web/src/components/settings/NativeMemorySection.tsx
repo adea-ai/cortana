@@ -32,7 +32,7 @@ export function NativeMemorySection(
           redact bounded records through the native MCP, HTTP, or CLI interfaces.
         </AlertDescription>
       </Alert>
-      <FieldGroup class="form-grid">
+      <FieldGroup columns={2}>
         <FormField label="Maximum active memories" hint="bounded local record count">
           <Input
             type="number"

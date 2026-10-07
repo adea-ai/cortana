@@ -21,7 +21,7 @@ export function IngestionSection(incoming: SettingsSectionProps) {
       title="Ingestion safety budgets"
       description="These hard limits protect the machine even when a connector returns more data than expected. Scheduled sync remains opt-in."
     >
-      <FieldGroup class="form-grid compact">
+      <FieldGroup columns={2}>
         <NumberField
           label="Documents per source"
           value={props.settings.ingestion.max_documents_per_source}

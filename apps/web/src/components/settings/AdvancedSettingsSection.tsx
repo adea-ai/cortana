@@ -27,6 +27,14 @@ import { SettingsSection } from '@adea-ai/ui/components/composites/settings'
 import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
 import { Checkbox } from '@adea-ai/ui/components/ui/checkbox'
 import { Input } from '@adea-ai/ui/components/ui/input'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@adea-ai/ui/components/ui/card'
 
 export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: boolean }) {
   const confirm = useSettingsConfirm()
@@ -189,7 +197,7 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
       title="Local runtime"
       description="Storage and audit configuration for this machine. Moving the data directory requires a restart and does not copy existing data."
     >
-      <FieldGroup class="form-grid">
+      <FieldGroup columns={2}>
         <FormField
           label="Effective secret file"
           hint={
@@ -228,15 +236,15 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
           onChange={(audit_max_events) => setRuntime({ audit_max_events })}
         />
       </FieldGroup>
-      <div class="portable-settings">
-        <div>
-          <strong>Redacted settings backup</strong>
-          <p>
+      <Card size="sm">
+        <CardHeader>
+          <CardTitle>Redacted settings backup</CardTitle>
+          <CardDescription>
             Export configuration without secret values or executable connector commands. Import
             validates a bounded preview and never writes until you save.
-          </p>
-        </div>
-        <div class="service-actions">
+          </CardDescription>
+        </CardHeader>
+        <CardFooter class="flex-wrap gap-2">
           <ActionButton
             variant="secondary"
             size="sm"
@@ -303,8 +311,8 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
             )}
             Migrate to secure storage
           </ActionButton>
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
       <Show when={portableNotice() || portableError()}>
         <Alert
           class="safety-note"
@@ -316,15 +324,17 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
           </AlertDescription>
         </Alert>
       </Show>
-      <div class="portable-settings">
-        <div>
-          <strong>Derived Obsidian vault</strong>
-          <p>
+      <Card size="sm">
+        <CardHeader>
+          <CardTitle>Derived Obsidian vault</CardTitle>
+          <CardDescription>
             Export authorized canonical documents as deterministic Markdown. The vault is a
             read-only projection from Cortana’s perspective and can be removed or rebuilt at any
             time.
-          </p>
-          <FieldSet class="mt-3 max-w-xl" disabled={vaultJobRunning()}>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FieldSet class="max-w-xl" disabled={vaultJobRunning()}>
             <FieldLegend>Workspaces to export</FieldLegend>
             <For each={props.settings.workspaces}>
               {(workspace) => (
@@ -344,8 +354,8 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
               )}
             </For>
           </FieldSet>
-        </div>
-        <div class="service-actions">
+        </CardContent>
+        <CardFooter class="flex-wrap gap-2">
           <ActionButton
             variant="secondary"
             size="sm"
@@ -387,8 +397,8 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
               <CircleStop size={14} aria-hidden="true" /> Cancel vault export
             </ActionButton>
           </Show>
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
       <Show when={vaultJob()}>
         {(job) => (
           <Alert

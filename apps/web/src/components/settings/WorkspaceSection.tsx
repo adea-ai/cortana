@@ -30,7 +30,7 @@ import {
   AccordionTrigger,
 } from '@adea-ai/ui/components/ui/accordion'
 import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
-import { Card } from '@adea-ai/ui/components/ui/card'
+import { Card, CardContent, CardHeader } from '@adea-ai/ui/components/ui/card'
 import { Input } from '@adea-ai/ui/components/ui/input'
 import { NativeSelect } from '@adea-ai/ui/components/ui/native-select'
 
@@ -199,171 +199,178 @@ export function WorkspaceSection(incoming: {
             const workspace = () => entry().workspace
             const index = () => entry().index
             return (
-              <Card class="workspace-card">
-                <div class="workspace-card-heading">
-                  <WorkspaceLogo workspace={workspace()} size="large" />
-                  <div class="workspace-card-title">
-                    <strong>{workspace().name || 'New workspace'}</strong>
-                    <small>Workspace identity</small>
-                  </div>
-                  <ActionButton
-                    variant="ghost"
-                    size="icon-sm"
-                    type="button"
-                    aria-label={`Upload logo for ${workspace().name}`}
-                    disabled={logoLoading() === workspace().id}
-                    tooltip={
-                      logoLoading() === workspace().id
-                        ? 'Saving workspace logo'
-                        : 'Upload workspace logo'
-                    }
-                    onClick={() => workspaceLogoInput(workspace().id)?.click()}
-                  >
-                    {logoLoading() === workspace().id ? (
-                      <Spinner size="sm" label="Saving workspace logo" />
-                    ) : (
-                      <Upload size={14} aria-hidden="true" />
-                    )}
-                  </ActionButton>
-                  <Input
-                    ref={(element: HTMLInputElement) => logoInputs.set(workspace().id, element)}
-                    type="file"
-                    accept="image/*"
-                    aria-label={`Upload logo file for ${workspace().name}`}
-                    aria-hidden="true"
-                    tabIndex={-1}
-                    class="hidden"
-                    onInput={(event) => {
-                      void updateLogo(workspace().id, event.target.files?.[0])
-                      event.currentTarget.value = ''
-                    }}
-                  />
-                  {props.settings.workspaces.length > 1 && (
-                    <div class="workspace-order-actions">
-                      <ActionButton
-                        variant="ghost"
-                        size="icon-sm"
-                        type="button"
-                        aria-label={`Move ${workspace().name} up`}
-                        disabled={index() === 0}
-                        tooltip="Move workspace up"
-                        onClick={() => moveWorkspace(index(), -1)}
-                      >
-                        <ArrowUp size={15} aria-hidden="true" />
-                      </ActionButton>
-                      <ActionButton
-                        variant="ghost"
-                        size="icon-sm"
-                        type="button"
-                        aria-label={`Move ${workspace().name} down`}
-                        disabled={index() === props.settings.workspaces.length - 1}
-                        tooltip="Move workspace down"
-                        onClick={() => moveWorkspace(index(), 1)}
-                      >
-                        <ArrowDown size={15} aria-hidden="true" />
-                      </ActionButton>
-                      <ActionButton
-                        variant="destructive"
-                        size="icon-sm"
-                        type="button"
-                        aria-label={`Remove ${workspace().name}`}
-                        disabled={hasWorkspaceSources(workspace().id)}
-                        tooltip={
-                          hasWorkspaceSources(workspace().id)
-                            ? 'Move assigned sources before removing this workspace'
-                            : 'Remove workspace'
-                        }
-                        onClick={() =>
-                          applyConfirmed(
-                            confirm(
-                              `Remove the ${workspace().name} workspace? This changes only the settings draft and does not delete indexed data.`
-                            ),
-                            () =>
-                              props.update((current) => ({
-                                ...current,
-                                workspaces: current.workspaces.filter(
-                                  (_, position) => position !== index()
-                                ),
-                              }))
-                          )
-                        }
-                      >
-                        <Trash2 size={15} aria-hidden="true" />
-                      </ActionButton>
+              <Card size="sm">
+                <CardHeader>
+                  <div class="workspace-card-heading">
+                    <WorkspaceLogo workspace={workspace()} size="large" />
+                    <div class="workspace-card-title">
+                      <strong>{workspace().name || 'New workspace'}</strong>
+                      <small>Workspace identity</small>
                     </div>
-                  )}
-                </div>
-                <div class="workspace-identity-row">
-                  <FormField label="Display name">
-                    <Input
-                      value={workspace().name}
-                      onInput={(event) =>
-                        changeWorkspace(index(), {
-                          name: event.target.value,
-                        })
+                    <ActionButton
+                      variant="ghost"
+                      size="icon-sm"
+                      type="button"
+                      aria-label={`Upload logo for ${workspace().name}`}
+                      disabled={logoLoading() === workspace().id}
+                      tooltip={
+                        logoLoading() === workspace().id
+                          ? 'Saving workspace logo'
+                          : 'Upload workspace logo'
                       }
-                      required
-                      maxLength={80}
-                    />
-                  </FormField>
-                  <FormField label="Workspace theme">
-                    <NativeSelect
-                      aria-label={`Theme for ${workspace().name || 'new workspace'}`}
-                      value={workspaceThemes()[workspace().id] ?? DEFAULT_THEME}
-                      onChange={(event) => {
-                        const next = (event.target as HTMLSelectElement).value as ThemeMode
-                        setWorkspaceThemes((current) => ({
-                          ...current,
-                          [workspace().id]: next,
-                        }))
-                        writeWorkspaceThemePreference(workspace().id, next)
+                      onClick={() => workspaceLogoInput(workspace().id)?.click()}
+                    >
+                      {logoLoading() === workspace().id ? (
+                        <Spinner size="sm" label="Saving workspace logo" />
+                      ) : (
+                        <Upload size={14} aria-hidden="true" />
+                      )}
+                    </ActionButton>
+                    <Input
+                      ref={(element: HTMLInputElement) => logoInputs.set(workspace().id, element)}
+                      type="file"
+                      accept="image/*"
+                      aria-label={`Upload logo file for ${workspace().name}`}
+                      aria-hidden="true"
+                      tabIndex={-1}
+                      class="hidden"
+                      onInput={(event) => {
+                        void updateLogo(workspace().id, event.target.files?.[0])
+                        event.currentTarget.value = ''
                       }}
-                      options={themes
-                        .filter((theme) => theme.appearance === 'dark')
-                        .map((theme) => ({ value: theme.id, label: themeDisplayName(theme) }))}
                     />
-                  </FormField>
-                </div>
-                <Accordion collapsible>
-                  <AccordionItem value={`workspace-${workspace().id}`}>
-                    <AccordionTrigger>Advanced workspace details</AccordionTrigger>
-                    <AccordionContent class="workspace-advanced-fields">
-                      <small class="workspace-advanced-note">
-                        ID is internal; account labels are optional metadata.
-                      </small>
-                      <FormField
-                        label="Scope ID"
-                        hint="generated from the display name; used internally"
-                      >
-                        <Input
-                          value={workspace().id}
-                          readOnly
+                    {props.settings.workspaces.length > 1 && (
+                      <div class="workspace-order-actions">
+                        <ActionButton
+                          variant="ghost"
+                          size="icon-sm"
+                          type="button"
+                          aria-label={`Move ${workspace().name} up`}
+                          disabled={index() === 0}
+                          tooltip="Move workspace up"
+                          onClick={() => moveWorkspace(index(), -1)}
+                        >
+                          <ArrowUp size={15} aria-hidden="true" />
+                        </ActionButton>
+                        <ActionButton
+                          variant="ghost"
+                          size="icon-sm"
+                          type="button"
+                          aria-label={`Move ${workspace().name} down`}
+                          disabled={index() === props.settings.workspaces.length - 1}
+                          tooltip="Move workspace down"
+                          onClick={() => moveWorkspace(index(), 1)}
+                        >
+                          <ArrowDown size={15} aria-hidden="true" />
+                        </ActionButton>
+                        <ActionButton
+                          variant="destructive"
+                          size="icon-sm"
+                          type="button"
+                          aria-label={`Remove ${workspace().name}`}
                           disabled={hasWorkspaceSources(workspace().id)}
-                          aria-disabled={hasWorkspaceSources(workspace().id)}
-                          title="Generated from the display name and used internally"
-                          required
-                          maxLength={32}
-                          pattern="[a-z0-9][a-z0-9_-]*"
-                        />
-                      </FormField>
-                      <FormField
-                        label="Account label"
-                        hint="optional display note; OAuth credentials belong to each source"
-                      >
-                        <Input
-                          value={workspace().account_label || ''}
-                          onInput={(event) =>
-                            changeWorkspace(index(), {
-                              account_label: event.target.value || null,
-                            })
+                          tooltip={
+                            hasWorkspaceSources(workspace().id)
+                              ? 'Move assigned sources before removing this workspace'
+                              : 'Remove workspace'
                           }
-                          maxLength={128}
-                          placeholder="e.g. Nifty League"
-                        />
-                      </FormField>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
+                          onClick={() =>
+                            applyConfirmed(
+                              confirm(
+                                `Remove the ${workspace().name} workspace? This changes only the settings draft and does not delete indexed data.`
+                              ),
+                              () =>
+                                props.update((current) => ({
+                                  ...current,
+                                  workspaces: current.workspaces.filter(
+                                    (_, position) => position !== index()
+                                  ),
+                                }))
+                            )
+                          }
+                        >
+                          <Trash2 size={15} aria-hidden="true" />
+                        </ActionButton>
+                      </div>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div class="workspace-identity-row">
+                    <FormField label="Display name">
+                      <Input
+                        value={workspace().name}
+                        onInput={(event) =>
+                          changeWorkspace(index(), {
+                            name: event.target.value,
+                          })
+                        }
+                        required
+                        maxLength={80}
+                      />
+                    </FormField>
+                    <FormField label="Workspace theme">
+                      <NativeSelect
+                        class="w-full"
+                        aria-label={`Theme for ${workspace().name || 'new workspace'}`}
+                        value={workspaceThemes()[workspace().id] ?? DEFAULT_THEME}
+                        onChange={(event) => {
+                          const next = (event.target as HTMLSelectElement).value as ThemeMode
+                          setWorkspaceThemes((current) => ({
+                            ...current,
+                            [workspace().id]: next,
+                          }))
+                          writeWorkspaceThemePreference(workspace().id, next)
+                        }}
+                        options={themes
+                          .filter((theme) => theme.appearance === 'dark')
+                          .map((theme) => ({ value: theme.id, label: themeDisplayName(theme) }))}
+                      />
+                    </FormField>
+                  </div>
+                  <Accordion collapsible>
+                    <AccordionItem value={`workspace-${workspace().id}`}>
+                      <AccordionTrigger>Advanced workspace details</AccordionTrigger>
+                      <AccordionContent>
+                        <div class="workspace-advanced-fields">
+                          <small class="workspace-advanced-note">
+                            ID is internal; account labels are optional metadata.
+                          </small>
+                          <FormField
+                            label="Scope ID"
+                            hint="generated from the display name; used internally"
+                          >
+                            <Input
+                              value={workspace().id}
+                              readOnly
+                              disabled={hasWorkspaceSources(workspace().id)}
+                              aria-disabled={hasWorkspaceSources(workspace().id)}
+                              title="Generated from the display name and used internally"
+                              required
+                              maxLength={32}
+                              pattern="[a-z0-9][a-z0-9_-]*"
+                            />
+                          </FormField>
+                          <FormField
+                            label="Account label"
+                            hint="optional display note; OAuth credentials belong to each source"
+                          >
+                            <Input
+                              value={workspace().account_label || ''}
+                              onInput={(event) =>
+                                changeWorkspace(index(), {
+                                  account_label: event.target.value || null,
+                                })
+                              }
+                              maxLength={128}
+                              placeholder="e.g. Nifty League"
+                            />
+                          </FormField>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                </CardContent>
               </Card>
             )
           }}

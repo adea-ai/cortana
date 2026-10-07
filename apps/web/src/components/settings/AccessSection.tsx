@@ -9,7 +9,7 @@ import { applyConfirmed } from './SettingsWorkflowUtils'
 import { FormField, FieldGroup } from '@adea-ai/ui/components/ui/field'
 import { SettingsSection } from '@adea-ai/ui/components/composites/settings'
 import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
-import { Card } from '@adea-ai/ui/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@adea-ai/ui/components/ui/card'
 import { Checkbox } from '@adea-ai/ui/components/ui/checkbox'
 import { Input } from '@adea-ai/ui/components/ui/input'
 
@@ -73,124 +73,132 @@ export function AccessSection(
             const secret = props.settings.secrets.find((item) => item.name === principal.token_env)
             return (
               // principals render in settings order
-              <Card class="principal-card">
-                <header>
-                  <KeyRound size={16} aria-hidden="true" />
-                  <strong>{principal.principal || `Principal ${index() + 1}`}</strong>
-                  <ActionButton
-                    variant="destructive"
-                    size="icon-sm"
-                    type="button"
-                    aria-label={`Remove ${principal.principal}`}
-                    tooltip={`Remove ${principal.principal}`}
-                    onClick={() =>
-                      applyConfirmed(
-                        confirm(
-                          `Remove ${principal.principal} from agent access? Its stored credential will be removed only after you save these changes.`
-                        ),
-                        () =>
-                          props.update((current) => ({
-                            ...current,
-                            auth_principals: current.auth_principals.filter(
-                              (_, position) => position !== index()
-                            ),
-                          }))
-                      )
-                    }
-                  >
-                    <Trash2 size={15} aria-hidden="true" />
-                  </ActionButton>
-                </header>
-                <FieldGroup class="form-grid">
-                  <FormField label="Principal name">
-                    <Input
-                      value={principal.principal}
-                      maxLength={128}
-                      required
-                      onInput={(event) =>
-                        change(index(), {
-                          principal: event.target.value,
-                        })
+              <Card size="sm">
+                <CardHeader>
+                  <div class="principal-card-heading">
+                    <KeyRound size={16} aria-hidden="true" />
+                    <CardTitle>{principal.principal || `Principal ${index() + 1}`}</CardTitle>
+                    <ActionButton
+                      class="ml-auto"
+                      variant="destructive"
+                      size="icon-sm"
+                      type="button"
+                      aria-label={`Remove ${principal.principal}`}
+                      tooltip={`Remove ${principal.principal}`}
+                      onClick={() =>
+                        applyConfirmed(
+                          confirm(
+                            `Remove ${principal.principal} from agent access? Its stored credential will be removed only after you save these changes.`
+                          ),
+                          () =>
+                            props.update((current) => ({
+                              ...current,
+                              auth_principals: current.auth_principals.filter(
+                                (_, position) => position !== index()
+                              ),
+                            }))
+                        )
                       }
-                    />
-                  </FormField>
-                  <FormField label="Token environment name">
-                    <Input
-                      value={principal.token_env}
-                      maxLength={128}
-                      pattern="[A-Za-z_][A-Za-z0-9_]*"
-                      required
-                      onInput={(event) =>
-                        change(index(), {
-                          token_env: event.target.value,
-                        })
-                      }
-                    />
-                  </FormField>
-                  <FormField label="New bearer token" hint="write-only; leave blank to retain">
-                    <Input
-                      type="password"
-                      autocomplete="new-password"
-                      value={props.secretValues[principal.token_env] || ''}
-                      onInput={(event) =>
-                        props.onSecret({
-                          ...props.secretValues,
-                          [principal.token_env]: event.target.value,
-                        })
-                      }
-                    />
-                    {secret?.configured && !props.clearedSecrets.has(principal.token_env) && (
-                      <ActionButton
-                        tooltip="Clear stored token"
-                        variant="destructive"
-                        size="sm"
-                        onClick={() =>
-                          applyConfirmed(
-                            confirm(
-                              `Clear the stored bearer token for ${principal.principal}? The change remains a draft until you save settings.`
-                            ),
-                            () => props.onClearSecret(principal.token_env)
-                          )
+                    >
+                      <Trash2 size={15} aria-hidden="true" />
+                    </ActionButton>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <FieldGroup columns={2}>
+                    <FormField label="Principal name">
+                      <Input
+                        value={principal.principal}
+                        maxLength={128}
+                        required
+                        onInput={(event) =>
+                          change(index(), {
+                            principal: event.target.value,
+                          })
                         }
-                      >
-                        Clear stored token
-                      </ActionButton>
-                    )}
-                  </FormField>
-                  <FormField label="ACL labels" hint="comma-separated workspace IDs; * grants all">
-                    <Input
-                      value={principal.acl.join(', ')}
-                      onInput={(event) =>
-                        change(index(), {
-                          acl: event.target.value
-                            .split(',')
-                            .map((value) => value.trim())
-                            .filter(Boolean),
-                        })
-                      }
-                    />
-                  </FormField>
-                </FieldGroup>
-                <div class="scope-options">
-                  <For each={['query', 'status', 'admin'] as const}>
-                    {(scope) => (
-                      <Label>
-                        <Checkbox
-                          aria-label={`${scope} scope for ${principal.principal}`}
-                          checked={principal.scopes.includes(scope)}
-                          onChange={(checked: boolean) =>
-                            change(index(), {
-                              scopes: checked
-                                ? [...principal.scopes, scope]
-                                : principal.scopes.filter((value) => value !== scope),
-                            })
+                      />
+                    </FormField>
+                    <FormField label="Token environment name">
+                      <Input
+                        value={principal.token_env}
+                        maxLength={128}
+                        pattern="[A-Za-z_][A-Za-z0-9_]*"
+                        required
+                        onInput={(event) =>
+                          change(index(), {
+                            token_env: event.target.value,
+                          })
+                        }
+                      />
+                    </FormField>
+                    <FormField label="New bearer token" hint="write-only; leave blank to retain">
+                      <Input
+                        type="password"
+                        autocomplete="new-password"
+                        value={props.secretValues[principal.token_env] || ''}
+                        onInput={(event) =>
+                          props.onSecret({
+                            ...props.secretValues,
+                            [principal.token_env]: event.target.value,
+                          })
+                        }
+                      />
+                      {secret?.configured && !props.clearedSecrets.has(principal.token_env) && (
+                        <ActionButton
+                          tooltip="Clear stored token"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() =>
+                            applyConfirmed(
+                              confirm(
+                                `Clear the stored bearer token for ${principal.principal}? The change remains a draft until you save settings.`
+                              ),
+                              () => props.onClearSecret(principal.token_env)
+                            )
                           }
-                        />
-                        {scope}
-                      </Label>
-                    )}
-                  </For>
-                </div>
+                        >
+                          Clear stored token
+                        </ActionButton>
+                      )}
+                    </FormField>
+                    <FormField
+                      label="ACL labels"
+                      hint="comma-separated workspace IDs; * grants all"
+                    >
+                      <Input
+                        value={principal.acl.join(', ')}
+                        onInput={(event) =>
+                          change(index(), {
+                            acl: event.target.value
+                              .split(',')
+                              .map((value) => value.trim())
+                              .filter(Boolean),
+                          })
+                        }
+                      />
+                    </FormField>
+                  </FieldGroup>
+                  <div class="scope-options">
+                    <For each={['query', 'status', 'admin'] as const}>
+                      {(scope) => (
+                        <Label>
+                          <Checkbox
+                            aria-label={`${scope} scope for ${principal.principal}`}
+                            checked={principal.scopes.includes(scope)}
+                            onChange={(checked: boolean) =>
+                              change(index(), {
+                                scopes: checked
+                                  ? [...principal.scopes, scope]
+                                  : principal.scopes.filter((value) => value !== scope),
+                              })
+                            }
+                          />
+                          {scope}
+                        </Label>
+                      )}
+                    </For>
+                  </div>
+                </CardContent>
               </Card>
             )
           }}

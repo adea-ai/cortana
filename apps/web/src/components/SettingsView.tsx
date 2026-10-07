@@ -1,8 +1,17 @@
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 import { ListRow } from '@adea-ai/ui/components/composites/list-row'
-import { Card } from '@adea-ai/ui/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@adea-ai/ui/components/ui/card'
+import { CodeBlock, InlineCode } from '@adea-ai/ui/components/ui/code-block'
+import { ScrollArea } from '@adea-ai/ui/components/ui/scroll-area'
+import { StatusChip } from '@adea-ai/ui/components/ui/status-chip'
 import { AlertAction, AlertDescription, Alert } from '@adea-ai/ui/components/ui/alert'
-import { Label } from '@adea-ai/ui/components/ui/label'
 import {
   Check,
   CircleStop,
@@ -79,6 +88,7 @@ import { Text } from '@adea-ai/ui/components/ui/typography'
 import { NumberField, FieldGroup } from '@adea-ai/ui/components/ui/field'
 import {
   SettingsLayout,
+  SettingsRow,
   SettingsSection,
   type SettingsNavigationGroup,
 } from '@adea-ai/ui/components/composites/settings'
@@ -91,7 +101,6 @@ import {
   PageHeaderTitle,
 } from '@adea-ai/ui/components/layout/page'
 import { Separator } from '@adea-ai/ui/components/ui/separator'
-import { InlineCode } from '@adea-ai/ui/components/ui/code-block'
 import { EmptyState } from '@adea-ai/ui/components/ui/empty'
 import { Switch } from '@adea-ai/ui/components/ui/switch'
 const AdvancedSettingsSection = lazy(() =>
@@ -917,42 +926,48 @@ function SetupGuide(incoming: {
   const steps = buildSetupSteps(props.settings, props.readiness)
   const complete = steps.filter((step) => step.complete).length
   return (
-    <Card class="gap-3 p-4" role="region" aria-label="Guided setup progress">
-      <div class="setup-guide-heading">
-        <div>
-          <Text variant="overline">First launch</Text>
-          <strong>Set up Cortana safely</strong>
-          <p>
-            Review each step, then save. The guide itself never starts ingestion; recurring sync is
-            a separate validation-gated action in Services.
-          </p>
+    <Card size="sm" role="region" aria-label="Guided setup progress">
+      <CardHeader>
+        <div class="setup-guide-heading">
+          <div>
+            <Text variant="overline">First launch</Text>
+            <strong>Set up Cortana safely</strong>
+            <p>
+              Review each step, then save. The guide itself never starts ingestion; recurring sync
+              is a separate validation-gated action in Services.
+            </p>
+          </div>
+          <span>
+            {complete} of {steps.length} ready
+          </span>
         </div>
-        <span>
-          {complete} of {steps.length} ready
-        </span>
-      </div>
-      <div class="setup-steps">
-        <For each={steps}>
-          {(step, index) => (
-            <ListRow
-              as="button"
-              type="button"
-              tooltip={`${step.label}: ${step.detail}`}
-              onClick={() => props.onOpen(step.section)}
-              leading={step.complete ? <Check aria-hidden="true" /> : <span>{index() + 1}</span>}
-              description={step.detail}
-              class="w-full text-left"
-            >
-              {step.label}
-            </ListRow>
-          )}
-        </For>
-      </div>
-      <p class="setup-save-state">
-        {props.dirty
-          ? 'Unsaved setup changes are ready for review.'
-          : 'The Save changes button creates an owner-only configuration with a rollback copy.'}
-      </p>
+      </CardHeader>
+      <CardContent>
+        <div class="setup-steps">
+          <For each={steps}>
+            {(step, index) => (
+              <ListRow
+                as="button"
+                type="button"
+                tooltip={`${step.label}: ${step.detail}`}
+                onClick={() => props.onOpen(step.section)}
+                leading={step.complete ? <Check aria-hidden="true" /> : <span>{index() + 1}</span>}
+                description={step.detail}
+                class="w-full text-left"
+              >
+                {step.label}
+              </ListRow>
+            )}
+          </For>
+        </div>
+      </CardContent>
+      <CardFooter>
+        <p class="setup-save-state">
+          {props.dirty
+            ? 'Unsaved setup changes are ready for review.'
+            : 'The Save changes button creates an owner-only configuration with a rollback copy.'}
+        </p>
+      </CardFooter>
     </Card>
   )
 }
@@ -1393,21 +1408,18 @@ function ServicesSection(incoming: {
       title="Services"
       description="Inspect and control Cortana runtime services. Recurring ingestion stays absent until its dedicated, validation-gated action is confirmed."
     >
-      <Card class="service-autostart">
-        <Label class="source-enable">
+      <Card size="flush">
+        <SettingsRow
+          label="Open Cortana Desktop at login"
+          description="The window may be closed while the tray and runtime continue independently."
+        >
           <Switch
             aria-label="Open Cortana Desktop at login"
             checked={info()?.autostart_enabled || false}
             disabled={!info() || busy() === 'autostart' || actionInFlight()}
             onChange={(checked: boolean) => void toggleAutostart(checked)}
           />
-          <span>
-            <strong>Open Cortana Desktop at login</strong>
-            <small>
-              The window may be closed while the tray and runtime continue independently.
-            </small>
-          </span>
-        </Label>
+        </SettingsRow>
       </Card>
       <div class="source-settings-toolbar">
         <span>
@@ -1508,51 +1520,53 @@ function ServicesSection(incoming: {
         </Alert>
       )}
       {scheduleDraft() && (
-        <Card class="service-schedule">
-          <div>
-            <strong>Background schedule</strong>
-            <p>
+        <Card size="sm">
+          <CardHeader>
+            <CardTitle>Background schedule</CardTitle>
+            <CardDescription>
               These intervals apply only when you explicitly install recurring sync. Saving them
               never starts a service.
-            </p>
-          </div>
-          <FieldGroup class="form-grid compact">
-            <NumberField
-              label="Sync interval (seconds)"
-              hint="1 minute to 7 days"
-              value={scheduleDraft()!.sync_interval_seconds}
-              min={60}
-              max={604800}
-              onChange={(sync_interval_seconds) =>
-                setScheduleDraft((current) =>
-                  current
-                    ? {
-                        ...current,
-                        sync_interval_seconds,
-                      }
-                    : current
-                )
-              }
-            />
-            <NumberField
-              label="Backup interval (seconds)"
-              hint="5 minutes to 30 days"
-              value={scheduleDraft()!.backup_interval_seconds}
-              min={300}
-              max={2592000}
-              onChange={(backup_interval_seconds) =>
-                setScheduleDraft((current) =>
-                  current
-                    ? {
-                        ...current,
-                        backup_interval_seconds,
-                      }
-                    : current
-                )
-              }
-            />
-          </FieldGroup>
-          <div class="service-actions">
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FieldGroup columns={2}>
+              <NumberField
+                label="Sync interval (seconds)"
+                hint="1 minute to 7 days"
+                value={scheduleDraft()!.sync_interval_seconds}
+                min={60}
+                max={604800}
+                onChange={(sync_interval_seconds) =>
+                  setScheduleDraft((current) =>
+                    current
+                      ? {
+                          ...current,
+                          sync_interval_seconds,
+                        }
+                      : current
+                  )
+                }
+              />
+              <NumberField
+                label="Backup interval (seconds)"
+                hint="5 minutes to 30 days"
+                value={scheduleDraft()!.backup_interval_seconds}
+                min={300}
+                max={2592000}
+                onChange={(backup_interval_seconds) =>
+                  setScheduleDraft((current) =>
+                    current
+                      ? {
+                          ...current,
+                          backup_interval_seconds,
+                        }
+                      : current
+                  )
+                }
+              />
+            </FieldGroup>
+          </CardContent>
+          <CardFooter>
             <ActionButton
               tooltip="Save schedule"
               variant="secondary"
@@ -1573,18 +1587,18 @@ function ServicesSection(incoming: {
               )}{' '}
               Save schedule
             </ActionButton>
-          </div>
+          </CardFooter>
         </Card>
       )}
-      <div class="portable-settings">
-        <div>
-          <strong>Database recovery</strong>
-          <p>
+      <Card size="sm">
+        <CardHeader>
+          <CardTitle>Database recovery</CardTitle>
+          <CardDescription>
             Export a verified SQLite snapshot or restore one into the active index. Restore is
             blocked while any Cortana service is running and never starts recurring sync.
-          </p>
-        </div>
-        <div class="service-actions">
+          </CardDescription>
+        </CardHeader>
+        <CardFooter class="flex-wrap gap-2">
           <ActionButton
             variant="secondary"
             size="xs"
@@ -1626,8 +1640,8 @@ function ServicesSection(incoming: {
             )}{' '}
             Restore database
           </ActionButton>
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
       {(databaseResult() || databaseError()) && (
         <Alert
           class="safety-note"
@@ -1647,32 +1661,36 @@ function ServicesSection(incoming: {
           const running = service.loaded && service.state === 'running'
           const failed = service.last_exit_status !== null && service.last_exit_status !== 0
           return (
-            <Card class="service-card">
-              <header>
-                <i class={cn('service-state', running ? 'ready' : failed && 'failed')} />
-                <div>
-                  <strong>{service.name[0].toUpperCase() + service.name.slice(1)}</strong>
-                  <small>{service.label}</small>
-                </div>
-              </header>
-              <p>
-                {!service.installed
-                  ? 'Not installed'
-                  : service.loaded
-                    ? service.state || 'Loaded'
-                    : 'Installed, not loaded'}
-                {service.pid ? ` · PID ${service.pid}` : ''}
-                {failed ? ` · last exit ${service.last_exit_status}` : ''}
-              </p>
+            <Card size="sm" class="min-w-0">
+              <CardHeader>
+                <CardTitle>{service.name[0].toUpperCase() + service.name.slice(1)}</CardTitle>
+                <CardDescription>{service.label}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <StatusChip
+                  tone={running ? 'success' : failed ? 'danger' : 'neutral'}
+                  label={`${
+                    !service.installed
+                      ? 'Not installed'
+                      : service.loaded
+                        ? service.state || 'Loaded'
+                        : 'Installed, not loaded'
+                  }${service.pid ? ` · PID ${service.pid}` : ''}${
+                    failed ? ` · last exit ${service.last_exit_status}` : ''
+                  }`}
+                />
+              </CardContent>
               <Show
                 when={service.installed}
                 fallback={
                   // A bare "Not installed" is a dead end: name the control that
                   // installs this service and why it is not installed yet.
-                  <p class="service-install-hint">{installHint(service)}</p>
+                  <CardContent>
+                    <p class="service-install-hint">{installHint(service)}</p>
+                  </CardContent>
                 }
               >
-                <div class="service-actions">
+                <CardFooter class="flex-wrap gap-2">
                   <ActionButton
                     tooltip="Start"
                     variant="secondary"
@@ -1700,7 +1718,7 @@ function ServicesSection(incoming: {
                   >
                     <RefreshCw size={14} aria-hidden="true" /> Restart
                   </ActionButton>
-                </div>
+                </CardFooter>
               </Show>
             </Card>
           )
@@ -1966,44 +1984,55 @@ function ReadinessSection(incoming: {
       )}
       {props.readiness && (
         <>
-          <Card class="flex-row items-start gap-3 p-4">
-            <StatusGlyph passed={props.readiness.tools_ready} />
-            <div data-readiness-copy="" class="flex min-w-0 flex-1 flex-col gap-1">
-              <strong>
-                {props.readiness.tools_ready ? 'Local tools ready' : 'Setup required'}
-              </strong>
-              <span>
-                {props.readiness.tools.filter((tool) => tool.required && !tool.available).length}{' '}
-                required components missing
-              </span>
-            </div>
+          <Card size="sm">
+            <CardContent>
+              <div class="flex items-start gap-3">
+                <StatusGlyph passed={props.readiness.tools_ready} />
+                <div data-readiness-copy="" class="flex min-w-0 flex-1 flex-col gap-1">
+                  <strong>
+                    {props.readiness.tools_ready ? 'Local tools ready' : 'Setup required'}
+                  </strong>
+                  <span>
+                    {
+                      props.readiness.tools.filter((tool) => tool.required && !tool.available)
+                        .length
+                    }{' '}
+                    required components missing
+                  </span>
+                </div>
+              </div>
+            </CardContent>
           </Card>
           <div class="readiness-list">
             <For each={props.readiness.tools}>
               {(tool) => (
-                <Card role="article" class="flex-row flex-wrap items-start gap-3 p-4">
-                  <StatusGlyph passed={tool.available} optional={!tool.required} />
-                  <div data-readiness-copy="" class="flex min-w-0 flex-1 flex-col gap-1">
-                    <strong>
-                      {tool.label} {!tool.required && <small>optional</small>}
-                    </strong>
-                    <span>{tool.version || tool.detail}</span>
-                    {tool.path && <code>{tool.path}</code>}
-                  </div>
-                  {!tool.available && tool.install_supported && (
-                    <ActionButton
-                      tooltip={`Install ${tool.label} using the managed Desktop installer.`}
-                      variant="secondary"
-                      size="xs"
-                      type="button"
-                      disabled={
-                        props.job?.status === 'running' || props.job?.status === 'cancelling'
-                      }
-                      onClick={() => void install(tool.id, tool.label)}
-                    >
-                      Install
-                    </ActionButton>
-                  )}
+                <Card size="sm" role="article">
+                  <CardContent>
+                    <div class="flex flex-wrap items-start gap-3">
+                      <StatusGlyph passed={tool.available} optional={!tool.required} />
+                      <div data-readiness-copy="" class="flex min-w-0 flex-1 flex-col gap-1">
+                        <strong>
+                          {tool.label} {!tool.required && <small>optional</small>}
+                        </strong>
+                        <span>{tool.version || tool.detail}</span>
+                        {tool.path && <code>{tool.path}</code>}
+                      </div>
+                      {!tool.available && tool.install_supported && (
+                        <ActionButton
+                          tooltip={`Install ${tool.label} using the managed Desktop installer.`}
+                          variant="secondary"
+                          size="xs"
+                          type="button"
+                          disabled={
+                            props.job?.status === 'running' || props.job?.status === 'cancelling'
+                          }
+                          onClick={() => void install(tool.id, tool.label)}
+                        >
+                          Install
+                        </ActionButton>
+                      )}
+                    </div>
+                  </CardContent>
                 </Card>
               )}
             </For>
@@ -2016,12 +2045,16 @@ function ReadinessSection(incoming: {
               </Alert>
             )}
             {props.readiness.core?.checks.map((check) => (
-              <Card role="article" class="flex-row flex-wrap items-start gap-3 p-4">
-                <StatusGlyph passed={check.passed} />
-                <div data-readiness-copy="" class="flex min-w-0 flex-1 flex-col gap-1">
-                  <strong>{check.name.replaceAll('-', ' ')}</strong>
-                  <span>{check.detail}</span>
-                </div>
+              <Card size="sm" role="article">
+                <CardContent>
+                  <div class="flex flex-wrap items-start gap-3">
+                    <StatusGlyph passed={check.passed} />
+                    <div data-readiness-copy="" class="flex min-w-0 flex-1 flex-col gap-1">
+                      <strong>{check.name.replaceAll('-', ' ')}</strong>
+                      <span>{check.detail}</span>
+                    </div>
+                  </div>
+                </CardContent>
               </Card>
             ))}
             {embeddingGenerationMismatch() && (
@@ -2032,17 +2065,19 @@ function ReadinessSection(incoming: {
                     that the vectors are interchangeable; otherwise rebuild or import a new
                     generation.
                   </span>
+                </AlertDescription>
+                <AlertAction>
                   <ActionButton
                     tooltip="Adopt the stored embedding generation after confirming that its vectors are interchangeable."
-                    variant="secondary"
-                    size="sm"
+                    variant="outline"
+                    size="xs"
                     type="button"
                     disabled={readinessInFlight()}
                     onClick={() => void migrateGeneration()}
                   >
                     {migratingGeneration() ? 'Adopting generation…' : 'Adopt stored generation'}
                   </ActionButton>
-                </AlertDescription>
+                </AlertAction>
               </Alert>
             )}
           </div>
@@ -2059,60 +2094,70 @@ function ReadinessSection(incoming: {
                   </strong>
                   . Review the failed check details above before retrying.
                 </span>
-                {props.onOpenServices &&
-                  props.readiness.core.checks.some(
-                    (check) =>
-                      !check.passed &&
-                      /api|service|server|embedding|backup/i.test(`${check.name} ${check.detail}`)
-                  ) && (
+              </AlertDescription>
+              {props.onOpenServices &&
+                props.readiness.core.checks.some(
+                  (check) =>
+                    !check.passed &&
+                    /api|service|server|embedding|backup/i.test(`${check.name} ${check.detail}`)
+                ) && (
+                  <AlertAction>
                     <ActionButton
                       tooltip="Check Services"
-                      variant="secondary"
-                      size="sm"
+                      variant="outline"
+                      size="xs"
                       onClick={props.onOpenServices}
                     >
                       Check Services
                     </ActionButton>
-                  )}
-              </AlertDescription>
+                  </AlertAction>
+                )}
             </Alert>
           )}
         </>
       )}
       {props.job && (
-        <Card class="installer-job p-4" role="status">
-          <div>
-            {['running', 'cancelling'].includes(props.job.status) ? (
-              <Spinner size="md" label={false} />
-            ) : (
-              <StatusGlyph passed={props.job.status === 'succeeded'} />
-            )}
-            <span class="installer-job-text">
-              <strong>{props.job.summary}</strong>
-              <small>Status: {props.job.status}</small>
-            </span>
-            {props.job!.status === 'running' && (
-              <ActionButton
-                tooltip="Cancel this operation and return to the previous view."
-                variant="outline"
-                size="xs"
-                onClick={() => void cancel()}
-              >
-                Cancel
-              </ActionButton>
-            )}
-            {props.job!.retryable && (
-              <ActionButton
-                tooltip="Retry the last failed request."
-                variant="outline"
-                size="xs"
-                onClick={() => void install(props.job!.tool, props.job!.tool)}
-              >
-                Retry
-              </ActionButton>
-            )}
-          </div>
-          {props.job!.log && <pre>{props.job!.log}</pre>}
+        <Card size="sm" class="installer-job" role="status">
+          <CardContent>
+            <div class="installer-job-row">
+              {['running', 'cancelling'].includes(props.job.status) ? (
+                <Spinner size="md" label={false} />
+              ) : (
+                <StatusGlyph passed={props.job.status === 'succeeded'} />
+              )}
+              <span class="installer-job-text">
+                <strong>{props.job.summary}</strong>
+                <small>Status: {props.job.status}</small>
+              </span>
+              {props.job!.status === 'running' && (
+                <ActionButton
+                  tooltip="Cancel this operation and return to the previous view."
+                  variant="outline"
+                  size="xs"
+                  onClick={() => void cancel()}
+                >
+                  Cancel
+                </ActionButton>
+              )}
+              {props.job!.retryable && (
+                <ActionButton
+                  tooltip="Retry the last failed request."
+                  variant="outline"
+                  size="xs"
+                  onClick={() => void install(props.job!.tool, props.job!.tool)}
+                >
+                  Retry
+                </ActionButton>
+              )}
+            </div>
+          </CardContent>
+          {props.job!.log && (
+            <CardContent>
+              <ScrollArea class="max-h-48" aria-label="Installer log">
+                <CodeBlock code={props.job!.log} title="Installer log" complete />
+              </ScrollArea>
+            </CardContent>
+          )}
         </Card>
       )}
     </SettingsSection>

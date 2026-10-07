@@ -1,6 +1,8 @@
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 import { downloadBlob } from '@adea-ai/ui/lib/download'
 import { AlertDescription, Alert } from '@adea-ai/ui/components/ui/alert'
+import { CodeBlock } from '@adea-ai/ui/components/ui/code-block'
+import { ScrollArea } from '@adea-ai/ui/components/ui/scroll-area'
 import { Download, RefreshCw } from 'lucide-solid'
 import { createEffect, createSignal, onCleanup } from 'solid-js'
 
@@ -132,7 +134,9 @@ function AuditList(incoming: { title: string; events: AuditEvent[] }) {
                   ? new Date(Number(event['at_unix_seconds']) * 1000).toLocaleString()
                   : ''}
             </time>
-            <pre>{JSON.stringify(event, null, 2)}</pre>
+            <ScrollArea class="col-span-full max-h-72" aria-label="Audit event details">
+              <CodeBlock code={JSON.stringify(event, null, 2)} language="json" complete />
+            </ScrollArea>
           </article>
         ))
       )}

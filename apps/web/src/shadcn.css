@@ -822,13 +822,8 @@ body,
 
 .setup-steps {
   display: grid;
-  margin-top: 12px;
   gap: 8px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.setup-save-state {
-  margin-top: 9px;
 }
 
 .workspace-settings-grid {
@@ -854,14 +849,9 @@ body,
   }
 }
 
-.workspace-card {
-  padding: 17px;
-}
-
 .workspace-card-heading {
   display: flex;
   align-items: center;
-  margin-bottom: 14px;
   gap: 8px;
 }
 
@@ -927,69 +917,15 @@ body,
   font-size: var(--text-2xs);
 }
 
-.service-autostart {
-  padding: 14px;
-}
-
-.service-schedule {
-  display: grid;
-  gap: 12px;
-  margin: 12px 0 14px;
-  padding: 14px;
-}
-
-.service-schedule p {
-  margin: 4px 0 0;
-  color: var(--muted-foreground);
-  font-size: var(--text-2xs);
-}
-
 .service-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
-.service-card {
-  min-width: 0;
-  padding: 14px;
-}
-
-.service-card > header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.service-card > header div {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-}
-
-.service-card small,
-.service-card p,
 .settings-note {
   color: var(--muted-foreground);
   font-size: var(--text-2xs);
-}
-
-.service-state {
-  width: 8px;
-  height: 8px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: var(--muted-foreground);
-}
-
-.service-state.ready {
-  background: var(--success);
-  box-shadow: var(--shadow-sm);
-}
-
-.service-state.failed {
-  background: var(--destructive);
-  box-shadow: var(--shadow-sm);
 }
 
 .service-actions {
@@ -1009,34 +945,6 @@ body,
   line-height: 1.45;
 }
 
-.portable-settings {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 24px;
-  padding: 16px;
-  gap: 18px;
-  border: 1px solid var(--border);
-  background: var(--background);
-}
-
-.portable-settings > div:first-child {
-  min-width: 0;
-}
-
-.portable-settings strong {
-  color: var(--foreground);
-  font-size: var(--text-sm);
-}
-
-.portable-settings p {
-  max-width: 560px;
-  margin: 5px 0 0;
-  color: var(--muted-foreground);
-  font-size: var(--text-2xs);
-  line-height: 1.5;
-}
-
 @media (max-width: 760px) {
   .setup-guide-heading {
     flex-wrap: wrap;
@@ -1052,11 +960,6 @@ body,
 
   .setup-steps {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .portable-settings {
-    align-items: flex-start;
-    flex-direction: column;
   }
 
   .initial-sync-budgets,
@@ -1399,24 +1302,6 @@ body,
   flex: 1;
 }
 
-.toggle-row {
-  display: flex;
-  align-items: flex-start;
-  margin-top: 25px;
-  padding: 16px;
-  gap: 11px;
-}
-
-.toggle-row span {
-  display: flex;
-  gap: 4px;
-  flex-direction: column;
-}
-
-.toggle-row small {
-  color: var(--muted-foreground);
-}
-
 .safety-note {
   margin-top: 20px;
 }
@@ -1464,7 +1349,7 @@ body,
   margin-top: 12px;
 }
 
-.installer-job > div {
+.installer-job-row {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1480,18 +1365,6 @@ body,
 .installer-job small {
   color: var(--muted-foreground);
   text-transform: capitalize;
-}
-
-.installer-job pre {
-  max-height: 190px;
-  margin: 12px 0 0;
-  padding: 10px;
-  overflow: auto;
-  color: var(--muted-foreground);
-  background: var(--muted);
-  font-size: var(--text-2xs);
-  line-height: 1.45;
-  white-space: pre-wrap;
 }
 
 .core-readiness {
@@ -1513,12 +1386,16 @@ body,
   max-width: min(560px, calc(100vw - 50px));
 }
 
-.principal-card,
 .audit-list article {
   padding: 16px;
 }
 
-.principal-card header,
+.principal-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .scope-options,
 .audit-list article > div {
   display: flex;
@@ -1526,30 +1403,11 @@ body,
   gap: 10px;
 }
 
-.audit-list pre {
-  max-height: 300px;
-  padding: 12px;
-  overflow: auto;
-  color: var(--muted-foreground);
-  background: var(--muted);
-  font-size: var(--text-2xs);
-  line-height: 1.5;
-  white-space: pre-wrap;
-}
-
 .principal-list,
 .audit-list {
   display: grid;
   gap: 12px;
   margin-bottom: 14px;
-}
-
-.principal-card header {
-  margin-bottom: 14px;
-}
-
-.principal-card header button {
-  margin-left: auto;
 }
 
 .scope-options {
@@ -1579,11 +1437,6 @@ body,
 .audit-list article time {
   color: var(--muted-foreground);
   font-size: var(--text-2xs);
-}
-
-.audit-list article pre {
-  grid-column: 1 / -1;
-  margin: 4px 0 0;
 }
 
 .audit-event-title.success {

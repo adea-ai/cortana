@@ -1,6 +1,5 @@
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 import { Alert, AlertDescription } from '@adea-ai/ui/components/ui/alert'
-import { Label } from '@adea-ai/ui/components/ui/label'
 import { RefreshCw } from 'lucide-solid'
 import {
   createEffect,
@@ -18,7 +17,7 @@ import type { ModelChoice, ProviderValue } from './providerUtils'
 import { useSettingsConfirm } from './SettingsConfirm'
 import { applyConfirmed } from './SettingsWorkflowUtils'
 import { FormField, NumberField, FieldGroup } from '@adea-ai/ui/components/ui/field'
-import { SettingsSection } from '@adea-ai/ui/components/composites/settings'
+import { SettingsRow, SettingsSection } from '@adea-ai/ui/components/composites/settings'
 import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
 import { Input } from '@adea-ai/ui/components/ui/input'
 import { NativeSelect } from '@adea-ai/ui/components/ui/native-select'
@@ -93,7 +92,7 @@ export function EmbeddingSection(incoming: {
           : 'automatic command derived from the model and loopback endpoint'}
         . Desktop preserves explicit executable commands but does not edit shell command arrays.
       </div>
-      <FieldGroup class="form-grid compact">
+      <FieldGroup columns={2}>
         <NumberField
           label="Vector dimension"
           value={props.settings.embedding.dimension}
@@ -307,7 +306,7 @@ function ProviderSection<T extends ProviderValue>(incoming: {
       <NativeSelect
         id={modelFieldId}
         aria-label="Model catalog"
-
+        class="w-full"
         value={props.provider.model}
         required
         onChange={(event) =>
@@ -364,9 +363,10 @@ function ProviderSection<T extends ProviderValue>(incoming: {
   )
   return (
     <SettingsSection bodyLayout="content" title={props.title} description={props.description}>
-      <FieldGroup class="form-grid">
+      <FieldGroup columns={2}>
         <FormField label="Provider">
           <NativeSelect
+            class="w-full"
             value={props.provider.provider}
             onChange={(event) => {
               const nextProvider = event.target.value as 'local' | 'cloud'
@@ -519,7 +519,10 @@ export function QuerySection(incoming: {
       modelControl="select"
       modelCatalog={[]}
     >
-      <Label class="toggle-row">
+      <SettingsRow
+        label="Grounded answer synthesis"
+        description="Uses retrieved evidence and validates citation indices before returning an answer."
+      >
         <Switch
           aria-label="Enable answer synthesis"
           checked={props.settings.query.synthesis_enabled}
@@ -530,14 +533,8 @@ export function QuerySection(incoming: {
             })
           }
         />
-        <span>
-          <strong>Grounded answer synthesis</strong>
-          <small>
-            Uses retrieved evidence and validates citation indices before returning an answer.
-          </small>
-        </span>
-      </Label>
-      <FieldGroup class="form-grid compact">
+      </SettingsRow>
+      <FieldGroup columns={2}>
         <NumberField
           label="Planned queries"
           value={props.settings.query.max_planned_queries}
