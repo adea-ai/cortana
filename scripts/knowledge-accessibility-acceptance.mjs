@@ -266,7 +266,7 @@ async function run() {
       .getByRole('menuitemradio', { name: 'Work', exact: true })
       .dispatchEvent('keydown', { key: 'Enter' })
     await page.waitForFunction(() =>
-      document.querySelector('.document-explorer-heading strong')?.textContent?.includes('Work')
+      document.querySelector('[data-m7-explorer-heading]')?.textContent?.includes('Work')
     )
     const workSource = page.getByRole('button', { name: /^work-code / })
     await workSource.waitFor()
@@ -278,9 +278,7 @@ async function run() {
 
     await workSource.click()
     await page.waitForFunction(() =>
-      document
-        .querySelector('.document-explorer-heading strong')
-        ?.textContent?.includes('Files & code')
+      document.querySelector('[data-m7-explorer-heading]')?.textContent?.includes('Files & code')
     )
     await page.getByRole('option', { name: /Deployment playbook/ }).waitFor()
     ensure(
@@ -587,7 +585,7 @@ async function run() {
       await largeDocumentRows.first().waitFor()
       const initialLargeRows = await largeDocumentRows.count()
       ensure(initialLargeRows > 0 && initialLargeRows <= 100, 'large document list is not bounded')
-      const largeExplorerHeading = largePage.locator('.document-explorer-heading')
+      const largeExplorerHeading = largePage.locator('[data-m7-explorer-heading]')
       ensure(
         /50 loaded/.test(await largeExplorerHeading.textContent()),
         'large document fixture did not begin with a bounded page'
@@ -609,7 +607,7 @@ async function run() {
         element.dispatchEvent(new Event('scroll', { bubbles: true }))
       })
       await largePage.waitForFunction(() =>
-        document.querySelector('.document-explorer-heading')?.textContent?.includes('100 loaded')
+        document.querySelector('[data-m7-explorer-heading]')?.textContent?.includes('100 loaded')
       )
       const loadedLargeRows = await largeDocumentRows.count()
       ensure(

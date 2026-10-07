@@ -53,7 +53,6 @@ function renderPanel(overrides: Partial<ContextBundle | null> = {}) {
         }
   return render(() => (
     <ContextPanel
-      open
       query="How do releases work?"
       evidence={baseEvidence}
       answer={baseAnswer}
@@ -75,7 +74,7 @@ test('shadcn renderer composes the context inspector from shared primitives', as
     renderPanel()
   })
   expect(document.querySelector('[data-m7-context-panel]')).toBeTruthy()
-  expect(document.querySelector('[data-slot="scroll-area"]')).toBeTruthy()
+  expect(document.querySelector('[data-slot="panel-body"]')).toBeTruthy()
   expect(document.querySelector('[data-slot="card"]')).toBeTruthy()
   expect(screen.getByText('Retrieved evidence')).toBeTruthy()
   expect(document.querySelectorAll('button').length).toBeGreaterThan(0)

@@ -2291,7 +2291,6 @@ function CortanaApplication() {
                         onOpenChange={setLeftOpen}
                       >
                         <SourcePanel
-                          open={leftOpen()}
                           status={status()}
                           workspace={effectiveWorkspace()}
                           workspaces={workspaces()}
@@ -2427,7 +2426,6 @@ function CortanaApplication() {
                         onOpenChange={setRightOpen}
                       >
                         <ContextPanel
-                          open={rightOpen()}
                           query={activeQuery()}
                           evidence={evidence}
                           answer={answer()}
