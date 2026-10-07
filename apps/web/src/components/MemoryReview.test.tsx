@@ -213,6 +213,9 @@ test('keeps the review queue available while disabling owner-only consolidation 
     name: 'Pause consolidation',
   })
   expect(isActionDisabled(pause)).toBe(true)
+  // Tooltips open on keyboard focus that follows a Tab press, never on a
+  // bare programmatic focus (@adea-ai/ui 0.116 tooltip focus gate).
+  fireEvent.keyDown(document, { key: 'Tab' })
   pause.focus()
   expect((await screen.findByRole('tooltip')).textContent).toMatch(/owner/i)
 })

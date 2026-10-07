@@ -9,7 +9,7 @@ export function StatusGlyph(props: { passed: boolean; optional?: boolean; pendin
       aria-label={label()}
       label={label()}
       tone={
-        props.pending ? 'info' : props.passed ? 'success' : props.optional ? 'neutral' : 'danger'
+        props.pending ? 'pending' : props.passed ? 'success' : props.optional ? 'neutral' : 'danger'
       }
     />
   )

@@ -1,5 +1,6 @@
 import {
   Alert as SharedFeedbackAlert,
+  AlertAction as SharedFeedbackAction,
   AlertDescription as SharedFeedbackDescription,
 } from '@adea-ai/ui/components/ui/alert'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@adea-ai/ui/components/ui/input-group'
@@ -27,6 +28,7 @@ import { sourceDisplayName } from './sourceIconData'
 import { ActionButton as Button } from '@adea-ai/ui/components/composites/action-button'
 import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
 import { EmptyState } from '@adea-ai/ui/components/ui/empty'
+import { PanelActions, PanelHeader, PanelTitle } from '@adea-ai/ui/components/layout/panel'
 import { Progress } from '@adea-ai/ui/components/ui/progress'
 import { Skeleton } from '@adea-ai/ui/components/ui/skeleton'
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
@@ -118,40 +120,40 @@ export function SourcePanel(props: {
       class={cn('source-panel m7-source-panel', props.open && 'mobile-open')}
       data-m7-source-panel=""
     >
-      <div class="panel-heading">
-        <strong>Sources</strong>
-        <Show when={compact()}>
+      <PanelHeader>
+        <PanelTitle>Sources</PanelTitle>
+        <PanelActions>
+          <Show when={compact()}>
+            <ActionButton
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Close sources"
+              tooltip="Close sources"
+              onClick={props.onClose}
+            >
+              <X size={17} aria-hidden="true" />
+            </ActionButton>
+          </Show>
           <ActionButton
             variant="ghost"
             size="icon-sm"
-            aria-label="Close sources"
-            tooltip="Close sources"
-            onClick={props.onClose}
+            aria-label="Add source"
+            tooltip="Add source"
+            onClick={props.onOpenSourcesSettings}
           >
-            <X size={17} aria-hidden="true" />
+            +
           </ActionButton>
-        </Show>
-        <ActionButton
-          variant="ghost"
-          size="icon-sm"
-
-          aria-label="Add source"
-          tooltip="Add source"
-          onClick={props.onOpenSourcesSettings}
-        >
-          +
-        </ActionButton>
-        <ActionButton
-          variant="ghost"
-          size="icon-sm"
-
-          aria-label="Source settings"
-          tooltip="Source settings"
-          onClick={props.onOpenSourcesSettings}
-        >
-          <Settings size={16} aria-hidden="true" />
-        </ActionButton>
-      </div>
+          <ActionButton
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Source settings"
+            tooltip="Source settings"
+            onClick={props.onOpenSourcesSettings}
+          >
+            <Settings size={16} aria-hidden="true" />
+          </ActionButton>
+        </PanelActions>
+      </PanelHeader>
       <div class="source-mode">
         <StatusChip
           tone={
@@ -191,22 +193,20 @@ export function SourcePanel(props: {
       </Show>
       <Show when={sourceJobError()}>
         <SharedFeedbackAlert variant="destructive" role="alert" class="my-2">
-          <SharedFeedbackDescription>
-            {sourceJobError()}
-            <Show when={props.onRetrySourceJobs}>
-              {' '}
+          <SharedFeedbackDescription>{sourceJobError()}</SharedFeedbackDescription>
+          <Show when={props.onRetrySourceJobs}>
+            <SharedFeedbackAction>
               <ActionButton
                 tooltip="Retry source jobs"
                 variant="outline"
                 size="xs"
                 type="button"
-                class="link-button"
                 onClick={props.onRetrySourceJobs}
               >
                 Retry source jobs
               </ActionButton>
-            </Show>
-          </SharedFeedbackDescription>
+            </SharedFeedbackAction>
+          </Show>
         </SharedFeedbackAlert>
       </Show>
       <Show when={sourceToggleError()}>
@@ -222,20 +222,21 @@ export function SourcePanel(props: {
       <Show when={props.statusError && props.status}>
         <SharedFeedbackAlert variant="warning" role="status" class="my-2">
           <SharedFeedbackDescription>
-            {props.statusError} Showing the last known source index.{' '}
-            <Show when={props.onRetryStatus}>
+            {props.statusError} Showing the last known source index.
+          </SharedFeedbackDescription>
+          <Show when={props.onRetryStatus}>
+            <SharedFeedbackAction>
               <ActionButton
                 tooltip="Retry status"
                 variant="outline"
                 size="xs"
                 type="button"
-                class="link-button"
                 onClick={props.onRetryStatus}
               >
                 Retry status
               </ActionButton>
-            </Show>
-          </SharedFeedbackDescription>
+            </SharedFeedbackAction>
+          </Show>
         </SharedFeedbackAlert>
       </Show>
       <Show
@@ -256,21 +257,20 @@ export function SourcePanel(props: {
           when={!(props.statusError && !props.status)}
           fallback={
             <SharedFeedbackAlert variant="warning" role="status" class="my-2">
-              <SharedFeedbackDescription>
-                {props.statusError}{' '}
-                <Show when={props.onRetryStatus}>
+              <SharedFeedbackDescription>{props.statusError}</SharedFeedbackDescription>
+              <Show when={props.onRetryStatus}>
+                <SharedFeedbackAction>
                   <ActionButton
                     tooltip="Retry status"
                     variant="outline"
                     size="xs"
                     type="button"
-                    class="link-button"
                     onClick={props.onRetryStatus}
                   >
                     Retry status
                   </ActionButton>
-                </Show>
-              </SharedFeedbackDescription>
+                </SharedFeedbackAction>
+              </Show>
             </SharedFeedbackAlert>
           }
         >
@@ -514,21 +514,20 @@ export function SourcePanel(props: {
           when={!props.documentsError}
           fallback={
             <SharedFeedbackAlert variant="destructive" role="alert" class="my-2">
-              <SharedFeedbackDescription>
-                {props.documentsError}{' '}
-                <Show when={props.onRetryDocuments}>
+              <SharedFeedbackDescription>{props.documentsError}</SharedFeedbackDescription>
+              <Show when={props.onRetryDocuments}>
+                <SharedFeedbackAction>
                   <ActionButton
                     tooltip="Retry documents"
                     variant="outline"
                     size="xs"
                     type="button"
-                    class="link-button"
                     onClick={props.onRetryDocuments}
                   >
                     Retry documents
                   </ActionButton>
-                </Show>
-              </SharedFeedbackDescription>
+                </SharedFeedbackAction>
+              </Show>
             </SharedFeedbackAlert>
           }
         >

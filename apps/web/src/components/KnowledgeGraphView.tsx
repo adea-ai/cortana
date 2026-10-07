@@ -20,7 +20,7 @@ import { EmptyState } from '@adea-ai/ui/components/ui/empty'
 import { Card } from '@adea-ai/ui/components/ui/card'
 import { OrbitItem, OrbitLayout } from '@adea-ai/ui/components/layout/orbit-layout'
 import { createMediaQuery } from '../lib/mediaQuery'
-import { Input } from '@adea-ai/ui/components/ui/input'
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@adea-ai/ui/components/ui/input-group'
 import { NativeSelect } from '@adea-ai/ui/components/ui/native-select'
 import { ToggleGroup, ToggleGroupItem } from '@adea-ai/ui/components/ui/toggle-group'
 import type { BrainGraphNode, BrainGraphPage, Evidence } from '../types'
@@ -215,27 +215,31 @@ export default function KnowledgeGraphView(props: {
             </Show>
             <div class="graph-controls">
               <Card class="graph-toolbar flex-row flex-wrap items-center gap-2 p-2" role="search">
-                <Search size={14} aria-hidden="true" />
-                <Input
-                  type="search"
-                  aria-label="Filter graph nodes"
-                  placeholder="Filter nodes…"
-                  value={filter()}
-                  onInput={(event) => setFilter(event.target.value)}
-                />
+                <InputGroup size="sm" class="graph-search">
+                  <InputGroupAddon>
+                    <Search aria-hidden="true" />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    type="search"
+                    aria-label="Filter graph nodes"
+                    placeholder="Filter nodes…"
+                    value={filter()}
+                    onInput={(event) => setFilter(event.target.value)}
+                  />
+                </InputGroup>
                 <Show when={filter()}>
                   <WorkspaceButton
                     tooltip="Clear the graph node filter"
                     variant="ghost"
                     size="sm"
                     type="button"
-                    class="link-button"
                     onClick={() => setFilter('')}
                   >
                     Clear
                   </WorkspaceButton>
                 </Show>
                 <NativeSelect
+                  size="sm"
                   aria-label="Filter graph relationships"
                   value={props.graphEdgeKind}
                   onChange={(event) =>
@@ -263,6 +267,7 @@ export default function KnowledgeGraphView(props: {
                   ]}
                 />
                 <NativeSelect
+                  size="sm"
                   aria-label="Filter graph relationship origin"
                   value={props.graphOrigin}
                   onChange={(event) =>
@@ -280,6 +285,7 @@ export default function KnowledgeGraphView(props: {
                   ]}
                 />
                 <NativeSelect
+                  size="sm"
                   aria-label="Filter graph minimum confidence"
                   value={
                     props.graphMinConfidence == null ? 'all' : String(props.graphMinConfidence)
@@ -351,7 +357,6 @@ export default function KnowledgeGraphView(props: {
                   variant="ghost"
                   size="sm"
                   type="button"
-                  class="link-button"
                   onClick={props.onRetry}
                 >
                   Retry graph

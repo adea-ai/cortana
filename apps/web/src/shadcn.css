@@ -30,22 +30,6 @@ body,
   background: var(--card);
 }
 
-.panel-heading,
-.context-heading {
-  display: flex;
-  height: 53px;
-  align-items: center;
-  padding: 0 16px 0 20px;
-  gap: 4px;
-  border-bottom: 1px solid var(--border);
-}
-
-.panel-heading strong,
-.context-heading strong {
-  margin-right: auto;
-  font-size: var(--text-sm);
-}
-
 .source-mode {
   display: flex;
   height: 30px;
@@ -414,11 +398,6 @@ body,
   align-items: center;
   margin-bottom: 17px;
   gap: 7px;
-  color: var(--foreground);
-  font-size: var(--text-2xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
 }
 
 .answer-view .lead {
@@ -603,8 +582,8 @@ body,
   width: 100%;
 }
 
-.graph-toolbar input {
-  min-width: 0;
+.graph-search {
+  min-width: 12rem;
   flex: 1;
 }
 
@@ -1187,15 +1166,7 @@ body,
 }
 
 .source-workspace-tabs {
-  display: flex;
   margin-top: 17px;
-  padding-bottom: 2px;
-  gap: 7px;
-  overflow-x: auto;
-}
-
-.source-workspace-tabs button {
-  white-space: nowrap;
 }
 
 .source-workspace-caption {
@@ -1619,12 +1590,7 @@ body,
   position: absolute;
   right: 25px;
   bottom: 18px;
-  display: flex;
   max-width: min(560px, calc(100vw - 50px));
-  align-items: center;
-  padding: 11px 14px;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 
 .settings-unavailable {
@@ -1726,10 +1692,6 @@ body,
   color: var(--destructive);
 }
 
-.link-button {
-  margin-top: 14px;
-}
-
 .memory-review {
   display: grid;
   margin-top: 28px;
@@ -1752,15 +1714,6 @@ body,
 .memory-review-header {
   align-items: flex-start;
   justify-content: space-between;
-}
-
-/*
- * The bridged --amber accent (var(--primary)) sits under 4.5:1 on this
- * panel's fill; the header's own muted ink passes, so the overline uses it
- * like the rest of the section.
- */
-.memory-review-header .eyebrow {
-  color: var(--muted-foreground);
 }
 
 .memory-review-header h3,
@@ -2101,13 +2054,8 @@ body,
   margin-bottom: 28px;
 }
 
-.utility-section h2 {
+.utility-section > h2 {
   margin: 0 0 10px;
-  color: var(--muted-foreground);
-  font-size: var(--text-2xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
 }
 
 .utility-list-spaced {
@@ -2152,11 +2100,6 @@ body,
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--warning);
-  font-size: var(--text-2xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 
 .utility-card h3 {
@@ -2228,10 +2171,20 @@ body,
   color: var(--foreground);
 }
 
+/*
+ * TopBar owns the header grid, but its centre track (clamp(240px, 22vw, 480px))
+ * is sized for a lone search field. This cluster also carries the Reflect
+ * action, so the header keeps a wider centre track.
+ */
 .m7-application-header {
-  display: grid;
-  align-items: center;
   gap: 0.5rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+@media (min-width: 1280px) {
+  .m7-application-header {
+    grid-template-columns: minmax(0, 1fr) clamp(240px, 32vw, 672px) minmax(0, 1fr);
+  }
 }
 
 .m7-header-context {
@@ -2253,20 +2206,6 @@ body,
 .m7-header-actions {
   min-width: 2.25rem;
   justify-self: end;
-}
-
-@media (min-width: 1280px) {
-  .m7-header-leading {
-    grid-column: 1;
-  }
-
-  .m7-search-cluster {
-    grid-column: 2;
-  }
-
-  .m7-header-actions {
-    grid-column: 3;
-  }
 }
 
 .m7-production-shell [data-m7-activity-inbox] .activity-card-grid {
@@ -2313,12 +2252,6 @@ body,
   flex: 0 1 12rem;
 }
 
-/* The shared Alert has no action slot; the retry button rides inside it. */
-.activity-alert-action {
-  margin-top: 0.5rem;
-  display: flex;
-}
-
 .m7-production-shell [data-m7-activity-inbox] .activity-card-log {
   display: block;
   margin-top: 0.75rem;
@@ -2361,10 +2294,6 @@ body,
 
 .m7-knowledge-workspace > [data-slot='empty'] {
   align-self: stretch;
-}
-
-.m7-knowledge-workspace .graph-toolbar [data-slot='input'] {
-  min-width: 12rem;
 }
 
 .m7-knowledge-workspace .graph-view {
@@ -2458,7 +2387,7 @@ body,
   border-bottom-color: var(--border);
 }
 
-.m7-utility-view :is(.utility-card-eyebrow, .utility-meta, .utility-note) {
+.m7-utility-view :is(.utility-meta, .utility-note) {
   color: var(--muted-foreground);
 }
 
@@ -2591,16 +2520,8 @@ body,
   min-width: 0;
   flex: 1;
 }
-.m7-application-header {
-  grid-template-columns: auto minmax(0, 1fr) auto;
-}
 .m7-search-cluster {
   width: 100%;
-}
-@media (min-width: 1280px) {
-  .m7-application-header {
-    grid-template-columns: minmax(0, 1fr) clamp(240px, 32vw, 672px) minmax(0, 1fr);
-  }
 }
 @media (max-width: 799px) {
   .m7-header-context {

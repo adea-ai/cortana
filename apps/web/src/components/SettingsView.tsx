@@ -1,7 +1,7 @@
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 import { ListRow } from '@adea-ai/ui/components/composites/list-row'
 import { Card } from '@adea-ai/ui/components/ui/card'
-import { AlertDescription } from '@adea-ai/ui/components/ui/alert'
+import { AlertAction, AlertDescription } from '@adea-ai/ui/components/ui/alert'
 import { Label } from '@adea-ai/ui/components/ui/label'
 import {
   Check,
@@ -83,6 +83,7 @@ import type {
   DesktopSourceJob,
   SourceSettings,
 } from '../types'
+import { Text } from '@adea-ai/ui/components/ui/typography'
 const AdvancedSettingsSection = lazy(() =>
   import('./settings/AdvancedSettingsSection').then((module) => ({
     default: module.AdvancedSettingsSection,
@@ -579,9 +580,9 @@ function SettingsViewContent(incoming: {
           <main tabIndex={-1} id="main-content" class="settings-view">
             <header class="settings-header">
               <div>
-                <span class="eyebrow">
+                <Text variant="overline" class="eyebrow">
                   {settings()!.needs_setup ? 'Guided setup' : 'Control plane'}
-                </span>
+                </Text>
                 <h1>Settings</h1>
                 <p>
                   Changes are written locally and audited. Secret values never return to this
@@ -894,33 +895,33 @@ function SettingsViewContent(incoming: {
                           : saved()
                             ? 'Settings saved.'
                             : 'A service restart is still required.')}
-                  {!error() &&
-                    settings()!.restart_required &&
-                    props.serviceActivity?.status !== 'running' && (
-                      <>
-                        {restartFailed() && (
-                          <Button
-                            tooltip="Retry restart"
-                            variant="secondary"
-                            size="sm"
-                            type="button"
-                            onClick={() => restartServices(settings()!)}
-                          >
-                            <RefreshCw size={14} aria-hidden="true" /> Retry restart
-                          </Button>
-                        )}
-                        <Button
-                          tooltip="Review service health and restart requirements."
-                          variant="secondary"
-                          size="sm"
-                          type="button"
-                          onClick={() => setSection('services')}
-                        >
-                          Open services
-                        </Button>
-                      </>
-                    )}
                 </AlertDescription>
+                {!error() &&
+                  settings()!.restart_required &&
+                  props.serviceActivity?.status !== 'running' && (
+                    <AlertAction>
+                      {restartFailed() && (
+                        <Button
+                          tooltip="Retry restart"
+                          variant="outline"
+                          size="xs"
+                          type="button"
+                          onClick={() => restartServices(settings()!)}
+                        >
+                          <RefreshCw size={14} aria-hidden="true" /> Retry restart
+                        </Button>
+                      )}
+                      <Button
+                        tooltip="Review service health and restart requirements."
+                        variant="outline"
+                        size="xs"
+                        type="button"
+                        onClick={() => setSection('services')}
+                      >
+                        Open services
+                      </Button>
+                    </AlertAction>
+                  )}
               </SettingsAlert>
             )}
           </main>
@@ -952,9 +953,7 @@ function SetupGuide(incoming: {
     <Card class="gap-3 p-4" role="region" aria-label="Guided setup progress">
       <div class="setup-guide-heading">
         <div>
-          <span class="text-muted-foreground text-xs font-semibold uppercase tracking-wide">
-            First launch
-          </span>
+          <Text variant="overline">First launch</Text>
           <strong>Set up Cortana safely</strong>
           <p>
             Review each step, then save. The guide itself never starts ingestion; recurring sync is

@@ -44,6 +44,7 @@ import type {
   Evidence,
   ReflectResponse,
 } from '../types'
+import { Text } from '@adea-ai/ui/components/ui/typography'
 
 const tabs = [
   { id: 'answer', label: 'Answer', icon: AppIcon },
@@ -163,11 +164,11 @@ export function Workspace(props: {
     >
       <Show when={props.tab !== 'graph'}>
         <Tabs
-          class="shrink-0 px-3 pt-2"
+          class="h-topbar shrink-0 justify-end"
           value={props.tab}
           onChange={(value) => props.onTabChange(value as WorkspaceTab)}
         >
-          <TabsList appearance="underline" aria-label="Result views">
+          <TabsList appearance="underline" fill class="px-3" aria-label="Result views">
             <For each={availableTabs()}>
               {({ id, label, icon }) => (
                 <Tooltip>
@@ -663,7 +664,9 @@ function ReflectionView(props: { response: ReflectResponse }) {
   ]
   return (
     <article class="answer-view" aria-label="Derived memory reflection">
-      <span class="eyebrow">Derived reflection · not canonical memory</span>
+      <Text variant="overline" class="eyebrow">
+        Derived reflection · not canonical memory
+      </Text>
       <h1>{props.response.objective}</h1>
       <Alert variant="warning" class="answer-warning">
         <AlertDescription>
@@ -730,9 +733,9 @@ function AnswerView(props: {
 }) {
   return (
     <article class="answer-view">
-      <span class="eyebrow">
+      <Text variant="overline" class="eyebrow">
         <AppIcon size={14} /> Evidence brief
-      </span>
+      </Text>
       <h1>{props.query}</h1>
       <Show when={props.response}>
         {(response) => (
