@@ -469,7 +469,7 @@ export function SourcePanel(props: {
         </Show>
       </Show>
       <section class="document-explorer" aria-label="Document explorer">
-        <div class="flex min-w-0 items-center gap-2 px-2 pb-2">
+        <div class="flex min-w-0 items-center gap-2 px-2 pb-2" data-m7-explorer-heading>
           <Breadcrumb
             aria-label={`Documents in ${
               selectedWorkspace()?.name || selectedWorkspaceId() || 'Documents'
