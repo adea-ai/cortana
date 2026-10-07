@@ -32,7 +32,7 @@
     "typecheck": "bun run --cwd apps/web typecheck"
   },
   "devDependencies": {
-    "@adea-ai/ui": "0.119.1",
+    "@adea-ai/ui": "0.120.0",
     "@axe-core/playwright": "^4.13.0",
     "@babel/core": "^8.0.6",
     "@babel/preset-typescript": "^8.0.1",
