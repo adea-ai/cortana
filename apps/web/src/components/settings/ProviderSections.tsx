@@ -1,8 +1,5 @@
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
-import {
-  Alert as SharedFeedbackAlert,
-  AlertDescription as SharedFeedbackDescription,
-} from '@adea-ai/ui/components/ui/alert'
+import { Alert, AlertDescription } from '@adea-ai/ui/components/ui/alert'
 import { Label } from '@adea-ai/ui/components/ui/label'
 import { RefreshCw } from 'lucide-solid'
 import {
@@ -19,24 +16,22 @@ import { isLoopbackUrl } from '../../operations'
 import type { DesktopSettings } from '../../types'
 import type { ModelChoice, ProviderValue } from './providerUtils'
 import { useSettingsConfirm } from './SettingsConfirm'
-import { Field, NumberField, SettingsSection } from './SettingsLayout'
-import {
-  SettingsButton as Button,
-  SettingsFieldGroup,
-  SettingsInput as Input,
-  SettingsSelect as Select,
-  SettingsSwitch,
-} from './SettingsSurface'
 import { applyConfirmed } from './SettingsWorkflowUtils'
+import { FormField, NumberField, FieldGroup } from '@adea-ai/ui/components/ui/field'
+import { SettingsSection } from '@adea-ai/ui/components/composites/settings'
+import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
+import { Input } from '@adea-ai/ui/components/ui/input'
+import { NativeSelect } from '@adea-ai/ui/components/ui/native-select'
+import { Switch } from '@adea-ai/ui/components/ui/switch'
 
-const SettingsCombobox = lazy(() =>
-  import('./SettingsModelCombobox').then((module) => ({
-    default: module.SettingsModelCombobox,
+const ValueCombobox = lazy(() =>
+  import('@adea-ai/ui/components/ui/combobox').then((module) => ({
+    default: module.ValueCombobox,
   }))
 )
-const SettingsSecretInputGroup = lazy(() =>
-  import('./SettingsSecretInputGroup').then((module) => ({
-    default: module.SettingsSecretInputGroup,
+const SecretInputGroup = lazy(() =>
+  import('@adea-ai/ui/components/ui/input-group').then((module) => ({
+    default: module.SecretInputGroup,
   }))
 )
 
@@ -98,7 +93,7 @@ export function EmbeddingSection(incoming: {
           : 'automatic command derived from the model and loopback endpoint'}
         . Desktop preserves explicit executable commands but does not edit shell command arrays.
       </div>
-      <SettingsFieldGroup class="form-grid compact">
+      <FieldGroup class="form-grid compact">
         <NumberField
           label="Vector dimension"
           value={props.settings.embedding.dimension}
@@ -172,7 +167,7 @@ export function EmbeddingSection(incoming: {
             })
           }
         />
-      </SettingsFieldGroup>
+      </FieldGroup>
     </ProviderSection>
   )
 }
@@ -236,7 +231,7 @@ function ProviderSection<T extends ProviderValue>(incoming: {
     }
   })
   const modelInput = () => (
-    <Field label="Model" controlId={modelFieldId}>
+    <FormField label="Model" controlId={modelFieldId}>
       <Input
         id={modelFieldId}
         aria-label="Model"
@@ -250,10 +245,10 @@ function ProviderSection<T extends ProviderValue>(incoming: {
         required
         maxLength={256}
       />
-    </Field>
+    </FormField>
   )
   const modelSelect = () => (
-    <Field label="Model" controlId={modelFieldId}>
+    <FormField label="Model" controlId={modelFieldId}>
       <Suspense
         fallback={
           <Input
@@ -264,7 +259,7 @@ function ProviderSection<T extends ProviderValue>(incoming: {
           />
         }
       >
-        <SettingsCombobox
+        <ValueCombobox
           id={modelFieldId}
           aria-label="Model catalog"
 
@@ -295,7 +290,7 @@ function ProviderSection<T extends ProviderValue>(incoming: {
           }}
         />
       </Suspense>
-    </Field>
+    </FormField>
   )
   const dropdownCatalog = () =>
     catalogValues().includes(props.provider.model)
@@ -308,8 +303,8 @@ function ProviderSection<T extends ProviderValue>(incoming: {
           ...activeCatalog(),
         ]
   const modelDropdown = () => (
-    <Field label="Model" controlId={modelFieldId}>
-      <Select
+    <FormField label="Model" controlId={modelFieldId}>
+      <NativeSelect
         id={modelFieldId}
         aria-label="Model catalog"
 
@@ -326,7 +321,7 @@ function ProviderSection<T extends ProviderValue>(incoming: {
           label: candidate.label,
         }))}
       />
-    </Field>
+    </FormField>
   )
   const modelControls = (
     <div class="model-field">
@@ -336,7 +331,7 @@ function ProviderSection<T extends ProviderValue>(incoming: {
           ? modelInput()
           : modelSelect()}
       <div class="model-refresh">
-        <Button
+        <ActionButton
           tooltip={`Refresh ${props.title} models from provider`}
           variant="secondary"
           size="sm"
@@ -351,12 +346,12 @@ function ProviderSection<T extends ProviderValue>(incoming: {
             <RefreshCw size={14} aria-hidden="true" />
           )}{' '}
           Refresh models
-        </Button>
+        </ActionButton>
       </div>
       {props.modelsError && (
-        <SharedFeedbackAlert variant="destructive" role="alert" class="my-2">
-          <SharedFeedbackDescription>{props.modelsError}</SharedFeedbackDescription>
-        </SharedFeedbackAlert>
+        <Alert variant="destructive" role="alert" class="my-2">
+          <AlertDescription>{props.modelsError}</AlertDescription>
+        </Alert>
       )}
       {props.advertisedModels && props.advertisedModels.length > 0 && (
         <small class="model-note">
@@ -369,9 +364,9 @@ function ProviderSection<T extends ProviderValue>(incoming: {
   )
   return (
     <SettingsSection bodyLayout="content" title={props.title} description={props.description}>
-      <SettingsFieldGroup class="form-grid">
-        <Field label="Provider">
-          <Select
+      <FieldGroup class="form-grid">
+        <FormField label="Provider">
+          <NativeSelect
             value={props.provider.provider}
             onChange={(event) => {
               const nextProvider = event.target.value as 'local' | 'cloud'
@@ -395,9 +390,9 @@ function ProviderSection<T extends ProviderValue>(incoming: {
               { value: 'cloud', label: 'Cloud' },
             ]}
           />
-        </Field>
+        </FormField>
         {modelControls}
-        <Field label="OpenAI-compatible endpoint" class="col-span-full">
+        <FormField label="OpenAI-compatible endpoint" class="col-span-full">
           <Input
             type="url"
             value={props.provider.base_url}
@@ -409,8 +404,8 @@ function ProviderSection<T extends ProviderValue>(incoming: {
             }
             required
           />
-        </Field>
-        <Field
+        </FormField>
+        <FormField
           label="API key variable"
           hint={
             secret()?.configured && !props.clearedSecrets.has(secret()!.name)
@@ -429,8 +424,8 @@ function ProviderSection<T extends ProviderValue>(incoming: {
             pattern="[A-Z_][A-Z0-9_]*"
             placeholder="CORTANA_PROVIDER_API_KEY"
           />
-        </Field>
-        <Field
+        </FormField>
+        <FormField
           label="New API key"
           hint="write-only; leave blank to keep existing"
           controlId={secretFieldId}
@@ -448,7 +443,7 @@ function ProviderSection<T extends ProviderValue>(incoming: {
               />
             }
           >
-            <SettingsSecretInputGroup
+            <SecretInputGroup
               id={secretFieldId}
               aria-describedby={`${secretFieldId}-description`}
               value={
@@ -479,8 +474,8 @@ function ProviderSection<T extends ProviderValue>(incoming: {
               }
             />
           </Suspense>
-        </Field>
-      </SettingsFieldGroup>
+        </FormField>
+      </FieldGroup>
       {props.children}
     </SettingsSection>
   )
@@ -525,7 +520,7 @@ export function QuerySection(incoming: {
       modelCatalog={[]}
     >
       <Label class="toggle-row">
-        <SettingsSwitch
+        <Switch
           aria-label="Enable answer synthesis"
           checked={props.settings.query.synthesis_enabled}
           onChange={(checked: boolean) =>
@@ -542,7 +537,7 @@ export function QuerySection(incoming: {
           </small>
         </span>
       </Label>
-      <SettingsFieldGroup class="form-grid compact">
+      <FieldGroup class="form-grid compact">
         <NumberField
           label="Planned queries"
           value={props.settings.query.max_planned_queries}
@@ -665,7 +660,7 @@ export function QuerySection(incoming: {
             })
           }
         />
-      </SettingsFieldGroup>
+      </FieldGroup>
     </ProviderSection>
   )
 }

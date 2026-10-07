@@ -1,25 +1,24 @@
 import { afterEach, expect, test } from 'bun:test'
 import { cleanup, fireEvent, render, waitFor } from 'solid-testing-library'
-
 import {
-  SettingsAccordion,
-  SettingsAccordionContent,
-  SettingsAccordionItem,
-  SettingsAccordionTrigger,
-} from './SettingsSurface'
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@adea-ai/ui/components/ui/accordion'
 
 afterEach(cleanup)
 
 test('settings disclosures close again when their trigger is activated twice', async () => {
   const { getByRole, queryByText } = render(() => (
-    <SettingsAccordion collapsible>
-      <SettingsAccordionItem value="details">
-        <SettingsAccordionTrigger>Advanced details</SettingsAccordionTrigger>
-        <SettingsAccordionContent>
+    <Accordion collapsible>
+      <AccordionItem value="details">
+        <AccordionTrigger>Advanced details</AccordionTrigger>
+        <AccordionContent>
           <p>Internal identifiers</p>
-        </SettingsAccordionContent>
-      </SettingsAccordionItem>
-    </SettingsAccordion>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   ))
   const trigger = getByRole('button', { name: 'Advanced details' })
   expect(trigger.getAttribute('aria-expanded')).toBe('false')

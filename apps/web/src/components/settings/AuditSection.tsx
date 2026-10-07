@@ -1,13 +1,13 @@
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 import { downloadBlob } from '@adea-ai/ui/lib/download'
-import { AlertDescription } from '@adea-ai/ui/components/ui/alert'
+import { AlertDescription, Alert } from '@adea-ai/ui/components/ui/alert'
 import { Download, RefreshCw } from 'lucide-solid'
 import { createEffect, createSignal, onCleanup } from 'solid-js'
 
 import { getDesktopAudit, getRuntimeAudit } from '../../api'
 import type { AuditEvent } from '../../types'
-import { SettingsSection } from './SettingsLayout'
-import { SettingsAlert, SettingsButton as Button } from './SettingsSurface'
+import { SettingsSection } from '@adea-ai/ui/components/composites/settings'
+import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
 
 export function AuditSection() {
   const [runtime, setRuntime] = createSignal<AuditEvent[]>([])
@@ -67,7 +67,7 @@ export function AuditSection() {
           {runtime().length} runtime · {desktop().length} Desktop events
         </span>
         <div class="service-actions">
-          <Button
+          <ActionButton
             tooltip="Reload the bounded runtime and Desktop audit events."
             variant="secondary"
             size="xs"
@@ -84,8 +84,8 @@ export function AuditSection() {
               <RefreshCw size={14} aria-hidden="true" />
             )}
             Refresh
-          </Button>
-          <Button
+          </ActionButton>
+          <ActionButton
             tooltip={
               loading()
                 ? 'Wait for the audit events to finish loading before exporting.'
@@ -98,13 +98,13 @@ export function AuditSection() {
             onClick={exportAudit}
           >
             <Download size={14} aria-hidden="true" /> Export
-          </Button>
+          </ActionButton>
         </div>
       </div>
       {error() && (
-        <SettingsAlert class="safety-note" variant="destructive" role="alert">
+        <Alert class="safety-note" variant="destructive" role="alert">
           <AlertDescription>{error()}</AlertDescription>
-        </SettingsAlert>
+        </Alert>
       )}
       <AuditList title="Runtime retrieval" events={runtime()} />
       <AuditList title="Desktop actions" events={desktop()} />

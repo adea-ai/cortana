@@ -1,8 +1,5 @@
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
-import {
-  Alert as SharedFeedbackAlert,
-  AlertDescription as SharedFeedbackDescription,
-} from '@adea-ai/ui/components/ui/alert'
+import { Alert, AlertDescription } from '@adea-ai/ui/components/ui/alert'
 import { InputGroup, InputGroupInput, InputGroupAddon } from '@adea-ai/ui/components/ui/input-group'
 import { ArrowDown, ArrowUp, Plus, Search, Trash2, Upload } from 'lucide-solid'
 import { useTheme } from '@adea-ai/ui/components/theme'
@@ -18,23 +15,24 @@ import {
   writeWorkspaceThemePreference,
 } from '../../workspaceThemePreference'
 import { useSettingsConfirm } from './SettingsConfirm'
-import { Field, SettingsSection } from './SettingsLayout'
 import {
   deriveWorkspaceIdentifier,
   ensureWorkspaceIdentifierUnique,
   isWorkspaceIdDerivedFromName,
 } from './SettingsSourceIdentity'
-import {
-  SettingsAccordion,
-  SettingsAccordionContent,
-  SettingsAccordionItem,
-  SettingsAccordionTrigger,
-  SettingsButton as Button,
-  SettingsCard,
-  SettingsInput as Input,
-  SettingsSelect as Select,
-} from './SettingsSurface'
 import { applyConfirmed } from './SettingsWorkflowUtils'
+import { FormField } from '@adea-ai/ui/components/ui/field'
+import { SettingsSection } from '@adea-ai/ui/components/composites/settings'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@adea-ai/ui/components/ui/accordion'
+import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
+import { Card } from '@adea-ai/ui/components/ui/card'
+import { Input } from '@adea-ai/ui/components/ui/input'
+import { NativeSelect } from '@adea-ai/ui/components/ui/native-select'
 
 // Mirrors the desktop settings guard (apps/desktop/src-tauri/src/settings.rs).
 // The cap stays a backend safety bound: the surface never advertises it as a
@@ -174,7 +172,7 @@ export function WorkspaceSection(incoming: {
       description="Create isolated query scopes and assign each source or account to one workspace. Workspace logos stay local to this Desktop profile and never enter the index or portable settings export."
     >
       {props.settings.workspaces.length > 6 && (
-        <Field
+        <FormField
           label="Find workspace"
           hint={`${visibleWorkspaces().length} of ${props.settings.workspaces.length} shown`}
           class="col-span-full"
@@ -191,7 +189,7 @@ export function WorkspaceSection(incoming: {
               autocomplete="off"
             />
           </InputGroup>
-        </Field>
+        </FormField>
       )}
       <div class={`workspace-settings-grid workspace-settings-grid--${visibleWorkspaces().length}`}>
         <Index each={visibleWorkspaces()}>
@@ -201,14 +199,14 @@ export function WorkspaceSection(incoming: {
             const workspace = () => entry().workspace
             const index = () => entry().index
             return (
-              <SettingsCard class="workspace-card">
+              <Card class="workspace-card">
                 <div class="workspace-card-heading">
                   <WorkspaceLogo workspace={workspace()} size="large" />
                   <div class="workspace-card-title">
                     <strong>{workspace().name || 'New workspace'}</strong>
                     <small>Workspace identity</small>
                   </div>
-                  <Button
+                  <ActionButton
                     variant="ghost"
                     size="icon-sm"
                     type="button"
@@ -226,7 +224,7 @@ export function WorkspaceSection(incoming: {
                     ) : (
                       <Upload size={14} aria-hidden="true" />
                     )}
-                  </Button>
+                  </ActionButton>
                   <Input
                     ref={(element: HTMLInputElement) => logoInputs.set(workspace().id, element)}
                     type="file"
@@ -242,7 +240,7 @@ export function WorkspaceSection(incoming: {
                   />
                   {props.settings.workspaces.length > 1 && (
                     <div class="workspace-order-actions">
-                      <Button
+                      <ActionButton
                         variant="ghost"
                         size="icon-sm"
                         type="button"
@@ -252,8 +250,8 @@ export function WorkspaceSection(incoming: {
                         onClick={() => moveWorkspace(index(), -1)}
                       >
                         <ArrowUp size={15} aria-hidden="true" />
-                      </Button>
-                      <Button
+                      </ActionButton>
+                      <ActionButton
                         variant="ghost"
                         size="icon-sm"
                         type="button"
@@ -263,8 +261,8 @@ export function WorkspaceSection(incoming: {
                         onClick={() => moveWorkspace(index(), 1)}
                       >
                         <ArrowDown size={15} aria-hidden="true" />
-                      </Button>
-                      <Button
+                      </ActionButton>
+                      <ActionButton
                         variant="destructive"
                         size="icon-sm"
                         type="button"
@@ -291,12 +289,12 @@ export function WorkspaceSection(incoming: {
                         }
                       >
                         <Trash2 size={15} aria-hidden="true" />
-                      </Button>
+                      </ActionButton>
                     </div>
                   )}
                 </div>
                 <div class="workspace-identity-row">
-                  <Field label="Display name">
+                  <FormField label="Display name">
                     <Input
                       value={workspace().name}
                       onInput={(event) =>
@@ -307,9 +305,9 @@ export function WorkspaceSection(incoming: {
                       required
                       maxLength={80}
                     />
-                  </Field>
-                  <Field label="Workspace theme">
-                    <Select
+                  </FormField>
+                  <FormField label="Workspace theme">
+                    <NativeSelect
                       aria-label={`Theme for ${workspace().name || 'new workspace'}`}
                       value={workspaceThemes()[workspace().id] ?? DEFAULT_THEME}
                       onChange={(event) => {
@@ -324,16 +322,16 @@ export function WorkspaceSection(incoming: {
                         .filter((theme) => theme.appearance === 'dark')
                         .map((theme) => ({ value: theme.id, label: themeDisplayName(theme) }))}
                     />
-                  </Field>
+                  </FormField>
                 </div>
-                <SettingsAccordion collapsible>
-                  <SettingsAccordionItem value={`workspace-${workspace().id}`}>
-                    <SettingsAccordionTrigger>Advanced workspace details</SettingsAccordionTrigger>
-                    <SettingsAccordionContent class="workspace-advanced-fields">
+                <Accordion collapsible>
+                  <AccordionItem value={`workspace-${workspace().id}`}>
+                    <AccordionTrigger>Advanced workspace details</AccordionTrigger>
+                    <AccordionContent class="workspace-advanced-fields">
                       <small class="workspace-advanced-note">
                         ID is internal; account labels are optional metadata.
                       </small>
-                      <Field
+                      <FormField
                         label="Scope ID"
                         hint="generated from the display name; used internally"
                       >
@@ -347,8 +345,8 @@ export function WorkspaceSection(incoming: {
                           maxLength={32}
                           pattern="[a-z0-9][a-z0-9_-]*"
                         />
-                      </Field>
-                      <Field
+                      </FormField>
+                      <FormField
                         label="Account label"
                         hint="optional display note; OAuth credentials belong to each source"
                       >
@@ -362,21 +360,21 @@ export function WorkspaceSection(incoming: {
                           maxLength={128}
                           placeholder="e.g. Nifty League"
                         />
-                      </Field>
-                    </SettingsAccordionContent>
-                  </SettingsAccordionItem>
-                </SettingsAccordion>
-              </SettingsCard>
+                      </FormField>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </Card>
             )
           }}
         </Index>
       </div>
       {logoError() && (
-        <SharedFeedbackAlert variant="destructive" role="alert" class="my-2">
-          <SharedFeedbackDescription>{logoError()}</SharedFeedbackDescription>
-        </SharedFeedbackAlert>
+        <Alert variant="destructive" role="alert" class="my-2">
+          <AlertDescription>{logoError()}</AlertDescription>
+        </Alert>
       )}
-      <Button
+      <ActionButton
         variant="secondary"
         size="sm"
         type="button"
@@ -389,7 +387,7 @@ export function WorkspaceSection(incoming: {
         onClick={addWorkspace}
       >
         <Plus size={15} aria-hidden="true" /> Add workspace
-      </Button>
+      </ActionButton>
     </SettingsSection>
   )
 }

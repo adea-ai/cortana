@@ -4,15 +4,14 @@ import { For } from 'solid-js'
 
 import type { AuthPrincipalSettings } from '../../types'
 import { useSettingsConfirm } from './SettingsConfirm'
-import { Field, SettingsSection, type SettingsSectionProps } from './SettingsLayout'
-import {
-  SettingsButton as Button,
-  SettingsCard,
-  SettingsCheckbox,
-  SettingsFieldGroup,
-  SettingsInput as Input,
-} from './SettingsSurface'
+import { type SettingsSectionProps } from './settingsSectionProps'
 import { applyConfirmed } from './SettingsWorkflowUtils'
+import { FormField, FieldGroup } from '@adea-ai/ui/components/ui/field'
+import { SettingsSection } from '@adea-ai/ui/components/composites/settings'
+import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
+import { Card } from '@adea-ai/ui/components/ui/card'
+import { Checkbox } from '@adea-ai/ui/components/ui/checkbox'
+import { Input } from '@adea-ai/ui/components/ui/input'
 
 export function AccessSection(
   incoming: SettingsSectionProps & {
@@ -74,11 +73,11 @@ export function AccessSection(
             const secret = props.settings.secrets.find((item) => item.name === principal.token_env)
             return (
               // principals render in settings order
-              <SettingsCard class="principal-card">
+              <Card class="principal-card">
                 <header>
                   <KeyRound size={16} aria-hidden="true" />
                   <strong>{principal.principal || `Principal ${index() + 1}`}</strong>
-                  <Button
+                  <ActionButton
                     variant="destructive"
                     size="icon-sm"
                     type="button"
@@ -100,10 +99,10 @@ export function AccessSection(
                     }
                   >
                     <Trash2 size={15} aria-hidden="true" />
-                  </Button>
+                  </ActionButton>
                 </header>
-                <SettingsFieldGroup class="form-grid">
-                  <Field label="Principal name">
+                <FieldGroup class="form-grid">
+                  <FormField label="Principal name">
                     <Input
                       value={principal.principal}
                       maxLength={128}
@@ -114,8 +113,8 @@ export function AccessSection(
                         })
                       }
                     />
-                  </Field>
-                  <Field label="Token environment name">
+                  </FormField>
+                  <FormField label="Token environment name">
                     <Input
                       value={principal.token_env}
                       maxLength={128}
@@ -127,8 +126,8 @@ export function AccessSection(
                         })
                       }
                     />
-                  </Field>
-                  <Field label="New bearer token" hint="write-only; leave blank to retain">
+                  </FormField>
+                  <FormField label="New bearer token" hint="write-only; leave blank to retain">
                     <Input
                       type="password"
                       autocomplete="new-password"
@@ -141,7 +140,7 @@ export function AccessSection(
                       }
                     />
                     {secret?.configured && !props.clearedSecrets.has(principal.token_env) && (
-                      <Button
+                      <ActionButton
                         tooltip="Clear stored token"
                         variant="destructive"
                         size="sm"
@@ -155,10 +154,10 @@ export function AccessSection(
                         }
                       >
                         Clear stored token
-                      </Button>
+                      </ActionButton>
                     )}
-                  </Field>
-                  <Field label="ACL labels" hint="comma-separated workspace IDs; * grants all">
+                  </FormField>
+                  <FormField label="ACL labels" hint="comma-separated workspace IDs; * grants all">
                     <Input
                       value={principal.acl.join(', ')}
                       onInput={(event) =>
@@ -170,13 +169,13 @@ export function AccessSection(
                         })
                       }
                     />
-                  </Field>
-                </SettingsFieldGroup>
+                  </FormField>
+                </FieldGroup>
                 <div class="scope-options">
                   <For each={['query', 'status', 'admin'] as const}>
                     {(scope) => (
                       <Label>
-                        <SettingsCheckbox
+                        <Checkbox
                           aria-label={`${scope} scope for ${principal.principal}`}
                           checked={principal.scopes.includes(scope)}
                           onChange={(checked: boolean) =>
@@ -192,14 +191,14 @@ export function AccessSection(
                     )}
                   </For>
                 </div>
-              </SettingsCard>
+              </Card>
             )
           }}
         </For>
       </div>
-      <Button tooltip="Add principal" variant="secondary" size="sm" onClick={add}>
+      <ActionButton tooltip="Add principal" variant="secondary" size="sm" onClick={add}>
         <Plus size={15} aria-hidden="true" /> Add principal
-      </Button>
+      </ActionButton>
       <p class="settings-note">
         Settings take effect after the server restarts. Desktop requests select a matching private
         native credential by scope without exposing it to web content.

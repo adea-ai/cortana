@@ -6,7 +6,7 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from '@adea-ai/ui/components/ui/accordion'
-import { AlertAction, AlertDescription } from '@adea-ai/ui/components/ui/alert'
+import { AlertAction, AlertDescription, Alert } from '@adea-ai/ui/components/ui/alert'
 import { Label } from '@adea-ai/ui/components/ui/label'
 import { EntityIcon } from '@adea-ai/ui/components/ui/entity-icon'
 import { Badge } from '@adea-ai/ui/components/ui/badge'
@@ -70,31 +70,21 @@ import type {
   SourceSettings,
 } from '../../types'
 import { useSettingsConfirm } from './SettingsConfirm'
-import { Field, SettingsSection, type SettingsSectionProps } from './SettingsLayout'
-import {
-  SettingsAccordion,
-  SettingsAccordionContent,
-  SettingsAccordionItem,
-  SettingsAccordionTrigger,
-  SettingsAlert,
-  SettingsButton as Button,
-  SettingsCard,
-  SettingsCheckbox,
-  SettingsFieldGroup,
-  SettingsInput as Input,
-  SettingsRadio,
-  SettingsRadioGroup,
-  SettingsSelect as Select,
-  SettingsSwitch,
-  SettingsTabs,
-  SettingsTabsContent,
-  SettingsTabsList,
-  SettingsTabsTrigger,
-  SettingsTextarea as Textarea,
-} from './SettingsSurface'
+import { type SettingsSectionProps } from './settingsSectionProps'
 import { StatusGlyph } from './SettingsWorkflowShared'
 import { applyConfirmed, useDesktopForeground } from './SettingsWorkflowUtils'
 import { Text } from '@adea-ai/ui/components/ui/typography'
+import { FormField, FieldGroup } from '@adea-ai/ui/components/ui/field'
+import { SettingsSection } from '@adea-ai/ui/components/composites/settings'
+import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
+import { Card } from '@adea-ai/ui/components/ui/card'
+import { Checkbox } from '@adea-ai/ui/components/ui/checkbox'
+import { Input } from '@adea-ai/ui/components/ui/input'
+import { RadioGroupItem, RadioGroup } from '@adea-ai/ui/components/ui/radio-group'
+import { NativeSelect } from '@adea-ai/ui/components/ui/native-select'
+import { Switch } from '@adea-ai/ui/components/ui/switch'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@adea-ai/ui/components/ui/tabs'
+import { Textarea } from '@adea-ai/ui/components/ui/textarea'
 const SOURCE_KINDS: Array<{
   value: SourceKind
   label: string
@@ -968,7 +958,7 @@ export function SourcesSection(
               {props.settings.sources.length} configured
             </span>
             <DialogTrigger
-              as={Button}
+              as={ActionButton}
               tooltip="Choose a source to add to this workspace"
               variant="secondary"
               type="button"
@@ -990,7 +980,7 @@ export function SourcesSection(
                 No content is indexed until you run validation or sync.
               </DialogDescription>
             </DialogHeader>
-            <SettingsRadioGroup
+            <RadioGroup
               class="source-type-options"
               aria-label="Source type"
               value={sourceType()}
@@ -999,7 +989,7 @@ export function SourcesSection(
               <For each={SOURCE_KINDS}>
                 {(kind) => (
                   <Label class="source-type-option">
-                    <SettingsRadio value={kind.value} />
+                    <RadioGroupItem value={kind.value} />
                     <EntityIcon
                       name={kind.label}
                       icon={<SourceIcon kind={kind.value} />}
@@ -1011,9 +1001,9 @@ export function SourcesSection(
                   </Label>
                 )}
               </For>
-            </SettingsRadioGroup>
+            </RadioGroup>
             <DialogFooter>
-              <Button
+              <ActionButton
                 tooltip="Cancel this operation and return to the previous view."
                 variant="secondary"
                 size="sm"
@@ -1021,10 +1011,10 @@ export function SourcesSection(
                 onClick={() => setSourceTypeOpen(false)}
               >
                 Cancel
-              </Button>
+              </ActionButton>
               {sourceType() === 'filesystem' ? (
                 <>
-                  <Button
+                  <ActionButton
                     tooltip="Choose file"
                     variant="secondary"
                     size="sm"
@@ -1033,8 +1023,8 @@ export function SourcesSection(
                   >
                     <File size={15} aria-hidden="true" />
                     Choose file
-                  </Button>
-                  <Button
+                  </ActionButton>
+                  <ActionButton
                     tooltip="Choose folder"
                     variant="default"
                     size="sm"
@@ -1042,10 +1032,10 @@ export function SourcesSection(
                     onClick={() => void addFilesystemSource('directory')}
                   >
                     <FolderOpen size={15} aria-hidden="true" /> Choose folder
-                  </Button>
+                  </ActionButton>
                 </>
               ) : (
-                <Button
+                <ActionButton
                   tooltip={`Connect ${SOURCE_KINDS.find((kind) => kind.value === sourceType())?.label || 'source'} to the selected workspace.`}
                   variant="default"
                   size="sm"
@@ -1056,14 +1046,14 @@ export function SourcesSection(
                   {connectingSource() ? <Spinner size="md" label={false} /> : null}
                   {sourceType() === 'buzz' ? 'Add' : 'Connect'}{' '}
                   {SOURCE_KINDS.find((kind) => kind.value === sourceType())?.label || 'source'}
-                </Button>
+                </ActionButton>
               )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        <SettingsTabs value={sourceWorkspace()} onChange={setSourceWorkspace}>
-          <SettingsTabsList
+        <Tabs value={sourceWorkspace()} onChange={setSourceWorkspace}>
+          <TabsList
             class="source-workspace-tabs"
             aria-label="Source workspace"
             appearance="underline"
@@ -1075,28 +1065,28 @@ export function SourcesSection(
                   (source) => source.project === workspace.id
                 ).length
                 return (
-                  <SettingsTabsTrigger value={workspace.id}>
+                  <TabsTrigger value={workspace.id}>
                     <WorkspaceLogo workspace={workspace} size="small" />
                     <span>{workspace.name}</span>
                     <Badge variant="secondary" size="sm">
                       {count}
                     </Badge>
-                  </SettingsTabsTrigger>
+                  </TabsTrigger>
                 )
               }}
             </For>
             {unassignedSourceCount() > 0 && (
-              <SettingsTabsTrigger value={UNASSIGNED_WORKSPACE}>
+              <TabsTrigger value={UNASSIGNED_WORKSPACE}>
                 <AlertTriangle size={15} aria-hidden="true" />
                 <span>Needs assignment</span>
                 <Badge variant="secondary" size="sm">
                   {unassignedSourceCount()}
                 </Badge>
-              </SettingsTabsTrigger>
+              </TabsTrigger>
             )}
-          </SettingsTabsList>
+          </TabsList>
 
-          <SettingsTabsContent value={sourceWorkspace()}>
+          <TabsContent value={sourceWorkspace()}>
             <p class="source-workspace-caption">
               {selectedWorkspace()
                 ? `Showing sources assigned to ${selectedWorkspace()!.name}.`
@@ -1104,13 +1094,13 @@ export function SourcesSection(
             </p>
 
             {activeJob() && (
-              <SettingsAlert class="safety-note" role="status">
+              <Alert class="safety-note" role="status">
                 <AlertDescription>
                   Settings for {activeJob()!.source} are locked while its operation is running.
                   Other sources remain configurable, but source actions still wait until this
                   operation finishes.
                 </AlertDescription>
-              </SettingsAlert>
+              </Alert>
             )}
 
             <div class="source-settings-list">
@@ -1157,7 +1147,7 @@ export function SourcesSection(
                           : source().project === sourceWorkspace()
                       }
                     >
-                      <SettingsCard class="source-settings-card">
+                      <Card class="source-settings-card">
                         <header>
                           <div class="source-enable">
                             <EntityIcon
@@ -1183,7 +1173,7 @@ export function SourcesSection(
                           {!workspaceAssigned() && (
                             <Label class="source-workspace-picker">
                               <span>Assign workspace</span>
-                              <Select
+                              <NativeSelect
                                 aria-label={`Workspace for ${source().name}`}
                                 value={source().project ?? ''}
                                 disabled={sourceLocked()}
@@ -1212,7 +1202,7 @@ export function SourcesSection(
                           <div class="source-card-actions">
                             <div class="source-enabled-switch">
                               <span>{source().enabled ? 'Enabled' : 'Disabled'}</span>
-                              <SettingsSwitch
+                              <Switch
                                 aria-label={`Enable ${source().name}`}
                                 checked={source().enabled}
                                 disabled={
@@ -1231,7 +1221,7 @@ export function SourcesSection(
                               />
                             </div>
                             {hasBrowserSetup(source().kind) && (
-                              <Button
+                              <ActionButton
                                 variant="ghost"
                                 size="icon-sm"
                                 type="button"
@@ -1241,14 +1231,14 @@ export function SourcesSection(
                                 onClick={() => void openSetup(source())}
                               >
                                 <ExternalLink size={14} aria-hidden="true" />
-                              </Button>
+                              </ActionButton>
                             )}
                             {(isGoogleSource(source().kind) ||
                               source().kind === 'github' ||
                               source().kind === 'discord' ||
                               source().kind === 'slack') &&
                               canAuthorizeSource(source()) && (
-                                <Button
+                                <ActionButton
                                   variant="ghost"
                                   size="icon-sm"
                                   type="button"
@@ -1258,10 +1248,10 @@ export function SourcesSection(
                                   onClick={() => void authorizeSource(source())}
                                 >
                                   <KeyRound size={14} aria-hidden="true" />
-                                </Button>
+                                </ActionButton>
                               )}
                             {workspaceAssigned() && (
-                              <Button
+                              <ActionButton
                                 variant="ghost"
                                 size="icon-sm"
                                 type="button"
@@ -1271,10 +1261,10 @@ export function SourcesSection(
                                 onClick={() => void checkSourceConnection(source())}
                               >
                                 <ShieldCheck size={14} aria-hidden="true" />
-                              </Button>
+                              </ActionButton>
                             )}
                             {source().enabled && workspaceAssigned() && (
-                              <Button
+                              <ActionButton
                                 variant="ghost"
                                 size="icon-sm"
                                 type="button"
@@ -1284,9 +1274,9 @@ export function SourcesSection(
                                 onClick={() => openInitialSync(source())}
                               >
                                 <Zap size={14} aria-hidden="true" />
-                              </Button>
+                              </ActionButton>
                             )}
-                            <Button
+                            <ActionButton
                               variant="destructive"
                               size="icon-sm"
                               type="button"
@@ -1312,39 +1302,39 @@ export function SourcesSection(
                               }}
                             >
                               <Trash2 size={14} aria-hidden="true" />
-                            </Button>
+                            </ActionButton>
                           </div>
                         </header>
 
                         {!source().editable && (
-                          <SettingsAlert class="mt-3" role="note">
+                          <Alert class="mt-3" role="note">
                             <AlertDescription>
                               This external command is managed in the TOML file. Desktop can retain,
                               disable, or remove it, but cannot edit or create shell commands.
                             </AlertDescription>
-                          </SettingsAlert>
+                          </Alert>
                         )}
 
                         {!workspaceAssigned() && (
-                          <SettingsAlert class="mt-3" variant="warning" role="alert">
+                          <Alert class="mt-3" variant="warning" role="alert">
                             <AlertTriangle size={15} aria-hidden="true" />
                             <AlertDescription>
                               This source uses the legacy{' '}
                               <code>{source().project || 'unassigned'}</code> scope. Assign it to a
                               workspace below before enabling, validating, or syncing it.
                             </AlertDescription>
-                          </SettingsAlert>
+                          </Alert>
                         )}
 
-                        <SettingsAccordion collapsible>
-                          <SettingsAccordionItem value={`source-${index}`}>
-                            <SettingsAccordionTrigger class="items-center justify-start gap-3 pt-2">
+                        <Accordion collapsible>
+                          <AccordionItem value={`source-${index}`}>
+                            <AccordionTrigger class="items-center justify-start gap-3 pt-2">
                               <span>Advanced source settings</span>
                               <small>Workspace, credentials, filters, and safety limits</small>
-                            </SettingsAccordionTrigger>
-                            <SettingsAccordionContent>
-                              <SettingsFieldGroup class="form-grid source-form-grid">
-                                <Field label="Source name" hint="stable lowercase identifier">
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              <FieldGroup class="form-grid source-form-grid">
+                                <FormField label="Source name" hint="stable lowercase identifier">
                                   <Input
                                     value={source().name}
                                     disabled={sourceLocked() || !source().editable}
@@ -1357,9 +1347,9 @@ export function SourcesSection(
                                       })
                                     }
                                   />
-                                </Field>
-                                <Field label="Connector">
-                                  <Select
+                                </FormField>
+                                <FormField label="Connector">
+                                  <NativeSelect
                                     value={source().kind}
                                     disabled={sourceLocked() || !source().editable}
                                     onChange={(event) => {
@@ -1385,10 +1375,10 @@ export function SourcesSection(
                                       })),
                                     ]}
                                   />
-                                </Field>
+                                </FormField>
                                 {source().kind === 'apple-notes' && (
                                   <>
-                                    <Field
+                                    <FormField
                                       label="Include Apple Notes folders"
                                       hint="one exact folder name per line; leave empty to include every folder. On first validation, allow Cortana or the invoking terminal under macOS Privacy & Security > Automation."
                                       class="col-span-full"
@@ -1404,8 +1394,8 @@ export function SourcesSection(
                                           })
                                         }
                                       />
-                                    </Field>
-                                    <Field
+                                    </FormField>
+                                    <FormField
                                       label="Exclude Apple Notes folders"
                                       hint="one exact folder name per line; exclusions win when both lists match"
                                       class="col-span-full"
@@ -1421,11 +1411,11 @@ export function SourcesSection(
                                           })
                                         }
                                       />
-                                    </Field>
+                                    </FormField>
                                   </>
                                 )}
                                 {(source().kind === 'filesystem' || source().kind === 'buzz') && (
-                                  <Field
+                                  <FormField
                                     label={
                                       source().kind === 'buzz'
                                         ? 'Buzz data directory'
@@ -1446,7 +1436,7 @@ export function SourcesSection(
                                           })
                                         }
                                       />
-                                      <Button
+                                      <ActionButton
                                         variant="ghost"
                                         size="icon-sm"
                                         type="button"
@@ -1457,19 +1447,19 @@ export function SourcesSection(
                                         onClick={() => void choosePath(index, 'directory', 'root')}
                                       >
                                         <FolderOpen size={14} aria-hidden="true" />
-                                      </Button>
+                                      </ActionButton>
                                     </div>
-                                  </Field>
+                                  </FormField>
                                 )}
                                 {source().kind === 'buzz' && (
-                                  <Field
+                                  <FormField
                                     label="Community chooser"
                                     hint="assign the communities this workspace may index; the list comes from Buzz's read-only agents/teams.json identity file in the configured data directory, so make sure the Buzz app has written it first"
                                     group
                                     class="col-span-full"
                                   >
                                     <div class="grid gap-4">
-                                      <Button
+                                      <ActionButton
                                         tooltip="Discover communities"
                                         variant="secondary"
                                         size="sm"
@@ -1488,7 +1478,7 @@ export function SourcesSection(
                                           <RefreshCw size={14} aria-hidden="true" />
                                         )}{' '}
                                         Discover communities
-                                      </Button>
+                                      </ActionButton>
                                       {buzzCommunities()[source().name] && (
                                         <div class="grid gap-2">
                                           {buzzCommunities()[source().name].communities.length ===
@@ -1500,7 +1490,7 @@ export function SourcesSection(
                                             buzzCommunities()[source().name].communities.map(
                                               (community) => (
                                                 <Label>
-                                                  <SettingsCheckbox
+                                                  <Checkbox
                                                     aria-label={`Include ${community.name}`}
                                                     checked={source().communities.includes(
                                                       community.id
@@ -1528,9 +1518,9 @@ export function SourcesSection(
                                         </div>
                                       )}
                                     </div>
-                                  </Field>
+                                  </FormField>
                                 )}
-                                <Field
+                                <FormField
                                   label="Source label"
                                   hint="identifier stored on indexed documents"
                                 >
@@ -1546,9 +1536,9 @@ export function SourcesSection(
                                       })
                                     }
                                   />
-                                </Field>
+                                </FormField>
                                 {source().kind === 'filesystem' && (
-                                  <Field
+                                  <FormField
                                     label="Excluded paths"
                                     hint="comma or line separated, relative paths"
                                   >
@@ -1561,11 +1551,11 @@ export function SourcesSection(
                                         })
                                       }
                                     />
-                                  </Field>
+                                  </FormField>
                                 )}
                                 {isGoogleSource(source().kind) && (
                                   <>
-                                    <Field
+                                    <FormField
                                       label="Google OAuth token file"
                                       hint="private token created by Cortana; optional when a token path environment variable is configured"
                                       class="col-span-full"
@@ -1582,7 +1572,7 @@ export function SourcesSection(
                                             })
                                           }
                                         />
-                                        <Button
+                                        <ActionButton
                                           variant="ghost"
                                           size="icon-sm"
                                           type="button"
@@ -1595,10 +1585,10 @@ export function SourcesSection(
                                           }
                                         >
                                           <FolderOpen size={14} aria-hidden="true" />
-                                        </Button>
+                                        </ActionButton>
                                       </div>
-                                    </Field>
-                                    <Field
+                                    </FormField>
+                                    <FormField
                                       label="Google Desktop OAuth client JSON"
                                       hint="downloaded from Google Cloud Console; required to authorize"
                                       class="col-span-full"
@@ -1614,7 +1604,7 @@ export function SourcesSection(
                                             })
                                           }
                                         />
-                                        <Button
+                                        <ActionButton
                                           variant="ghost"
                                           size="icon-sm"
                                           type="button"
@@ -1631,10 +1621,10 @@ export function SourcesSection(
                                           }
                                         >
                                           <FolderOpen size={14} aria-hidden="true" />
-                                        </Button>
+                                        </ActionButton>
                                       </div>
-                                    </Field>
-                                    <Field
+                                    </FormField>
+                                    <FormField
                                       label="Google token path environment variable"
                                       hint="optional; its value must be an absolute OAuth token JSON path"
                                     >
@@ -1649,8 +1639,8 @@ export function SourcesSection(
                                           })
                                         }
                                       />
-                                    </Field>
-                                    <Field
+                                    </FormField>
+                                    <FormField
                                       label="Google token path value"
                                       hint="write-only path; leave blank to keep the existing value"
                                     >
@@ -1680,7 +1670,7 @@ export function SourcesSection(
                                         {source().token_env &&
                                           secret()?.configured &&
                                           !props.clearedSecrets.has(secret()!.name) && (
-                                            <Button
+                                            <ActionButton
                                               tooltip="Clear"
                                               variant="destructive"
                                               size="sm"
@@ -1696,11 +1686,11 @@ export function SourcesSection(
                                               }
                                             >
                                               Clear
-                                            </Button>
+                                            </ActionButton>
                                           )}
                                       </div>
-                                    </Field>
-                                    <Field
+                                    </FormField>
+                                    <FormField
                                       label="Google query"
                                       hint="optional provider-native filter"
                                       class="col-span-full"
@@ -1718,19 +1708,19 @@ export function SourcesSection(
                                           })
                                         }
                                       />
-                                    </Field>
+                                    </FormField>
                                   </>
                                 )}
                                 {source().kind === 'github' && (
                                   <>
-                                    <Field
+                                    <FormField
                                       label="Repository chooser"
                                       hint="discover accessible repositories, then select only the ones Cortana may index"
                                       group
                                       class="col-span-full"
                                     >
                                       <div class="grid gap-4">
-                                        <Button
+                                        <ActionButton
                                           tooltip="Discover repositories"
                                           variant="secondary"
                                           size="sm"
@@ -1748,7 +1738,7 @@ export function SourcesSection(
                                             <RefreshCw size={14} aria-hidden="true" />
                                           )}{' '}
                                           Discover repositories
-                                        </Button>
+                                        </ActionButton>
                                         {githubRepositories()[source().name] && (
                                           <div class="grid gap-2">
                                             {githubRepositories()[source().name].items.length ===
@@ -1758,7 +1748,7 @@ export function SourcesSection(
                                               githubRepositories()[source().name].items.map(
                                                 (repository) => (
                                                   <Label>
-                                                    <SettingsCheckbox
+                                                    <Checkbox
                                                       aria-label={`Include ${repository.full_name}`}
                                                       checked={source().repositories.includes(
                                                         repository.full_name
@@ -1785,8 +1775,8 @@ export function SourcesSection(
                                           </div>
                                         )}
                                       </div>
-                                    </Field>
-                                    <Field
+                                    </FormField>
+                                    <FormField
                                       label="GitHub OAuth token file"
                                       hint="private token created by Cortana; use this for OAuth or leave blank for an environment token"
                                       class="col-span-full"
@@ -1803,7 +1793,7 @@ export function SourcesSection(
                                             })
                                           }
                                         />
-                                        <Button
+                                        <ActionButton
                                           variant="ghost"
                                           size="icon-sm"
                                           type="button"
@@ -1816,9 +1806,9 @@ export function SourcesSection(
                                           }
                                         >
                                           <FolderOpen size={14} aria-hidden="true" />
-                                        </Button>
+                                        </ActionButton>
                                       </div>
-                                    </Field>
+                                    </FormField>
                                   </>
                                 )}
                                 {(source().kind === 'github' ||
@@ -1826,14 +1816,14 @@ export function SourcesSection(
                                   source().kind === 'discord') && (
                                   <>
                                     {source().kind === 'discord' && (
-                                      <Field
+                                      <FormField
                                         label="Server chooser"
                                         hint="assign the servers this workspace may index; approve Cortana in Discord Desktop first, then discover and check the servers to assign"
                                         group
                                         class="col-span-full"
                                       >
                                         <div class="grid gap-4">
-                                          <Button
+                                          <ActionButton
                                             tooltip="Discover servers"
                                             variant="secondary"
                                             size="sm"
@@ -1852,7 +1842,7 @@ export function SourcesSection(
                                               <RefreshCw size={14} aria-hidden="true" />
                                             )}{' '}
                                             Discover servers
-                                          </Button>
+                                          </ActionButton>
                                           {discordServers()[source().name] && (
                                             <div class="grid gap-2">
                                               {discordServers()[source().name].guilds.length ===
@@ -1862,7 +1852,7 @@ export function SourcesSection(
                                                 discordServers()[source().name].guilds.map(
                                                   (guild) => (
                                                     <Label>
-                                                      <SettingsCheckbox
+                                                      <Checkbox
                                                         aria-label={`Include ${guild.name}`}
                                                         checked={source().servers.includes(
                                                           guild.id
@@ -1892,17 +1882,17 @@ export function SourcesSection(
                                             </div>
                                           )}
                                         </div>
-                                      </Field>
+                                      </FormField>
                                     )}
                                     {source().kind === 'discord' && (
-                                      <Field
+                                      <FormField
                                         label="Channel chooser"
                                         hint="discover channels through the running Discord Desktop RPC client, then select only the channels Cortana may index; channels outside assigned servers stay available when no servers are assigned"
                                         group
                                         class="col-span-full"
                                       >
                                         <div class="grid gap-4">
-                                          <Button
+                                          <ActionButton
                                             tooltip="Discover channels"
                                             variant="secondary"
                                             size="sm"
@@ -1921,10 +1911,10 @@ export function SourcesSection(
                                               <RefreshCw size={14} aria-hidden="true" />
                                             )}{' '}
                                             Discover channels
-                                          </Button>
+                                          </ActionButton>
                                           {discordChannels()[source().name] && (
                                             <div class="grid gap-2">
-                                              <Button
+                                              <ActionButton
                                                 tooltip="Select all Discord text channels"
                                                 variant="secondary"
                                                 size="sm"
@@ -1939,8 +1929,8 @@ export function SourcesSection(
                                                   )
                                                 }
                                               >
-                                                Select all text channels
-                                              </Button>
+                                                NativeSelect all text channels
+                                              </ActionButton>
                                               <small>
                                                 Selects text and announcement channels in assigned
                                                 servers; voice, forum, stage, and category channels
@@ -1985,7 +1975,7 @@ export function SourcesSection(
                                                                   : 'Assign this server in the server chooser before selecting its channels'
                                                               }
                                                             >
-                                                              <SettingsCheckbox
+                                                              <Checkbox
                                                                 aria-label={`${channel.name} · ${channel.kind}`}
                                                                 checked={source().channels.includes(
                                                                   channel.id
@@ -2022,9 +2012,9 @@ export function SourcesSection(
                                             </div>
                                           )}
                                         </div>
-                                      </Field>
+                                      </FormField>
                                     )}
-                                    <Field
+                                    <FormField
                                       label={
                                         source().kind === 'github' ? 'Repositories' : 'Channel IDs'
                                       }
@@ -2068,9 +2058,9 @@ export function SourcesSection(
                                           )
                                         }}
                                       />
-                                    </Field>
+                                    </FormField>
                                     {source().kind !== 'discord' && (
-                                      <Field
+                                      <FormField
                                         label="Token variable"
                                         hint={
                                           secret()?.configured &&
@@ -2094,10 +2084,10 @@ export function SourcesSection(
                                             })
                                           }
                                         />
-                                      </Field>
+                                      </FormField>
                                     )}
                                     {source().kind !== 'discord' && (
-                                      <Field
+                                      <FormField
                                         label="New token"
                                         hint="write-only; leave blank to keep existing"
                                       >
@@ -2127,7 +2117,7 @@ export function SourcesSection(
                                           {source().token_env &&
                                             secret()?.configured &&
                                             !props.clearedSecrets.has(secret()!.name) && (
-                                              <Button
+                                              <ActionButton
                                                 tooltip="Clear"
                                                 variant="destructive"
                                                 size="sm"
@@ -2143,14 +2133,14 @@ export function SourcesSection(
                                                 }
                                               >
                                                 Clear
-                                              </Button>
+                                              </ActionButton>
                                             )}
                                         </div>
-                                      </Field>
+                                      </FormField>
                                     )}
                                     {source().kind === 'discord' && (
                                       <>
-                                        <Field
+                                        <FormField
                                           label="Discord RPC token file"
                                           hint="private access token created through Discord Desktop RPC; used for server, channel, and message reads"
                                           class="col-span-full"
@@ -2166,7 +2156,7 @@ export function SourcesSection(
                                                 })
                                               }
                                             />
-                                            <Button
+                                            <ActionButton
                                               variant="ghost"
                                               size="icon-sm"
                                               type="button"
@@ -2183,10 +2173,10 @@ export function SourcesSection(
                                               }
                                             >
                                               <FolderOpen size={14} aria-hidden="true" />
-                                            </Button>
+                                            </ActionButton>
                                           </div>
-                                        </Field>
-                                        <Field
+                                        </FormField>
+                                        <FormField
                                           label="Discord RPC client JSON"
                                           hint="JSON containing the Discord application client_id and optional client_secret"
                                           class="col-span-full"
@@ -2202,7 +2192,7 @@ export function SourcesSection(
                                                 })
                                               }
                                             />
-                                            <Button
+                                            <ActionButton
                                               variant="ghost"
                                               size="icon-sm"
                                               type="button"
@@ -2219,21 +2209,21 @@ export function SourcesSection(
                                               }
                                             >
                                               <FolderOpen size={14} aria-hidden="true" />
-                                            </Button>
+                                            </ActionButton>
                                           </div>
-                                        </Field>
+                                        </FormField>
                                       </>
                                     )}
                                     {source().kind === 'slack' && (
                                       <>
-                                        <Field
+                                        <FormField
                                           label="Workspace chooser"
                                           hint="assign the workspace this source may index; authorize with Slack first, then discover and check the workspace to assign. A Slack user token is scoped to exactly one workspace, so at most one team can be assigned per source"
                                           group
                                           class="col-span-full"
                                         >
                                           <div class="grid gap-4">
-                                            <Button
+                                            <ActionButton
                                               tooltip="Discover workspaces"
                                               variant="secondary"
                                               size="sm"
@@ -2252,7 +2242,7 @@ export function SourcesSection(
                                                 <RefreshCw size={14} aria-hidden="true" />
                                               )}{' '}
                                               Discover workspaces
-                                            </Button>
+                                            </ActionButton>
                                             {slackWorkspaces()[source().name] && (
                                               <div class="grid gap-2">
                                                 {slackWorkspaces()[source().name].teams.length ===
@@ -2262,7 +2252,7 @@ export function SourcesSection(
                                                   slackWorkspaces()[source().name].teams.map(
                                                     (team) => (
                                                       <Label>
-                                                        <SettingsCheckbox
+                                                        <Checkbox
                                                           aria-label={`Include ${team.name}`}
                                                           checked={source().teams.includes(team.id)}
                                                           disabled={
@@ -2286,8 +2276,8 @@ export function SourcesSection(
                                               </div>
                                             )}
                                           </div>
-                                        </Field>
-                                        <Field
+                                        </FormField>
+                                        <FormField
                                           label="Slack OAuth token file"
                                           hint="private user token created by Cortana; used only to list the workspace for assignment. The SLACK_BOT_TOKEN environment variable is separate and stays the message-sync credential"
                                           class="col-span-full"
@@ -2303,7 +2293,7 @@ export function SourcesSection(
                                                 })
                                               }
                                             />
-                                            <Button
+                                            <ActionButton
                                               variant="ghost"
                                               size="icon-sm"
                                               type="button"
@@ -2316,10 +2306,10 @@ export function SourcesSection(
                                               }
                                             >
                                               <FolderOpen size={14} aria-hidden="true" />
-                                            </Button>
+                                            </ActionButton>
                                           </div>
-                                        </Field>
-                                        <Field
+                                        </FormField>
+                                        <FormField
                                           label="Slack OAuth client JSON"
                                           hint="JSON containing the OAuth app client_id; required for browser authorization. Register the loopback redirect URI http://127.0.0.1:47521/callback in the Slack app first"
                                           class="col-span-full"
@@ -2335,7 +2325,7 @@ export function SourcesSection(
                                                 })
                                               }
                                             />
-                                            <Button
+                                            <ActionButton
                                               variant="ghost"
                                               size="icon-sm"
                                               type="button"
@@ -2352,16 +2342,19 @@ export function SourcesSection(
                                               }
                                             >
                                               <FolderOpen size={14} aria-hidden="true" />
-                                            </Button>
+                                            </ActionButton>
                                           </div>
-                                        </Field>
+                                        </FormField>
                                       </>
                                     )}
                                   </>
                                 )}
                                 {source().editable && (
                                   <>
-                                    <Field label="Document limit" hint="blank uses global budget">
+                                    <FormField
+                                      label="Document limit"
+                                      hint="blank uses global budget"
+                                    >
                                       <Input
                                         type="number"
                                         disabled={sourceLocked()}
@@ -2374,8 +2367,8 @@ export function SourcesSection(
                                           })
                                         }
                                       />
-                                    </Field>
-                                    <Field
+                                    </FormField>
+                                    <FormField
                                       label="Content limit (bytes)"
                                       hint="blank uses global budget"
                                     >
@@ -2391,8 +2384,8 @@ export function SourcesSection(
                                           })
                                         }
                                       />
-                                    </Field>
-                                    <Field
+                                    </FormField>
+                                    <FormField
                                       label="Content limit (characters)"
                                       hint="blank uses connector defaults"
                                     >
@@ -2408,8 +2401,8 @@ export function SourcesSection(
                                           })
                                         }
                                       />
-                                    </Field>
-                                    <Field
+                                    </FormField>
+                                    <FormField
                                       label="Duration limit (seconds)"
                                       hint="blank uses the global budget"
                                     >
@@ -2427,8 +2420,8 @@ export function SourcesSection(
                                           })
                                         }
                                       />
-                                    </Field>
-                                    <Field
+                                    </FormField>
+                                    <FormField
                                       label="Document labels"
                                       hint="comma or line separated"
                                       class="col-span-full"
@@ -2442,8 +2435,8 @@ export function SourcesSection(
                                           })
                                         }
                                       />
-                                    </Field>
-                                    <Field
+                                    </FormField>
+                                    <FormField
                                       label="Document ACL labels"
                                       hint="comma or line separated; leave blank only for public data"
                                       class="col-span-full"
@@ -2457,13 +2450,13 @@ export function SourcesSection(
                                           })
                                         }
                                       />
-                                    </Field>
+                                    </FormField>
                                   </>
                                 )}
-                              </SettingsFieldGroup>
-                            </SettingsAccordionContent>
-                          </SettingsAccordionItem>
-                        </SettingsAccordion>
+                              </FieldGroup>
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
                         {observedJob()?.source === source().name && (
                           <div class={`source-validation-job ${observedJob()!.status}`}>
                             <div>
@@ -2480,7 +2473,7 @@ export function SourcesSection(
                                 <small>{observedJob()!.summary}</small>
                               </span>
                               {['running', 'cancelling'].includes(observedJob()!.status) && (
-                                <Button
+                                <ActionButton
                                   tooltip="Cancel this operation and return to the previous view."
                                   variant="outline"
                                   size="xs"
@@ -2489,10 +2482,10 @@ export function SourcesSection(
                                   onClick={() => void cancel()}
                                 >
                                   <CircleStop size={14} aria-hidden="true" /> Cancel
-                                </Button>
+                                </ActionButton>
                               )}
                               {observedJob()!.retryable && (
-                                <Button
+                                <ActionButton
                                   tooltip="Retry the last failed request."
                                   variant="outline"
                                   size="xs"
@@ -2516,13 +2509,13 @@ export function SourcesSection(
                                   }}
                                 >
                                   <RefreshCw size={14} aria-hidden="true" /> Retry
-                                </Button>
+                                </ActionButton>
                               )}
                             </div>
                             {observedJob()!.log && <pre>{observedJob()!.log}</pre>}
                           </div>
                         )}
-                      </SettingsCard>
+                      </Card>
                     </Show>
                   )
                 }}
@@ -2567,9 +2560,9 @@ export function SourcesSection(
             )}
 
             {error() && (
-              <SettingsAlert class="safety-note" variant="destructive" role="alert">
+              <Alert class="safety-note" variant="destructive" role="alert">
                 <AlertDescription>{error()}</AlertDescription>
-              </SettingsAlert>
+              </Alert>
             )}
             <Accordion collapsible>
               <AccordionItem value="details">
@@ -2589,8 +2582,8 @@ export function SourcesSection(
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
-          </SettingsTabsContent>
-        </SettingsTabs>
+          </TabsContent>
+        </Tabs>
       </div>
     </SettingsSection>
   )
@@ -2673,7 +2666,7 @@ function InitialSyncFlow(incoming: {
   const plan = () => props.flow.plan
   return (
     <section class="initial-sync-flow" aria-label={`Initial sync plan for ${props.source.name}`}>
-      <SettingsRadioGroup
+      <RadioGroup
         class="initial-sync-budgets"
         role="radiogroup"
         aria-label="Initial sync budget"
@@ -2683,7 +2676,7 @@ function InitialSyncFlow(incoming: {
         <For each={INITIAL_SYNC_BUDGETS}>
           {(tier) => (
             <Label>
-              <SettingsRadio
+              <RadioGroupItem
                 value={tier.budget}
 
                 disabled={props.flow.planning || props.busy}
@@ -2695,12 +2688,12 @@ function InitialSyncFlow(incoming: {
             </Label>
           )}
         </For>
-      </SettingsRadioGroup>
+      </RadioGroup>
       {props.flow.planning && <p class="initial-sync-state">Requesting a native plan…</p>}
       {props.flow.flowError && (
-        <SettingsAlert class="safety-note" variant="destructive" role="alert">
+        <Alert class="safety-note" variant="destructive" role="alert">
           <AlertDescription>{props.flow.flowError}</AlertDescription>
-        </SettingsAlert>
+        </Alert>
       )}
       <Show when={plan()} keyed>
         {(currentPlan) => (
@@ -2736,14 +2729,14 @@ function InitialSyncFlow(incoming: {
               </div>
             </dl>
             {!currentPlan.enabled && (
-              <SettingsAlert class="safety-note" variant="warning">
+              <Alert class="safety-note" variant="warning">
                 <AlertDescription>
                   <span>Enable this source and save before an initial sync.</span>
                 </AlertDescription>
-              </SettingsAlert>
+              </Alert>
             )}
             {currentPlan.validation_covers_budget !== true && (
-              <SettingsAlert class="safety-note" variant="warning">
+              <Alert class="safety-note" variant="warning">
                 <AlertDescription>
                   <span>
                     {currentPlan.validation_covers_budget === false
@@ -2753,20 +2746,20 @@ function InitialSyncFlow(incoming: {
                 </AlertDescription>
                 {!props.busy && (
                   <AlertAction>
-                    <Button
+                    <ActionButton
                       tooltip="Validate for this budget"
                       variant="outline"
                       size="xs"
                       onClick={props.onValidate}
                     >
                       Validate for this budget
-                    </Button>
+                    </ActionButton>
                   </AlertAction>
                 )}
-              </SettingsAlert>
+              </Alert>
             )}
             <div class="initial-sync-actions">
-              <Button
+              <ActionButton
                 tooltip="Start initial sync"
                 variant="outline"
                 size="sm"
@@ -2779,7 +2772,7 @@ function InitialSyncFlow(incoming: {
                 onClick={props.onStart}
               >
                 <Zap size={15} aria-hidden="true" /> Start initial sync
-              </Button>
+              </ActionButton>
               <span>
                 Execution requires explicit confirmation and reuses the native validation-gated,
                 no-reconcile source-job boundary.

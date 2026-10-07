@@ -1,5 +1,5 @@
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
-import { AlertDescription } from '@adea-ai/ui/components/ui/alert'
+import { AlertDescription, Alert } from '@adea-ai/ui/components/ui/alert'
 import { CircleStop, Download, FolderOpen, KeyRound, Upload } from 'lucide-solid'
 import { createEffect, createSignal, For, onCleanup, Show } from 'solid-js'
 
@@ -15,16 +15,18 @@ import {
 
 import type { DesktopSettings, DesktopVaultExport } from '../../types'
 import { useSettingsConfirm } from './SettingsConfirm'
-import { Field, NumberField, SettingsSection, type SettingsSectionProps } from './SettingsLayout'
+import { type SettingsSectionProps } from './settingsSectionProps'
 import {
-  SettingsAlert,
-  SettingsButton as Button,
-  SettingsCheckbox as Checkbox,
-  SettingsFieldGroup,
-  SettingsFieldSet,
-  SettingsFieldLegend,
-  SettingsInput as Input,
-} from './SettingsSurface'
+  FormField,
+  NumberField,
+  FieldGroup,
+  FieldSet,
+  FieldLegend,
+} from '@adea-ai/ui/components/ui/field'
+import { SettingsSection } from '@adea-ai/ui/components/composites/settings'
+import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
+import { Checkbox } from '@adea-ai/ui/components/ui/checkbox'
+import { Input } from '@adea-ai/ui/components/ui/input'
 
 export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: boolean }) {
   const confirm = useSettingsConfirm()
@@ -187,8 +189,8 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
       title="Local runtime"
       description="Storage and audit configuration for this machine. Moving the data directory requires a restart and does not copy existing data."
     >
-      <SettingsFieldGroup class="form-grid">
-        <Field
+      <FieldGroup class="form-grid">
+        <FormField
           label="Effective secret file"
           hint={
             props.settings.secret_file_managed
@@ -203,14 +205,14 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
             readOnly
             aria-readonly="true"
           />
-        </Field>
-        <Field label="Data directory" class="col-span-full">
+        </FormField>
+        <FormField label="Data directory" class="col-span-full">
           <Input
             value={props.settings.runtime.data_dir}
             onInput={(event) => setRuntime({ data_dir: event.target.value })}
             required
           />
-        </Field>
+        </FormField>
         <NumberField
           label="Connector timeout"
           value={props.settings.runtime.connector_timeout_seconds}
@@ -225,7 +227,7 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
           max={1000000}
           onChange={(audit_max_events) => setRuntime({ audit_max_events })}
         />
-      </SettingsFieldGroup>
+      </FieldGroup>
       <div class="portable-settings">
         <div>
           <strong>Redacted settings backup</strong>
@@ -235,7 +237,7 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
           </p>
         </div>
         <div class="service-actions">
-          <Button
+          <ActionButton
             variant="secondary"
             size="sm"
             type="button"
@@ -251,8 +253,8 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
               <Download size={14} aria-hidden="true" />
             )}
             Export
-          </Button>
-          <Button
+          </ActionButton>
+          <ActionButton
             tooltip="Import preview"
             variant="secondary"
             size="sm"
@@ -266,8 +268,8 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
               <Upload size={14} aria-hidden="true" />
             )}
             Import preview
-          </Button>
-          <Button
+          </ActionButton>
+          <ActionButton
             tooltip="Open secret file"
             variant="secondary"
             size="sm"
@@ -281,8 +283,8 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
               <FolderOpen size={14} aria-hidden="true" />
             )}
             Open secret file
-          </Button>
-          <Button
+          </ActionButton>
+          <ActionButton
             variant="secondary"
             size="sm"
             type="button"
@@ -300,11 +302,11 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
               <KeyRound size={14} aria-hidden="true" />
             )}
             Migrate to secure storage
-          </Button>
+          </ActionButton>
         </div>
       </div>
       <Show when={portableNotice() || portableError()}>
-        <SettingsAlert
+        <Alert
           class="safety-note"
           variant={portableError() ? 'destructive' : 'default'}
           role={portableError() ? 'alert' : 'status'}
@@ -312,7 +314,7 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
           <AlertDescription>
             <span>{portableError() || portableNotice()}</span>
           </AlertDescription>
-        </SettingsAlert>
+        </Alert>
       </Show>
       <div class="portable-settings">
         <div>
@@ -322,8 +324,8 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
             read-only projection from Cortana’s perspective and can be removed or rebuilt at any
             time.
           </p>
-          <SettingsFieldSet class="mt-3 max-w-xl" disabled={vaultJobRunning()}>
-            <SettingsFieldLegend>Workspaces to export</SettingsFieldLegend>
+          <FieldSet class="mt-3 max-w-xl" disabled={vaultJobRunning()}>
+            <FieldLegend>Workspaces to export</FieldLegend>
             <For each={props.settings.workspaces}>
               {(workspace) => (
                 <Checkbox
@@ -341,10 +343,10 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
                 />
               )}
             </For>
-          </SettingsFieldSet>
+          </FieldSet>
         </div>
         <div class="service-actions">
-          <Button
+          <ActionButton
             variant="secondary"
             size="sm"
             type="button"
@@ -355,8 +357,8 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
             onClick={() => void startVaultExport(true)}
           >
             <Download size={14} aria-hidden="true" /> Preview vault export
-          </Button>
-          <Button
+          </ActionButton>
+          <ActionButton
             variant="secondary"
             size="sm"
             type="button"
@@ -372,9 +374,9 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
               <FolderOpen size={14} aria-hidden="true" />
             )}
             Export vault
-          </Button>
+          </ActionButton>
           <Show when={vaultJobRunning()}>
-            <Button
+            <ActionButton
               tooltip="Cancel vault export"
               variant="destructive"
               size="sm"
@@ -383,13 +385,13 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
               onClick={() => void cancelVaultExport()}
             >
               <CircleStop size={14} aria-hidden="true" /> Cancel vault export
-            </Button>
+            </ActionButton>
           </Show>
         </div>
       </div>
       <Show when={vaultJob()}>
         {(job) => (
-          <SettingsAlert
+          <Alert
             class="safety-note"
             variant={job().status === 'failed' ? 'destructive' : 'default'}
             role={job().status === 'failed' ? 'alert' : 'status'}
@@ -402,15 +404,15 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
                   : `Vault export ${job().phase}: ${job().documents_completed} documents scanned, ${job().files_written} files staged.`}
               </span>
             </AlertDescription>
-          </SettingsAlert>
+          </Alert>
         )}
       </Show>
       <Show when={vaultError()}>
-        <SettingsAlert class="safety-note" variant="destructive" role="alert">
+        <Alert class="safety-note" variant="destructive" role="alert">
           <AlertDescription>
             <span>{vaultError()}</span>
           </AlertDescription>
-        </SettingsAlert>
+        </Alert>
       </Show>
     </SettingsSection>
   )
