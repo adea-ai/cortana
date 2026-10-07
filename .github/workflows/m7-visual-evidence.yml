@@ -10,6 +10,14 @@ on:
       - 'scripts/capture-m7-visuals.mjs'
       - 'bun.lock'
       - 'package.json'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/m7-visual-evidence.yml'
+      - 'apps/web/**'
+      - 'scripts/capture-m7-visuals.mjs'
+      - 'bun.lock'
+      - 'package.json'
   workflow_dispatch:
 
 permissions:
@@ -27,7 +35,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser: [chromium, webkit]
+        # Pull requests capture the chromium leg only; pushes to main capture
+        # both engines, so WebKit parity evidence keeps flowing at merge
+        # frequency without a webkit pass on every PR synchronize (#2475).
+        browser: ${{ github.event_name == 'pull_request' && fromJSON('["chromium"]') || fromJSON('["chromium", "webkit"]') }}
     timeout-minutes: 20
     steps:
       - name: Checkout exact revision
@@ -41,6 +52,13 @@ jobs:
           bun-version: 1.4.0
       - name: Install dependencies
         run: bun install --frozen-lockfile
+      - name: Restore Playwright browser
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: m7-playwright-${{ runner.os }}-${{ matrix.browser }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            m7-playwright-${{ runner.os }}-${{ matrix.browser }}-
       - name: Install browser
         run: bunx playwright install --with-deps ${{ matrix.browser }}
       - name: Build production renderer
