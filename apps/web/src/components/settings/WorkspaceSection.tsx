@@ -210,7 +210,7 @@ export function WorkspaceSection(incoming: {
                   </div>
                   <Button
                     variant="ghost"
-                    size="sm"
+                    size="icon-sm"
                     type="button"
                     aria-label={`Upload logo for ${workspace().name}`}
                     disabled={logoLoading() === workspace().id}
@@ -244,7 +244,7 @@ export function WorkspaceSection(incoming: {
                     <div class="workspace-order-actions">
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon-sm"
                         type="button"
                         aria-label={`Move ${workspace().name} up`}
                         disabled={index() === 0}
@@ -255,7 +255,7 @@ export function WorkspaceSection(incoming: {
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon-sm"
                         type="button"
                         aria-label={`Move ${workspace().name} down`}
                         disabled={index() === props.settings.workspaces.length - 1}
@@ -266,9 +266,8 @@ export function WorkspaceSection(incoming: {
                       </Button>
                       <Button
                         variant="destructive"
-                        size="sm"
+                        size="icon-sm"
                         type="button"
-
                         aria-label={`Remove ${workspace().name}`}
                         disabled={hasWorkspaceSources(workspace().id)}
                         tooltip={

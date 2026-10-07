@@ -172,7 +172,7 @@ export function Workspace(props: {
               {({ id, label, icon }) => (
                 <Tooltip>
                   <TooltipTrigger as={TabsTrigger} value={id}>
-                    <Dynamic component={icon} size={15} />
+                    <Dynamic component={icon} size={16} />
                     {label}
                     <Show when={id === 'document' && props.document}>
                       <Badge variant="secondary">1</Badge>
@@ -325,11 +325,11 @@ function BrainDocumentView(props: {
         <div>
           <Button
             variant="ghost"
+            size="icon-sm"
             type="button"
             aria-label={favorite() ? 'Remove favorite' : 'Add favorite'}
             aria-pressed={favorite()}
             tooltip={favorite() ? 'Remove favorite' : 'Add favorite'}
-
             onClick={() => setFavorite(toggleFavoriteDocument(props.document.id))}
           >
             <Star size={17} fill={favorite() ? 'currentColor' : 'none'} aria-hidden="true" />
@@ -377,10 +377,10 @@ function BrainDocumentView(props: {
             indexed chunks
           </p>
           <div class="document-labels" aria-label="Document security and provenance">
-            <Badge variant="secondary">Workspace: {props.document.project}</Badge>
-            <Badge variant="secondary">Source ID: {props.document.source_id}</Badge>
+            <Badge variant="outline">Workspace: {props.document.project}</Badge>
+            <Badge variant="outline">Source ID: {props.document.source_id}</Badge>
             <For each={props.document.acl.length ? props.document.acl : ['public']}>
-              {(label) => <span>ACL: {label}</span>}
+              {(label) => <Badge variant="outline">ACL: {label}</Badge>}
             </For>
           </div>
           <div class="document-copy-actions" role="group" aria-label="Document copy actions">
@@ -534,11 +534,11 @@ function DocumentView(props: {
         <div>
           <Button
             variant="ghost"
+            size="icon-sm"
             type="button"
             aria-label={favorite() ? 'Remove favorite' : 'Add favorite'}
             aria-pressed={favorite()}
             tooltip={favorite() ? 'Remove favorite' : 'Add favorite'}
-
             onClick={() => setFavorite(toggleFavoriteDocument(props.active.chunk_id))}
           >
             <Star size={17} fill={favorite() ? 'currentColor' : 'none'} aria-hidden="true" />
@@ -583,18 +583,22 @@ function DocumentView(props: {
           </div>
           <div id="related" class="evidence-footer">
             <h2>Related evidence</h2>
-            <For each={props.evidence.slice(0, 6)}>
-              {(item, index) => (
-                <Button
-                  tooltip={`Inspect retrieved evidence: ${item.title}`}
-                  variant="ghost"
-                  type="button"
-                  onClick={() => props.onSelect(index())}
-                >
-                  <span>{index() + 1}</span> {item.title}
-                </Button>
-              )}
-            </For>
+            <div class="evidence-footer-list">
+              <For each={props.evidence.slice(0, 6)}>
+                {(item, index) => (
+                  <ListRow
+                    as="button"
+                    type="button"
+                    tooltip={`Inspect retrieved evidence: ${item.title}`}
+                    onClick={() => props.onSelect(index())}
+                    leading={<span>{index() + 1}</span>}
+                    class="w-full text-left"
+                  >
+                    {item.title}
+                  </ListRow>
+                )}
+              </For>
+            </div>
           </div>
         </div>
         <aside class="document-outline">
@@ -814,16 +818,16 @@ function AnswerView(props: {
           <Card class="mb-4">
             <CardContent>
               <h2 class="mb-3">
-                <Button
-                  tooltip={`Inspect cited passage ${index() + 1}: ${item.title}`}
-                  variant="ghost"
+                <ListRow
+                  as="button"
                   type="button"
-                  class="max-w-full"
+                  tooltip={`Inspect cited passage ${index() + 1}: ${item.title}`}
                   onClick={() => props.onSelect(index())}
+                  leading={<span>[{index() + 1}]</span>}
+                  class="w-full text-left"
                 >
-                  <span>[{index() + 1}]</span>
-                  <span class="truncate">{item.title}</span>
-                </Button>
+                  {item.title}
+                </ListRow>
               </h2>
               <p>{item.content}</p>
             </CardContent>

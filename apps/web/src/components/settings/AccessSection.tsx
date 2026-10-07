@@ -80,9 +80,8 @@ export function AccessSection(
                   <strong>{principal.principal || `Principal ${index() + 1}`}</strong>
                   <Button
                     variant="destructive"
-                    size="sm"
+                    size="icon-sm"
                     type="button"
-
                     aria-label={`Remove ${principal.principal}`}
                     tooltip={`Remove ${principal.principal}`}
                     onClick={() =>

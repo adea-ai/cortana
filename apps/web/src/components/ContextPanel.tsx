@@ -95,7 +95,7 @@ export function ContextPanel(props: {
         </Show>
         <section class="section-label">
           <span>Retrieved evidence</span>
-          <Badge variant="secondary">{props.evidence.length}</Badge>
+          <Badge variant="outline">{props.evidence.length}</Badge>
         </section>
         <div class="evidence-list">
           <For each={props.evidence}>
@@ -119,7 +119,7 @@ export function ContextPanel(props: {
         <Show when={props.serverContext?.memories && props.serverContext.memories.length > 0}>
           <section class="section-label">
             <span>Native agent memory</span>
-            <Badge variant="secondary">{props.serverContext!.memories?.length}</Badge>
+            <Badge variant="outline">{props.serverContext!.memories?.length}</Badge>
           </section>
           <div class="evidence-list">
             <For each={props.serverContext!.memories}>
@@ -160,8 +160,9 @@ export function ContextPanel(props: {
           </p>
           <ActionButton
             tooltip={'Retrieve a bounded workspace context bundle for agent integrations.'}
-            variant="secondary"
+            variant="outline"
             size="sm"
+            class="w-full"
             disabled={props.contextLoading}
             onClick={props.onRetrieveContext}
           >
@@ -202,9 +203,9 @@ export function ContextPanel(props: {
         <ActionButton
           variant="default"
           size="sm"
+          class="w-full"
           aria-label="Copy agent context"
           tooltip="Copy agent context"
-
           onClick={() => void copy()}
         >
           {copied() ? (

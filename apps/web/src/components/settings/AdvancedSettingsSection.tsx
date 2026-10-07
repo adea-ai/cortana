@@ -12,7 +12,6 @@ import {
   openDesktopSecretFile,
   startDesktopVaultExport,
 } from '../../api'
-import { cn } from '@/lib/utils'
 
 import type { DesktopSettings, DesktopVaultExport } from '../../types'
 import { useSettingsConfirm } from './SettingsConfirm'
@@ -306,7 +305,7 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
       </div>
       <Show when={portableNotice() || portableError()}>
         <SettingsAlert
-          class={cn('safety-note', portableError() && 'error')}
+          class="safety-note"
           variant={portableError() ? 'destructive' : 'default'}
           role={portableError() ? 'alert' : 'status'}
         >
@@ -391,7 +390,7 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
       <Show when={vaultJob()}>
         {(job) => (
           <SettingsAlert
-            class={cn('safety-note', job().status === 'failed' && 'error')}
+            class="safety-note"
             variant={job().status === 'failed' ? 'destructive' : 'default'}
             role={job().status === 'failed' ? 'alert' : 'status'}
             aria-live="polite"
@@ -407,7 +406,7 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
         )}
       </Show>
       <Show when={vaultError()}>
-        <SettingsAlert class="safety-note error" variant="destructive" role="alert">
+        <SettingsAlert class="safety-note" variant="destructive" role="alert">
           <AlertDescription>
             <span>{vaultError()}</span>
           </AlertDescription>

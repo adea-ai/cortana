@@ -282,19 +282,6 @@ body,
   gap: 6px;
 }
 
-.document-labels span {
-  max-width: 100%;
-  overflow: hidden;
-  padding: 4px 7px;
-  color: var(--muted-foreground);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--card);
-  font-size: var(--text-2xs);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .rule {
   height: 1px;
   margin: 24px 0;
@@ -409,12 +396,10 @@ body,
   font-size: var(--text-sm);
 }
 
-.evidence-footer button {
-  width: 49%;
-  overflow: hidden;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.evidence-footer-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 12px;
 }
 
 .answer-view {
@@ -448,15 +433,6 @@ body,
   flex-wrap: wrap;
   margin: 18px 0 24px;
   gap: 8px;
-}
-
-.answer-meta span {
-  padding: 5px 9px;
-  color: var(--muted-foreground);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--card);
-  font-size: var(--text-2xs);
 }
 
 .answer-copy {
@@ -636,13 +612,6 @@ body,
   max-width: 170px;
 }
 
-.graph-kind-filter {
-  display: flex;
-  gap: 4px;
-  max-width: 100%;
-  flex-wrap: wrap;
-}
-
 .graph-selection {
   position: absolute;
   z-index: 3;
@@ -734,40 +703,6 @@ body,
   font-family: var(--font-sans);
 }
 
-.empty-state {
-  display: grid;
-  max-width: 520px;
-  margin: auto;
-  padding: 40px;
-  place-items: center;
-  text-align: center;
-}
-
-.runtime-error {
-  width: 100%;
-  height: 100%;
-  color: var(--destructive);
-  border: 1px solid var(--border);
-  background: var(--destructive-subtle);
-}
-
-.empty-state img {
-  width: 28px;
-  height: 28px;
-}
-
-.empty-state h1 {
-  margin: 16px 0 8px;
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
-}
-
-.empty-state p {
-  margin: 0;
-  color: var(--muted-foreground);
-  line-height: 1.55;
-}
-
 .context-panel {
   display: flex;
   min-width: 0;
@@ -844,18 +779,10 @@ body,
   line-height: 1.45;
 }
 
-.server-context [data-slot='button'] {
-  width: 100%;
-}
-
 .copy-area {
   padding: 12px 16px;
   border-top: 1px solid var(--border);
   background: var(--muted);
-}
-
-.copy-area [data-slot='button'] {
-  width: 100%;
 }
 
 .settings-view {
@@ -986,7 +913,6 @@ body,
   margin-top: 5px;
   overflow: hidden;
   color: var(--muted-foreground);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1252,15 +1178,6 @@ body,
     min-width: 0;
     flex: 1 1 100%;
   }
-
-  .initial-sync-flow .safety-note {
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  .initial-sync-flow .safety-note button {
-    margin-left: 0;
-  }
 }
 
 .source-settings-list {
@@ -1279,12 +1196,6 @@ body,
 
 .source-workspace-tabs button {
   white-space: nowrap;
-}
-
-.source-workspace-tabs button small {
-  min-width: 18px;
-  padding: 2px 5px;
-  text-align: center;
 }
 
 .source-workspace-caption {
@@ -1339,41 +1250,7 @@ body,
   gap: 10px;
 }
 
-.source-service-icon {
-  display: grid;
-  width: 30px;
-  height: 30px;
-  flex: 0 0 auto;
-  place-items: center;
-  color: var(--primary-subtle);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--popover);
-  align-self: center;
-}
-
-.source-service-icon--google-drive {
-  color: var(--info);
-}
-
-.source-service-icon--gmail {
-  color: var(--destructive);
-}
-
-.source-service-icon--discord,
-.source-service-icon--slack {
-  color: var(--primary);
-}
-
-.source-service-icon--apple-notes {
-  color: var(--warning);
-}
-
-.source-service-icon--buzz {
-  color: var(--success);
-}
-
-.source-enable > span:not(.source-service-icon) {
+.source-enable > span:not([role='img']) {
   display: flex;
   min-width: 0;
   gap: 3px;
@@ -1505,16 +1382,6 @@ body,
   color: var(--foreground);
 }
 
-.initial-sync-flow .safety-note {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.initial-sync-flow .safety-note button {
-  margin-left: auto;
-}
-
 .initial-sync-actions {
   display: flex;
   align-items: center;
@@ -1541,7 +1408,7 @@ body,
   gap: 10px;
 }
 
-.source-validation-job span {
+.source-validation-job-text {
   display: flex;
   min-width: 0;
   gap: 3px;
@@ -1660,10 +1527,7 @@ body,
 }
 
 .safety-note {
-  display: flex;
   margin-top: 20px;
-  padding: 13px;
-  gap: 10px;
 }
 
 .readiness-actions {
@@ -1715,7 +1579,7 @@ body,
   gap: 10px;
 }
 
-.installer-job span {
+.installer-job-text {
   display: flex;
   flex: 1;
   gap: 3px;
@@ -1936,23 +1800,8 @@ body,
 }
 
 .memory-review-search {
-  display: flex;
   min-width: 220px;
   flex: 1;
-  align-items: center;
-  padding-left: 10px;
-  gap: 8px;
-}
-
-.memory-review-search input {
-  width: 100%;
-}
-
-.memory-status-tabs {
-  display: flex;
-  max-width: 100%;
-  flex-wrap: wrap;
-  gap: 4px;
 }
 
 .memory-review-message {
@@ -2542,11 +2391,6 @@ body,
   font-family: var(--font-sans);
 }
 
-.m7-knowledge-workspace .timeline-view time,
-.m7-knowledge-workspace .timeline-view span {
-  color: var(--muted-foreground);
-}
-
 /* Per-source access state: authorization is per account (one Google token
    serves Drive, Gmail, and Calendar), so a dead grant reads here instead of
    surfacing later as a connector error. */
@@ -2565,7 +2409,7 @@ body,
 }
 
 .source-access--error {
-  color: var(--foreground);
+  color: var(--destructive);
 }
 
 .source-access--muted {

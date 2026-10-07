@@ -40,7 +40,8 @@ import { Input } from '@adea-ai/ui/components/ui/input'
 import { Empty, EmptyHeader, EmptyTitle, EmptyDescription } from '@adea-ai/ui/components/ui/empty'
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 import { Textarea } from '@adea-ai/ui/components/ui/textarea'
-import { Toggle } from '@adea-ai/ui/components/ui/toggle'
+import { ToggleGroup, ToggleGroupItem } from '@adea-ai/ui/components/ui/toggle-group'
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@adea-ai/ui/components/ui/input-group'
 import { useSettingsConfirm } from './settings/SettingsConfirm'
 
 type QueueView =
@@ -235,6 +236,8 @@ const QUEUE_VIEWS: QueueView[] = [
   'failed',
   'dead-letter',
 ]
+const queueViewLabel = (view: QueueView) =>
+  `${view.charAt(0).toUpperCase()}${view.slice(1).replace('-', ' ')}`
 const ROW_HEIGHT = 72
 const MAX_BULK_ACTIONS = 25
 
@@ -471,28 +474,29 @@ export function MemoryReview(props: {
 
       <MemoryPolicy policy={policy()} onChange={setPolicy} />
       <div class="memory-review-filters">
-        <Label class="memory-review-search">
-          <Search size={14} aria-hidden="true" />
-          <span class="sr-only">Search memory candidates</span>
-          <Input
+        <InputGroup class="memory-review-search">
+          <InputGroupAddon>
+            <Search aria-hidden="true" />
+          </InputGroupAddon>
+          <InputGroupInput
             type="search"
             aria-label="Search memory candidates"
             value={query()}
             onInput={(event) => setQuery(event.target.value)}
             placeholder="Search candidate content, project, or source"
           />
-        </Label>
-        <div class="memory-status-tabs" role="group" aria-label="Candidate status views">
+        </InputGroup>
+        <ToggleGroup
+          class="max-w-full flex-wrap"
+          aria-label="Candidate status views"
+          value={view()}
+          onChange={(value: string | null) => value && setView(value as QueueView)}
+        >
           <For each={QUEUE_VIEWS}>
             {(status) => (
               <Tooltip>
-                <TooltipTrigger
-                  as={Toggle}
-                  size="xs"
-                  pressed={view() === status}
-                  onChange={(pressed: boolean) => pressed && setView(status)}
-                >
-                  {status.replace('-', ' ')}
+                <TooltipTrigger as={ToggleGroupItem} value={status} size="xs" variant="outline">
+                  {queueViewLabel(status)}
                 </TooltipTrigger>
                 <TooltipContent>
                   {status === 'all'
@@ -502,7 +506,7 @@ export function MemoryReview(props: {
               </Tooltip>
             )}
           </For>
-        </div>
+        </ToggleGroup>
       </div>
 
       <Show

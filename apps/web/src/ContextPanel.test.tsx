@@ -170,14 +170,16 @@ test('desktop context panel uses shared actions without an ineffective overlay c
     renderPanel({ context: 'server context' })
   })
   expect(screen.queryByRole('button', { name: 'Close agent context' })).toBeNull()
-  expect(
-    screen.getByRole('button', {
-      name: 'Refresh MCP-equivalent context',
-    }).className
-  ).toContain('bg-secondary')
-  expect(
-    screen.getByRole('button', {
-      name: 'Copy agent context',
-    }).className
-  ).toContain('bg-primary')
+  // The panel is card-coloured, where a secondary fill disappears; the
+  // context actions span the panel width.
+  const refresh = screen.getByRole('button', {
+    name: 'Refresh MCP-equivalent context',
+  })
+  expect(refresh.className).toContain('border-border')
+  expect(refresh.className).toContain('w-full')
+  const copy = screen.getByRole('button', {
+    name: 'Copy agent context',
+  })
+  expect(copy.className).toContain('bg-primary')
+  expect(copy.className).toContain('w-full')
 })

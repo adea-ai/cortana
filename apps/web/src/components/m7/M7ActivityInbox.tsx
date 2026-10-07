@@ -121,13 +121,19 @@ function ActivityEmpty(props: {
       <EmptyContent>
         <div class="flex flex-wrap justify-center gap-2">
           <Show when={props.error && props.onRetryStatus}>
-            <Button tooltip="Retry status" variant="outline" onClick={props.onRetryStatus}>
+            <Button
+              tooltip="Retry status"
+              variant="secondary"
+              size="sm"
+              onClick={props.onRetryStatus}
+            >
               <RefreshCw aria-hidden="true" /> Retry status
             </Button>
           </Show>
           <Button
             tooltip="Review configuration and resolve setup requirements."
-            variant="outline"
+            variant="secondary"
+            size="sm"
             onClick={props.onOpenSettings}
           >
             <Settings aria-hidden="true" /> Open settings
@@ -167,7 +173,7 @@ function SyncActivityCard(props: { run: SourceSyncSummary }) {
             <Show when={props.run.status === 'running'}>
               <Progress
                 value={progress() ?? undefined}
-                indeterminate={progress() === undefined}
+                indeterminate={progress() === null}
                 hideValue
                 aria-label={`${props.run.source} sync progress`}
               />
@@ -375,7 +381,8 @@ export function M7ActivityInbox(props: M7ActivityInboxProps) {
         <div class="utility-actions">
           <Button
             tooltip="Manage ingestion in settings"
-            variant="outline"
+            variant="secondary"
+            size="sm"
             onClick={props.onOpenSettings}
           >
             <Settings aria-hidden="true" /> Manage ingestion in settings

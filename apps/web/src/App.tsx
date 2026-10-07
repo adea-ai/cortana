@@ -2825,6 +2825,7 @@ export function ServiceHealthIndicator(incoming: {
       <Match when={props.error}>
         <Button
           variant="ghost"
+          size="sm"
           type="button"
           aria-label="Open service health"
           tooltip={`${props.error}. Open Services for details.`}
@@ -2836,6 +2837,7 @@ export function ServiceHealthIndicator(incoming: {
       <Match when={report()}>
         <Button
           variant="ghost"
+          size="sm"
           type="button"
           aria-label="Open service health"
           tooltip={`${detail()}. Open Services to control or install them.`}
