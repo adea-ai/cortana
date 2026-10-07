@@ -180,7 +180,7 @@ export function Workspace(props: {
           value={props.tab}
           onChange={(value) => props.onTabChange(value as WorkspaceTab)}
         >
-          <TabsList appearance="underline" fill class="px-3" aria-label="Result views">
+          <TabsList appearance="underline" fill aria-label="Result views">
             <For each={availableTabs()}>
               {({ id, label, icon }) => (
                 <Tooltip>
@@ -508,7 +508,7 @@ function BrainDocumentView(props: {
                 <AccordionTrigger>Metadata ({metadata().length})</AccordionTrigger>
                 <AccordionContent>
                   <ScrollArea class="max-h-65" aria-label="Document metadata">
-                    <PropertyList class="grid-cols-1 gap-y-1">
+                    <PropertyList class="grid-cols-1">
                       <For each={metadata()}>
                         {([key, value]) => (
                           <>

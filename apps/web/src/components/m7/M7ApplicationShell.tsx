@@ -435,7 +435,7 @@ export function M7PanelBoundary(props: M7PanelBoundaryProps) {
           }}
           side={props.side}
           closeButton={false}
-          class="m7-panel-boundary max-w-none gap-0 p-0"
+          class="m7-panel-boundary max-w-none"
         >
           <SheetHeader class="sr-only">
             <SheetTitle>{props.title}</SheetTitle>
@@ -713,7 +713,7 @@ export function M7ApplicationNavigation(props: {
           data-mobile="true"
           side="start"
           closeButton={false}
-          class="w-72 max-w-full gap-0 p-0"
+          class="w-72 max-w-full"
           onCloseAutoFocus={(event: Event) => {
             const target = mobileFinalFocusRef.current ?? mobileTriggerRef.current
             if (target) {

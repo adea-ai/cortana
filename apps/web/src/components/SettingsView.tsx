@@ -1597,48 +1597,52 @@ function ServicesSection(incoming: {
             blocked while any Cortana service is running and never starts recurring sync.
           </CardDescription>
         </CardHeader>
-        <CardFooter class="flex-wrap gap-2">
-          <ActionButton
-            variant="secondary"
-            size="xs"
-            disabled={actionInFlight() || props.dirty}
-            onClick={() => void databaseAction('backup')}
-            tooltip={props.dirty ? 'Save or discard draft changes first' : 'Export database backup'}
-          >
-            {databaseBusy() === 'backup' ? (
-              <Spinner size="sm" label={false} />
-            ) : (
-              <Download size={14} aria-hidden="true" />
-            )}{' '}
-            Backup database
-          </ActionButton>
-          <ActionButton
-            variant="secondary"
-            size="xs"
-            disabled={
-              actionInFlight() ||
-              props.dirty ||
-              report()?.supported !== true ||
-              report()!.services.some((service) => serviceIsRunning(service))
-            }
-            onClick={() => void databaseAction('restore')}
-            tooltip={
-              props.dirty
-                ? 'Save or discard draft changes first'
-                : report()?.supported !== true
-                  ? 'Service status is required before restore'
-                  : report()!.services.some((service) => serviceIsRunning(service))
-                    ? 'Stop all Cortana services before restore'
-                    : 'Restore database backup'
-            }
-          >
-            {databaseBusy() === 'restore' ? (
-              <Spinner size="sm" label={false} />
-            ) : (
-              <Upload size={14} aria-hidden="true" />
-            )}{' '}
-            Restore database
-          </ActionButton>
+        <CardFooter>
+          <div class="flex flex-wrap items-center gap-2">
+            <ActionButton
+              variant="secondary"
+              size="xs"
+              disabled={actionInFlight() || props.dirty}
+              onClick={() => void databaseAction('backup')}
+              tooltip={
+                props.dirty ? 'Save or discard draft changes first' : 'Export database backup'
+              }
+            >
+              {databaseBusy() === 'backup' ? (
+                <Spinner size="sm" label={false} />
+              ) : (
+                <Download size={14} aria-hidden="true" />
+              )}{' '}
+              Backup database
+            </ActionButton>
+            <ActionButton
+              variant="secondary"
+              size="xs"
+              disabled={
+                actionInFlight() ||
+                props.dirty ||
+                report()?.supported !== true ||
+                report()!.services.some((service) => serviceIsRunning(service))
+              }
+              onClick={() => void databaseAction('restore')}
+              tooltip={
+                props.dirty
+                  ? 'Save or discard draft changes first'
+                  : report()?.supported !== true
+                    ? 'Service status is required before restore'
+                    : report()!.services.some((service) => serviceIsRunning(service))
+                      ? 'Stop all Cortana services before restore'
+                      : 'Restore database backup'
+              }
+            >
+              {databaseBusy() === 'restore' ? (
+                <Spinner size="sm" label={false} />
+              ) : (
+                <Upload size={14} aria-hidden="true" />
+              )}{' '}
+              Restore database
+            </ActionButton>
+          </div>
         </CardFooter>
       </Card>
       {(databaseResult() || databaseError()) && (
@@ -1689,34 +1693,36 @@ function ServicesSection(incoming: {
                   </CardContent>
                 }
               >
-                <CardFooter class="flex-wrap gap-2">
-                  <ActionButton
-                    tooltip="Start"
-                    variant="secondary"
-                    size="xs"
-                    disabled={!report()!.supported || running || actionInFlight()}
-                    onClick={() => void serviceAction(service, 'start')}
-                  >
-                    <Play size={14} aria-hidden="true" /> Start
-                  </ActionButton>
-                  <ActionButton
-                    tooltip="Stop"
-                    variant="secondary"
-                    size="xs"
-                    disabled={!report()!.supported || !service.loaded || actionInFlight()}
-                    onClick={() => void serviceAction(service, 'stop')}
-                  >
-                    <CircleStop size={14} aria-hidden="true" /> Stop
-                  </ActionButton>
-                  <ActionButton
-                    tooltip="Restart"
-                    variant="secondary"
-                    size="xs"
-                    disabled={!report()!.supported || actionInFlight()}
-                    onClick={() => void serviceAction(service, 'restart')}
-                  >
-                    <RefreshCw size={14} aria-hidden="true" /> Restart
-                  </ActionButton>
+                <CardFooter>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <ActionButton
+                      tooltip="Start"
+                      variant="secondary"
+                      size="xs"
+                      disabled={!report()!.supported || running || actionInFlight()}
+                      onClick={() => void serviceAction(service, 'start')}
+                    >
+                      <Play size={14} aria-hidden="true" /> Start
+                    </ActionButton>
+                    <ActionButton
+                      tooltip="Stop"
+                      variant="secondary"
+                      size="xs"
+                      disabled={!report()!.supported || !service.loaded || actionInFlight()}
+                      onClick={() => void serviceAction(service, 'stop')}
+                    >
+                      <CircleStop size={14} aria-hidden="true" /> Stop
+                    </ActionButton>
+                    <ActionButton
+                      tooltip="Restart"
+                      variant="secondary"
+                      size="xs"
+                      disabled={!report()!.supported || actionInFlight()}
+                      onClick={() => void serviceAction(service, 'restart')}
+                    >
+                      <RefreshCw size={14} aria-hidden="true" /> Restart
+                    </ActionButton>
+                  </div>
                 </CardFooter>
               </Show>
             </Card>

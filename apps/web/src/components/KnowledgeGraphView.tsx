@@ -17,7 +17,7 @@ import {
   ActionButton as WorkspaceButton,
 } from '@adea-ai/ui/components/composites/action-button'
 import { EmptyState } from '@adea-ai/ui/components/ui/empty'
-import { Card } from '@adea-ai/ui/components/ui/card'
+import { Card, CardContent } from '@adea-ai/ui/components/ui/card'
 import {
   DetailPanelBody,
   DetailPanelField,
@@ -221,94 +221,98 @@ export default function KnowledgeGraphView(props: {
               </div>
             </Show>
             <div class="graph-controls">
-              <Card class="graph-toolbar flex-row flex-wrap items-center gap-2 p-2" role="search">
-                <InputGroup size="sm" class="graph-search">
-                  <InputGroupAddon>
-                    <Search aria-hidden="true" />
-                  </InputGroupAddon>
-                  <InputGroupInput
-                    type="search"
-                    aria-label="Filter graph nodes"
-                    placeholder="Filter nodes…"
-                    value={filter()}
-                    onInput={(event) => setFilter(event.target.value)}
-                  />
-                </InputGroup>
-                <Show when={filter()}>
-                  <WorkspaceButton
-                    tooltip="Clear the graph node filter"
-                    variant="ghost"
-                    size="sm"
-                    type="button"
-                    onClick={() => setFilter('')}
-                  >
-                    Clear
-                  </WorkspaceButton>
-                </Show>
-                <NativeSelect
-                  size="sm"
-                  aria-label="Filter graph relationships"
-                  value={props.graphEdgeKind}
-                  onChange={(event) =>
-                    props.onGraphEdgeKindChange?.(
-                      event.target.value as BrainGraphPage['edges'][number]['kind'] | 'all'
-                    )
-                  }
-                  options={[
-                    { value: 'all', label: 'All relationships' },
-                    ...(
-                      [
-                        'contains',
-                        'references',
-                        'backlink',
-                        'nearby',
-                        'same-thread',
-                        'authored-by',
-                        'mentions',
-                        'temporal',
-                        'supports',
-                        'contradicts',
-                        'derives',
-                      ] as const
-                    ).map((kind) => ({ value: kind, label: kind })),
-                  ]}
-                />
-                <NativeSelect
-                  size="sm"
-                  aria-label="Filter graph relationship origin"
-                  value={props.graphOrigin}
-                  onChange={(event) =>
-                    props.onGraphOriginChange?.(
-                      event.target.value as
-                        | NonNullable<BrainGraphPage['edges'][number]['origin']>
-                        | 'all'
-                    )
-                  }
-                  options={[
-                    { value: 'all', label: 'All origins' },
-                    { value: 'explicit', label: 'Explicit' },
-                    { value: 'derived', label: 'Derived' },
-                    { value: 'inferred', label: 'Inferred' },
-                  ]}
-                />
-                <NativeSelect
-                  size="sm"
-                  aria-label="Filter graph minimum confidence"
-                  value={
-                    props.graphMinConfidence == null ? 'all' : String(props.graphMinConfidence)
-                  }
-                  onChange={(event) =>
-                    props.onGraphMinConfidenceChange?.(
-                      event.target.value === 'all' ? null : Number(event.target.value)
-                    )
-                  }
-                  options={[
-                    { value: 'all', label: 'Any confidence' },
-                    { value: '0.5', label: '50% or higher' },
-                    { value: '0.75', label: '75% or higher' },
-                    { value: '0.9', label: '90% or higher' },
-                  ]}
-                />
+              <Card size="sm" class="graph-toolbar" role="search">
+                <CardContent>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <InputGroup size="sm" class="graph-search">
+                      <InputGroupAddon>
+                        <Search aria-hidden="true" />
+                      </InputGroupAddon>
+                      <InputGroupInput
+                        type="search"
+                        aria-label="Filter graph nodes"
+                        placeholder="Filter nodes…"
+                        value={filter()}
+                        onInput={(event) => setFilter(event.target.value)}
+                      />
+                    </InputGroup>
+                    <Show when={filter()}>
+                      <WorkspaceButton
+                        tooltip="Clear the graph node filter"
+                        variant="ghost"
+                        size="sm"
+                        type="button"
+                        onClick={() => setFilter('')}
+                      >
+                        Clear
+                      </WorkspaceButton>
+                    </Show>
+                    <NativeSelect
+                      size="sm"
+                      aria-label="Filter graph relationships"
+                      value={props.graphEdgeKind}
+                      onChange={(event) =>
+                        props.onGraphEdgeKindChange?.(
+                          event.target.value as BrainGraphPage['edges'][number]['kind'] | 'all'
+                        )
+                      }
+                      options={[
+                        { value: 'all', label: 'All relationships' },
+                        ...(
+                          [
+                            'contains',
+                            'references',
+                            'backlink',
+                            'nearby',
+                            'same-thread',
+                            'authored-by',
+                            'mentions',
+                            'temporal',
+                            'supports',
+                            'contradicts',
+                            'derives',
+                          ] as const
+                        ).map((kind) => ({ value: kind, label: kind })),
+                      ]}
+                    />
+                    <NativeSelect
+                      size="sm"
+                      aria-label="Filter graph relationship origin"
+                      value={props.graphOrigin}
+                      onChange={(event) =>
+                        props.onGraphOriginChange?.(
+                          event.target.value as
+                            | NonNullable<BrainGraphPage['edges'][number]['origin']>
+                            | 'all'
+                        )
+                      }
+                      options={[
+                        { value: 'all', label: 'All origins' },
+                        { value: 'explicit', label: 'Explicit' },
+                        { value: 'derived', label: 'Derived' },
+                        { value: 'inferred', label: 'Inferred' },
+                      ]}
+                    />
+                    <NativeSelect
+                      size="sm"
+                      aria-label="Filter graph minimum confidence"
+                      value={
+                        props.graphMinConfidence == null ? 'all' : String(props.graphMinConfidence)
+                      }
+                      onChange={(event) =>
+                        props.onGraphMinConfidenceChange?.(
+                          event.target.value === 'all' ? null : Number(event.target.value)
+                        )
+                      }
+                      options={[
+                        { value: 'all', label: 'Any confidence' },
+                        { value: '0.5', label: '50% or higher' },
+                        { value: '0.75', label: '75% or higher' },
+                        { value: '0.9', label: '90% or higher' },
+                      ]}
+                    />
+                  </div>
+                </CardContent>
               </Card>
               <Show when={props.graph && !usingEvidenceFallback()}>
                 <ToggleGroup
@@ -412,32 +416,40 @@ export default function KnowledgeGraphView(props: {
               </div>
             </Show>
             <Show when={props.graph?.next_cursor && props.onLoadMore}>
-              <Card class="graph-pagination flex-row flex-wrap items-center gap-2 p-2">
-                <WorkspaceButton
-                  tooltip={'Load the next page of nodes in this graph.'}
-                  variant="secondary"
-                  size="sm"
-                  onClick={props.onLoadMore}
-                  disabled={props.graphAppendLoading}
-                >
-                  {props.graphAppendLoading ? 'Loading more nodes…' : 'Load more nodes'}
-                </WorkspaceButton>
-                <span>More nodes remain outside this bounded view.</span>
+              <Card size="sm" class="graph-pagination">
+                <CardContent>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <WorkspaceButton
+                      tooltip={'Load the next page of nodes in this graph.'}
+                      variant="secondary"
+                      size="sm"
+                      onClick={props.onLoadMore}
+                      disabled={props.graphAppendLoading}
+                    >
+                      {props.graphAppendLoading ? 'Loading more nodes…' : 'Load more nodes'}
+                    </WorkspaceButton>
+                    <span>More nodes remain outside this bounded view.</span>
+                  </div>
+                </CardContent>
               </Card>
             </Show>
             <Show when={!props.graph?.next_cursor && filteredNodes().length > visibleCount()}>
-              <Card class="graph-pagination flex-row flex-wrap items-center gap-2 p-2">
-                <WorkspaceButton
-                  tooltip="Show more nodes"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() =>
-                    setVisibleCount((count) => Math.min(count + 12, filteredNodes().length))
-                  }
-                >
-                  Show more nodes
-                </WorkspaceButton>
-                <span>Showing a bounded window for responsive rendering.</span>
+              <Card size="sm" class="graph-pagination">
+                <CardContent>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <WorkspaceButton
+                      tooltip="Show more nodes"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() =>
+                        setVisibleCount((count) => Math.min(count + 12, filteredNodes().length))
+                      }
+                    >
+                      Show more nodes
+                    </WorkspaceButton>
+                    <span>Showing a bounded window for responsive rendering.</span>
+                  </div>
+                </CardContent>
               </Card>
             </Show>
             <OrbitLayout
@@ -519,106 +531,108 @@ export default function KnowledgeGraphView(props: {
                     }
                     title={selectedNode().label}
                   />
-                  <DetailPanelBody class="flex flex-col gap-4">
-                    <DetailPanelSection title="Node">
-                      <Show when={selectedNode().kind !== 'workspace'}>
+                  <DetailPanelBody>
+                    <div class="flex flex-col gap-4">
+                      <DetailPanelSection title="Node">
+                        <Show when={selectedNode().kind !== 'workspace'}>
+                          <DetailPanelField
+                            name="Workspace"
+                            value={selectedNode().project || 'Unscoped'}
+                            muted={!selectedNode().project}
+                          />
+                        </Show>
+                        <Show when={selectedNode().kind === 'document'}>
+                          <DetailPanelField
+                            name="Source"
+                            value={selectedNode().source || 'Unknown source'}
+                            muted={!selectedNode().source}
+                          />
+                        </Show>
                         <DetailPanelField
-                          name="Workspace"
-                          value={selectedNode().project || 'Unscoped'}
-                          muted={!selectedNode().project}
+                          name="Related links"
+                          value={String(selectedEdges().length)}
                         />
-                      </Show>
-                      <Show when={selectedNode().kind === 'document'}>
-                        <DetailPanelField
-                          name="Source"
-                          value={selectedNode().source || 'Unknown source'}
-                          muted={!selectedNode().source}
-                        />
-                      </Show>
-                      <DetailPanelField
-                        name="Related links"
-                        value={String(selectedEdges().length)}
-                      />
-                      <Show when={pinnedNodeIds().has(selectedNode().id)}>
-                        <DetailPanelField name="Pinned" value="Yes" />
-                      </Show>
-                    </DetailPanelSection>
-                    <Show when={selectedEdges().length > 0}>
-                      <div class="flex flex-col gap-2">
-                        <Text as="h3" variant="overline">
-                          Relationships
-                        </Text>
-                        <ul class="flex flex-col gap-2">
-                          <For each={selectedEdges()}>
-                            {(edge) => (
-                              <li class="flex flex-col gap-0.5">
-                                <Text variant="label">
-                                  {edge.kind === 'contains'
-                                    ? 'Contained by its workspace or source'
-                                    : edge.kind}
-                                </Text>
-                                <Show when={edge.origin}>
-                                  <Text variant="caption" tone="muted">
-                                    {edge.origin === 'inferred'
-                                      ? `Inferred relationship${edge.confidence == null ? '' : ` · ${Math.round(edge.confidence * 100)}% confidence`}`
-                                      : `${edge.origin![0].toUpperCase()}${edge.origin!.slice(1)} relationship`}
-                                    {edge.support
-                                      ? ` · ${edge.support.record_ids.length} supporting record${edge.support.record_ids.length === 1 ? '' : 's'}`
-                                      : ''}
-                                    {edge.citation_authority
-                                      ? ' · citation-capable'
-                                      : ' · not citation evidence'}
+                        <Show when={pinnedNodeIds().has(selectedNode().id)}>
+                          <DetailPanelField name="Pinned" value="Yes" />
+                        </Show>
+                      </DetailPanelSection>
+                      <Show when={selectedEdges().length > 0}>
+                        <div class="flex flex-col gap-2">
+                          <Text as="h3" variant="overline">
+                            Relationships
+                          </Text>
+                          <ul class="flex flex-col gap-2">
+                            <For each={selectedEdges()}>
+                              {(edge) => (
+                                <li class="flex flex-col gap-0.5">
+                                  <Text variant="label">
+                                    {edge.kind === 'contains'
+                                      ? 'Contained by its workspace or source'
+                                      : edge.kind}
                                   </Text>
-                                </Show>
-                              </li>
-                            )}
-                          </For>
-                        </ul>
-                      </div>
-                    </Show>
-                    <Show when={selectedNode().document_id}>
-                      <div class="flex flex-wrap items-center gap-2">
-                        <WorkspaceButton
-                          tooltip={
-                            pinnedNodeIds().has(selectedNode().id)
-                              ? 'Release this node from the pinned graph focus.'
-                              : 'Keep this node in focus while exploring the graph.'
-                          }
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            setPinnedNodeIds((current) => {
-                              const next = new Set(current)
-                              if (next.has(selectedNode().id)) next.delete(selectedNode().id)
-                              else next.add(selectedNode().id)
-                              return next
-                            })
-                          }
-                        >
-                          {pinnedNodeIds().has(selectedNode().id) ? 'Unpin node' : 'Pin node'}
-                        </WorkspaceButton>
-                        <WorkspaceButton
-                          tooltip="Open document"
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => props.onSelectDocument(selectedNode().document_id!)}
-                        >
-                          Open document
-                        </WorkspaceButton>
-                        <Show when={props.onFocusGraphNode}>
+                                  <Show when={edge.origin}>
+                                    <Text variant="caption" tone="muted">
+                                      {edge.origin === 'inferred'
+                                        ? `Inferred relationship${edge.confidence == null ? '' : ` · ${Math.round(edge.confidence * 100)}% confidence`}`
+                                        : `${edge.origin![0].toUpperCase()}${edge.origin!.slice(1)} relationship`}
+                                      {edge.support
+                                        ? ` · ${edge.support.record_ids.length} supporting record${edge.support.record_ids.length === 1 ? '' : 's'}`
+                                        : ''}
+                                      {edge.citation_authority
+                                        ? ' · citation-capable'
+                                        : ' · not citation evidence'}
+                                    </Text>
+                                  </Show>
+                                </li>
+                              )}
+                            </For>
+                          </ul>
+                        </div>
+                      </Show>
+                      <Show when={selectedNode().document_id}>
+                        <div class="flex flex-wrap items-center gap-2">
                           <WorkspaceButton
-                            tooltip="Expand one-hop relationships"
+                            tooltip={
+                              pinnedNodeIds().has(selectedNode().id)
+                                ? 'Release this node from the pinned graph focus.'
+                                : 'Keep this node in focus while exploring the graph.'
+                            }
                             variant="ghost"
                             size="sm"
                             onClick={() =>
-                              props.onFocusGraphNode!(selectedNode() as BrainGraphNode)
+                              setPinnedNodeIds((current) => {
+                                const next = new Set(current)
+                                if (next.has(selectedNode().id)) next.delete(selectedNode().id)
+                                else next.add(selectedNode().id)
+                                return next
+                              })
                             }
                           >
-                            Expand one-hop relationships
+                            {pinnedNodeIds().has(selectedNode().id) ? 'Unpin node' : 'Pin node'}
                           </WorkspaceButton>
-                        </Show>
-                      </div>
-                    </Show>
+                          <WorkspaceButton
+                            tooltip="Open document"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => props.onSelectDocument(selectedNode().document_id!)}
+                          >
+                            Open document
+                          </WorkspaceButton>
+                          <Show when={props.onFocusGraphNode}>
+                            <WorkspaceButton
+                              tooltip="Expand one-hop relationships"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                props.onFocusGraphNode!(selectedNode() as BrainGraphNode)
+                              }
+                            >
+                              Expand one-hop relationships
+                            </WorkspaceButton>
+                          </Show>
+                        </div>
+                      </Show>
+                    </div>
                   </DetailPanelBody>
                 </Card>
               )}
