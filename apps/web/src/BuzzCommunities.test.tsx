@@ -299,7 +299,8 @@ test('buzz community chooser is scoped to the selected workspace', async () => {
   )
   fireEvent.click(
     screen.getByRole('tab', {
-      name: /Work/,
+      // Not the "Workspaces" settings tab.
+      name: /Work(?!spaces)/,
     })
   )
   await waitFor(() =>
