@@ -278,9 +278,7 @@ async function run() {
 
     await workSource.click()
     await page.waitForFunction(() =>
-      document
-        .querySelector('[data-m7-explorer-heading]')
-        ?.textContent?.includes('Files & code')
+      document.querySelector('[data-m7-explorer-heading]')?.textContent?.includes('Files & code')
     )
     await page.getByRole('option', { name: /Deployment playbook/ }).waitFor()
     ensure(
