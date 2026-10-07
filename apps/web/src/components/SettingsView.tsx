@@ -35,7 +35,6 @@ import {
   onCleanup,
   For,
 } from 'solid-js'
-import { cn } from '../lib/utils'
 import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
 import { normalizeProviderUrl, type ProviderModelsState } from './settings/providerUtils'
 import { SettingsConfirmProvider, useSettingsConfirm } from './settings/SettingsConfirm'
@@ -856,7 +855,7 @@ function SettingsViewContent(incoming: {
             </SettingsLayout>
             {(error() || saved() || settings()!.restart_required) && (
               <Alert
-                class={cn('settings-banner', (error() || restartFailed()) && 'error')}
+                class="settings-banner"
                 variant={error() || restartFailed() ? 'destructive' : 'default'}
                 role={error() || restartFailed() ? 'alert' : 'status'}
               >

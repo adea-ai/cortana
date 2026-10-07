@@ -7,7 +7,6 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from '@adea-ai/ui/components/ui/accordion'
-import { Label } from '@adea-ai/ui/components/ui/label'
 import { Pause, Play, RefreshCw, Search, ShieldCheck } from 'lucide-solid'
 import { createComputed, createEffect, createSignal, For, onCleanup, Show } from 'solid-js'
 
@@ -33,7 +32,18 @@ import { virtualRange } from '../virtualization'
 import { Alert, AlertDescription } from '@adea-ai/ui/components/ui/alert'
 import { StatusChip, type StatusTone } from '@adea-ai/ui/components/ui/status-chip'
 import { ActionButton as MemoryButton } from '@adea-ai/ui/components/composites/action-button'
-import { Card } from '@adea-ai/ui/components/ui/card'
+import { Card, CardContent, CardHeader } from '@adea-ai/ui/components/ui/card'
+import { CodeBlock } from '@adea-ai/ui/components/ui/code-block'
+import { FieldSet, FormField } from '@adea-ai/ui/components/ui/field'
+import {
+  ItemDescription,
+  ItemGroup,
+  ItemGroupEntry,
+  ItemTitle,
+} from '@adea-ai/ui/components/ui/item'
+import { ScrollArea } from '@adea-ai/ui/components/ui/scroll-area'
+import { Separator } from '@adea-ai/ui/components/ui/separator'
+import { PropertyList, PropertyTerm, PropertyValue } from '@adea-ai/ui/components/composites/stat'
 
 import { Checkbox } from '@adea-ai/ui/components/ui/checkbox'
 import { Input } from '@adea-ai/ui/components/ui/input'
@@ -43,7 +53,7 @@ import { Textarea } from '@adea-ai/ui/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@adea-ai/ui/components/ui/toggle-group'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@adea-ai/ui/components/ui/input-group'
 import { useSettingsConfirm } from './settings/SettingsConfirm'
-import { Text } from '@adea-ai/ui/components/ui/typography'
+import { Heading, Text } from '@adea-ai/ui/components/ui/typography'
 
 type QueueView =
   | 'all'
@@ -76,42 +86,41 @@ function MemoryPolicy(props: {
 }) {
   const patch = (next: Partial<MemoryReviewPolicy>) => props.onChange({ ...props.policy, ...next })
   return (
-    <div class="memory-policy" aria-label="Memory retention policy">
-      <Label>
-        Working ceiling (days)
-        <Input
-          type="number"
-          min={1}
-          max={7}
-          value={props.policy.maxWorkingDays}
-          onInput={(event) => patch({ maxWorkingDays: Number(event.target.value) })}
-        />
-      </Label>
-      <Label>
-        Durable ceiling (days)
-        <Input
-          type="number"
-          min={1}
-          max={3650}
-          value={props.policy.maxDurableDays}
-          onInput={(event) => patch({ maxDurableDays: Number(event.target.value) })}
-        />
-      </Label>
-      <Label>
-        Candidate expiry (days)
-        <Input
-          type="number"
-          min={1}
-          max={7}
-          value={props.policy.candidateExpiryDays}
-          onInput={(event) => patch({ candidateExpiryDays: Number(event.target.value) })}
-        />
-      </Label>
-      <p>
+    <>
+      <div class="grid gap-4 sm:grid-cols-3">
+        <FormField label="Working ceiling (days)">
+          <Input
+            type="number"
+            min={1}
+            max={7}
+            value={props.policy.maxWorkingDays}
+            onInput={(event) => patch({ maxWorkingDays: Number(event.target.value) })}
+          />
+        </FormField>
+        <FormField label="Durable ceiling (days)">
+          <Input
+            type="number"
+            min={1}
+            max={3650}
+            value={props.policy.maxDurableDays}
+            onInput={(event) => patch({ maxDurableDays: Number(event.target.value) })}
+          />
+        </FormField>
+        <FormField label="Candidate expiry (days)">
+          <Input
+            type="number"
+            min={1}
+            max={7}
+            value={props.policy.candidateExpiryDays}
+            onInput={(event) => patch({ candidateExpiryDays: Number(event.target.value) })}
+          />
+        </FormField>
+      </div>
+      <Text variant="caption" tone="muted" as="p">
         Candidate processing is manual. Automatic retention and recurring processing remain
         disabled.
-      </p>
-    </div>
+      </Text>
+    </>
   )
 }
 
@@ -137,60 +146,69 @@ function CandidateQueue(props: {
   }
 
   return (
-    <div>
-      <div
-        class="memory-candidate-list"
-        role="list"
-        aria-label="Memory candidate queue"
-        aria-busy={props.loading}
-        onScroll={(event) => props.onScroll(event.currentTarget.scrollTop)}
-      >
-        <VirtualWindow totalSize={props.range.totalHeight} offset={props.range.offsetTop}>
-          <For each={props.filtered.slice(props.range.start, props.range.end)}>
-            {(candidate) => (
-              <Card role="listitem" class="memory-candidate-row">
-                <Checkbox
-                  aria-label={`Select ${candidate.title}`}
-                  checked={props.selectedIds.has(candidate.id)}
-                  onChange={(checked: boolean) => updateSelection(candidate, checked)}
-                />
-                <ListRow
-                  as="button"
-                  type="button"
-                  tooltip={`${candidate.title}, ${queueStatus(candidate)}`}
-                  selected={props.selectedId === candidate.id}
-                  aria-label={`${candidate.title}, ${queueStatus(candidate)}`}
-                  onClick={() => props.onSelect(candidate.id)}
-                  description={candidate.content}
-                  class="min-w-0 w-full text-left"
+    <div class="flex min-w-0 flex-col gap-2">
+      <Card size="flush" class="overflow-hidden">
+        <ScrollArea
+          class="h-90"
+          tabIndex={-1}
+          role="list"
+          aria-label="Memory candidate queue"
+          aria-busy={props.loading}
+          onScroll={(event) => props.onScroll(event.currentTarget.scrollTop)}
+        >
+          <VirtualWindow totalSize={props.range.totalHeight} offset={props.range.offsetTop}>
+            <For each={props.filtered.slice(props.range.start, props.range.end)}>
+              {(candidate) => (
+                <div
+                  role="listitem"
+                  class="memory-candidate-row flex h-18 items-center gap-2 px-2.5"
                 >
-                  {candidate.title}
-                </ListRow>
-                <StatusChip
-                  tone={QUEUE_TONES[queueStatus(candidate)]}
-                  label={queueStatus(candidate)}
-                  role="status"
-                />
-              </Card>
-            )}
-          </For>
-        </VirtualWindow>
-        <Show when={!props.loading && props.filtered.length === 0}>
-          <Empty>
-            <EmptyHeader>
-              <EmptyTitle>No candidates match this view</EmptyTitle>
-              <EmptyDescription>
-                Adjust the search text or switch the status view to see other candidates.
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        </Show>
-      </div>
+                  <Checkbox
+                    aria-label={`Select ${candidate.title}`}
+                    checked={props.selectedIds.has(candidate.id)}
+                    onChange={(checked: boolean) => updateSelection(candidate, checked)}
+                  />
+                  <ListRow
+                    as="button"
+                    type="button"
+                    tooltip={`${candidate.title}, ${queueStatus(candidate)}`}
+                    selected={props.selectedId === candidate.id}
+                    aria-label={`${candidate.title}, ${queueStatus(candidate)}`}
+                    onClick={() => props.onSelect(candidate.id)}
+                    description={candidate.content}
+                    class="min-w-0 flex-1 text-left"
+                  >
+                    {candidate.title}
+                  </ListRow>
+                  <StatusChip
+                    tone={QUEUE_TONES[queueStatus(candidate)]}
+                    label={queueStatus(candidate)}
+                    role="status"
+                  />
+                </div>
+              )}
+            </For>
+          </VirtualWindow>
+          <Show when={!props.loading && props.filtered.length === 0}>
+            <Empty>
+              <EmptyHeader>
+                <EmptyTitle>No candidates match this view</EmptyTitle>
+                <EmptyDescription>
+                  Adjust the search text or switch the status view to see other candidates.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          </Show>
+        </ScrollArea>
+      </Card>
       <Show when={props.selectedIds.size > 0}>
-        <div class="memory-bulk-actions" aria-label="Bulk-safe candidate actions">
-          <span>
+        <div
+          class="flex flex-wrap items-center justify-end gap-2"
+          aria-label="Bulk-safe candidate actions"
+        >
+          <Text variant="micro" tone="muted">
             {props.selectedIds.size}/{MAX_BULK_ACTIONS} selected
-          </span>
+          </Text>
           <MemoryButton
             tooltip="Reject selected"
             type="button"
@@ -422,19 +440,22 @@ export function MemoryReview(props: {
 
   return (
     <section
-      class="memory-review m7-memory-review"
+      class="flex min-w-0 flex-col gap-4"
       aria-labelledby="memory-review-title"
       data-m7-memory-review=""
     >
-      <header class="memory-review-header">
-        <div>
-          <Text variant="overline" class="eyebrow">
-            Review before retention
+      <Separator class="my-2" />
+      <header class="flex flex-wrap items-start justify-between gap-2">
+        <div class="flex min-w-0 flex-col gap-1">
+          <Text variant="overline">Review before retention</Text>
+          <Heading size="card" id="memory-review-title">
+            Memory control center
+          </Heading>
+          <Text variant="caption" tone="muted" as="p">
+            Inspect candidates, canonical recall, and derived reasoning as separate layers.
           </Text>
-          <h3 id="memory-review-title">Memory control center</h3>
-          <p>Inspect candidates, canonical recall, and derived reasoning as separate layers.</p>
         </div>
-        <div class="memory-review-header-actions">
+        <div class="flex flex-wrap items-center gap-2">
           <MemoryButton
             type="button"
             variant="secondary"
@@ -475,9 +496,11 @@ export function MemoryReview(props: {
         </div>
       </header>
 
-      <MemoryPolicy policy={policy()} onChange={setPolicy} />
-      <div class="memory-review-filters">
-        <InputGroup class="memory-review-search">
+      <FieldSet aria-label="Memory retention policy">
+        <MemoryPolicy policy={policy()} onChange={setPolicy} />
+      </FieldSet>
+      <div class="flex flex-wrap items-start gap-2">
+        <InputGroup class="min-w-56 flex-1">
           <InputGroupAddon>
             <Search aria-hidden="true" />
           </InputGroupAddon>
@@ -521,9 +544,9 @@ export function MemoryReview(props: {
         }
       >
         <Show when={notice()}>
-          <div role="status" class="memory-review-message">
-            {notice()}
-          </div>
+          <Alert variant="success" role="status">
+            <AlertDescription>{notice()}</AlertDescription>
+          </Alert>
         </Show>
       </Show>
 
@@ -572,62 +595,72 @@ function CandidateDetail(props: {
   onAction: (action: MemoryCandidateAction, edit?: { title: string; content: string }) => void
 }) {
   return (
-    <Show
-      when={props.selected}
-      fallback={<article class="memory-candidate-detail">Select a candidate.</article>}
-    >
-      {(selected) => (
-        <article class="memory-candidate-detail" aria-live="polite">
-          <Text variant="overline" class="eyebrow">
-            Candidate · not canonical
-          </Text>
-          <h4>{selected().title}</h4>
-          {props.editing ? (
-            <div class="memory-edit-fields">
-              <Label>
-                Proposed title
-                <Input
-                  value={props.editTitle}
-                  onInput={(event) => props.onTitle(event.target.value)}
+    <Card size="sm" class="min-w-0">
+      <CardContent>
+        <Show
+          when={props.selected}
+          fallback={
+            <Text variant="caption" tone="muted" as="p">
+              Select a candidate.
+            </Text>
+          }
+        >
+          {(selected) => (
+            <article class="flex min-w-0 flex-col gap-3" aria-live="polite">
+              <div class="flex min-w-0 flex-col gap-1">
+                <Text variant="overline">Candidate · not canonical</Text>
+                <Heading size="subsection">{selected().title}</Heading>
+              </div>
+              {props.editing ? (
+                <div class="flex flex-col gap-3">
+                  <FormField label="Proposed title">
+                    <Input
+                      value={props.editTitle}
+                      onInput={(event) => props.onTitle(event.target.value)}
+                    />
+                  </FormField>
+                  <FormField label="Proposed content">
+                    <Textarea
+                      rows={5}
+                      size="comfortable"
+                      value={props.editContent}
+                      onInput={(event) => props.onContent(event.target.value)}
+                    />
+                  </FormField>
+                </div>
+              ) : (
+                <Text variant="caption" tone="muted" as="p">
+                  {selected().content}
+                </Text>
+              )}
+              <CandidateMetadata selected={selected()} classification={props.classification} />
+              <Show
+                when={selected().status === 'pending'}
+                fallback={
+                  <Text variant="caption" tone="muted" as="p">
+                    This candidate is terminal. Its stored outcome is shown above; no new
+                    classification or action was run.
+                  </Text>
+                }
+              >
+                <CandidateActions
+                  busy={props.busy}
+                  retryable={
+                    selected().consolidation?.status === 'dead-letter' ||
+                    selected().consolidation?.status === 'retry'
+                  }
+                  editing={props.editing}
+                  editTitle={props.editTitle}
+                  editContent={props.editContent}
+                  onEditing={props.onEditing}
+                  onAction={props.onAction}
                 />
-              </Label>
-              <Label>
-                Proposed content
-                <Textarea
-                  value={props.editContent}
-                  onInput={(event) => props.onContent(event.target.value)}
-                />
-              </Label>
-            </div>
-          ) : (
-            <p>{selected().content}</p>
+              </Show>
+            </article>
           )}
-          <CandidateMetadata selected={selected()} classification={props.classification} />
-          <Show
-            when={selected().status === 'pending'}
-            fallback={
-              <p>
-                This candidate is terminal. Its stored outcome is shown above; no new classification
-                or action was run.
-              </p>
-            }
-          >
-            <CandidateActions
-              busy={props.busy}
-              retryable={
-                selected().consolidation?.status === 'dead-letter' ||
-                selected().consolidation?.status === 'retry'
-              }
-              editing={props.editing}
-              editTitle={props.editTitle}
-              editContent={props.editContent}
-              onEditing={props.onEditing}
-              onAction={props.onAction}
-            />
-          </Show>
-        </article>
-      )}
-    </Show>
+        </Show>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -637,79 +670,55 @@ function CandidateMetadata(props: {
 }) {
   return (
     <>
-      <div class="memory-metadata">
-        <div>
-          <span>Content type</span>
-          <strong>{props.selected.content_type}</strong>
-        </div>
-        <div>
-          <span>Retention</span>
-          <strong>{props.selected.retention_tier}</strong>
-        </div>
-        <div>
-          <span>Scope</span>
-          <strong>{props.selected.scope}</strong>
-        </div>
-        <div>
-          <span>Confidence</span>
-          <strong>{Math.round(props.selected.confidence * 100)}%</strong>
-        </div>
-        <div>
-          <span>Sensitivity</span>
-          <strong>{props.selected.sensitivity}</strong>
-        </div>
-        <div>
-          <span>Expires</span>
-          <strong>{props.selected.expires_at}</strong>
-        </div>
-        <div>
-          <span>Classification</span>
-          <strong>
-            {props.selected.consolidation?.classification ??
-              props.classification?.classification ??
-              'Not evaluated'}
-          </strong>
-        </div>
-        <div>
-          <span>Policy version</span>
-          <strong>{props.selected.consolidation?.policy_version ?? 'Not evaluated'}</strong>
-        </div>
-      </div>
-      <Show when={props.selected.consolidation}>
-        {(consolidation) => (
-          <div class="memory-metadata">
-            <div>
-              <span>Decision</span>
-              <strong>{consolidation().decision}</strong>
-            </div>
-            <div>
-              <span>Job status</span>
-              <strong>{consolidation().status}</strong>
-            </div>
-            <div>
-              <span>Attempts</span>
-              <strong>{consolidation().attempts}</strong>
-            </div>
-            <div>
-              <span>Canonical memory</span>
-              <strong>{consolidation().memory_id ?? 'None'}</strong>
-            </div>
-            <div>
-              <span>Last error</span>
-              <strong>{consolidation().last_error ?? 'None'}</strong>
-            </div>
-            <div>
-              <span>Evaluated</span>
-              <strong>{consolidation().updated_at}</strong>
-            </div>
-          </div>
-        )}
-      </Show>
+      <PropertyList>
+        <PropertyTerm>Content type</PropertyTerm>
+        <PropertyValue>{props.selected.content_type}</PropertyValue>
+        <PropertyTerm>Retention</PropertyTerm>
+        <PropertyValue>{props.selected.retention_tier}</PropertyValue>
+        <PropertyTerm>Scope</PropertyTerm>
+        <PropertyValue>{props.selected.scope}</PropertyValue>
+        <PropertyTerm>Confidence</PropertyTerm>
+        <PropertyValue>{Math.round(props.selected.confidence * 100)}%</PropertyValue>
+        <PropertyTerm>Sensitivity</PropertyTerm>
+        <PropertyValue>{props.selected.sensitivity}</PropertyValue>
+        <PropertyTerm>Expires</PropertyTerm>
+        <PropertyValue>{props.selected.expires_at}</PropertyValue>
+        <PropertyTerm>Classification</PropertyTerm>
+        <PropertyValue>
+          {props.selected.consolidation?.classification ??
+            props.classification?.classification ??
+            'Not evaluated'}
+        </PropertyValue>
+        <PropertyTerm>Policy version</PropertyTerm>
+        <PropertyValue>
+          {props.selected.consolidation?.policy_version ?? 'Not evaluated'}
+        </PropertyValue>
+        <Show when={props.selected.consolidation}>
+          {(consolidation) => (
+            <>
+              <PropertyTerm>Decision</PropertyTerm>
+              <PropertyValue>{consolidation().decision}</PropertyValue>
+              <PropertyTerm>Job status</PropertyTerm>
+              <PropertyValue>{consolidation().status}</PropertyValue>
+              <PropertyTerm>Attempts</PropertyTerm>
+              <PropertyValue>{consolidation().attempts}</PropertyValue>
+              <PropertyTerm>Canonical memory</PropertyTerm>
+              <PropertyValue>{consolidation().memory_id ?? 'None'}</PropertyValue>
+              <PropertyTerm>Last error</PropertyTerm>
+              <PropertyValue>{consolidation().last_error ?? 'None'}</PropertyValue>
+              <PropertyTerm>Evaluated</PropertyTerm>
+              <PropertyValue>{consolidation().updated_at}</PropertyValue>
+            </>
+          )}
+        </Show>
+      </PropertyList>
       <Show when={props.classification}>
-        <p>{props.classification!.explanation}</p>
+        <Text variant="caption" tone="muted" as="p">
+          {props.classification!.explanation}
+        </Text>
       </Show>
       <Show when={!props.classification && props.selected.consolidation}>
-        <p>
+        <Text variant="caption" tone="muted" as="p">
           {props.selected.consolidation!.explanation ??
             `Stored policy decision ${props.selected.consolidation!.decision} ended as ${props.selected.consolidation!.status}`}
           {props.selected.consolidation!.memory_id
@@ -719,21 +728,30 @@ function CandidateMetadata(props: {
             ? ` (reason: ${props.selected.consolidation!.reason_code})`
             : ''}
           .
-        </p>
+        </Text>
       </Show>
       <Accordion collapsible>
         <AccordionItem value="details">
           <AccordionTrigger>Provenance and support</AccordionTrigger>
           <AccordionContent>
-            <pre>{JSON.stringify(props.selected.provenance, null, 2)}</pre>
-            <p>
-              Supporting memories:{' '}
-              {(
-                props.classification?.supporting_memory_ids ??
-                props.selected.consolidation?.supporting_memory_ids ??
-                []
-              ).join(', ') || 'None'}
-            </p>
+            <div class="flex flex-col gap-2">
+              <CodeBlock
+                code={JSON.stringify(props.selected.provenance, null, 2)}
+                language="json"
+                title="Provenance"
+                complete
+                wrap
+                maxHeight={140}
+              />
+              <Text variant="caption" tone="muted" as="p">
+                Supporting memories:{' '}
+                {(
+                  props.classification?.supporting_memory_ids ??
+                  props.selected.consolidation?.supporting_memory_ids ??
+                  []
+                ).join(', ') || 'None'}
+              </Text>
+            </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
@@ -751,7 +769,7 @@ function CandidateActions(props: {
   onAction: (action: MemoryCandidateAction, edit?: { title: string; content: string }) => void
 }) {
   return (
-    <div class="memory-candidate-actions">
+    <div class="flex flex-wrap items-center gap-2">
       <MemoryButton
         tooltip="Approve canonical memory"
         variant="secondary"
@@ -851,48 +869,68 @@ function CandidateActions(props: {
 function MemoryLayers(props: { canonical: AgentMemory[]; derived: DerivedMemoryResponse | null }) {
   return (
     <div class="memory-layer-grid">
-      <section aria-labelledby="canonical-memory-title">
-        <Text variant="overline" class="eyebrow">
-          Recall
-        </Text>
-        <h4 id="canonical-memory-title">Canonical memory</h4>
-        <p>Durable records eligible for recall and evidence-backed answers.</p>
-        <ul>
-          <For each={props.canonical.slice(0, 20)}>
-            {(memory) => (
-              <li>
-                <strong>{memory.title}</strong>
-                <span>{memory.content}</span>
-                <span>
-                  {memory.status ?? 'active'}
-                  {memory.supersedes_id ? ` · supersedes ${memory.supersedes_id}` : ''}
-                  {memory.source ? ` · from ${memory.source}` : ''}
-                </span>
-              </li>
-            )}
-          </For>
-        </ul>
-      </section>
-      <section aria-labelledby="derived-memory-title">
-        <Text variant="overline" class="eyebrow">
-          Reflect
-        </Text>
-        <h4 id="derived-memory-title">Derived · not canonical</h4>
-        <p>Recomputed interpretations are never source evidence or citation authority.</p>
-        <ul>
-          <For each={props.derived?.representations.slice(0, 20) ?? []}>
-            {(item) => (
-              <li>
-                <strong>
-                  {item.kind}: {item.statement}
-                </strong>
-                <span>Supports: {item.supporting_memory_ids.join(', ') || 'None'}</span>
-                <span>Opposes: {item.contradicting_memory_ids.join(', ') || 'None'}</span>
-              </li>
-            )}
-          </For>
-        </ul>
-      </section>
+      <Card size="sm" class="min-w-0" role="region" aria-labelledby="canonical-memory-title">
+        <CardHeader>
+          <Text variant="overline">Recall</Text>
+          <Heading size="subsection" id="canonical-memory-title">
+            Canonical memory
+          </Heading>
+          <Text variant="caption" tone="muted" as="p">
+            Durable records eligible for recall and evidence-backed answers.
+          </Text>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea class="max-h-65" tabIndex={-1}>
+            <ItemGroup listLabel="Canonical memory records">
+              <For each={props.canonical.slice(0, 20)}>
+                {(memory) => (
+                  <ItemGroupEntry variant="outline" size="sm">
+                    <ItemTitle>{memory.title}</ItemTitle>
+                    <ItemDescription>{memory.content}</ItemDescription>
+                    <ItemDescription>
+                      {memory.status ?? 'active'}
+                      {memory.supersedes_id ? ` · supersedes ${memory.supersedes_id}` : ''}
+                      {memory.source ? ` · from ${memory.source}` : ''}
+                    </ItemDescription>
+                  </ItemGroupEntry>
+                )}
+              </For>
+            </ItemGroup>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+      <Card size="sm" class="min-w-0" role="region" aria-labelledby="derived-memory-title">
+        <CardHeader>
+          <Text variant="overline">Reflect</Text>
+          <Heading size="subsection" id="derived-memory-title">
+            Derived · not canonical
+          </Heading>
+          <Text variant="caption" tone="muted" as="p">
+            Recomputed interpretations are never source evidence or citation authority.
+          </Text>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea class="max-h-65" tabIndex={-1}>
+            <ItemGroup listLabel="Derived memory representations">
+              <For each={props.derived?.representations.slice(0, 20) ?? []}>
+                {(item) => (
+                  <ItemGroupEntry variant="outline" size="sm">
+                    <ItemTitle>
+                      {item.kind}: {item.statement}
+                    </ItemTitle>
+                    <ItemDescription>
+                      Supports: {item.supporting_memory_ids.join(', ') || 'None'}
+                    </ItemDescription>
+                    <ItemDescription>
+                      Opposes: {item.contradicting_memory_ids.join(', ') || 'None'}
+                    </ItemDescription>
+                  </ItemGroupEntry>
+                )}
+              </For>
+            </ItemGroup>
+          </ScrollArea>
+        </CardContent>
+      </Card>
     </div>
   )
 }
