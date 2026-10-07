@@ -2228,10 +2228,20 @@ body,
   color: var(--foreground);
 }
 
+/*
+ * TopBar owns the header grid, but its centre track (clamp(240px, 22vw, 480px))
+ * is sized for a lone search field. This cluster also carries the Reflect
+ * action, so the header keeps a wider centre track.
+ */
 .m7-application-header {
-  display: grid;
-  align-items: center;
   gap: 0.5rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+@media (min-width: 1280px) {
+  .m7-application-header {
+    grid-template-columns: minmax(0, 1fr) clamp(240px, 32vw, 672px) minmax(0, 1fr);
+  }
 }
 
 .m7-header-context {
@@ -2253,20 +2263,6 @@ body,
 .m7-header-actions {
   min-width: 2.25rem;
   justify-self: end;
-}
-
-@media (min-width: 1280px) {
-  .m7-header-leading {
-    grid-column: 1;
-  }
-
-  .m7-search-cluster {
-    grid-column: 2;
-  }
-
-  .m7-header-actions {
-    grid-column: 3;
-  }
 }
 
 .m7-production-shell [data-m7-activity-inbox] .activity-card-grid {
@@ -2591,16 +2587,8 @@ body,
   min-width: 0;
   flex: 1;
 }
-.m7-application-header {
-  grid-template-columns: auto minmax(0, 1fr) auto;
-}
 .m7-search-cluster {
   width: 100%;
-}
-@media (min-width: 1280px) {
-  .m7-application-header {
-    grid-template-columns: minmax(0, 1fr) clamp(240px, 32vw, 672px) minmax(0, 1fr);
-  }
 }
 @media (max-width: 799px) {
   .m7-header-context {
