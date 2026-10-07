@@ -39,7 +39,15 @@ import {
   EmptyTitle,
 } from '@adea-ai/ui/components/ui/empty'
 import { Progress } from '@adea-ai/ui/components/ui/progress'
-import { Text } from '@adea-ai/ui/components/ui/typography'
+import { Heading, Text } from '@adea-ai/ui/components/ui/typography'
+import { CodeBlock } from '@adea-ai/ui/components/ui/code-block'
+import { Separator } from '@adea-ai/ui/components/ui/separator'
+import {
+  PageHeader,
+  PageHeaderContent,
+  PageHeaderDescription,
+  PageHeaderTitle,
+} from '@adea-ai/ui/components/layout/page'
 
 export type M7ActivityInboxProps = {
   status: BrainStatus | null
@@ -156,9 +164,11 @@ function SyncActivityCard(props: { run: SourceSyncSummary }) {
       <CardHeader>
         <div class="flex min-w-0 items-start justify-between gap-3">
           <div data-activity-card-copy="" class="flex min-w-0 flex-1 flex-col gap-2">
-            <CardTitle class="activity-card-title-line">
-              {statusIcon(props.run.status)}
-              <span class="min-w-0 break-words">{props.run.source}</span>
+            <CardTitle>
+              <span class="flex min-w-0 items-center gap-2">
+                {statusIcon(props.run.status)}
+                <span class="min-w-0 break-words">{props.run.source}</span>
+              </span>
             </CardTitle>
             <CardDescription class="break-words">
               {props.run.project} · started {new Date(props.run.started_at).toLocaleString()}
@@ -167,19 +177,23 @@ function SyncActivityCard(props: { run: SourceSyncSummary }) {
           <CardAction>{statusBadge(props.run.status)}</CardAction>
         </div>
       </CardHeader>
-      <CardContent class="activity-card-content">
-        <div class="activity-card-detail-row">
-          <p class="m-0 text-sm text-muted-foreground">{describeSyncRunProgress(props.run)}</p>
-          <div class="activity-card-status-row">
+      <CardContent>
+        <div class="flex min-w-0 items-center gap-4 max-[520px]:flex-col max-[520px]:items-stretch max-[520px]:gap-3">
+          <p class="m-0 min-w-0 flex-1 text-sm text-muted-foreground">
+            {describeSyncRunProgress(props.run)}
+          </p>
+          <div class="flex min-w-0 shrink-0 items-center justify-end gap-3 whitespace-nowrap max-[520px]:justify-start max-[520px]:whitespace-normal">
             <Show when={props.run.status === 'running'}>
-              <Progress
-                value={progress() ?? undefined}
-                indeterminate={progress() === null}
-                hideValue
-                aria-label={`${props.run.source} sync progress`}
-              />
+              <div class="w-32 shrink lg:w-48">
+                <Progress
+                  value={progress() ?? undefined}
+                  indeterminate={progress() === null}
+                  hideValue
+                  aria-label={`${props.run.source} sync progress`}
+                />
+              </div>
             </Show>
-            <p class="text-xs text-muted-foreground">
+            <p class="m-0 text-right text-xs text-muted-foreground max-[520px]:text-left">
               {documents().toLocaleString()} documents ·{' '}
               {(props.run.progress_bytes ?? props.run.bytes ?? 0).toLocaleString()} bytes
             </p>
@@ -202,10 +216,12 @@ function SourceJobCard(props: { job: DesktopSourceJob; onCancel?: (id: string) =
       <CardHeader>
         <div class="flex min-w-0 items-start justify-between gap-3">
           <div data-activity-card-copy="" class="flex min-w-0 flex-1 flex-col gap-2">
-            <CardTitle class="activity-card-title-line">
-              {statusIcon(props.job.status)}
-              <span class="min-w-0 break-words">
-                {props.job.source} · {sourceOperationLabel(props.job.operation)}
+            <CardTitle>
+              <span class="flex min-w-0 items-center gap-2">
+                {statusIcon(props.job.status)}
+                <span class="min-w-0 break-words">
+                  {props.job.source} · {sourceOperationLabel(props.job.operation)}
+                </span>
               </span>
             </CardTitle>
             <CardDescription class="break-words">
@@ -215,20 +231,24 @@ function SourceJobCard(props: { job: DesktopSourceJob; onCancel?: (id: string) =
           <CardAction>{statusBadge(props.job.status)}</CardAction>
         </div>
       </CardHeader>
-      <CardContent class="activity-card-content">
-        <div class="activity-card-detail-row">
-          <p class="m-0 text-sm text-muted-foreground">{describeSourceJobProgress(props.job)}</p>
-          <div class="activity-card-status-row">
+      <CardContent>
+        <div class="flex min-w-0 items-center gap-4 max-[520px]:flex-col max-[520px]:items-stretch max-[520px]:gap-3">
+          <p class="m-0 min-w-0 flex-1 text-sm text-muted-foreground">
+            {describeSourceJobProgress(props.job)}
+          </p>
+          <div class="flex min-w-0 shrink-0 items-center justify-end gap-3 whitespace-nowrap max-[520px]:justify-start max-[520px]:whitespace-normal">
             <Show when={running()}>
-              <Progress
-                value={undefined}
-                indeterminate
-                hideValue
-                aria-label={`${props.job.source} ${sourceOperationLabel(props.job.operation)} in progress`}
-              />
+              <div class="w-32 shrink lg:w-48">
+                <Progress
+                  value={undefined}
+                  indeterminate
+                  hideValue
+                  aria-label={`${props.job.source} ${sourceOperationLabel(props.job.operation)} in progress`}
+                />
+              </div>
             </Show>
             <Show when={completed()}>
-              <p class="text-xs text-muted-foreground">
+              <p class="m-0 text-right text-xs text-muted-foreground max-[520px]:text-left">
                 Completed in{' '}
                 {Math.max(0, Math.round((completed()!.getTime() - started().getTime()) / 1000))}{' '}
                 seconds
@@ -249,13 +269,11 @@ function SourceJobCard(props: { job: DesktopSourceJob; onCancel?: (id: string) =
           </div>
         </div>
         <Show when={props.job.log}>
-          <Accordion collapsible class="activity-card-log p-2">
+          <Accordion collapsible class="mt-3">
             <AccordionItem value="details">
               <AccordionTrigger>View job log</AccordionTrigger>
               <AccordionContent>
-                <pre class="mt-2 overflow-auto whitespace-pre-wrap text-muted-foreground">
-                  {props.job.log}
-                </pre>
+                <CodeBlock code={props.job.log!} title="Log" maxHeight={180} wrap complete />
               </AccordionContent>
             </AccordionItem>
           </Accordion>
@@ -279,25 +297,24 @@ export function M7ActivityInbox(props: M7ActivityInboxProps) {
     attention().length === 0 && activeJobs().length === 0 && completedJobs().length === 0
 
   return (
-    <main
-      tabIndex={-1}
-      id="main-content"
-      class="utility-view m7-utility-view"
-      data-m7-activity-inbox
-    >
-      <header class="utility-header">
-        <div>
-          <Text variant="overline" class="eyebrow">
-            Attention
-          </Text>
-          <h1>Inbox</h1>
-          <p>Current sync health and source-job activity. Nothing here is fabricated history.</p>
-        </div>
-      </header>
-      <div class="utility-body" data-m7-activity-body>
+    <main tabIndex={-1} id="main-content" class="utility-view" data-m7-activity-inbox>
+      <PageHeader>
+        <PageHeaderContent>
+          <Text variant="overline">Attention</Text>
+          <PageHeaderTitle>Inbox</PageHeaderTitle>
+          <PageHeaderDescription>
+            Current sync health and source-job activity. Nothing here is fabricated history.
+          </PageHeaderDescription>
+        </PageHeaderContent>
+      </PageHeader>
+      <Separator />
+      <div
+        data-utility-body=""
+        data-m7-activity-body
+        class="grid min-h-0 flex-1 grid-cols-1 content-start gap-7 overflow-y-auto px-5 pt-5 pb-14"
+      >
         <Show when={sourceJobError()}>
-          <Alert variant="destructive">
-            <AlertTriangle aria-hidden="true" />
+          <Alert variant="destructive" icon={<AlertTriangle aria-hidden="true" />}>
             <AlertTitle>Source jobs unavailable</AlertTitle>
             <AlertDescription>{sourceJobError()}</AlertDescription>
             <Show when={props.onRetrySourceJobs}>
@@ -315,8 +332,7 @@ export function M7ActivityInbox(props: M7ActivityInboxProps) {
           </Alert>
         </Show>
         <Show when={statusError() && props.status}>
-          <Alert>
-            <AlertTriangle aria-hidden="true" />
+          <Alert icon={<AlertTriangle aria-hidden="true" />}>
             <AlertTitle>Showing the last known sync snapshot</AlertTitle>
             <AlertDescription>{statusError()}</AlertDescription>
             <Show when={props.onRetryStatus}>
@@ -347,20 +363,20 @@ export function M7ActivityInbox(props: M7ActivityInboxProps) {
           <div class="flex flex-col gap-6">
             <Show when={attention().length}>
               <section class="flex flex-col gap-3" aria-labelledby="m7-sync-attention">
-                <h2 id="m7-sync-attention" class="font-sans text-base font-medium">
+                <Heading id="m7-sync-attention" size="section">
                   Sync attention
-                </h2>
-                <div class="activity-card-grid">
+                </Heading>
+                <div class="grid grid-cols-1 gap-3">
                   <For each={attention()}>{(run) => <SyncActivityCard run={run} />}</For>
                 </div>
               </section>
             </Show>
             <Show when={activeJobs().length}>
               <section class="flex flex-col gap-3" aria-labelledby="m7-active-source-jobs">
-                <h2 id="m7-active-source-jobs" class="font-sans text-base font-medium">
+                <Heading id="m7-active-source-jobs" size="section">
                   Active source jobs
-                </h2>
-                <div class="activity-card-grid">
+                </Heading>
+                <div class="grid grid-cols-1 gap-3">
                   <For each={activeJobs()}>
                     {(job) => <SourceJobCard job={job} onCancel={props.onCancelSourceJob} />}
                   </For>
@@ -369,17 +385,17 @@ export function M7ActivityInbox(props: M7ActivityInboxProps) {
             </Show>
             <Show when={completedJobs().length}>
               <section class="flex flex-col gap-3" aria-labelledby="m7-recent-source-jobs">
-                <h2 id="m7-recent-source-jobs" class="font-sans text-base font-medium">
+                <Heading id="m7-recent-source-jobs" size="section">
                   Recent source jobs
-                </h2>
-                <div class="activity-card-grid">
+                </Heading>
+                <div class="grid grid-cols-1 gap-3">
                   <For each={completedJobs()}>{(job) => <SourceJobCard job={job} />}</For>
                 </div>
               </section>
             </Show>
           </div>
         </Show>
-        <div class="utility-actions">
+        <div class="flex flex-wrap gap-2">
           <Button
             tooltip="Manage ingestion in settings"
             variant="secondary"
