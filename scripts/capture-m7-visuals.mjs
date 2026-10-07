@@ -179,8 +179,35 @@ async function screenshot(page, name) {
   screenshotCount += 1
 }
 
+/**
+ * Wait for running CSS transitions to finish before Axe reads computed styles.
+ * WebKit can otherwise sample a hovered control with its new fill and its old
+ * foreground, which reports contrast that never reaches the screen.
+ */
+async function waitForTransitionsToSettle(page, timeoutMs = 3_000) {
+  await page.evaluate(async (timeout) => {
+    const deadline = performance.now() + timeout
+    let settledFrames = 0
+    while (performance.now() < deadline) {
+      await new Promise((resolveFrame) => requestAnimationFrame(resolveFrame))
+      const running = document
+        .getAnimations()
+        .filter(
+          (animation) =>
+            animation instanceof CSSTransition &&
+            animation.playState !== 'idle' &&
+            animation.playState !== 'finished'
+        )
+      if (running.length) settledFrames = 0
+      else if (++settledFrames >= 2) return
+    }
+    throw new Error(`CSS transitions did not settle within ${timeout}ms`)
+  }, timeoutMs)
+}
+
 async function auditAccessibility(page, label) {
   await page.evaluate(() => document.fonts.ready)
+  await waitForTransitionsToSettle(page)
   const accessibility = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
     .analyze()
