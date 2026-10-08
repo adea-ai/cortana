@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.68.1](https://github.com/adea-ai/cortana/compare/v0.68.0...v0.68.1) (2026-10-08)
+
+
+### Bug Fixes
+
+* **web:** install the shared tooltip focus gate at boot ([#2546](https://github.com/adea-ai/cortana/issues/2546)) ([ceb170b](https://github.com/adea-ai/cortana/commit/ceb170b40b2bce258c7188145bf8c1f24c2e29df))
+
+
+### Tests
+
+* raise the js lane group ceiling to 420s ([#2547](https://github.com/adea-ai/cortana/issues/2547)) ([be2ed59](https://github.com/adea-ai/cortana/commit/be2ed593b6a3f946cb3afc1788d039dace5353f6))
+
+
+### CI
+
+* **m7:** capture webkit on main pushes; cache Playwright browsers ([#2545](https://github.com/adea-ai/cortana/issues/2545)) ([efa26e4](https://github.com/adea-ai/cortana/commit/efa26e4cd5c56d00504a0cfecc0513b52142465c))
+
 ## [0.68.0](https://github.com/adea-ai/cortana/compare/v0.67.0...v0.68.0) (2026-10-07)
 
 
