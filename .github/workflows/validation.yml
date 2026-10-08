@@ -16,7 +16,10 @@ permissions: {}
 # Superseded PR updates cancel the previous run.
 concurrency:
   group: code-foundry-validation-${{ github.event_name }}-${{ github.event.pull_request.head.repo.full_name || github.repository }}-${{ github.event.pull_request.head.ref || github.ref_name }}
-  cancel-in-progress: true
+  # Superseded pull-request runs are cancelled so the newest head owns the
+  # group; push and scheduled runs queue instead, because cancelling a main
+  # push can drop default-branch analysis or release-adjacent work.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   mode:
@@ -43,7 +46,7 @@ jobs:
         with:
           persist-credentials: false
           repository: 0xPlayerOne/code-foundry
-          ref: v1.44.3
+          ref: v1.47.1
           path: .github/.code-foundry
           sparse-checkout: |
             src/lib
@@ -77,14 +80,14 @@ jobs:
       contents: read
       packages: read
       security-events: write
-    uses: 0xPlayerOne/code-foundry/.github/workflows/validation.yml@v1.44.3
+    uses: 0xPlayerOne/code-foundry/.github/workflows/validation.yml@v1.47.1
     with:
       mode: ${{ needs.mode.outputs.mode }}
       runtime-repository: 0xPlayerOne/code-foundry
       # Pull requests validate the proposed runtime commit. Scheduled and
       # manually dispatched audits use a separate default-branch-pinned caller,
       # so this caller-selected ref never runs with default-branch cache access.
-      runtime-ref: v1.44.3
+      runtime-ref: v1.47.1
       ci-runner: ubuntu-latest
       test-runner: ubuntu-latest
       unit-runner: ubuntu-latest
@@ -119,10 +122,10 @@ jobs:
       contents: read
       packages: read
       security-events: write
-    uses: 0xPlayerOne/code-foundry/.github/workflows/codeql.yml@v1.44.3
+    uses: 0xPlayerOne/code-foundry/.github/workflows/codeql.yml@v1.47.1
     with:
       runtime-repository: 0xPlayerOne/code-foundry
-      runtime-ref: v1.44.3
+      runtime-ref: v1.47.1
       runner: ubuntu-latest
       rust-shards: '["src","crates","tests","apps/desktop/src-tauri","third_party/glib-0.18.5"]'
       rust-threads: '4'
