@@ -7,6 +7,26 @@ import { M7CommandPalette } from './M7CommandPalette'
 
 afterEach(cleanup)
 
+function waitForFocus(element: HTMLElement, timeoutMs = 1_000): Promise<void> {
+  if (document.activeElement === element) return Promise.resolve()
+
+  return new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      document.removeEventListener('focusin', handleFocus)
+      reject(new Error(`Timed out waiting for focus on ${element.tagName.toLowerCase()}`))
+    }, timeoutMs)
+    const handleFocus = () => {
+      if (document.activeElement !== element) return
+      window.clearTimeout(timeout)
+      document.removeEventListener('focusin', handleFocus)
+      resolve()
+    }
+
+    document.addEventListener('focusin', handleFocus)
+    handleFocus()
+  })
+}
+
 test('the command palette is named, Escape dismisses it, and focus returns to its opener', async () => {
   const finalFocus = { current: null as HTMLElement | null }
 
@@ -45,11 +65,14 @@ test('the command palette is named, Escape dismisses it, and focus returns to it
 
   const dialog = await screen.findByRole('dialog', { name: 'Cortana command palette' })
   const search = await screen.findByPlaceholderText('Search commands…')
-  await waitFor(() => expect(document.activeElement).toBe(search))
+  // Kobalte schedules initial focus in a zero-delay task.
+  await waitForFocus(search)
+  expect(document.activeElement).toBe(search)
 
   fireEvent.keyDown(search, { key: 'Escape' })
 
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
-  await waitFor(() => expect(document.activeElement).toBe(opener))
+  await waitForFocus(opener)
+  expect(document.activeElement).toBe(opener)
   expect(dialog).toBeTruthy()
 })
