@@ -558,11 +558,9 @@ test('initial sync plans a fixed budget and displays the native limits', async (
         })
       ).toBeTruthy()
     )
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Initial sync',
-      })
-    )
+    const initialSyncTrigger = screen.getByRole('button', { name: 'Initial sync' })
+    initialSyncTrigger.focus()
+    fireEvent.click(initialSyncTrigger)
     await waitFor(() => expect(screen.getByText('Guided initial sync')).toBeTruthy())
     await waitFor(() =>
       expect(screen.getByText('100 documents · 25 MiB · 15 minutes')).toBeTruthy()
@@ -590,6 +588,10 @@ test('initial sync plans a fixed budget and displays the native limits', async (
       source: 'work-code',
       budget: 'medium',
     })
+
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByText('Guided initial sync')).toBeNull())
+    await waitFor(() => expect(document.activeElement).toBe(initialSyncTrigger))
   } finally {
     window.confirm = originalConfirm
   }

@@ -173,7 +173,7 @@ export function WorkspaceSection(incoming: {
             <Input
               type="search"
               value={workspaceQuery()}
-              onChange={(event) => setWorkspaceQuery(event.target.value)}
+              onInput={(event) => setWorkspaceQuery(event.target.value)}
               placeholder="Search name, ID, or account label"
               autocomplete="off"
             />
@@ -283,7 +283,7 @@ export function WorkspaceSection(incoming: {
                   <Field label="Display name">
                     <Input
                       value={workspace().name}
-                      onChange={(event) =>
+                      onInput={(event) =>
                         changeWorkspace(index(), {
                           name: event.target.value,
                         })
@@ -339,7 +339,7 @@ export function WorkspaceSection(incoming: {
                       >
                         <Input
                           value={workspace().account_label || ''}
-                          onChange={(event) =>
+                          onInput={(event) =>
                             changeWorkspace(index(), {
                               account_label: event.target.value || null,
                             })

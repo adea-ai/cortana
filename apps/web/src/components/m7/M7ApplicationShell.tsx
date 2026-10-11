@@ -22,15 +22,14 @@ import {
   TerminalSquare,
 } from 'lucide-solid'
 
-import { Badge } from '@/components/shadcn/badge'
-import { Button } from '@/components/shadcn/button'
+import { Badge } from '@adea-ai/ui/components/ui/badge'
+import { Button } from '@adea-ai/ui/components/ui/button'
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbList,
-  BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@/components/shadcn/breadcrumb'
+} from '@adea-ai/ui/components/ui/breadcrumb'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,16 +41,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
-} from '@/components/shadcn/dropdown-menu'
-import { Input } from '@/components/shadcn/input'
-import { ScrollArea, ScrollBar } from '@/components/shadcn/scroll-area'
+} from '@adea-ai/ui/components/ui/dropdown-menu'
+import { Input } from '@adea-ai/ui/components/ui/input'
+import { ScrollArea } from '@adea-ai/ui/components/ui/scroll-area'
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from '@/components/shadcn/sheet'
+} from '@adea-ai/ui/components/ui/sheet'
 import {
   Sidebar,
   SidebarContent,
@@ -74,7 +73,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/shadcn/tooltip'
+} from '@adea-ai/ui/components/ui/tooltip'
 import { shortcutLabel } from '@/shortcuts'
 import type { M7ActivityInbox } from '@/components/m7/M7ActivityInbox'
 import type { M7CommandPalette } from '@/components/m7/M7CommandPalette'
@@ -99,7 +98,7 @@ export type M7NavigationProps = {
   /** Opens Settings on a named section, used by the utilities menu. */
   onOpenSettingsSection?: (section: 'updates' | 'services') => void
   /** Opens the identity dialog behind the About entry. */
-  onOpenAbout?: () => void
+  onOpenAbout?: (origin?: HTMLElement | null) => void
 }
 
 export type M7HeaderProps = {
@@ -135,7 +134,7 @@ type UtilityItem = {
   desktopOnly?: boolean
   /** Chord rendered on the right of the entry; `undefined` when none is bound. */
   shortcut?: string
-  run: (navigation: M7NavigationProps) => void
+  run: (navigation: M7NavigationProps, origin?: HTMLElement | null) => void
   current: (view: AppView) => boolean
 }
 
@@ -156,7 +155,7 @@ const utilityItems: UtilityItem[] = [
     id: 'about',
     label: 'About',
     icon: Info,
-    run: (navigation) => navigation.onOpenAbout?.(),
+    run: (navigation, origin) => navigation.onOpenAbout?.(origin),
     current: () => false,
   },
   {
@@ -203,7 +202,7 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
               <TooltipTrigger
                 as={Button}
                 variant="ghost"
-                size="icon"
+                size="icon-md"
                 aria-label="Previous search query"
                 disabled={!props.canGoBack}
                 onClick={props.onHistoryBack}
@@ -216,7 +215,7 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
               <TooltipTrigger
                 as={Button}
                 variant="ghost"
-                size="icon"
+                size="icon-md"
                 aria-label="Next search query"
                 disabled={!props.canGoForward}
                 onClick={props.onHistoryForward}
@@ -231,7 +230,7 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
               <BreadcrumbItem>{props.workspaceName}</BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>{props.location}</BreadcrumbPage>
+                <span aria-current="page">{props.location}</span>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -245,7 +244,7 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
             aria-label="Search your knowledge"
             class="h-9 pr-16 pl-9"
             value={props.query}
-            onChange={(event) => props.onQueryChange(event.target.value)}
+            onInput={(event) => props.onQueryChange(event.target.value)}
           />
           <span class="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-xs text-muted-foreground">
             {props.loading ? (
@@ -267,18 +266,18 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
         </Button>
       </div>
       <div class="m7-header-actions flex items-center justify-end">
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger
             as={Button}
             ref={(el: HTMLButtonElement) => (actionsRef.current = el)}
             variant="outline"
-            size="icon"
+            size="icon-md"
             aria-label="Actions"
             title="Actions"
           >
             <MoreVertical aria-hidden="true" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent placement="bottom-end">
             <DropdownMenuGroup>
               <DropdownMenuLabel>Workspace</DropdownMenuLabel>
               <DropdownMenuItem onSelect={() => props.onOpenSources(actionsRef.current)}>
@@ -331,8 +330,13 @@ export function M7PanelBoundary(props: M7PanelBoundaryProps) {
     <Show when={compact()} fallback={props.children}>
       <Sheet open={props.open} onOpenChange={props.onOpenChange}>
         <SheetContent
-          finalFocus={props.finalFocus}
-          side={props.side}
+          side={props.side === 'left' ? 'start' : 'end'}
+          onCloseAutoFocus={(event) => {
+            const target = props.finalFocus.current
+            if (!target?.isConnected) return
+            event.preventDefault()
+            target.focus()
+          }}
           class="m7-panel-boundary max-w-none gap-0 p-0"
         >
           <SheetHeader class="sr-only">
@@ -349,7 +353,7 @@ export function M7PanelBoundary(props: M7PanelBoundaryProps) {
 export function M7StatusBar(props: M7StatusBarProps) {
   return (
     <footer class="shrink-0 border-t bg-background" aria-label="Application status">
-      <ScrollArea class="w-full whitespace-nowrap">
+      <ScrollArea orientation="horizontal" class="w-full whitespace-nowrap">
         <div class="flex min-h-10 items-center gap-3 px-3 py-1.5 text-xs text-muted-foreground">
           {props.children}
           <span class="ml-auto" />
@@ -357,7 +361,6 @@ export function M7StatusBar(props: M7StatusBarProps) {
             <Badge variant="secondary">Demo data</Badge>
           </Show>
         </div>
-        <ScrollBar orientation="horizontal" />
       </ScrollArea>
     </footer>
   )
@@ -394,6 +397,7 @@ export function M7ApplicationNavigation(props: {
   const activeWorkspace = () => props.workspaces.find((item) => item.id === props.workspace)
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = createSignal(false)
   const [utilitiesMenuOpen, setUtilitiesMenuOpen] = createSignal(false)
+  const utilitiesTriggerRef = { current: null as HTMLButtonElement | null }
   // Read the view through the props accessor: capturing `props.navigation`
   // here would freeze the entry-state comparisons at mount.
   const currentView = () => props.navigation.view
@@ -441,7 +445,11 @@ export function M7ApplicationNavigation(props: {
             </div>
           }
         >
-          <DropdownMenu open={workspaceMenuOpen()} onOpenChange={setWorkspaceMenuOpen}>
+          <DropdownMenu
+            modal={false}
+            open={workspaceMenuOpen()}
+            onOpenChange={setWorkspaceMenuOpen}
+          >
             <DropdownMenuTrigger
               as={SidebarMenuButton}
               size="lg"
@@ -458,7 +466,7 @@ export function M7ApplicationNavigation(props: {
                 <span class="block truncate text-xs text-muted-foreground">Workspace</span>
               </span>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" sideOffset={6} class="min-w-56">
+            <DropdownMenuContent placement="bottom-start" gutter={6} class="min-w-56">
               <DropdownMenuGroup>
                 <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
                 <DropdownMenuRadioGroup
@@ -607,7 +615,9 @@ export function M7ApplicationNavigation(props: {
                       tooltip={item.label}
                       isActive={item.current(currentView())}
                       aria-current={item.current(currentView()) ? 'page' : undefined}
-                      onClick={() => runNavigation(() => item.run(props.navigation))}
+                      onClick={() =>
+                        runNavigation(() => item.run(props.navigation, mobileTriggerRef.current))
+                      }
                     >
                       <span>{item.label}</span>
                     </SidebarMenuButton>
@@ -617,9 +627,14 @@ export function M7ApplicationNavigation(props: {
             }
           >
             <SidebarMenuItem>
-              <DropdownMenu open={utilitiesMenuOpen()} onOpenChange={setUtilitiesMenuOpen}>
+              <DropdownMenu
+                modal={false}
+                open={utilitiesMenuOpen()}
+                onOpenChange={setUtilitiesMenuOpen}
+              >
                 <DropdownMenuTrigger
                   as={SidebarMenuButton}
+                  ref={(element: HTMLButtonElement) => (utilitiesTriggerRef.current = element)}
                   size="lg"
                   icon={Settings}
                   tooltip="Settings and utilities"
@@ -628,12 +643,7 @@ export function M7ApplicationNavigation(props: {
                 >
                   <span>Settings</span>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  class="m7-utilities-menu"
-                  align="start"
-                  side="top"
-                  sideOffset={0}
-                >
+                <DropdownMenuContent class="m7-utilities-menu" placement="top-start" gutter={0}>
                   <DropdownMenuGroup>
                     <For each={visibleUtilityItems()}>
                       {(item) => (
@@ -645,7 +655,9 @@ export function M7ApplicationNavigation(props: {
                           // opening the menu instead of toggling a stale open one.
                           onSelect={() => {
                             setUtilitiesMenuOpen(false)
-                            runNavigation(() => item.run(props.navigation))
+                            runNavigation(() =>
+                              item.run(props.navigation, utilitiesTriggerRef.current)
+                            )
                           }}
                         >
                           <Dynamic component={item.icon} aria-hidden="true" />
@@ -677,7 +689,7 @@ export function M7ShellProvider(props: { children: JSX.Element }) {
   return (
     // 150ms: long enough to survive a pointer crossing a control, short enough
     // that action help feels immediate beside the rail's own label flyout.
-    <TooltipProvider delay={150}>
+    <TooltipProvider openDelay={150}>
       <SidebarProvider
         defaultOpen={false}
         class="m7-shell-provider min-h-0 overflow-hidden"

@@ -9,6 +9,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
+  SidebarTrigger,
 } from './sidebar'
 
 afterEach(() => {
@@ -75,4 +76,47 @@ test('an expanded rail row shows no label flyout', async () => {
   const row = getByRole('button', { name: 'Knowledge' })
   fireEvent.mouseEnter(row)
   expect(hintFor()).toBeNull()
+})
+
+test('the mobile sidebar closes on Escape and restores focus to its trigger', async () => {
+  const originalMatchMedia = window.matchMedia
+  window.matchMedia = ((query: string) =>
+    ({
+      matches: true,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => true,
+    }) as MediaQueryList) as typeof window.matchMedia
+
+  try {
+    const { getByRole, findByRole, queryByRole } = render(() => (
+      <SidebarProvider>
+        <SidebarTrigger aria-label="Open navigation" />
+        <Sidebar collapsible="icon" role="navigation" aria-label="Primary navigation">
+          <SidebarContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton>Knowledge</SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarContent>
+        </Sidebar>
+      </SidebarProvider>
+    ))
+    const trigger = getByRole('button', { name: 'Open navigation' })
+    fireEvent.click(trigger)
+    const panel = await findByRole('dialog', { name: 'Sidebar' })
+
+    fireEvent.keyDown(document.activeElement ?? panel, { key: 'Escape' })
+
+    await waitFor(() => expect(queryByRole('dialog', { name: 'Sidebar' })).toBeNull())
+    await waitFor(() => expect(document.activeElement).toBe(trigger))
+  } finally {
+    window.matchMedia = originalMatchMedia
+    cleanup()
+  }
 })

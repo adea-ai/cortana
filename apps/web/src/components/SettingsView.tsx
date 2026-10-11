@@ -26,7 +26,6 @@ import {
 import { Button as SharedButton } from '@adea-ai/ui/components/ui/button'
 import { Spinner as SharedSpinner } from '@adea-ai/ui/components/ui/spinner'
 import { cn } from '../lib/utils'
-import { Toaster } from './shadcn/sonner'
 import { normalizeProviderUrl, type ProviderModelsState } from './settings/providerUtils'
 import { SettingsConfirmProvider, useSettingsConfirm } from './settings/SettingsConfirm'
 import {
@@ -938,7 +937,6 @@ export function SettingsView(props: SettingsViewProps) {
       <SettingsConfirmProvider>
         <SettingsViewContent {...props} />
       </SettingsConfirmProvider>
-      <Toaster position="bottom-right" closeButton />
     </SettingsSurfaceProvider>
   )
 }

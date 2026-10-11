@@ -10,10 +10,15 @@ import {
 
 import { cn } from '../../lib/utils'
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../shadcn/accordion'
-import { Alert } from '../shadcn/alert'
-import { Card } from '../shadcn/card'
-import { Checkbox } from '../shadcn/checkbox'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@adea-ai/ui/components/ui/accordion'
+import { Alert } from '@adea-ai/ui/components/ui/alert'
+import { Card } from '@adea-ai/ui/components/ui/card'
+import { Checkbox } from '@adea-ai/ui/components/ui/checkbox'
 import {
   Field,
   FieldDescription,
@@ -23,13 +28,18 @@ import {
   FieldLegend,
   FieldSet,
 } from '../shadcn/field'
-import { Input } from '../shadcn/input'
-import { RadioGroup, RadioGroupItem } from '../shadcn/radio-group'
-import { Select, SelectContent, SelectTrigger, SelectValue } from '../shadcn/select'
-import type { SelectOptionValue } from '../shadcn/select'
-import { Switch } from '../shadcn/switch'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../shadcn/tabs'
-import { Textarea } from '../shadcn/textarea'
+import { Input } from '@adea-ai/ui/components/ui/input'
+import { RadioGroup, RadioGroupItem } from '@adea-ai/ui/components/ui/radio-group'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@adea-ai/ui/components/ui/select'
+import { Switch } from '@adea-ai/ui/components/ui/switch'
+import { Tabs, TabsContent, TabsTrigger } from '@adea-ai/ui/components/ui/tabs'
+import { Textarea } from '@adea-ai/ui/components/ui/textarea'
 
 export { VariantButton as SettingsButton } from '../cortana/VariantButton'
 
@@ -41,6 +51,7 @@ export function SettingsSurfaceProvider(props: { children: JSX.Element }) {
     inside a Field claims the generated control id plus describedby/invalid. */
 export const FieldControlContext = createContext<{
   id: string
+  labelId: string
   describedBy: () => string | undefined
   invalid: () => boolean
   taken: boolean
@@ -147,7 +158,7 @@ export function SettingsCheckbox(
       aria-describedby={props['aria-describedby'] ?? field?.describedBy()}
       aria-invalid={props['aria-invalid'] ?? (field?.invalid() || undefined)}
       title={props.title}
-      onChange={(checked) => {
+      onChange={(checked: boolean) => {
         props.onChange?.({
           target: { checked },
           currentTarget: { checked },
@@ -174,7 +185,7 @@ export function SettingsSwitch(
       aria-describedby={props['aria-describedby'] ?? field?.describedBy()}
       aria-invalid={props['aria-invalid'] ?? (field?.invalid() || undefined)}
       title={props.title}
-      onChange={(checked) => {
+      onChange={(checked: boolean) => {
         props.onChange?.({
           target: { checked },
           currentTarget: { checked },
@@ -219,11 +230,6 @@ export function SettingsTabs(
       {local.children}
     </Tabs>
   )
-}
-
-export function SettingsTabsList(props: ComponentProps<'div'> & { variant?: 'default' | 'line' }) {
-  const [local, rest] = splitProps(props, ['variant'])
-  return <TabsList variant={local.variant} {...rest} />
 }
 
 export function SettingsTabsTrigger(
@@ -279,7 +285,13 @@ export function SettingsAccordionContent(props: { class?: string; children: JSX.
   return <AccordionContent class={props.class}>{props.children}</AccordionContent>
 }
 
-function collectOptions(nodes: unknown[], out: SelectOptionValue[]) {
+type SettingsSelectOption = {
+  value: string
+  label: string
+  disabled?: boolean
+}
+
+function collectOptions(nodes: unknown[], out: SettingsSelectOption[]) {
   for (const node of nodes) {
     if (Array.isArray(node)) {
       collectOptions(node, out)
@@ -311,21 +323,30 @@ export function SettingsSelect(
     'id',
     'class',
     'aria-label',
+    'aria-labelledby',
     'aria-describedby',
     'aria-invalid',
     'title',
     'style',
   ])
 
-  const options = createMemo<SelectOptionValue[]>(() => {
-    const out: SelectOptionValue[] = []
+  const options = createMemo<SettingsSelectOption[]>(() => {
+    const out: SettingsSelectOption[] = []
     collectOptions(resolveChildren(() => local.children).toArray(), out)
     return out
   })
+  const labelledBy = () =>
+    [field?.labelId, local['aria-labelledby']].filter(Boolean).join(' ') || undefined
 
   return (
-    <Select<SelectOptionValue>
+    <Select<SettingsSelectOption>
       options={options()}
+      optionValue="value"
+      optionTextValue="label"
+      optionDisabled="disabled"
+      itemComponent={(itemProps) => (
+        <SelectItem item={itemProps.item}>{itemProps.item.rawValue.label}</SelectItem>
+      )}
       value={options().find((option) => String(option.value) === String(local.value ?? '')) ?? null}
       disabled={local.disabled}
       name={local.name}
@@ -345,8 +366,9 @@ export function SettingsSelect(
     >
       <SelectTrigger
         id={local.id ?? field?.id}
-        class={cn('w-full border-border bg-background shadow-xs', local.class)}
+        class={cn('w-full', local.class)}
         aria-label={local['aria-label']}
+        aria-labelledby={labelledBy()}
         aria-describedby={local['aria-describedby'] ?? field?.describedBy()}
         aria-invalid={local['aria-invalid'] ?? (field?.invalid() || undefined)}
         title={local.title}

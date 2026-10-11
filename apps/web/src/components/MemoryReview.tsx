@@ -37,16 +37,16 @@ import {
   EmptyTitle,
 } from '@adea-ai/ui/components/ui/empty'
 import { StatusChip, type StatusTone } from '@adea-ai/ui/components/ui/status-chip'
-import { Alert, AlertDescription } from './shadcn/alert'
+import { Alert, AlertDescription } from '@adea-ai/ui/components/ui/alert'
 import { VariantButton as MemoryButton } from './cortana/VariantButton'
-import { Card } from './shadcn/card'
+import { Card } from '@adea-ai/ui/components/ui/card'
 import { cn } from '@/lib/utils'
 
-import { Checkbox } from './shadcn/checkbox'
-import { Input } from './shadcn/input'
-import { Spinner } from './shadcn/spinner'
-import { Textarea } from './shadcn/textarea'
-import { Toggle } from './shadcn/toggle'
+import { Checkbox } from '@adea-ai/ui/components/ui/checkbox'
+import { Input } from '@adea-ai/ui/components/ui/input'
+import { Spinner } from '@adea-ai/ui/components/ui/spinner'
+import { Textarea } from '@adea-ai/ui/components/ui/textarea'
+import { Toggle } from '@adea-ai/ui/components/ui/toggle'
 import { useSettingsConfirm } from './settings/SettingsConfirm'
 
 type QueueView =
@@ -68,7 +68,7 @@ function MemoryTextarea(props: ComponentProps<'textarea'>) {
 }
 
 function MemoryCard(props: ComponentProps<'div'>) {
-  return <Card size="sm" {...props} />
+  return <Card {...props} />
 }
 
 export type MemoryReviewClient = {
@@ -186,7 +186,7 @@ function CandidateQueue(props: {
                       <Checkbox
                         aria-label={`Select ${candidate.title}`}
                         checked={props.selectedIds.has(candidate.id)}
-                        onChange={(checked) => updateSelection(candidate, checked)}
+                        onChange={(checked: boolean) => updateSelection(candidate, checked)}
                       />
                       <MemoryButton
                         variant="ghost"

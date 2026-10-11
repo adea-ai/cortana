@@ -2,14 +2,14 @@ import { ExternalLink } from 'lucide-solid'
 import { createMemo, Show } from 'solid-js'
 
 import { openDesktopUrl } from '@/api'
-import { Button } from '@/components/shadcn/button'
+import { Button } from '@adea-ai/ui/components/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/shadcn/dialog'
+} from '@adea-ai/ui/components/ui/dialog'
 import { useClipboardCopy } from '@/useClipboardCopy'
 
 const SOURCE_URL = 'https://github.com/adea-ai/cortana'
@@ -26,6 +26,7 @@ export function M7AboutDialog(props: {
   platform: 'desktop' | 'web'
   /** Routes the source link through the native browser when packaged. */
   desktopAvailable: boolean
+  finalFocus: { current: HTMLElement | null }
 }) {
   const versionLabel = () => (props.version ? `Version ${props.version}` : 'Version unavailable')
   const versionInfo = createMemo(() =>
@@ -40,7 +41,15 @@ export function M7AboutDialog(props: {
         if (!open) props.onClose()
       }}
     >
-      <DialogContent class="m7-about-dialog">
+      <DialogContent
+        class="m7-about-dialog"
+        onCloseAutoFocus={(event) => {
+          const target = props.finalFocus.current
+          if (!target?.isConnected) return
+          event.preventDefault()
+          target.focus()
+        }}
+      >
         <DialogHeader>
           <DialogTitle>About Cortana</DialogTitle>
           <DialogDescription>

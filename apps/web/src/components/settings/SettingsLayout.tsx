@@ -84,6 +84,7 @@ export function Field(props: {
   const controlAssigned = () => Boolean(local.controlId) || claimed()
   const fieldControl = {
     id: controlId(),
+    labelId: groupLabelId,
     describedBy,
     invalid: () => Boolean(local.error),
     taken: false,
@@ -104,7 +105,7 @@ export function Field(props: {
         aria-describedby={controlAssigned() ? undefined : describedBy()}
       >
         {controlAssigned() ? (
-          <SettingsFieldLabel for={controlId()} class="form-field-label">
+          <SettingsFieldLabel id={groupLabelId} for={controlId()} class="form-field-label">
             {local.label}
           </SettingsFieldLabel>
         ) : (
@@ -153,7 +154,7 @@ export function NumberField(props: {
         value={draft()}
         min={props.min}
         max={props.max}
-        onChange={(event) => {
+        onInput={(event) => {
           const raw = event.target.value
           setDraft(raw)
           const nextError = validate(raw)

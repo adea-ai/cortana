@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 
 import type { BrainDocumentSummary } from '../types'
 import { virtualRange } from '../virtualization'
-import { Button } from './shadcn/button'
+import { Button } from '@adea-ai/ui/components/ui/button'
 
 const ROW_HEIGHT = 32
 

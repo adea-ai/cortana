@@ -129,37 +129,33 @@ async function renderEmbeddingSettings() {
       }}
     />
   ))
-  // The embedding section is a lazy chunk; wait for it before querying.
-  await screen.findByRole('combobox', {
-    name: 'Model catalog',
-  })
+  // Embedding models use the SettingsSelect adapter, which exposes a button
+  // trigger even before provider discovery completes.
+  await screen.findByRole('button', { name: /^Model(?:\s|$)/ })
 }
-function modelCatalog(): HTMLElement {
-  return screen.getByRole('combobox', {
-    name: 'Model catalog',
-  })
+function modelCatalog(): HTMLButtonElement {
+  return screen.getByRole('button', {
+    name: /^Model(?:\s|$)/,
+  }) as HTMLButtonElement
 }
-async function openEmbeddingCatalog() {
-  fireEvent.pointerDown(
-    await screen.findByRole('combobox', {
-      name: 'Model catalog',
-    })
-  )
+async function openModelCatalog() {
+  const trigger = await screen.findByRole('button', { name: /^Model(?:\s|$)/ })
+  await userEvent.setup().click(trigger)
 }
 test('refresh exposes provider-advertised models without stale cloud presets', async () => {
-  // The current model is one the provider advertises, so the select stays.
+  // Keep the existing cloud value selectable while discovery adds options.
   state.settings.embedding.model = 'text-embedding-3-small'
   await renderEmbeddingSettings()
 
   // Cloud models are not maintained as a stale static list; discovery is the
-  // source of truth and the current value is preserved as custom until then.
+  // source of truth, while the existing value remains explicit before refresh.
   expect(modelCatalog().textContent).toContain('text-embedding-3-small')
   fireEvent.click(
     screen.getByRole('button', {
       name: /Refresh Embedding model models/,
     })
   )
-  await openEmbeddingCatalog()
+  await openModelCatalog()
   expect(
     await screen.findByRole('option', {
       name: 'text-embedding-3-small',
@@ -173,7 +169,7 @@ test('refresh exposes provider-advertised models without stale cloud presets', a
   expect(state.refreshCalls).toEqual(['embedding'])
   expect(screen.getByText(/2 models advertised by the provider/)).toBeTruthy()
 })
-test('a current model that is not advertised falls back to the custom field unchanged', async () => {
+test('a current model that is not advertised remains selectable unchanged', async () => {
   state.settings.embedding.model = 'provider-custom-embedding'
   await renderEmbeddingSettings()
   fireEvent.click(
@@ -187,6 +183,8 @@ test('a current model that is not advertised falls back to the custom field unch
     await new Promise((resolve) => setTimeout(resolve, 0))
   })
   expect(modelCatalog().textContent).toContain('provider-custom-embedding')
+  await openModelCatalog()
+  expect(screen.getByRole('option', { name: 'provider-custom-embedding' })).toBeTruthy()
 })
 test('selecting an advertised model updates the provider settings', async () => {
   const user = userEvent.setup()
@@ -197,7 +195,7 @@ test('selecting an advertised model updates the provider settings', async () => 
       name: /Refresh Embedding model models/,
     })
   )
-  await openEmbeddingCatalog()
+  await openModelCatalog()
   await user.click(
     screen.getByRole('option', {
       name: 'text-embedding-3-large',
@@ -235,29 +233,29 @@ test('changing the endpoint invalidates the advertised catalog', async () => {
       name: /Refresh Embedding model models/,
     })
   )
-  await openEmbeddingCatalog()
+  await openModelCatalog()
   expect(
     screen.getByRole('option', {
       name: 'text-embedding-3-large',
     })
   ).toBeTruthy()
-  await user.click(
-    screen.getByRole('option', {
-      name: 'text-embedding-3-small',
-    })
-  )
+  await user.click(screen.getByRole('option', { name: 'text-embedding-3-large' }))
 
   // The user edits the endpoint; the stale advertised list must not apply to
   // the new provider.
   const endpoint = screen.getByLabelText('OpenAI-compatible endpoint') as HTMLInputElement
-  fireEvent.change(endpoint, {
+  fireEvent.input(endpoint, {
     target: {
       value: 'https://other.example.test/v1',
     },
   })
   await waitFor(() => {
-    expect(modelCatalog().textContent).toContain('text-embedding-3-small')
+    expect(modelCatalog().textContent).toContain('text-embedding-3-large')
   })
+  expect(screen.queryByText(/models advertised by the provider/)).toBeNull()
+  await openModelCatalog()
+  expect(screen.getByRole('option', { name: 'text-embedding-3-large' })).toBeTruthy()
+  expect(screen.queryByRole('option', { name: 'text-embedding-3-small' })).toBeNull()
 })
 test('query section refreshes the query provider separately', async () => {
   state.refreshResult = {
@@ -302,10 +300,8 @@ test('query section refreshes the query provider separately', async () => {
       name: /Refresh Query and answer model models/,
     })
   )
-  const catalog = await screen.findByRole('combobox', {
-    name: 'Model catalog',
-  })
-  fireEvent.pointerDown(catalog)
+  const catalog = await screen.findByRole('button', { name: /^Model(?:\s|$)/ })
+  await userEvent.setup().click(catalog)
   expect(
     await screen.findByRole('option', {
       name: 'o3-mini',

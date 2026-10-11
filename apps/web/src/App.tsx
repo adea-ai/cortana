@@ -57,6 +57,7 @@ function utilityKindOf(value: AppView): UtilityKind {
 }
 import { ContextPanel } from './components/ContextPanel'
 import { AppErrorBoundary } from './components/AppErrorBoundary'
+import { Toaster } from '@adea-ai/ui/components/ui/toast'
 import { M7ActivityInbox } from './components/m7/M7ActivityInbox'
 import {
   M7ApplicationHeader,
@@ -190,9 +191,12 @@ function focusWhenReady(
 }
 export function App() {
   return (
-    <AppErrorBoundary>
-      <CortanaApplication />
-    </AppErrorBoundary>
+    <>
+      <AppErrorBoundary>
+        <CortanaApplication />
+      </AppErrorBoundary>
+      <Toaster position="bottom-right" />
+    </>
   )
 }
 function CortanaApplication() {
@@ -227,6 +231,7 @@ function CortanaApplication() {
     'readiness' | 'services' | 'updates' | 'sources' | 'memory'
   >('readiness')
   const [aboutOpen, setAboutOpen] = createSignal(false)
+  const aboutOriginRef = { current: null as HTMLElement | null }
   const [settingsDirty, setSettingsDirty] = createSignal(false)
   const [installerJob, setInstallerJob] = createSignal<DesktopInstallJob | null>(null)
   const [desktopUpdate, setDesktopUpdate] = createSignal<DesktopUpdate | null>(null)
@@ -1771,7 +1776,12 @@ function CortanaApplication() {
               onNavigate: navigate,
               onOpenGraph: openGraph,
               onOpenSettingsSection: openSettingsSection,
-              onOpenAbout: () => setAboutOpen(true),
+              onOpenAbout: (origin) => {
+                aboutOriginRef.current =
+                  origin ??
+                  (document.activeElement instanceof HTMLElement ? document.activeElement : null)
+                setAboutOpen(true)
+              },
             }}
             workspaces={workspaces()}
             workspace={effectiveWorkspace()}
@@ -2101,6 +2111,7 @@ function CortanaApplication() {
               version={desktopInfo()?.desktop_version}
               platform={isDesktopApp ? 'desktop' : 'web'}
               desktopAvailable={isDesktopApp}
+              finalFocus={aboutOriginRef}
             />
           </Suspense>
         </Show>

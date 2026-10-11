@@ -212,7 +212,7 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
         <Field label="Data directory" wide>
           <Input
             value={props.settings.runtime.data_dir}
-            onChange={(event) => setRuntime({ data_dir: event.target.value })}
+            onInput={(event) => setRuntime({ data_dir: event.target.value })}
             required
           />
         </Field>

@@ -1,22 +1,14 @@
-import {
-  createContext,
-  createEffect,
-  createSignal,
-  onCleanup,
-  useContext,
-  type JSX,
-} from 'solid-js'
+import { createContext, createSignal, onCleanup, useContext, type JSX } from 'solid-js'
 
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../shadcn/alert-dialog'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@adea-ai/ui/components/ui/dialog'
+import { Button } from '@adea-ai/ui/components/ui/button'
 
 type ConfirmSettingsAction = (description: string) => boolean | Promise<boolean>
 
@@ -40,10 +32,11 @@ export function SettingsConfirmProvider(props: { children: JSX.Element }) {
   let pendingRef: PendingConfirmation | null = null
   let restoreRef: (PendingConfirmation & { confirmed: boolean }) | null = null
 
-  const restoreFocus = () => {
+  const restoreFocus = (event: Event) => {
     const current = restoreRef
     if (!current) return
     restoreRef = null
+    event.preventDefault()
     current.resolve(current.confirmed)
     // Resolve first because a confirmed action may remove its trigger. Wait
     // until Solid commits that action before choosing the surviving target.
@@ -69,11 +62,14 @@ export function SettingsConfirmProvider(props: { children: JSX.Element }) {
     setPending(null)
   }
 
-  createEffect(() => {
-    if (pending() === null) restoreFocus()
+  onCleanup(() => {
+    const current = pendingRef
+    const restoring = restoreRef
+    pendingRef = null
+    restoreRef = null
+    current?.resolve(false)
+    restoring?.resolve(restoring.confirmed)
   })
-
-  onCleanup(() => settle(false))
 
   const confirm: ConfirmSettingsAction = (description) => {
     settle(false)
@@ -96,22 +92,24 @@ export function SettingsConfirmProvider(props: { children: JSX.Element }) {
   return (
     <SettingsConfirmContext.Provider value={confirm}>
       {props.children}
-      <AlertDialog open={Boolean(pending())} onOpenChange={(open) => !open && settle(false)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm this action</AlertDialogTitle>
-            <AlertDialogDescription class="whitespace-pre-line">
+      <Dialog open={Boolean(pending())} onOpenChange={(open) => !open && settle(false)}>
+        <DialogContent role="alertdialog" closeButton={false} onCloseAutoFocus={restoreFocus}>
+          <DialogHeader>
+            <DialogTitle>Confirm this action</DialogTitle>
+            <DialogDescription class="whitespace-pre-line">
               {pending()?.description}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => settle(false)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={() => settle(true)}>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" type="button" onClick={() => settle(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" type="button" onClick={() => settle(true)}>
               Continue
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SettingsConfirmContext.Provider>
   )
 }

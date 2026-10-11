@@ -1,3 +1,5 @@
+import { getTheme } from '@adea-ai/themes'
+import { shadcnDestructiveProjection } from '@adea-ai/themes/adapters/shadcn'
 import { afterEach, expect, test } from 'bun:test'
 import {
   DEFAULT_THEME,
@@ -45,4 +47,15 @@ test('a late palette import cannot replace the current workspace theme', async (
   await Promise.all([stale, current])
 
   expect(root.getAttribute('data-theme')).toBe('rose')
+})
+
+test('each saved theme applies the published destructive action pair', async () => {
+  for (const { id } of SUPPORTED_THEMES) {
+    await applyTheme(id)
+    const theme = getTheme(LEGACY_THEME_TO_CANONICAL_ID[id])!
+    const action = shadcnDestructiveProjection(theme)
+    expect(root.style.getPropertyValue('--destructive-action')).toBe(action.fill)
+    expect(root.style.getPropertyValue('--destructive-action-foreground')).toBe(action.foreground)
+    expect(root.style.getPropertyValue('--adea-error')).toBe(theme.colors.error)
+  }
 })

@@ -37,7 +37,7 @@ export function VariantButton(props: VariantButtonProps) {
                 ? 'ghost'
                 : 'secondary'
       }
-      size={variant() === 'icon' ? 'icon' : variant() === 'compact' ? 'sm' : 'default'}
+      size={variant() === 'icon' ? 'icon-md' : variant() === 'compact' ? 'sm' : 'md'}
     />
   )
 }

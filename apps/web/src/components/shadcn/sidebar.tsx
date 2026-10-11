@@ -13,17 +13,17 @@ import type { VariantProps } from 'class-variance-authority'
 
 import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/shadcn/button'
-import { Input } from '@/components/shadcn/input'
-import { Separator } from '@/components/shadcn/separator'
+import { Button } from '@adea-ai/ui/components/ui/button'
+import { Input } from '@adea-ai/ui/components/ui/input'
+import { Separator } from '@adea-ai/ui/components/ui/separator'
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from '@/components/shadcn/sheet'
-import { Skeleton } from '@/components/shadcn/skeleton'
+} from '@adea-ai/ui/components/ui/sheet'
+import { Skeleton } from '@adea-ai/ui/components/ui/skeleton'
 import { PanelLeftIcon } from 'lucide-solid'
 import { SidebarContext, type SidebarContextProps, useSidebar } from './sidebar-context'
 import { sidebarMenuButtonVariants } from './sidebar-variants'
@@ -136,7 +136,7 @@ function Sidebar(
     'role',
     'aria-label',
   ])
-  const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+  const { isMobile, state, openMobile, setOpenMobile, mobileFinalFocusRef } = useSidebar()
 
   return (
     <Show
@@ -163,9 +163,16 @@ function Sidebar(
               data-sidebar="sidebar"
               data-slot="sidebar"
               data-mobile="true"
-              class="w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+              closeButton={false}
+              class="w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground"
               style={{ '--sidebar-width': SIDEBAR_WIDTH_MOBILE }}
-              side={local.side ?? 'left'}
+              side={(local.side ?? 'left') === 'right' ? 'end' : 'start'}
+              onCloseAutoFocus={(event) => {
+                const target = mobileFinalFocusRef.current
+                if (!target?.isConnected) return
+                event.preventDefault()
+                target.focus()
+              }}
             >
               <SheetHeader class="sr-only">
                 <SheetTitle>Sidebar</SheetTitle>

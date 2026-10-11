@@ -1,4 +1,4 @@
-import { shadcnVariables } from '@adea-ai/themes/adapters/shadcn'
+import { shadcnVariables, shadcnDestructiveProjection } from '@adea-ai/themes/adapters/shadcn'
 import { themeCssVariables } from '@adea-ai/themes/adapters/css'
 import type { AdeaTheme } from '@adea-ai/themes'
 import paperTheme from '@adea-ai/themes/themes/adea-light'
@@ -106,9 +106,12 @@ function applyPalette(mode: ThemeMode, theme: AdeaTheme, request: number): void 
   }
 
   const root = document.documentElement
-  const variables = {
+  const action = shadcnDestructiveProjection(theme)
+  const variables: Record<string, string> = {
     ...themeCssVariables(theme),
     ...shadcnVariables(theme),
+    '--destructive-action': action.fill,
+    '--destructive-action-foreground': action.foreground,
     ...themeCssVariables(paperTheme, { prefix: 'cortana-paper' }),
   }
 
