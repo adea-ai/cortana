@@ -108,6 +108,38 @@ function writeMacUpdaterManifest(directory, version = '0.56.3') {
   )
 }
 
+function createMacAcceptanceFixture(version, coreSource) {
+  const directory = mkdtempSync(join(tmpdir(), 'cortana-empty-core-output-test-'))
+  const packageDirectory = join(directory, 'release-assets')
+  const core = join(directory, 'cortana')
+  const artifacts = [
+    `Cortana_${version}_aarch64.app.tar.gz`,
+    `Cortana_${version}_aarch64.dmg`,
+    `Cortana_${version}_aarch64.app.tar.gz.sig`,
+    'latest.json',
+  ]
+  mkdirSync(packageDirectory)
+  for (const artifact of artifacts) writeFileSync(join(packageDirectory, artifact), 'fixture')
+  writeMacUpdaterManifest(packageDirectory, version)
+  writeFileSync(core, coreSource)
+  chmodSync(core, 0o755)
+  return {
+    directory,
+    packageDirectory,
+    core,
+    cleanup: () => rmSync(directory, { recursive: true, force: true }),
+  }
+}
+
+function captureFailure(callback) {
+  try {
+    callback()
+  } catch (error) {
+    return error
+  }
+  throw new Error('expected package acceptance to fail')
+}
+
 test('updater manifest binding requires the expected target archive', () => {
   const directory = mkdtempSync(join(tmpdir(), 'cortana-updater-manifest-test-'))
   try {
@@ -227,6 +259,62 @@ test('acceptance verifies a complete release fixture and packaged core evaluatio
     })
   } finally {
     rmSync(directory, { recursive: true, force: true })
+  }
+})
+
+test('empty packaged-core version output reports safe subprocess context', () => {
+  const version = JSON.parse(
+    readFileSync(resolve(import.meta.dir, '../apps/desktop/src-tauri/tauri.conf.json'), 'utf8')
+  ).version
+  const fixture = createMacAcceptanceFixture(version, '#!/bin/sh\nexit 0\n')
+  try {
+    const error = captureFailure(() =>
+      runAcceptance({
+        target: 'aarch64-apple-darwin',
+        version,
+        packageDirectory: fixture.packageDirectory,
+        core: fixture.core,
+      })
+    )
+
+    expect(error.message).toContain('packaged core version mismatch:')
+    expect(error.message).toContain(
+      'exit_status=0, signal=none, stdout_bytes=0, stderr_bytes=0, spawn_error=none'
+    )
+    expect(error.message).not.toContain('--version')
+    expect(error.message).not.toContain('PATH')
+  } finally {
+    fixture.cleanup()
+  }
+})
+
+test('empty packaged-core evaluation output reports safe subprocess context', () => {
+  const version = JSON.parse(
+    readFileSync(resolve(import.meta.dir, '../apps/desktop/src-tauri/tauri.conf.json'), 'utf8')
+  ).version
+  const fixture = createMacAcceptanceFixture(
+    version,
+    `#!/bin/sh\nif [ "$1" = "--version" ]; then printf 'cortana ${version}\\n'; fi\nexit 0\n`
+  )
+  try {
+    const error = captureFailure(() =>
+      runAcceptance({
+        target: 'aarch64-apple-darwin',
+        version,
+        packageDirectory: fixture.packageDirectory,
+        core: fixture.core,
+      })
+    )
+
+    expect(error.message).toContain('packaged core evaluation was not JSON')
+    expect(error.message).toContain(
+      'exit_status=0, signal=none, stdout_bytes=0, stderr_bytes=0, spawn_error=none'
+    )
+    expect(error.message).not.toContain('--config')
+    expect(error.message).not.toContain('--offline')
+    expect(error.message).not.toContain('PATH')
+  } finally {
+    fixture.cleanup()
   }
 })
 
