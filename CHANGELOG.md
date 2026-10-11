@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.68.3](https://github.com/adea-ai/cortana/compare/v0.68.2...v0.68.3) (2026-10-11)
+
+
+### Tests
+
+* **web:** recover modal focus regression coverage ([#2553](https://github.com/adea-ai/cortana/issues/2553)) ([f09bc51](https://github.com/adea-ai/cortana/commit/f09bc51301dbfc7487e3ff53dee894bd13b2e874))
+
+
+### Maintenance
+
+* **deps:** update taiki-e/install-action digest to ab68953 ([#2552](https://github.com/adea-ai/cortana/issues/2552)) ([b1227db](https://github.com/adea-ai/cortana/commit/b1227db9787190ef0497aba499e5101e8fe0c2ff))
+
 ## [0.68.2](https://github.com/adea-ai/cortana/compare/v0.68.1...v0.68.2) (2026-10-09)
 
 
