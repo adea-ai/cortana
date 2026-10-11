@@ -64,13 +64,13 @@ settings, and graph states. The final run records the complete matrix: the real 
 at five widths from 320 through 1920 CSS pixels in all twelve themes, mobile navigation, tablet
 source/context panels, command and
 workspace overlays, collapsed and expanded desktop navigation, Inbox, Conversations, Agent tools,
-Index, and Help at every target width,
+Index, and Help Center at every target width,
 Settings at every target width, and populated
 answer, evidence, timeline, canonical-document, and bounded-graph views, with populated
 conversations at mobile and desktop widths. Its non-secret typed Desktop fixture also records
 readiness, services/recovery, source-type selection, a configured source, a destructive AlertDialog,
 write-only agent access, updater, query-model selection, memory controls, and backup/runtime recovery
-surfaces. It additionally records configured Settings at every target width and theme plus explicit
+surfaces, including the shared Updates dialog. It additionally records configured Settings at every target width and theme plus explicit
 first-run, busy, success, warning, failure, cancellation, retry, and recovery states. Fixture paths
 use `/example` and no secret value is present in the DOM or screenshots.
 

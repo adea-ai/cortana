@@ -133,8 +133,7 @@ const RAIL_LABELS = [
   'Conversations',
   'Agent tools',
   'Inbox',
-  // The footer keeps one trigger for the destinations that no longer have
-  // their own row: Settings, Updates, Index, and Help.
+  // The footer keeps one trigger for Index, support, and Settings.
   'Settings and utilities',
 ]
 function deferred<T>() {
@@ -196,22 +195,21 @@ test('every sidebar destination is enabled and the persistent search remains ava
 })
 test('the rail utilities menu keeps the footer destinations one step away', async () => {
   await renderApp()
-  // The menu is the only place Settings, Updates, Index, and Help live now, so
-  // every one of them must be reachable from the single trigger.
+  // The menu is the only place Index, support, and Settings live now, so each
+  // remains reachable from the single trigger.
   fireEvent.pointerDown(
     screen.getByRole('button', {
       name: 'Settings and utilities',
     })
   )
   const items = await screen.findAllByRole('menuitem')
-  // Order mirrors the sibling shell's account menu: help first, then the app's
-  // own surfaces, updates, and settings last with its chord.
-  /// This harness runs as the web build, where the reference hides its
-  /// desktop-only Updates entry.
+  // The shared account menu puts Cortana's index first, followed by support,
+  // about, feedback, and settings. Desktop updates are omitted in web mode.
   expect(items.map((item) => item.textContent)).toEqual([
-    'About',
-    'Help',
     'Index',
+    'About',
+    'Help Center',
+    'Send Feedback',
     'Settings' + shortcutLabel('MOD,'),
   ])
   fireEvent.pointerUp(screen.getByRole('menuitem', { name: 'Index' }))
@@ -814,7 +812,6 @@ test('Inbox does not claim clean sync history while runtime status is unavailabl
       onSearchFocus={() => {}}
       onRetrieveContext={() => {}}
       onOpenSettings={() => {}}
-      onOpenProject={() => {}}
       onRetryStatus={() => {
         retries += 1
       }}
@@ -870,7 +867,6 @@ test('Inbox retains terminal source-job history after the job stops running', ()
       onSearchFocus={() => {}}
       onRetrieveContext={() => {}}
       onOpenSettings={() => {}}
-      onOpenProject={() => {}}
     />
   ))
   expect(screen.getByText('Recent source jobs')).toBeTruthy()
@@ -920,7 +916,6 @@ test('Inbox keeps a cancelling source job visibly in progress until it exits', (
       onSearchFocus={() => {}}
       onRetrieveContext={() => {}}
       onOpenSettings={() => {}}
-      onOpenProject={() => {}}
       onCancelSourceJob={() => {}}
     />
   ))
@@ -1026,7 +1021,6 @@ test('Agent tools copies the exact generated context bundle for local agent hand
         onSearchFocus={() => {}}
         onRetrieveContext={() => {}}
         onOpenSettings={() => {}}
-        onOpenProject={() => {}}
       />
     ))
     fireEvent.click(
@@ -1109,14 +1103,12 @@ test('utility actions use the shared token-backed button primitive', () => {
       onSearchFocus={() => {}}
       onRetrieveContext={() => {}}
       onOpenSettings={() => {}}
-      onOpenProject={() => {}}
     />
   ))
-  const openProject = screen.getByRole('button', {
-    name: 'Open project page',
+  const openProject = screen.getByRole('link', {
+    name: /GitHub project/,
   })
-  expect(openProject.getAttribute('type')).toBe('button')
-  expect(openProject.className).toContain('bg-secondary')
+  expect(openProject.getAttribute('href')).toBe('https://github.com/adea-ai/cortana')
 })
 test('shadcn conversations compose cards and actions from the generated primitives', () => {
   render(() => (
@@ -1137,7 +1129,6 @@ test('shadcn conversations compose cards and actions from the generated primitiv
       onSearchFocus={() => {}}
       onRetrieveContext={() => {}}
       onOpenSettings={() => {}}
-      onOpenProject={() => {}}
     />
   ))
   expect(document.querySelector('[data-m7-utility-view="conversations"]')).toBeTruthy()
@@ -1217,12 +1208,12 @@ test('search history arrows navigate previous and next queries', async () => {
 test('Help lists the real keyboard shortcuts and project links', async () => {
   state.answer = () => Promise.resolve(answerResponse)
   await renderApp()
-  await openSidebarDestination('Help')
+  await openSidebarDestination('Help Center')
   await waitFor(() =>
     expect(
       screen.getByRole('heading', {
         level: 1,
-        name: 'Help',
+        name: 'Help Center',
       })
     ).toBeTruthy()
   )
@@ -1244,4 +1235,32 @@ test('Help lists the real keyboard shortcuts and project links', async () => {
       name: 'Open project page',
     })
   ).toBeNull()
+})
+test('web support links treat noopener popups returning null as successful opens', async () => {
+  const originalOpen = Object.getOwnPropertyDescriptor(window, 'open')
+  const openedUrls: string[] = []
+  Object.defineProperty(window, 'open', {
+    configurable: true,
+    value: (url: string) => {
+      openedUrls.push(url)
+      return null
+    },
+  })
+  try {
+    await renderApp()
+    await openSidebarDestination('Send Feedback')
+    await waitFor(() => expect(openedUrls).toHaveLength(1))
+    expect(openedUrls[0]).toContain('https://github.com/adea-ai/adea/issues/new?')
+    expect(screen.queryByRole('alert') === null).toBe(true)
+
+    await openSidebarDestination('About')
+    const about = await screen.findByRole('dialog', { name: 'About Cortana' })
+    fireEvent.click(within(about).getByRole('link', { name: 'View source' }))
+    await waitFor(() => expect(openedUrls).toHaveLength(2))
+    expect(openedUrls[1]).toBe('https://github.com/adea-ai/cortana')
+    expect(screen.queryByRole('alert') === null).toBe(true)
+  } finally {
+    if (originalOpen) Object.defineProperty(window, 'open', originalOpen)
+    else Reflect.deleteProperty(window, 'open')
+  }
 })
