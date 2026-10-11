@@ -2,19 +2,15 @@
 
 import { readdirSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
-import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 import { buildTestGroups, resolveMaxParallel, scheduleGroups } from './js-test-groups.mjs'
+import { describeTestGroup, runTestGroup } from './js-test-group-runner.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const testRoots = ['apps/web/src', 'scripts']
 const testSuffixes = ['.test.ts', '.test.tsx', '.test.mjs']
 const streamTestProgress = process.env.CI === 'true'
-const forwardTestOutput = (chunk) => {
-  if (streamTestProgress) process.stdout.write(chunk)
-  return chunk
-}
 
 function collectTests(directory) {
   const entries = readdirSync(join(root, directory), { withFileTypes: true })
@@ -103,67 +99,20 @@ const groupTimeoutMs = Number(process.env.JS_GROUP_TIMEOUT_MS ?? 420_000)
 // not reach them — the orphan keeps the output pipe open and `close` never
 // fires, which is exactly how a timeout fails to fail. Spawn each group as
 // its own process-group leader so signals reach the whole tree.
-const signalTree = (child, signal) => {
-  try {
-    if (child.pid) process.kill(-child.pid, signal)
-  } catch {
-    child.kill(signal)
-  }
-}
-
 function runGroup(group) {
   const labels = group.map((test) => relative(root, join(root, test)))
-  const started = performance.now()
   if (streamTestProgress) {
-    console.log(
-      `[js-test] starting ${labels[0]}${labels.length > 1 ? ` (+${labels.length - 1} files)` : ''}`
-    )
+    console.log(`[js-test] starting ${describeTestGroup(labels)}`)
   }
-  return new Promise((resolveResult) => {
-    const child = spawn(bun, [...bunArgs, ...group], {
-      cwd: root,
-      env: process.env,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      detached: true,
-    })
-    let stdout = ''
-    let stderr = ''
-    child.stdout.on('data', (chunk) => {
-      stdout += forwardTestOutput(chunk)
-    })
-    child.stderr.on('data', (chunk) => {
-      stderr += forwardTestOutput(chunk)
-    })
-    let timedOut = false
-    const killTimer = setTimeout(() => {
-      timedOut = true
-      console.error(
-        `JavaScript test group exceeded ${(groupTimeoutMs / 1000).toFixed(0)}s: ${labels.join(', ')}`
-      )
-      signalTree(child, 'SIGTERM')
-      // SIGKILL cannot be caught or ignored, so group close is guaranteed to
-      // fire even when the wedged tree swallows SIGTERM.
-      setTimeout(() => signalTree(child, 'SIGKILL'), 5_000)
-    }, groupTimeoutMs)
-    child.once('error', (error) => {
-      clearTimeout(killTimer)
-      resolveResult({
-        labels,
-        code: 1,
-        output: `Failed to start Bun: ${error.message}`,
-        durationMs: performance.now() - started,
-      })
-    })
-    child.once('close', (code) => {
-      clearTimeout(killTimer)
-      resolveResult({
-        labels,
-        code: timedOut ? 1 : (code ?? 1),
-        timedOut,
-        output: `${stdout}${stderr}`,
-        durationMs: performance.now() - started,
-      })
-    })
+  return runTestGroup({
+    labels,
+    command: bun,
+    args: [...bunArgs, ...group],
+    cwd: root,
+    env: process.env,
+    timeoutMs: groupTimeoutMs,
+    ci: streamTestProgress,
+    onTimeout: (message) => console.error(message),
   })
 }
 
@@ -178,11 +127,11 @@ for (const batch of scheduleGroups(groups, maxParallel, exclusiveNames)) {
 for (const result of results) {
   const timeoutMark = result.timedOut ? ' — TIMED OUT, partial output follows' : ''
   console.log(
-    `\n▶ ${result.labels.join(' + ')} (${(result.durationMs / 1000).toFixed(2)}s)${timeoutMark}`
+    `\n▶ ${describeTestGroup(result.labels)} (${(result.durationMs / 1000).toFixed(2)}s)${timeoutMark}`
   )
   if (result.output && !streamTestProgress) process.stdout.write(result.output)
   if (result.code !== 0) {
-    console.error(`JavaScript test group failed: ${result.labels.join(', ')}`)
+    console.error(`JavaScript test group failed: ${describeTestGroup(result.labels)}`)
   }
 }
 
