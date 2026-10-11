@@ -10,6 +10,11 @@ import { buildTestGroups, resolveMaxParallel, scheduleGroups } from './js-test-g
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const testRoots = ['apps/web/src', 'scripts']
 const testSuffixes = ['.test.ts', '.test.tsx', '.test.mjs']
+const streamTestProgress = process.env.CI === 'true'
+const forwardTestOutput = (chunk) => {
+  if (streamTestProgress) process.stdout.write(chunk)
+  return chunk
+}
 
 function collectTests(directory) {
   const entries = readdirSync(join(root, directory), { withFileTypes: true })
@@ -52,8 +57,7 @@ const bunArgs = [
   '--parallel=1',
   '--max-concurrency=1',
   '--timeout=20000',
-  '--reporter',
-  'dots',
+  ...(!streamTestProgress ? ['--reporter', 'dots'] : []),
 ]
 const isolatedNames = new Set([
   'App.desktop.test.tsx',
@@ -83,12 +87,12 @@ const exclusiveNames = new Set([
 const groups = buildTestGroups(tests, isolatedNames)
 const maxParallel = resolveMaxParallel(groups.length)
 
-// Group output is buffered until the group's bun process closes, so a group
-// wedged in bun's transform/import phase (outside `--timeout`'s reach) hung
-// invisibly until the whole 30-minute job ceiling. The per-group ceiling makes
-// that a fast failure that names the group's files and dumps their partial
-// output. Five minutes is far above any healthy group wall — the whole js lane
-// normally settles in under 150 seconds.
+// Local group output is buffered until Bun exits. In CI, use Bun's named
+// console reporter and stream output so a stalled group leaves its last
+// completed test or import boundary in the Actions log. The per-group ceiling
+// still bounds transform/import stalls outside `--timeout`. Five minutes is
+// far above a healthy group wall — the whole JS lane normally settles in under
+// 150 seconds.
 // The shared non-isolated group holds ~44 files and settled in ~250s on CI
 // runners before brushing the old ceiling (three "exceeded 300s" lane kills on
 // 2026-10-05/06/07, each green on rerun — real work near the wall, not a
@@ -110,6 +114,11 @@ const signalTree = (child, signal) => {
 function runGroup(group) {
   const labels = group.map((test) => relative(root, join(root, test)))
   const started = performance.now()
+  if (streamTestProgress) {
+    console.log(
+      `[js-test] starting ${labels[0]}${labels.length > 1 ? ` (+${labels.length - 1} files)` : ''}`
+    )
+  }
   return new Promise((resolveResult) => {
     const child = spawn(bun, [...bunArgs, ...group], {
       cwd: root,
@@ -120,10 +129,10 @@ function runGroup(group) {
     let stdout = ''
     let stderr = ''
     child.stdout.on('data', (chunk) => {
-      stdout += chunk
+      stdout += forwardTestOutput(chunk)
     })
     child.stderr.on('data', (chunk) => {
-      stderr += chunk
+      stderr += forwardTestOutput(chunk)
     })
     let timedOut = false
     const killTimer = setTimeout(() => {
@@ -171,7 +180,7 @@ for (const result of results) {
   console.log(
     `\n▶ ${result.labels.join(' + ')} (${(result.durationMs / 1000).toFixed(2)}s)${timeoutMark}`
   )
-  if (result.output) process.stdout.write(result.output)
+  if (result.output && !streamTestProgress) process.stdout.write(result.output)
   if (result.code !== 0) {
     console.error(`JavaScript test group failed: ${result.labels.join(', ')}`)
   }
