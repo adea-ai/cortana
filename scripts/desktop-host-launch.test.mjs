@@ -15,6 +15,25 @@ import {
   writeIsolatedConfig,
 } from './desktop-host-launch.mjs'
 
+function discoverNodeExecutable(
+  runDiscovery = () => execFileSync('node', ['-p', 'process.execPath'], { encoding: 'utf8' })
+) {
+  let output
+  try {
+    output = runDiscovery()
+  } catch (error) {
+    const code = /^[A-Za-z0-9_-]{1,32}$/.test(error?.code ?? '') ? error.code : 'unknown'
+    // eslint-disable-next-line preserve-caught-error -- report only the safe error code
+    throw new Error(`Node executable discovery failed (${code})`)
+  }
+
+  const executable = String(output).trim()
+  if (!executable) {
+    throw new Error('Node executable discovery returned empty process.execPath output')
+  }
+  return executable
+}
+
 test('host target metadata is limited to published desktop lanes', () => {
   expect(describeHostTarget('aarch64-apple-darwin')).toMatchObject({
     platform: 'macOS',
@@ -29,6 +48,24 @@ test('host target metadata is limited to published desktop lanes', () => {
     architecture: 'x64',
   })
   expect(() => describeHostTarget('x86_64-unknown-freebsd')).toThrow('unsupported host target')
+})
+
+test('Node executable discovery reports empty output and safe spawn errors', () => {
+  expect(() => discoverNodeExecutable(() => '')).toThrow(
+    'Node executable discovery returned empty process.execPath output'
+  )
+
+  const spawnError = Object.assign(new Error('must not expose command details'), { code: 'ENOENT' })
+  let failure
+  try {
+    discoverNodeExecutable(() => {
+      throw spawnError
+    })
+  } catch (error) {
+    failure = error
+  }
+  expect(failure?.message).toBe('Node executable discovery failed (ENOENT)')
+  expect(failure?.message).not.toContain('must not expose command details')
 })
 
 test('isolated host environment omits inherited credential-shaped variables', () => {
@@ -105,7 +142,7 @@ test('host launch requires the packaged process to survive the startup window', 
     // Bun, whose cold startup can outlast this one-second survival window in
     // an isolated HOME. Use the project's required Node runtime without
     // weakening the startup or output assertions.
-    const executable = execFileSync('node', ['-p', 'process.execPath'], { encoding: 'utf8' }).trim()
+    const executable = discoverNodeExecutable()
     const result = await runHostLaunch({
       executable,
       args: [app],
@@ -126,7 +163,7 @@ test('host launch requires the packaged process to survive the startup window', 
 test('host launch rejects a process that exits before the startup window', async () => {
   const root = mkdtempSync(join(tmpdir(), 'cortana-host-early-exit-test-'))
   try {
-    const executable = execFileSync('node', ['-p', 'process.execPath'], { encoding: 'utf8' }).trim()
+    const executable = discoverNodeExecutable()
     await expect(
       runHostLaunch({
         executable,

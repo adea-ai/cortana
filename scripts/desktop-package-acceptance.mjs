@@ -121,6 +121,19 @@ function filesUnder(directory) {
   return files
 }
 
+function subprocessSummary(result) {
+  const status = Number.isInteger(result.status) ? String(result.status) : 'null'
+  const signal = /^[A-Z0-9]+$/.test(result.signal ?? '') ? result.signal : 'none'
+  const spawnError = /^[A-Z0-9_]{1,32}$/.test(result.error?.code ?? '')
+    ? result.error.code
+    : result.error
+      ? 'present'
+      : 'none'
+  const stdoutBytes = Buffer.byteLength(String(result.stdout ?? ''), 'utf8')
+  const stderrBytes = Buffer.byteLength(String(result.stderr ?? ''), 'utf8')
+  return `exit_status=${status}, signal=${signal}, stdout_bytes=${stdoutBytes}, stderr_bytes=${stderrBytes}, spawn_error=${spawnError}`
+}
+
 function artifactPatterns(target, version) {
   const patterns = {
     'aarch64-apple-darwin': [
@@ -264,13 +277,13 @@ function runCore(core, version) {
     })
     if (versionResult.error || versionResult.status !== 0) {
       throw new Error(
-        `packaged core --version failed: ${redactEvidence(versionResult.stderr || versionResult.error)}`
+        `packaged core --version failed (${subprocessSummary(versionResult)}): ${redactEvidence(versionResult.stderr || versionResult.error)}`
       )
     }
     const reportedVersion = redactEvidence(versionResult.stdout).trim()
     if (reportedVersion !== `cortana ${version}`) {
       throw new Error(
-        `packaged core version mismatch: expected cortana ${version}, got ${reportedVersion}`
+        `packaged core version mismatch: expected cortana ${version}, got ${reportedVersion || '[empty]'} (${subprocessSummary(versionResult)})`
       )
     }
 
@@ -283,16 +296,17 @@ function runCore(core, version) {
     })
     if (evaluation.error || evaluation.status !== 0) {
       throw new Error(
-        `packaged core offline evaluation failed: ${redactEvidence(evaluation.stderr || evaluation.error)}`
+        `packaged core offline evaluation failed (${subprocessSummary(evaluation)}): ${redactEvidence(evaluation.stderr || evaluation.error)}`
       )
     }
     let report
     try {
       report = JSON.parse(evaluation.stdout)
     } catch (error) {
-      throw new Error(`packaged core evaluation was not JSON: ${redactEvidence(error)}`, {
-        cause: error,
-      })
+      throw new Error(
+        `packaged core evaluation was not JSON (${subprocessSummary(evaluation)}): ${redactEvidence(error)}`,
+        { cause: error }
+      )
     }
     if (report?.passed !== true) throw new Error('packaged core offline evaluation did not pass')
     return { reported_version: reportedVersion, offline_evaluation: 'passed' }
