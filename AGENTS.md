@@ -326,7 +326,7 @@ bun run docs:check         # Python documentation consistency checker through uv
 bun run typecheck          # web only
 bun run type-check         # Python mypy, Rust all-target check and web types
 bun run test               # isolated JavaScript suites
-bun run test:unit          # JS, non-integration Python and docs lanes
+bun run test:unit          # lockfile, JS, Python, docs, Rust eval and production web build
 bun run test:integration   # Python integration lane
 bun run test:smoke         # Python smoke lane
 bun run test:eval          # Rust evaluation integration test
@@ -337,8 +337,11 @@ bun run desktop:test:native
 ```
 
 Root Cargo defaults include the runtime and four member crates; the Tauri crate is
-excluded and has its own desktop commands. The JS runner defaults to two parallel
-groups; `CORTANA_TEST_MAX_PARALLEL=1` helps diagnose flaky runs. Use the relevant
+excluded and has its own desktop commands. The JS runner defaults to at most four
+parallel groups, bounded by CPU availability and group count;
+`CORTANA_TEST_MAX_PARALLEL=1` helps diagnose flaky runs. The `test:unit` runner
+also validates the Cargo lockfile, runs Rust evaluation and builds the production
+web app alongside JavaScript, non-integration Python and docs checks. Use the relevant
 lane rather than treating the web-only `typecheck` as full repository validation.
 For guidance edits, run `bun run docs:check`, Markdown formatting and link/command
 checks; code and browser suites apply when their implementation or contract changes.
