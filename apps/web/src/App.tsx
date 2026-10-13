@@ -92,8 +92,8 @@ import {
 } from './sourceJobs'
 // Subpath imports, not the package root: the eager graph pays only for the
 // theme module, not the whole component barrel.
-import { ThemeProvider, useTheme } from '@adea-ai/ui/components/theme'
-import { normalizeThemeId } from './theme'
+import { ThemeProvider, useTheme } from '@adea-ai/ui/components/theme/lazy'
+import { APPEARANCE_STORAGE_KEY, normalizeThemeId } from './theme'
 import {
   AppShell,
   AppShellBody,
@@ -269,7 +269,12 @@ export function App() {
       // expose yet — dark chrome, the theme's own accent, the Geist interface
       // face — while the workspace theme stays per-workspace in
       // cortana.workspace-themes.v1 (synced by WorkspaceThemeSync below).
-      storageKey="cortana.appearance"
+      storageKey={APPEARANCE_STORAGE_KEY}
+      // The catalogue palette is theme-variants.css (shadcn.css), so the provider
+      // writes only the tokens the stylesheet cannot and the 34-theme catalogue
+      // loads, in a chunk of its own, the first time a workspace theme needs it.
+      // The theme-boot.js the build writes (vite.config.ts) sets data-theme before paint.
+      palette="stylesheet"
       initial={{ appearance: 'dark', accent: 'theme', font: 'geist' }}
     >
       <AppErrorBoundary>

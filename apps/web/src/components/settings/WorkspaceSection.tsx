@@ -2,8 +2,8 @@ import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 import { Alert, AlertDescription } from '@adea-ai/ui/components/ui/alert'
 import { InputGroup, InputGroupInput, InputGroupAddon } from '@adea-ai/ui/components/ui/input-group'
 import { ArrowDown, ArrowUp, Plus, Search, Trash2, Upload } from 'lucide-solid'
-import { useTheme } from '@adea-ai/ui/components/theme'
-import { createSignal, Index } from 'solid-js'
+import { useTheme } from '@adea-ai/ui/components/theme/lazy'
+import { createSignal, Index, onMount } from 'solid-js'
 
 import { DEFAULT_THEME, themeDisplayName, type ThemeMode } from '../../theme'
 import type { DesktopSettings, WorkspaceSettings } from '../../types'
@@ -46,8 +46,19 @@ export function WorkspaceSection(incoming: {
   const props = incoming
   const confirm = useSettingsConfirm()
   // The catalogue comes from the shared provider, so the picker never enumerates
-  // themes this build does not ship.
-  const { themes } = useTheme()
+  // themes this build does not ship. The provider's lazy entry keeps the catalogue
+  // out of startup, so the picker asks for it when it mounts and lists the themes
+  // once it arrives. `themes` is read through `sharedTheme`: it is a getter, and a
+  // destructured copy would keep the default pair.
+  const sharedTheme = useTheme()
+  onMount(() => void sharedTheme.loadCatalogue?.())
+  const catalogueReady = () => sharedTheme.catalogueReady?.() ?? true
+  const themeOptions = (selected: string) =>
+    catalogueReady()
+      ? sharedTheme.themes
+          .filter((variant) => variant.appearance === 'dark')
+          .map((variant) => ({ value: variant.id, label: themeDisplayName(variant) }))
+      : [{ value: selected, label: 'Loading themes…' }]
   const [logoError, setLogoError] = createSignal('')
   const [logoLoading, setLogoLoading] = createSignal<string | null>(null)
   // The visible control is a standard button (file inputs cannot hold one), so
@@ -314,6 +325,7 @@ export function WorkspaceSection(incoming: {
                         class="w-full"
                         aria-label={`Theme for ${workspace().name || 'new workspace'}`}
                         value={workspaceThemes()[workspace().id] ?? DEFAULT_THEME}
+                        disabled={!catalogueReady()}
                         onChange={(event) => {
                           const next = (event.target as HTMLSelectElement).value as ThemeMode
                           setWorkspaceThemes((current) => ({
@@ -322,9 +334,7 @@ export function WorkspaceSection(incoming: {
                           }))
                           writeWorkspaceThemePreference(workspace().id, next)
                         }}
-                        options={themes
-                          .filter((theme) => theme.appearance === 'dark')
-                          .map((theme) => ({ value: theme.id, label: themeDisplayName(theme) }))}
+                        options={themeOptions(workspaceThemes()[workspace().id] ?? DEFAULT_THEME)}
                       />
                     </FormField>
                   </div>

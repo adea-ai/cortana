@@ -64,7 +64,11 @@ export function verifyWebBundleBudget() {
     // active one, so it cannot be lazy without an upstream catalogue split).
     // The 0.72.5 → 0.77.0 component adoption measured 508,024 → 569,939 bytes
     // (four minors of shared-package growth, incl. the CommandDialog fix).
-    ['initial application JavaScript graph', uniqueAssetBytes(manifest, initialKeys), 580_000],
+    // Moving the workspace theme onto the shared provider's lazy entry takes the
+    // 34-theme catalogue out of the eager graph: it measured 566,831 → 508,307
+    // (2026-10-13) and loads, in a chunk of its own, the first time a stored or
+    // chosen theme is not the default.
+    ['initial application JavaScript graph', uniqueAssetBytes(manifest, initialKeys), 525_000],
     // Measured 752,955 before the shared theme adoption, 836,260 after it — the
     // same catalogue cost. The 0.77.0 component adoption measured 849,489.
     // Shared-ui growth through 0.113.0 (the update-channel composite) measured
@@ -75,7 +79,10 @@ export function verifyWebBundleBudget() {
     // The knowledge graph, vault picker, and accessibility states extend the
     // shared stylesheet to 208,626 bytes in the audited build; the shared theme
     // CSS plus the deleted local theme blocks measured 207,033 (2026-09-28).
-    ['application CSS graph', uniqueCssBytes(manifest, productionKeys), 220_000],
+    // The catalogue palette now paints from the stylesheet (theme-variants.css, 34
+    // themes as CSS keyed by data-theme) so a workspace theme shows on the first
+    // frame without the catalogue's JavaScript: 143,171 → 274,212 (2026-10-13).
+    ['application CSS graph', uniqueCssBytes(manifest, productionKeys), 285_000],
   ]
 
   for (const [label, bytes, budget] of measurements) {
