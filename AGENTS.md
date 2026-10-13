@@ -22,7 +22,7 @@ a Solid web UI and a Tauri desktop shell.
 Use committed `bun.lock`, `uv.lock` and Cargo lockfiles. `package.json` pins
 Node 24.21.0 and Bun 1.4.0; `.mise.toml` currently selects Bun 1.4.2 and Rust
 1.99.0 with the same Node version. Report which pins you use when reproducing a
-check; do not silently rewrite either manifest to reconcile them.
+check.
 
 From the repository root:
 
