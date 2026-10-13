@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'bun:test'
-import { themesForAppearance } from '@adea-ai/ui/lib/themes'
-import { DEFAULT_THEME, LEGACY_THEME_MAP, normalizeThemeId, themeDisplayName } from './theme'
+import { builtinThemes, themesForAppearance } from '@adea-ai/ui/lib/themes'
+import {
+  DEFAULT_THEME,
+  isDarkThemeId,
+  LEGACY_THEME_MAP,
+  normalizeThemeId,
+  themeDisplayName,
+} from './theme'
 
 describe('normalizeThemeId', () => {
   test('falls back to the default for absent and unknown values', () => {
@@ -31,6 +37,17 @@ describe('normalizeThemeId', () => {
     for (const replacement of Object.values(LEGACY_THEME_MAP)) {
       expect(darkIds.has(replacement)).toBe(true)
     }
+  })
+})
+
+describe('isDarkThemeId', () => {
+  test('agrees with the catalogue on every theme, without loading it', () => {
+    // The check reads the id index so the catalogue stays out of startup; this keeps
+    // the index and the catalogue from drifting apart.
+    for (const theme of builtinThemes) {
+      expect(isDarkThemeId(theme.id)).toBe(theme.appearance === 'dark')
+    }
+    expect(isDarkThemeId('not-a-theme')).toBe(false)
   })
 })
 

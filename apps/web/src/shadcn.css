@@ -2,6 +2,9 @@
 @import '@adea-ai/ui/fonts.css';
 /* Shared tokens, fonts, focus treatment, and component states own the visual system. */
 @import '@adea-ai/ui/theme.css';
+/* The 34-theme catalogue as CSS keyed by data-theme, so a workspace theme paints from
+   the stylesheet and the provider loads the catalogue only for what CSS cannot say. */
+@import '@adea-ai/ui/theme-variants.css';
 @import '@adea-ai/ui/base.css';
 /* Tailwind ignores node_modules: discover the shared components' class strings
    and the shared helpers (control ladder, overlay fills) they compose with. */

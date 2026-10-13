@@ -1,4 +1,5 @@
-import { themesForAppearance, type ThemeVariant } from '@adea-ai/ui/lib/themes'
+import { catalogueThemeAppearance } from '@adea-ai/ui/lib/theme-defaults'
+import type { ThemeVariant } from '@adea-ai/ui/lib/themes'
 
 /**
  * Workspace themes are ids from the shared @adea-ai/themes catalogue, applied by
@@ -10,9 +11,11 @@ export type ThemeMode = string
 
 export const DEFAULT_THEME = 'adea-dark'
 
-const DARK_THEME_IDS: ReadonlySet<string> = new Set(
-  themesForAppearance('dark').map((theme) => theme.id)
-)
+/**
+ * Where the shared ThemeProvider keeps the selection. The build writes a boot
+ * script that reads the same key (vite.config.ts), so the two cannot disagree.
+ */
+export const APPEARANCE_STORAGE_KEY = 'cortana.appearance'
 
 /**
  * Preferences stored before the shared catalogue landed. Each legacy id maps to
@@ -35,14 +38,19 @@ export const LEGACY_THEME_MAP: Readonly<Record<string, ThemeMode>> = {
   amber: 'gruvbox-dark',
 }
 
+/**
+ * Whether the catalogue holds a dark theme under this id. Answered from the id
+ * index, so the 34-theme catalogue stays out of the startup chunk; the provider
+ * loads it when a stored theme needs it.
+ */
 export function isDarkThemeId(value: string): boolean {
-  return DARK_THEME_IDS.has(value)
+  return catalogueThemeAppearance(value) === 'dark'
 }
 
 /** Resolve a stored preference to a catalogue id: identity, legacy map, or default. */
 export function normalizeThemeId(value: string | null | undefined): ThemeMode {
   if (!value) return DEFAULT_THEME
-  if (DARK_THEME_IDS.has(value)) return value
+  if (isDarkThemeId(value)) return value
   return LEGACY_THEME_MAP[value] ?? DEFAULT_THEME
 }
 

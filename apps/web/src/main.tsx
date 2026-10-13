@@ -6,8 +6,9 @@ import { RendererErrorBoundary } from './components/RendererErrorBoundary'
 import { installInertBackground } from './lib/inertBackground'
 import { installTooltipFocusGate } from '@adea-ai/ui/lib/tooltip-focus-gate'
 
-// Cortana is dark-chrome only. The shared theme.css `.dark` block owns the
-// first-paint tokens, so the class goes on before the first render; the
+// Cortana is dark-chrome only. theme-boot.js (written by the build, loaded in the
+// document head) has already set the class and data-theme before this runs; this
+// keeps the class on where that file is absent (tests, a bare module load). The
 // ThemeProvider inside App refines it to the workspace's catalogue theme.
 document.documentElement.classList.add('dark')
 installInertBackground(document.getElementById('root')!)
