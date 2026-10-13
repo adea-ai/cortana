@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.68.4](https://github.com/adea-ai/cortana/compare/v0.68.3...v0.68.4) (2026-10-13)
+
+
+### Bug Fixes
+
+* **deps:** update @adea-ai/ui to 0.128.3 ([#2560](https://github.com/adea-ai/cortana/issues/2560)) ([7e78fc5](https://github.com/adea-ai/cortana/commit/7e78fc5c17473f2f8904484aee76f59181deb206))
+* **deps:** update quinn-proto and chacha20 in the desktop lockfile ([#2561](https://github.com/adea-ai/cortana/issues/2561)) ([1243fdf](https://github.com/adea-ai/cortana/commit/1243fdff42f1aaedc90bf3f5d457acef0371867b))
+
+
+### Performance
+
+* **web:** load the themes catalogue lazily with the shared provider ([#2562](https://github.com/adea-ai/cortana/issues/2562)) ([42cef35](https://github.com/adea-ai/cortana/commit/42cef35de182c76535584d76027d53d9c8d90755))
+
 ## [0.68.3](https://github.com/adea-ai/cortana/compare/v0.68.2...v0.68.3) (2026-10-11)
 
 
