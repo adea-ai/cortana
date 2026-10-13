@@ -107,7 +107,6 @@ and existing changes before editing. Preserve unrelated work.
 - Do not discard, reset, overwrite, or rewrite user-owned changes.
 - Do not expose or commit secrets, credentials, tokens, private keys, local environment files, or personal machine paths.
 - Do not modify production resources, repository settings, branch protections, secrets, deployments, or external systems unless explicitly requested.
-- Do not add organization- or product-specific details to this reusable baseline.
 - Do not change dependency managers or lockfiles unnecessarily.
 - Do not bypass hooks, tests, review requirements, or required checks to hide a failure.
 - Do not claim completion while required validation, review, deployment, or user decisions remain pending.
