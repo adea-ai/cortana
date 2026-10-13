@@ -168,7 +168,7 @@ is blended toward the palette's own foreground, which is recorded on the entry a
 reported on every build. No colour is ever invented: every value in the catalogue is
 a value from the palette it is attributed to, viewed at a different brightness.
 
-# @adea-ai/ui 0.123.0 published notice
+# @adea-ai/ui 0.128.3 published notice
 
 Copyright 2026 0xPlayerOne
 
@@ -471,6 +471,82 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## Theme resolution fallback translated from Zeron
+
+`resolveVariant` in `packages/ui/src/lib/themes.ts` translates the fallback order
+of Zeron's `ThemeRegistry::resolve` (https://github.com/zeronsh/zeron), as Adea's
+accepted port of it in `packages/ui/src/components/appearance.ts` expresses it:
+an id the registry does not hold resolves to the default variant of the same
+appearance, then to any variant of that appearance, and never to a variant of the
+other one. The provider's use of it, which leaves the stored id untouched, is the
+Adea behaviour that port retains.
+
+    Copyright (c) 2026 Wing
+    Licensed under the MIT License.
+
+Zeron's MIT notice, reproduced in full under "Appearance editor translated from
+Zeron" above, applies to the translated portion. The ThemeProvider's preview,
+persistence and document-application seams are written against Adea's provider
+contract and introduce no further upstream source.
+
+## Accent roles and colour helpers translated from Zeron
+
+`packages/ui/src/lib/accent-roles.ts` translates Zeron's `Color` helpers and
+`AccentRoles` derivation (https://github.com/zeronsh/zeron), as Adea's accepted
+port of them in `packages/ui/src/components/appearance.ts` expresses it: the hex
+parser and serialiser, the alpha-compositing contrast measure, the contrast
+repair that raises a colour to a floor, the 3:1 interaction
+gate applied to a custom accent, and the per-element paint of an accent's roles.
+The colour engine, the preset values and the role derivation they feed remain
+`@adea-ai/themes`'; the `#rrggbb` selection grammar and the use of the gate in the
+provider are Adea behaviour that port retains.
+
+    Copyright (c) 2026 Wing
+    Licensed under the MIT License.
+
+Zeron's MIT notice, reproduced in full under "Appearance editor translated from
+Zeron" above, applies to the translated portion.
+
+## Surface policy and font-zoom chords translated from Zeron
+
+`packages/ui/src/lib/theme-surface.ts` and `packages/ui/src/lib/font-zoom.ts`
+are moved from Adea's accepted port of Zeron (https://github.com/zeronsh/zeron),
+`packages/ui/src/components/appearance.ts` and `packages/ui/src/components/font-zoom.ts`,
+so the shared provider and Adea run one implementation. The first carries Zeron's
+`SurfacePreference.resolve` as that port extends it: the translucent capability
+gate (a request the host cannot render paints the tokenized frosted surface) and
+the reduced-transparency policy (the operating system's setting or the user's own
+forces the opaque surface), plus the opacity each surface paints. The second maps
+the platform zoom chords (Cmd or Ctrl with `=`, `+`, `-`, `0`) onto the three text
+sizes. The frost rule and `--surface-*` tokens in `packages/ui/src/styles/theme.css`
+are Adea's, written for that port, and introduce no further upstream source.
+
+    Copyright (c) 2026 Wing
+    Licensed under the MIT License.
+
+Both files retain that header. Zeron's MIT notice, reproduced in full under
+"Appearance editor translated from Zeron" above, applies to the translated portion.
+
+## Preference store recovery translated from Zeron
+
+`packages/ui/src/lib/preference-store.ts` is moved from Adea's accepted port of
+Zeron (https://github.com/zeronsh/zeron), `packages/ui/src/components/appearance.ts`,
+so the shared provider and Adea run one implementation. It carries the recovery
+behaviour of that port: an unreadable or unsupported stored document is quarantined
+byte for byte into a recovery envelope at read time, before any write can touch the
+main key; the legacy single-key value is read only while the main key is absent and
+is never deleted; and blocked storage reads as nothing stored. The envelope shape is
+unchanged. The no-flash boot script in `packages/ui/src/components/theme/theme-script.ts`
+is rewritten from that port's `appearanceThemeScript` to read the same document, carries
+the same header, and introduces no further upstream source.
+
+    Copyright (c) 2026 Wing
+    Licensed under the MIT License.
+
+`preference-store.ts` and `theme-script.ts` retain that header. Zeron's MIT notice,
+reproduced in full under "Appearance editor translated from Zeron" above, applies to
+the translated portion.
 
 ## Strict binary layout extracted from the accepted Adea donor port
 
