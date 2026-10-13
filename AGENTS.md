@@ -291,6 +291,9 @@ Use exact command names and outcomes. Mention external changes separately from l
 
 ## Repository-specific working guidance
 
+Code Foundry owns the managed blocks above. Run its sync before applying
+repository-specific additions outside those blocks.
+
 The repository maps, commands and draft-WIP workflow below supplement the original
 guide above. For ordinary authorized work, the draft-WIP workflow below clarifies
 earlier boilerplate: commit and push incomplete work to the task's draft branch
