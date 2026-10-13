@@ -354,7 +354,8 @@ checks; code and browser suites apply when their implementation or contract chan
 Cortana consumes published `@adea-ai/ui` and `@adea-ai/themes` versions in its
 manifests. UI owns controls, accessibility, typography, spacing and token application;
 Themes owns palettes and provenance. Cortana owns domain behavior and app layout.
-Use the detailed existing contract below and `docs/web-ui-standards.md`.
+Use the detailed existing Shared web UI and theme contract above and
+`docs/web-ui-standards.md`.
 
 For visual or interaction changes, build and preview the production web app, then
 follow that document's `scripts/capture-m7-visuals.mjs` and
