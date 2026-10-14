@@ -288,3 +288,95 @@ Branch/PR:
 Use exact command names and outcomes. Mention external changes separately from local changes, and distinguish completed work from recommendations.
 
 <!-- /code-foundry-managed: completion-report -->
+
+## Repository-specific working guidance
+
+Code Foundry owns the managed blocks above. For AGENTS-only updates, preview and
+run its sync in a disposable checkout, then retain only the AGENTS.md changes.
+Leave generated workflow, configuration and hook changes in the disposable copy.
+Apply repository-specific additions outside managed blocks.
+
+The repository maps, commands and draft-WIP workflow below supplement the original
+guide above. For ordinary authorized work, the draft-WIP workflow below clarifies
+earlier boilerplate: commit and push incomplete work to the task's draft branch
+throughout the task and before handoff; report failing or skipped checks there.
+Personal review of the exact head gates readiness; mark reviewed drafts ready to
+trigger CI. Applicable passing checks and protections gate merge, rather than WIP pushes.
+
+## Repository map
+
+- `src/`, `crates/`: Rust runtime, core, retrieval, server and MCP workspace members.
+- `src/cortana/`: Python connector package; `pyproject.toml` and `uv.lock` own its tools.
+- `apps/web/`: Solid app and consumer integration; `apps/desktop/` owns Tauri packaging.
+- `tests/`, `eval/`: cross-language contracts and evaluation evidence.
+- `scripts/`: isolated JS lanes, docs consistency, browser journeys and release checks.
+- [docs/README.md](docs/README.md), [docs/planning.md](docs/planning.md) and
+  [docs/project-goal.md](docs/project-goal.md): documentation map and planning ownership.
+- [docs/web-ui-standards.md](docs/web-ui-standards.md),
+  [docs/solid-conventions.md](docs/solid-conventions.md) and
+  [apps/desktop/README.md](apps/desktop/README.md): UI, Solid and desktop conventions.
+
+## Tools and commands
+
+Use committed `bun.lock`, `uv.lock` and Cargo lockfiles. `package.json` pins
+Node 24.21.0 and Bun 1.4.0; `.mise.toml` currently selects Bun 1.4.2 and Rust
+1.99.0 with the same Node version. Report which pins you use when reproducing a
+check.
+
+From the repository root:
+
+```sh
+bun run format:check       # Oxfmt
+bun run lint               # web UI contract and Oxlint
+bun run docs:check         # Python documentation consistency checker through uv
+bun run typecheck          # web only
+bun run type-check         # Python mypy, Rust all-target check and web types
+bun run test               # isolated JavaScript suites
+bun run test:unit          # lockfile, JS, Python, docs, Rust eval and production web build
+bun run test:integration   # Python integration lane
+bun run test:smoke         # Python smoke lane
+bun run test:eval          # Rust evaluation integration test
+bun run build              # production web build and bundle budget
+bun run desktop:check      # desktop check script
+bun run desktop:test       # desktop test script
+bun run desktop:test:native
+```
+
+Root Cargo defaults include the runtime and four member crates; the Tauri crate is
+excluded and has its own desktop commands. The JS runner defaults to at most four
+parallel groups, bounded by CPU availability and group count;
+`CORTANA_TEST_MAX_PARALLEL=1` helps diagnose flaky runs. The `test:unit` runner
+also validates the Cargo lockfile, runs Rust evaluation and builds the production
+web app alongside JavaScript, non-integration Python and docs checks. Use the relevant
+lane rather than treating the web-only `typecheck` as full repository validation.
+For guidance edits, run `bun run docs:check`, Markdown formatting and link/command
+checks; code and browser suites apply when their implementation or contract changes.
+
+## Design ownership and visual evidence
+
+Cortana consumes published `@adea-ai/ui` and `@adea-ai/themes` versions in its
+manifests. UI owns controls, accessibility, typography, spacing and token application;
+Themes owns palettes and provenance. Cortana owns domain behavior and app layout.
+Use the detailed existing Shared web UI and theme contract above and
+`docs/web-ui-standards.md`.
+
+For visual or interaction changes, build and preview the production web app, then
+follow that document's `scripts/capture-m7-visuals.mjs` and
+`node scripts/e2e-journeys.mjs` instructions. Retain its dark-theme, breakpoint,
+keyboard, zoom, contrast and Axe coverage. The M7 visual workflow exercises Chromium
+and WebKit. Browser demo evidence does not establish packaged native acceptance.
+
+## Draft WIP workflow
+
+Use one focused topic branch from `main` and one draft PR targeting `main`.
+Check existing PRs before starting; reuse the suitable draft branch for the task.
+Commit and push WIP to that branch throughout the task and before stopping or
+handing off, then verify the remote SHA. Incomplete work and failing checks belong
+in the draft PR with exact results and remaining work; they do not block WIP pushes.
+Personal review of the exact head gates readiness; mark reviewed drafts ready to
+trigger CI. Applicable passing checks and protections gate merge. Use Conventional
+Commit subjects; this repository uses Code Foundry's direct, squash workflow.
+
+Proceed with ordinary authorized edits, checks, commits and draft pushes. Resolve
+routine implementation choices from repository sources. Ask only when a genuinely
+missing consequential decision or authority prevents the work.
