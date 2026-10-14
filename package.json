@@ -32,11 +32,11 @@
     "typecheck": "bun run --cwd apps/web typecheck"
   },
   "devDependencies": {
-    "@adea-ai/ui": "0.129.0",
+    "@adea-ai/ui": "0.130.4",
     "@axe-core/playwright": "^4.13.0",
     "@babel/core": "^8.0.6",
     "@babel/preset-typescript": "^8.0.1",
-    "@happy-dom/global-registrator": "^20.11.1",
+    "@happy-dom/global-registrator": "^21.0.0",
     "@shadcn/lint": "^0.2.0",
     "@testing-library/dom": "^10.4.2",
     "@types/bun": "^1.4.2",
