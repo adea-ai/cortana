@@ -8,7 +8,7 @@ import { buildTestGroups, resolveMaxParallel, scheduleGroups } from './js-test-g
 import { describeTestGroup, runTestGroup } from './js-test-group-runner.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const testRoots = ['apps/web/src', 'scripts']
+const testRoots = ['apps/web/src', 'apps/web/tooling', 'scripts']
 const testSuffixes = ['.test.ts', '.test.tsx', '.test.mjs']
 const streamTestProgress = process.env.CI === 'true'
 
