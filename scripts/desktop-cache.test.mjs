@@ -197,7 +197,7 @@ test('the sccache action caches only its content-addressed store', () => {
     'utf8'
   )
   assert.match(action, /actions\/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9/)
-  assert.match(action, /taiki-e\/install-action@ab6895351a88b908e96a4697860d4ffea5e57dbe/)
+  assert.match(action, /taiki-e\/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8/)
   assert.match(action, /path: ~\/\.cache\/sccache\n/)
   assert.match(action, /RUSTC_WRAPPER=sccache/)
   // Primary key stays per-job; restore shares objects across desktop jobs.

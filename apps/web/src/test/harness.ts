@@ -18,15 +18,17 @@ if (!Element.prototype.getAnimations) {
 const nativeGetComputedStyle = globalThis.getComputedStyle
 globalThis.getComputedStyle = ((element: Element, pseudoElt?: string | null) => {
   const styles = nativeGetComputedStyle(element, pseudoElt)
-  if (styles.animationName === '') {
-    try {
-      Object.defineProperty(styles, 'animationName', { value: 'none', configurable: true })
-    } catch {
-      // Some environments freeze computed styles; presence falls back to
-      // `?? 'none'` only for nullish values, so leave the style untouched.
-    }
-  }
-  return styles
+  if (styles.animationName !== '') return styles
+
+  // Happy DOM v21 returns a CSSStyleDeclaration proxy that rejects
+  // defineProperty. Expose the browser default without mutating that proxy.
+  return new Proxy(styles, {
+    get(target, property) {
+      const value = Reflect.get(target, property, target)
+      if (property === 'animationName' && value === '') return 'none'
+      return typeof value === 'function' ? value.bind(target) : value
+    },
+  })
 }) as typeof getComputedStyle
 
 const { configure } = await import('@testing-library/dom')

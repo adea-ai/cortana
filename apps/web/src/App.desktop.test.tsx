@@ -791,6 +791,12 @@ async function openSidebarDestination(label: string) {
     name: label === 'Settings' ? /^Settings\b/ : label,
   })
   fireEvent.pointerUp(item)
+  const menu = item.closest('[role="menu"]')
+  if (menu) {
+    // Happy DOM does not run CSS exit animations, so complete the close Kobalte waits on.
+    await waitFor(() => expect(menu.hasAttribute('data-closed')).toBe(true))
+    fireEvent.animationEnd(menu, { animationName: '' })
+  }
 }
 async function openUpdaterFromMenu() {
   await openSidebarDestination('Updates')
