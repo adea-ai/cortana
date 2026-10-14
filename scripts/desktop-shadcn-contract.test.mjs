@@ -16,8 +16,12 @@ describe('Desktop shadcn renderer contract', () => {
     })
     expect(css).toContain("@import '@adea-ai/ui/theme.css';")
     expect(css).toContain("@import '@adea-ai/ui/base.css';")
-    // Tailwind must discover the shared components' class strings.
-    expect(css).toContain("@source '../node_modules/@adea-ai/ui/src/components';")
+    // Tailwind discovers the shared components' class strings from the
+    // generated, import-graph-selected sources, never the whole package.
+    expect(css).toContain("@import '../node_modules/.cache/cortana-ui-tailwind-sources.css';")
+    expect(css).not.toContain("@source '../node_modules/@adea-ai/ui/src")
+    // Tooling fixtures spell marker utilities that must never ship.
+    expect(css).toContain("@source not '../tooling';")
   })
 
   test('keeps Tailwind and the Vite plugin in the web workspace', () => {

@@ -5,7 +5,15 @@
     "skipLibCheck": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "types": ["bun"]
   },
-  "include": ["vite.config.ts", "src/themeBoot.ts", "src/theme.ts"]
+  "include": [
+    "vite.config.ts",
+    "src/themeBoot.ts",
+    "src/theme.ts",
+    "tooling/generate-ui-tailwind-sources.ts",
+    "tooling/ui-tailwind-sources.ts",
+    "tooling/ui-tailwind-sources.test.ts"
+  ]
 }
