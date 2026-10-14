@@ -47,13 +47,30 @@ test('clearing an override returns the workspace to the device default', () => {
 test('the device default never touches the per-workspace map', () => {
   const legacy = JSON.stringify({ work: 'blue', personal: 'plum' })
   window.localStorage.setItem(WORKSPACE_THEME_KEY, legacy)
-  writeDeviceThemePreference('nord')
+  // A default that differs from every legacy mapping, so a legacy override that
+  // fell through to it would be visible.
+  writeDeviceThemePreference('tokyonight-night')
   expect(window.localStorage.getItem(WORKSPACE_THEME_KEY)).toBe(legacy)
-  expect(window.localStorage.getItem(DEVICE_THEME_KEY)).toBe('nord')
+  expect(window.localStorage.getItem(DEVICE_THEME_KEY)).toBe('tokyonight-night')
   // Saved overrides keep resolving through the legacy map, ahead of the default.
   expect(resolveWorkspaceTheme('work')).toBe('nord')
   expect(resolveWorkspaceTheme('personal')).toBe('dracula')
-  expect(resolveWorkspaceTheme('other')).toBe('nord')
+  expect(resolveWorkspaceTheme('other')).toBe('tokyonight-night')
+})
+
+test('setting and clearing an override keeps other legacy entries as stored', () => {
+  window.localStorage.setItem(WORKSPACE_THEME_KEY, JSON.stringify({ personal: 'forest' }))
+  writeWorkspaceThemePreference('work', 'dracula')
+  // Entries the user did not touch are not normalized to catalogue ids.
+  expect(JSON.parse(window.localStorage.getItem(WORKSPACE_THEME_KEY) ?? '{}')).toEqual({
+    personal: 'forest',
+    work: 'dracula',
+  })
+  clearWorkspaceThemePreference('work')
+  expect(window.localStorage.getItem(WORKSPACE_THEME_KEY)).toBe(
+    JSON.stringify({ personal: 'forest' })
+  )
+  expect(resolveWorkspaceTheme('personal')).toBe('everforest-dark')
 })
 
 test('moving a workspace keeps its override and ignores the device default', () => {
