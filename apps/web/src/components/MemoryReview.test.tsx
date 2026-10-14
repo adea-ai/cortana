@@ -1,5 +1,5 @@
 import { isActionDisabled } from '../test/actionState'
-import { afterEach, expect, mock, test } from 'bun:test'
+import { afterEach, expect, mock, spyOn, test } from 'bun:test'
 import { cleanup, fireEvent, render, screen, waitFor } from 'solid-testing-library'
 import { MemoryReview, type MemoryReviewClient } from './MemoryReview'
 afterEach(cleanup)
@@ -262,6 +262,75 @@ test('formats the expiry and evaluation timestamps like other app dates', async 
   ).toBeTruthy()
   expect(screen.queryByText(candidate.expires_at)).toBeNull()
   expect(screen.queryByText(candidate.consolidation.updated_at)).toBeNull()
+})
+// bun:test cannot change the runtime's default locale, so run the page under a
+// chosen one by supplying it wherever the code leaves the locale to the runtime.
+// An explicit locale in the code still wins, and the expected text is produced
+// from the real ICU data for that locale.
+function useDefaultLocale(locale: string) {
+  const toDate = Date.prototype.toLocaleDateString
+  const toDateTime = Date.prototype.toLocaleString
+  const spies = [
+    spyOn(Date.prototype, 'toLocaleDateString').mockImplementation(function (
+      this: Date,
+      locales?: Intl.LocalesArgument,
+      options?: Intl.DateTimeFormatOptions
+    ) {
+      return toDate.call(this, locales ?? locale, options)
+    }),
+    spyOn(Date.prototype, 'toLocaleString').mockImplementation(function (
+      this: Date,
+      locales?: Intl.LocalesArgument,
+      options?: Intl.DateTimeFormatOptions
+    ) {
+      return toDateTime.call(this, locales ?? locale, options)
+    }),
+  ]
+  return () => spies.forEach((spy) => spy.mockRestore())
+}
+for (const locale of ['de-DE', 'ja-JP']) {
+  test(`shows the expiry and evaluation timestamps in the ${locale} locale`, async () => {
+    const expected = {
+      expires: new Date(candidate.expires_at).toLocaleDateString(locale),
+      evaluated: new Date(candidate.consolidation.updated_at).toLocaleString(locale),
+    }
+    // The locales must really differ, or the assertions below prove nothing.
+    expect(expected.expires).not.toBe(new Date(candidate.expires_at).toLocaleDateString('en-US'))
+    expect(expected.evaluated).not.toBe(
+      new Date(candidate.consolidation.updated_at).toLocaleString('en-US')
+    )
+    const restore = useDefaultLocale(locale)
+    try {
+      render(() => <MemoryReview client={client()} />)
+      fireEvent.click(await screen.findByRole('button', { name: /Release preference/ }))
+      expect(await screen.findByText(expected.expires)).toBeTruthy()
+      expect(screen.getByText(expected.evaluated)).toBeTruthy()
+      expect(screen.queryByText(candidate.expires_at)).toBeNull()
+      expect(screen.queryByText(candidate.consolidation.updated_at)).toBeNull()
+    } finally {
+      restore()
+    }
+  })
+}
+test('keeps an unparseable evaluation timestamp as written under a non-English locale', async () => {
+  const api = client()
+  api.listCandidates = () =>
+    Promise.resolve([
+      {
+        ...candidate,
+        expires_at: 'never',
+        consolidation: { ...candidate.consolidation, updated_at: 'not-a-date' },
+      },
+    ])
+  const restore = useDefaultLocale('de-DE')
+  try {
+    render(() => <MemoryReview client={api} />)
+    fireEvent.click(await screen.findByRole('button', { name: /Release preference/ }))
+    expect(await screen.findByText('never')).toBeTruthy()
+    expect(screen.getByText('not-a-date')).toBeTruthy()
+  } finally {
+    restore()
+  }
 })
 test('keeps an unparseable stored timestamp as written', async () => {
   const api = client()
