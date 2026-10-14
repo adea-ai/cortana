@@ -226,6 +226,13 @@ test('discord chooser selects every text and announcement channel in the assigne
     })
   )
   await waitFor(() => expect(screen.getByText('Engineering')).toBeTruthy())
+  expect(
+    screen
+      .getByRole('button', {
+        name: /Select all Discord text channels/,
+      })
+      .textContent?.trim()
+  ).toBe('Select all text channels')
   fireEvent.click(
     screen.getByRole('button', {
       name: /Select all Discord text channels/,

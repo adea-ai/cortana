@@ -72,7 +72,12 @@ import type {
 import { useSettingsConfirm } from './SettingsConfirm'
 import { type SettingsSectionProps } from './settingsSectionProps'
 import { StatusGlyph } from './SettingsWorkflowShared'
-import { applyConfirmed, useDesktopForeground } from './SettingsWorkflowUtils'
+import {
+  applyConfirmed,
+  jobGlyphState,
+  sourceSubtitle,
+  useDesktopForeground,
+} from './SettingsWorkflowUtils'
 import { Text } from '@adea-ai/ui/components/ui/typography'
 import { FormField, FieldGroup } from '@adea-ai/ui/components/ui/field'
 import { SettingsSection } from '@adea-ai/ui/components/composites/settings'
@@ -1099,13 +1104,15 @@ export function SourcesSection(
             </p>
 
             {activeJob() && (
-              <Alert class="safety-note" role="status">
-                <AlertDescription>
-                  Settings for {activeJob()!.source} are locked while its operation is running.
-                  Other sources remain configurable, but source actions still wait until this
-                  operation finishes.
-                </AlertDescription>
-              </Alert>
+              <div class="mb-3.5">
+                <Alert class="safety-note" role="status">
+                  <AlertDescription>
+                    Settings for {activeJob()!.source} are locked while its operation is running.
+                    Other sources remain configurable, but source actions still wait until this
+                    operation finishes.
+                  </AlertDescription>
+                </Alert>
+              </div>
             )}
 
             <div class="source-settings-list">
@@ -1177,11 +1184,11 @@ export function SourcesSection(
                               </span>
                             </div>
                             {!workspaceAssigned() && (
-                              <div class="source-workspace-picker">
+                              <div class="source-workspace-picker max-w-full flex-wrap">
                                 <Label for={`source-workspace-${index}`}>Assign workspace</Label>
                                 <NativeSelect
                                   id={`source-workspace-${index}`}
-                                  class="w-33"
+                                  class="max-w-60"
                                   aria-label={`Workspace for ${source().name}`}
                                   value={source().project ?? ''}
                                   disabled={sourceLocked()}
@@ -1333,7 +1340,6 @@ export function SourcesSection(
 
                           {!workspaceAssigned() && (
                             <Alert class="mt-3" variant="warning" role="alert">
-                              <AlertTriangle size={15} aria-hidden="true" />
                               <AlertDescription>
                                 This source uses the legacy{' '}
                                 <code>{source().project || 'unassigned'}</code> scope. Assign it to
@@ -1482,6 +1488,7 @@ export function SourcesSection(
                                       <div class="grid gap-4">
                                         <ActionButton
                                           tooltip="Discover communities"
+                                          class="justify-self-start"
                                           variant="secondary"
                                           size="sm"
                                           type="button"
@@ -1745,6 +1752,7 @@ export function SourcesSection(
                                         <div class="grid gap-4">
                                           <ActionButton
                                             tooltip="Discover repositories"
+                                            class="justify-self-start"
                                             variant="secondary"
                                             size="sm"
                                             type="button"
@@ -1850,6 +1858,7 @@ export function SourcesSection(
                                           <div class="grid gap-4">
                                             <ActionButton
                                               tooltip="Discover servers"
+                                              class="justify-self-start"
                                               variant="secondary"
                                               size="sm"
                                               type="button"
@@ -1919,6 +1928,7 @@ export function SourcesSection(
                                           <div class="grid gap-4">
                                             <ActionButton
                                               tooltip="Discover channels"
+                                              class="justify-self-start"
                                               variant="secondary"
                                               size="sm"
                                               type="button"
@@ -1941,6 +1951,7 @@ export function SourcesSection(
                                               <div class="grid gap-2">
                                                 <ActionButton
                                                   tooltip="Select all Discord text channels"
+                                                  class="justify-self-start"
                                                   variant="secondary"
                                                   size="sm"
                                                   type="button"
@@ -1954,7 +1965,7 @@ export function SourcesSection(
                                                     )
                                                   }
                                                 >
-                                                  NativeSelect all text channels
+                                                  Select all text channels
                                                 </ActionButton>
                                                 <small>
                                                   Selects text and announcement channels in assigned
@@ -2254,6 +2265,7 @@ export function SourcesSection(
                                             <div class="grid gap-4">
                                               <ActionButton
                                                 tooltip="Discover workspaces"
+                                                class="justify-self-start"
                                                 variant="secondary"
                                                 size="sm"
                                                 type="button"
@@ -2499,13 +2511,7 @@ export function SourcesSection(
                           {observedJob()?.source === source().name && (
                             <div class={`source-validation-job ${observedJob()!.status}`}>
                               <div>
-                                <StatusGlyph
-                                  passed={observedJob()!.status === 'succeeded'}
-                                  optional={observedJob()!.status === 'cancelled'}
-                                  pending={['running', 'cancelling'].includes(
-                                    observedJob()!.status
-                                  )}
-                                />
+                                <StatusGlyph {...jobGlyphState(observedJob()!.status)} />
                                 <span class="source-validation-job-text">
                                   <strong>
                                     {sourceJobOperationLabel(observedJob()!.operation)} ·{' '}
@@ -2651,35 +2657,6 @@ function identifierFromPath(path: string): string {
       .replace(/[^a-z0-9_-]+/g, '-')
       .replace(/^-+|-+$/g, '') || 'source'
   )
-}
-function sourceSubtitle(source: SourceSettings): string {
-  if (source.kind === 'filesystem' || source.kind === 'external' || source.kind === 'buzz') {
-    return source.root || 'Choose a file or folder'
-  }
-  if (source.kind === 'github') {
-    return source.repositories.length
-      ? source.repositories.slice(0, 2).join(', ')
-      : source.token_path || source.token_env || 'GitHub account not connected'
-  }
-  if (source.kind === 'slack') {
-    return source.team_names.join(', ') || source.token_path || 'Slack account not connected'
-  }
-  if (
-    source.kind === 'google-drive' ||
-    source.kind === 'gmail' ||
-    source.kind === 'google-calendar'
-  ) {
-    return source.token_path || 'Google account not connected'
-  }
-  if (source.kind === 'discord') {
-    return source.servers.length
-      ? `${source.servers.length} server${source.servers.length === 1 ? '' : 's'} selected`
-      : source.token_path || 'Discord account not connected'
-  }
-  if (source.kind === 'apple-notes') {
-    return source.folders?.length ? source.folders.join(', ') : 'All Apple Notes folders'
-  }
-  return source.name || 'Not connected'
 }
 function canAuthorizeSource(source: SourceSettings): boolean {
   if (!source.oauth_client_path) return false
