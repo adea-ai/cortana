@@ -6,10 +6,13 @@
    the stylesheet and the provider loads the catalogue only for what CSS cannot say. */
 @import '@adea-ai/ui/theme-variants.css';
 @import '@adea-ai/ui/base.css';
-/* Tailwind ignores node_modules: discover the shared components' class strings
-   and the shared helpers (control ladder, overlay fills) they compose with. */
-@source '../node_modules/@adea-ai/ui/src/components';
-@source '../node_modules/@adea-ai/ui/src/lib';
+/* Tailwind ignores node_modules. The Vite build generates one @source per shared
+   UI module Cortana's runtime imports reach (components, composites, the helpers
+   they compose with and lazy surfaces), so unused components add no utilities.
+   See tooling/ui-tailwind-sources.ts. */
+@import '../node_modules/.cache/cortana-ui-tailwind-sources.css';
+/* The build tooling's test fixtures spell marker utilities on purpose. */
+@source not '../tooling';
 
 * {
   box-sizing: border-box;
