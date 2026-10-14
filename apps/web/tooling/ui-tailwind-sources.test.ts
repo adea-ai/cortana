@@ -605,6 +605,28 @@ describe('hot updates in the dev server', () => {
   }, 60_000)
 })
 
+describe('standalone generation', () => {
+  // CI lints before it builds, and the shared UI lint compiles shadcn.css, so
+  // the generated import must exist without a Vite build having run.
+  test('writes the sources the stylesheet imports from a cold cache', () => {
+    const cache = join(webRoot, 'node_modules/.cache')
+    rmSync(join(cache, 'cortana-ui-tailwind-sources.css'), { force: true })
+    rmSync(join(cache, 'cortana-ui-tailwind-sources.json'), { force: true })
+
+    const run = Bun.spawnSync([
+      process.execPath,
+      join(import.meta.dir, 'generate-ui-tailwind-sources.ts'),
+    ])
+
+    expect(run.exitCode).toBe(0)
+    const directives = readFileSync(join(cache, 'cortana-ui-tailwind-sources.css'), 'utf8')
+    expect(directives).toContain("@source '../@adea-ai/ui/src/lib/utils.ts';")
+    expect(
+      JSON.parse(readFileSync(join(cache, 'cortana-ui-tailwind-sources.json'), 'utf8'))
+    ).toContain('src/lib/utils.ts')
+  }, 30_000)
+})
+
 describe("Cortana's own client graph", () => {
   test('reaches lazy surfaces and excludes components the app never imports', async () => {
     const config = await resolveConfig(

@@ -12,6 +12,7 @@
     "vite.config.ts",
     "src/themeBoot.ts",
     "src/theme.ts",
+    "tooling/generate-ui-tailwind-sources.ts",
     "tooling/ui-tailwind-sources.ts",
     "tooling/ui-tailwind-sources.test.ts"
   ]
