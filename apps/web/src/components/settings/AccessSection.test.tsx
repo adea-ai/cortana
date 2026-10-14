@@ -1,5 +1,6 @@
 import { afterEach, expect, test } from 'bun:test'
 import { cleanup, fireEvent, render, screen, within } from 'solid-testing-library'
+import userEvent from '@testing-library/user-event'
 import { createSignal } from 'solid-js'
 
 import type { DesktopSettings } from '../../types'
@@ -8,6 +9,13 @@ import { AccessSection } from './AccessSection'
 import { SettingsConfirmProvider } from './SettingsConfirm'
 
 afterEach(cleanup)
+
+const scopeBox = (principal: string, scope: string) =>
+  within(screen.getByRole('group', { name: `Scopes for ${principal}` })).getByLabelText(
+    scope
+  ) as HTMLInputElement
+const card = (principal: string) =>
+  screen.getByRole('group', { name: `Scopes for ${principal}` }).closest('[data-slot="card"]')
 
 function renderAccess() {
   const [settings, setSettings] = createSignal<DesktopSettings>({
@@ -61,7 +69,6 @@ test('toggling a scope changes only that principal', () => {
   expect(settings().auth_principals[0].scopes).toEqual(['query', 'admin'])
   expect(settings().auth_principals[1].scopes).toEqual(['status'])
 
-  // The edited principal re-renders, so look its group up again.
   fireEvent.click(
     within(screen.getByRole('group', { name: 'Scopes for desktop-agent' })).getByLabelText('query')
   )
@@ -73,4 +80,89 @@ test('a principal card keeps its title and a named remove action in one heading 
   const remove = screen.getByRole('button', { name: 'Remove desktop-agent' })
   const row = remove.parentElement as HTMLElement
   expect(within(row).getByText('desktop-agent')).toBeTruthy()
+})
+
+test('repeated keyboard toggles keep focus on the same checkbox and change only that principal', async () => {
+  const user = userEvent.setup()
+  const settings = renderAccess()
+  const otherCard = card('ops-agent')
+  const otherBoxes = ['query', 'status', 'admin'].map((scope) => scopeBox('ops-agent', scope))
+  const otherChecked = otherBoxes.map((box) => box.checked)
+  const otherNameInput = screen.getByDisplayValue('ops-agent')
+
+  const admin = scopeBox('desktop-agent', 'admin')
+  admin.focus()
+  expect(document.activeElement === admin).toBe(true)
+
+  await user.keyboard(' ')
+  expect(settings().auth_principals[0].scopes).toEqual(['query', 'admin'])
+  expect(document.activeElement === admin).toBe(true)
+  expect(admin.checked).toBe(true)
+
+  await user.keyboard(' ')
+  expect(settings().auth_principals[0].scopes).toEqual(['query'])
+  expect(document.activeElement === admin).toBe(true)
+  expect(admin.checked).toBe(false)
+
+  // Tab to a sibling scope of the same principal and toggle it from the keyboard.
+  await user.tab({ shift: true })
+  const status = scopeBox('desktop-agent', 'status')
+  expect(document.activeElement === status).toBe(true)
+  await user.keyboard(' ')
+  expect(settings().auth_principals[0].scopes).toEqual(['query', 'status'])
+  expect(document.activeElement === status).toBe(true)
+  expect(scopeBox('desktop-agent', 'status') === status).toBe(true)
+  expect(scopeBox('desktop-agent', 'admin') === admin).toBe(true)
+
+  // The other principal is untouched: same DOM nodes, same state, same data.
+  expect(card('ops-agent') === otherCard).toBe(true)
+  expect(screen.getByDisplayValue('ops-agent') === otherNameInput).toBe(true)
+  expect(
+    ['query', 'status', 'admin'].map(
+      (scope, position) => scopeBox('ops-agent', scope) === otherBoxes[position]
+    )
+  ).toEqual([true, true, true])
+  expect(otherBoxes.map((box) => box.checked)).toEqual(otherChecked)
+  expect(settings().auth_principals[1]).toEqual({
+    principal: 'ops-agent',
+    token_env: 'CORTANA_OPS_TOKEN',
+    scopes: ['status'],
+    acl: ['*'],
+  })
+})
+
+test('typing in a principal field keeps the same input focused', async () => {
+  const user = userEvent.setup()
+  const settings = renderAccess()
+  const name = screen.getByDisplayValue('desktop-agent') as HTMLInputElement
+  name.focus()
+  await user.keyboard('-2')
+  expect(settings().auth_principals[0].principal).toBe('desktop-agent-2')
+  expect(document.activeElement === name).toBe(true)
+  expect(screen.getByDisplayValue('desktop-agent-2') === name).toBe(true)
+})
+
+test('removing a principal leaves the others showing their own values and scopes', async () => {
+  const user = userEvent.setup()
+  const settings = renderAccess()
+  const nativeConfirm = window.confirm
+  window.confirm = () => true
+  try {
+    await user.click(screen.getByRole('button', { name: 'Remove desktop-agent' }))
+  } finally {
+    window.confirm = nativeConfirm
+  }
+
+  expect(settings().auth_principals.map((principal) => principal.principal)).toEqual(['ops-agent'])
+  expect(screen.queryByDisplayValue('desktop-agent')).toBeNull()
+  expect(screen.queryByRole('group', { name: 'Scopes for desktop-agent' })).toBeNull()
+  const group = screen.getByRole('group', { name: 'Scopes for ops-agent' })
+  expect(
+    within(group)
+      .getAllByRole('checkbox')
+      .map((box) => (box as HTMLInputElement).checked)
+  ).toEqual([false, true, false])
+  expect((screen.getByDisplayValue('CORTANA_OPS_TOKEN') as HTMLInputElement).value).toBe(
+    'CORTANA_OPS_TOKEN'
+  )
 })

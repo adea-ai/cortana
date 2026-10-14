@@ -1,5 +1,5 @@
 import { KeyRound, Plus, Trash2 } from 'lucide-solid'
-import { For } from 'solid-js'
+import { For, Index } from 'solid-js'
 
 import type { AuthPrincipalSettings } from '../../types'
 import { useSettingsConfirm } from './SettingsConfirm'
@@ -67,27 +67,32 @@ export function AccessSection(
       description="Create named bearer principals with least-privilege scopes and workspace ACL labels. Token values are write-only and never return to the renderer."
     >
       <div class="principal-list">
-        <For each={props.settings.auth_principals}>
-          {(principal, index) => {
-            const secret = props.settings.secrets.find((item) => item.name === principal.token_env)
+        <Index each={props.settings.auth_principals}>
+          {(principal, slot) => {
+            // Index keys cards by position: every edit rebuilds the principal
+            // object, and keying by identity would remount the card on each
+            // keystroke or scope toggle and drop keyboard focus.
+            const index = () => slot
+            const secret = () =>
+              props.settings.secrets.find((item) => item.name === principal().token_env)
             return (
               // principals render in settings order
               <Card size="sm">
                 <CardHeader>
                   <div class="flex items-center gap-2.5">
                     <KeyRound size={16} aria-hidden="true" />
-                    <CardTitle>{principal.principal || `Principal ${index() + 1}`}</CardTitle>
+                    <CardTitle>{principal().principal || `Principal ${index() + 1}`}</CardTitle>
                     <ActionButton
                       class="ml-auto"
                       variant="destructive"
                       size="icon-sm"
                       type="button"
-                      aria-label={`Remove ${principal.principal}`}
-                      tooltip={`Remove ${principal.principal}`}
+                      aria-label={`Remove ${principal().principal}`}
+                      tooltip={`Remove ${principal().principal}`}
                       onClick={() =>
                         applyConfirmed(
                           confirm(
-                            `Remove ${principal.principal} from agent access? Its stored credential will be removed only after you save these changes.`
+                            `Remove ${principal().principal} from agent access? Its stored credential will be removed only after you save these changes.`
                           ),
                           () =>
                             props.update((current) => ({
@@ -107,7 +112,7 @@ export function AccessSection(
                   <FieldGroup columns={2}>
                     <FormField label="Principal name">
                       <Input
-                        value={principal.principal}
+                        value={principal().principal}
                         maxLength={128}
                         required
                         onInput={(event) =>
@@ -119,7 +124,7 @@ export function AccessSection(
                     </FormField>
                     <FormField label="Token environment name">
                       <Input
-                        value={principal.token_env}
+                        value={principal().token_env}
                         maxLength={128}
                         pattern="[A-Za-z_][A-Za-z0-9_]*"
                         required
@@ -134,15 +139,15 @@ export function AccessSection(
                       <Input
                         type="password"
                         autocomplete="new-password"
-                        value={props.secretValues[principal.token_env] || ''}
+                        value={props.secretValues[principal().token_env] || ''}
                         onInput={(event) =>
                           props.onSecret({
                             ...props.secretValues,
-                            [principal.token_env]: event.target.value,
+                            [principal().token_env]: event.target.value,
                           })
                         }
                       />
-                      {secret?.configured && !props.clearedSecrets.has(principal.token_env) && (
+                      {secret()?.configured && !props.clearedSecrets.has(principal().token_env) && (
                         <ActionButton
                           tooltip="Clear stored token"
                           variant="destructive"
@@ -150,9 +155,9 @@ export function AccessSection(
                           onClick={() =>
                             applyConfirmed(
                               confirm(
-                                `Clear the stored bearer token for ${principal.principal}? The change remains a draft until you save settings.`
+                                `Clear the stored bearer token for ${principal().principal}? The change remains a draft until you save settings.`
                               ),
-                              () => props.onClearSecret(principal.token_env)
+                              () => props.onClearSecret(principal().token_env)
                             )
                           }
                         >
@@ -165,7 +170,7 @@ export function AccessSection(
                       hint="comma-separated workspace IDs; * grants all"
                     >
                       <Input
-                        value={principal.acl.join(', ')}
+                        value={principal().acl.join(', ')}
                         onInput={(event) =>
                           change(index(), {
                             acl: event.target.value
@@ -178,19 +183,19 @@ export function AccessSection(
                     </FormField>
                   </FieldGroup>
                   <FieldSet class="mt-3">
-                    <FieldLegend class="sr-only">{`Scopes for ${principal.principal || `Principal ${index() + 1}`}`}</FieldLegend>
+                    <FieldLegend class="sr-only">{`Scopes for ${principal().principal || `Principal ${index() + 1}`}`}</FieldLegend>
                     <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
                       <For each={['query', 'status', 'admin'] as const}>
                         {(scope) => (
                           <Checkbox
                             class="items-center"
                             label={scope}
-                            checked={principal.scopes.includes(scope)}
+                            checked={principal().scopes.includes(scope)}
                             onChange={(checked: boolean) =>
                               change(index(), {
                                 scopes: checked
-                                  ? [...principal.scopes, scope]
-                                  : principal.scopes.filter((value) => value !== scope),
+                                  ? [...principal().scopes, scope]
+                                  : principal().scopes.filter((value) => value !== scope),
                               })
                             }
                           />
@@ -202,7 +207,7 @@ export function AccessSection(
               </Card>
             )
           }}
-        </For>
+        </Index>
       </div>
       <ActionButton tooltip="Add principal" variant="secondary" size="sm" onClick={add}>
         <Plus size={15} aria-hidden="true" /> Add principal
