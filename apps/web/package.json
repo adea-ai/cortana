@@ -7,7 +7,7 @@
     "build": "tsc -b && bun ../../scripts/check-web-ui-contract.mjs && vite build && bun ../../scripts/check-web-bundle-budget.mjs",
     "dev": "vite",
     "preview": "vite preview",
-    "typecheck": "tsc -b --pretty false"
+    "typecheck": "tsc -b --pretty false && tsc -p tsconfig.node.json --pretty false"
   },
   "dependencies": {
     "@adea-ai/themes": "0.10.4",
