@@ -16,7 +16,7 @@ import { gzipSync } from 'node:zlib'
 
 import tailwindcss from '@tailwindcss/vite'
 import solid from 'vite-plugin-solid'
-import { build as viteBuild, resolveConfig } from 'vite'
+import { build as viteBuild, createServer, resolveConfig, type Plugin } from 'vite'
 
 import {
   collectUiSourceFiles,
@@ -522,6 +522,86 @@ describe('production build with selective shared UI sources', () => {
     for (const marker of Object.values(unused)) expect(built.js).toContain(marker.js)
     for (const marker of Object.values(unused)) expect(built.css).toContain(marker.color)
     expect(built.css).toContain(unused.block.css)
+  }, 60_000)
+})
+
+describe('hot updates in the dev server', () => {
+  // A real dev server holds the module graph; the plugin's hook runs against
+  // it as the watcher would, after the consumer's imports change on disk.
+  test('keeps the edited module and refreshes the stylesheet as a UI import is added and removed', async () => {
+    const fixture = makeConsumerFixture()
+    fixture.addUnusedExports()
+    const plugin = selectiveUiSourcePlugin(fixture.app)
+    // The suite's happy-dom globals replace setTimeout with a timer that lacks
+    // Node's unref(), which the dev server calls while starting.
+    const happyTimeout = globalThis.setTimeout
+    const withUnref = ((...args: Parameters<typeof setTimeout>) => {
+      const timer = happyTimeout(...args)
+      return Object.assign(Object(timer), { unref: () => timer })
+    }) as unknown as typeof setTimeout
+    Object.defineProperty(globalThis, 'setTimeout', {
+      value: withUnref,
+      configurable: true,
+      writable: true,
+    })
+    const server = await createServer({
+      configFile: false,
+      logLevel: 'silent',
+      root: fixture.app,
+      plugins: [plugin, solid(), tailwindcss()],
+      server: { middlewareMode: true, hmr: false, watch: null },
+      appType: 'custom',
+      optimizeDeps: { noDiscovery: true, include: [] },
+    })
+    try {
+      const entry = join(fixture.app, 'src/main.tsx')
+      const sheet = join(fixture.app, 'src/shadcn.css')
+      const sources = join(fixture.app, 'node_modules/.cache/cortana-ui-tailwind-sources.css')
+      await server.transformRequest('/src/main.tsx')
+      await server.transformRequest('/src/shadcn.css')
+      Object.defineProperty(globalThis, 'setTimeout', {
+        value: happyTimeout,
+        configurable: true,
+        writable: true,
+      })
+      const hook = (plugin as Plugin & { handleHotUpdate: Function }).handleHotUpdate
+      const update = async () => {
+        const modules = [...(server.moduleGraph.getModulesByFile(entry) ?? [])]
+        const result = (await hook.call({}, { file: entry, modules, server })) as
+          | { file: string | null }[]
+          | undefined
+        return { modules, files: result?.map((module) => module.file) }
+      }
+      const calendar = "@source '../@adea-ai/ui/src/components/ui/calendar/calendar.tsx';"
+      expect(readFileSync(sources, 'utf8')).not.toContain(calendar)
+
+      // No import change: Vite's own update list is left alone.
+      expect((await update()).files).toBeUndefined()
+
+      // Add a UI import without reloading the server.
+      fixture.consumer(
+        "import { Calendar } from '@adea-ai/ui'\nObject.assign(globalThis, { Calendar })"
+      )
+      const added = await update()
+      expect(readFileSync(sources, 'utf8')).toContain(calendar)
+      expect(added.modules.length).toBeGreaterThan(0)
+      expect(added.files).toContain(entry)
+      expect(added.files).toContain(sheet)
+
+      // Remove it again: the source drops out and both modules still update.
+      fixture.consumer('')
+      const removed = await update()
+      expect(readFileSync(sources, 'utf8')).not.toContain(calendar)
+      expect(removed.files).toContain(entry)
+      expect(removed.files).toContain(sheet)
+    } finally {
+      Object.defineProperty(globalThis, 'setTimeout', {
+        value: happyTimeout,
+        configurable: true,
+        writable: true,
+      })
+      await server.close()
+    }
   }, 60_000)
 })
 

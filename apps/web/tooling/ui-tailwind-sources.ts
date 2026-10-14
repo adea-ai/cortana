@@ -794,7 +794,7 @@ export function selectiveUiSourcePlugin(webRoot: string): Plugin {
         )
       generatedFiles = await generate(resolveId)
     },
-    async handleHotUpdate({ file, server }) {
+    async handleHotUpdate({ file, modules, server }) {
       if (!generatedFiles.length || !isCodeFile(file)) return
       const previous = packageRelativePaths(generatedFiles, uiRoot).join('\n')
       generatedFiles = await generate(viteResolver(server.config))
@@ -802,7 +802,9 @@ export function selectiveUiSourcePlugin(webRoot: string): Plugin {
       const styles = server.moduleGraph.getModulesByFile(paths.styleEntry)
       if (!styles) return
       for (const module of styles) server.moduleGraph.invalidateModule(module)
-      return [...styles]
+      // Returning only the stylesheet would drop the edited module from the
+      // update list, so keep the modules Vite already selected for the file.
+      return [...new Set([...modules, ...styles])]
     },
     generateBundle(_options, bundle) {
       const renderedIds: string[] = []
