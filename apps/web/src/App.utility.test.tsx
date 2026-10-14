@@ -813,22 +813,10 @@ test('Inbox shows an indeterminate bar for a running sync without a document bud
 test('Inbox does not claim clean sync history while runtime status is unavailable', () => {
   let retries = 0
   render(() => (
-    <UtilityView
-      kind="inbox"
+    <M7ActivityInbox
       status={null}
       statusError="Runtime status unavailable"
       sourceJobs={[]}
-      query=""
-      answer={null}
-      evidence={[]}
-      loading={false}
-      error=""
-      contextBundle={null}
-      contextLoading={false}
-      contextError=""
-      contextTokens={0}
-      onSearchFocus={() => {}}
-      onRetrieveContext={() => {}}
       onOpenSettings={() => {}}
       onRetryStatus={() => {
         retries += 1
@@ -864,35 +852,24 @@ test('Inbox retains terminal source-job history after the job stops running', ()
     budget: null,
   }
   render(() => (
-    <UtilityView
-      kind="inbox"
+    <M7ActivityInbox
       status={{
         ...demoStatus,
         sync_runs: [],
       }}
       sourceJobs={[job]}
-      query=""
-      answer={null}
-      evidence={[]}
-      loading={false}
-      error=""
-      contextBundle={null}
-      contextLoading={false}
-      contextError=""
-      contextTokens={0}
       sourceJobError="Source job cancellation failed"
-      onSearchFocus={() => {}}
-      onRetrieveContext={() => {}}
       onOpenSettings={() => {}}
     />
   ))
   expect(screen.getByText('Recent source jobs')).toBeTruthy()
-  expect(screen.getByText('work-code · validation')).toBeTruthy()
+  expect(screen.getByText('work-code · Budget validation')).toBeTruthy()
   expect(screen.getByText('Failed')).toBeTruthy()
-  expect(screen.getByText(/Connector validation failed/)).toBeTruthy()
+  expect(screen.getByText('Completed in 12 seconds')).toBeTruthy()
   fireEvent.click(screen.getByText('View job log'))
   expect(screen.getByText('permission denied')).toBeTruthy()
-  expect(screen.getByRole('alert').textContent).toBe('Source job cancellation failed')
+  expect(screen.getByText('Source jobs unavailable')).toBeTruthy()
+  expect(screen.getByText('Source job cancellation failed')).toBeTruthy()
 })
 test('Inbox keeps a cancelling source job visibly in progress until it exits', () => {
   const job: DesktopSourceJob = {
@@ -913,24 +890,12 @@ test('Inbox keeps a cancelling source job visibly in progress until it exits', (
     budget: null,
   }
   render(() => (
-    <UtilityView
-      kind="inbox"
+    <M7ActivityInbox
       status={{
         ...demoStatus,
         sync_runs: [],
       }}
       sourceJobs={[job]}
-      query=""
-      answer={null}
-      evidence={[]}
-      loading={false}
-      error=""
-      contextBundle={null}
-      contextLoading={false}
-      contextError=""
-      contextTokens={0}
-      onSearchFocus={() => {}}
-      onRetrieveContext={() => {}}
       onOpenSettings={() => {}}
       onCancelSourceJob={() => {}}
     />
@@ -1023,7 +988,6 @@ test('Agent tools copies the exact generated context bundle for local agent hand
       <UtilityView
         kind="agent-tools"
         status={demoStatus}
-        sourceJobs={[]}
         query={contextBundle.query}
         answer={answerResponse}
         evidence={contextBundle.evidence}
@@ -1107,12 +1071,60 @@ test('the help dialog composes project links from the shared help page', () => {
   })
   expect(openProject.getAttribute('href')).toBe('https://github.com/adea-ai/cortana')
 })
+test('Conversations separates the unreachable-brain error from the offline hint', () => {
+  render(() => (
+    <UtilityView
+      kind="conversations"
+      status={null}
+      query="release"
+      answer={null}
+      evidence={[]}
+      loading={false}
+      error="Failed to fetch"
+      contextBundle={null}
+      contextLoading={false}
+      contextError=""
+      contextTokens={0}
+      onSearchFocus={() => {}}
+      onRetrieveContext={() => {}}
+      onOpenSettings={() => {}}
+    />
+  ))
+  expect(screen.getByText('The brain is unreachable')).toBeTruthy()
+  expect(
+    screen.getByText('Failed to fetch. Start the Rust API or add ?demo=1 to preview the workspace.')
+  ).toBeTruthy()
+  // An error that already ends a sentence is not given a second stop.
+  cleanup()
+  render(() => (
+    <UtilityView
+      kind="conversations"
+      status={null}
+      query="release"
+      answer={null}
+      evidence={[]}
+      loading={false}
+      error="Answer request failed (503)."
+      contextBundle={null}
+      contextLoading={false}
+      contextError=""
+      contextTokens={0}
+      onSearchFocus={() => {}}
+      onRetrieveContext={() => {}}
+      onOpenSettings={() => {}}
+    />
+  ))
+  expect(
+    screen.getByText(
+      'Answer request failed (503). Start the Rust API or add ?demo=1 to preview the workspace.'
+    )
+  ).toBeTruthy()
+})
 test('shadcn conversations compose cards and actions from the generated primitives', () => {
   render(() => (
     <UtilityView
       kind="conversations"
       status={demoStatus}
-      sourceJobs={[]}
       query={answerResponse.query}
       answer={answerResponse}
       evidence={demoEvidence}

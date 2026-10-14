@@ -72,6 +72,9 @@ export default function KnowledgeGraphView(props: {
   onGraphMinConfidenceChange?: (confidence: number | null) => void
 }) {
   const compactGraph = createMediaQuery(() => '(max-width: 799px)')
+  // The select wrapper is owned by NativeSelect, so the toolbar cell sizes it:
+  // a grid cell stretches the wrapper and the select fills it.
+  const selectCell = () => (compactGraph() ? 'grid min-w-35 flex-1' : 'grid max-w-42.5 min-w-0')
   const [visibleCount, setVisibleCount] = createSignal(12)
   const [filter, setFilter] = createSignal('')
   const [kindFilter, setKindFilter] = createSignal<BrainGraphNode['kind'] | 'all'>('all')
@@ -80,6 +83,11 @@ export default function KnowledgeGraphView(props: {
   const graphNodes = createMemo(() => props.graph?.nodes ?? EMPTY_GRAPH_NODES)
   const usingEvidenceFallback = () => props.graph === null
   const normalizedFilter = () => filter().trim().toLocaleLowerCase()
+  const filtered = () => normalizedFilter() !== '' || kindFilter() !== 'all'
+  const clearFilters = () => {
+    setFilter('')
+    setKindFilter('all')
+  }
   const filteredNodes = createMemo(() =>
     normalizedFilter()
       ? graphNodes().filter(
@@ -91,6 +99,12 @@ export default function KnowledgeGraphView(props: {
         )
       : graphNodes().filter((node) => kindFilter() === 'all' || node.kind === kindFilter())
   )
+  // `nodes()` follows `filteredNodes()` through an effect, so it still holds the
+  // previous list for a tick after a filter edit. The empty states read the
+  // synchronous source instead, otherwise clearing the last character would
+  // briefly swap the graph (and the focused filter field) for "No graph data".
+  const nothingToShow = () =>
+    filteredNodes().length === 0 && (!usingEvidenceFallback() || props.evidence.length === 0)
   // Revalidation can reorder nodes even when the set is unchanged; keying the
   // reset on nodes[0] cleared an active selection mid-interaction. Only drop
   // the selection when the selected node actually leaves the filtered set.
@@ -172,18 +186,7 @@ export default function KnowledgeGraphView(props: {
             announceAs="alert"
           />
         </Match>
-        <Match when={!props.graphLoading && nodes().length === 0 && normalizedFilter()}>
-          <EmptyState
-            class="m-4 min-h-64"
-            icon={<Search aria-hidden="true" />}
-            title="No matching graph nodes"
-            detail="Try a workspace, source, or document name."
-            action={() => setFilter('')}
-            actionLabel="Clear filter"
-            actionTooltip="Clear the graph node filter"
-          />
-        </Match>
-        <Match when={!props.graphLoading && nodes().length === 0}>
+        <Match when={!props.graphLoading && nothingToShow() && !filtered()}>
           <EmptyState
             class="m-4 min-h-64"
             icon={<Search aria-hidden="true" />}
@@ -215,7 +218,7 @@ export default function KnowledgeGraphView(props: {
                 </For>
               </svg>
             </Show>
-            <Show when={!compactGraph()}>
+            <Show when={!compactGraph() && !nothingToShow()}>
               <div class="graph-center">
                 <img src="/app-icon.svg" alt="" width="24" height="24" aria-hidden="true" />
               </div>
@@ -247,70 +250,81 @@ export default function KnowledgeGraphView(props: {
                         Clear
                       </WorkspaceButton>
                     </Show>
-                    <NativeSelect
-                      size="sm"
-                      aria-label="Filter graph relationships"
-                      value={props.graphEdgeKind}
-                      onChange={(event) =>
-                        props.onGraphEdgeKindChange?.(
-                          event.target.value as BrainGraphPage['edges'][number]['kind'] | 'all'
-                        )
-                      }
-                      options={[
-                        { value: 'all', label: 'All relationships' },
-                        ...(
-                          [
-                            'contains',
-                            'references',
-                            'backlink',
-                            'nearby',
-                            'same-thread',
-                            'authored-by',
-                            'mentions',
-                            'temporal',
-                            'supports',
-                            'contradicts',
-                            'derives',
-                          ] as const
-                        ).map((kind) => ({ value: kind, label: kind })),
-                      ]}
-                    />
-                    <NativeSelect
-                      size="sm"
-                      aria-label="Filter graph relationship origin"
-                      value={props.graphOrigin}
-                      onChange={(event) =>
-                        props.onGraphOriginChange?.(
-                          event.target.value as
-                            | NonNullable<BrainGraphPage['edges'][number]['origin']>
-                            | 'all'
-                        )
-                      }
-                      options={[
-                        { value: 'all', label: 'All origins' },
-                        { value: 'explicit', label: 'Explicit' },
-                        { value: 'derived', label: 'Derived' },
-                        { value: 'inferred', label: 'Inferred' },
-                      ]}
-                    />
-                    <NativeSelect
-                      size="sm"
-                      aria-label="Filter graph minimum confidence"
-                      value={
-                        props.graphMinConfidence == null ? 'all' : String(props.graphMinConfidence)
-                      }
-                      onChange={(event) =>
-                        props.onGraphMinConfidenceChange?.(
-                          event.target.value === 'all' ? null : Number(event.target.value)
-                        )
-                      }
-                      options={[
-                        { value: 'all', label: 'Any confidence' },
-                        { value: '0.5', label: '50% or higher' },
-                        { value: '0.75', label: '75% or higher' },
-                        { value: '0.9', label: '90% or higher' },
-                      ]}
-                    />
+                    <div class={selectCell()}>
+                      <NativeSelect
+                        size="sm"
+                        class="w-full"
+                        aria-label="Filter graph relationships"
+                        value={props.graphEdgeKind}
+                        onChange={(event) =>
+                          props.onGraphEdgeKindChange?.(
+                            event.target.value as BrainGraphPage['edges'][number]['kind'] | 'all'
+                          )
+                        }
+                        options={[
+                          { value: 'all', label: 'All relationships' },
+                          ...(
+                            [
+                              'contains',
+                              'references',
+                              'backlink',
+                              'nearby',
+                              'same-thread',
+                              'authored-by',
+                              'mentions',
+                              'temporal',
+                              'supports',
+                              'contradicts',
+                              'derives',
+                            ] as const
+                          ).map((kind) => ({ value: kind, label: kind })),
+                        ]}
+                      />
+                    </div>
+                    <div class={selectCell()}>
+                      <NativeSelect
+                        size="sm"
+                        class="w-full"
+                        aria-label="Filter graph relationship origin"
+                        value={props.graphOrigin}
+                        onChange={(event) =>
+                          props.onGraphOriginChange?.(
+                            event.target.value as
+                              | NonNullable<BrainGraphPage['edges'][number]['origin']>
+                              | 'all'
+                          )
+                        }
+                        options={[
+                          { value: 'all', label: 'All origins' },
+                          { value: 'explicit', label: 'Explicit' },
+                          { value: 'derived', label: 'Derived' },
+                          { value: 'inferred', label: 'Inferred' },
+                        ]}
+                      />
+                    </div>
+                    <div class={selectCell()}>
+                      <NativeSelect
+                        size="sm"
+                        class="w-full"
+                        aria-label="Filter graph minimum confidence"
+                        value={
+                          props.graphMinConfidence == null
+                            ? 'all'
+                            : String(props.graphMinConfidence)
+                        }
+                        onChange={(event) =>
+                          props.onGraphMinConfidenceChange?.(
+                            event.target.value === 'all' ? null : Number(event.target.value)
+                          )
+                        }
+                        options={[
+                          { value: 'all', label: 'Any confidence' },
+                          { value: '0.5', label: '50% or higher' },
+                          { value: '0.75', label: '75% or higher' },
+                          { value: '0.9', label: '90% or higher' },
+                        ]}
+                      />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -512,6 +526,17 @@ export default function KnowledgeGraphView(props: {
                 )}
               </For>
             </OrbitLayout>
+            <Show when={nothingToShow()}>
+              <EmptyState
+                class={compactGraph() ? '' : 'absolute inset-x-0 top-48 bottom-0'}
+                icon={<Search aria-hidden="true" />}
+                title="No matching graph nodes"
+                detail="Try a workspace, source, or document name."
+                action={clearFilters}
+                actionLabel="Clear filter"
+                actionTooltip="Clear the graph node filter"
+              />
+            </Show>
             <Show when={activeGraphNode()}>
               {(selectedNode) => (
                 <Card
