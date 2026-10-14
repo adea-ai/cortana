@@ -82,6 +82,8 @@ export function verifyWebBundleBudget() {
     // The catalogue palette now paints from the stylesheet (theme-variants.css, 34
     // themes as CSS keyed by data-theme) so a workspace theme shows on the first
     // frame without the catalogue's JavaScript: 143,171 → 274,212 (2026-10-13).
+    // Generating Tailwind sources from the runtime import graph instead of
+    // scanning every shared component measured 274,212 → 246,160 (2026-10-14).
     ['application CSS graph', uniqueCssBytes(manifest, productionKeys), 285_000],
   ]
 

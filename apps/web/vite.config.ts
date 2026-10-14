@@ -8,6 +8,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath, URL } from 'node:url'
 
 import { themeBootSource } from './src/themeBoot.ts'
+import { selectiveUiSourcePlugin } from './tooling/ui-tailwind-sources.ts'
 
 // The shared library owns font choices. Bun resolves its assets outside the
 // checkout, so development serves only those dependency directories.
@@ -40,7 +41,12 @@ function themeBoot(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [themeBoot(), solid(), tailwindcss()],
+  plugins: [
+    themeBoot(),
+    selectiveUiSourcePlugin(fileURLToPath(new URL('.', import.meta.url))),
+    solid(),
+    tailwindcss(),
+  ],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
