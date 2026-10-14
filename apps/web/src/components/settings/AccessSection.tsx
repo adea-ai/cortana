@@ -1,4 +1,3 @@
-import { Label } from '@adea-ai/ui/components/ui/label'
 import { KeyRound, Plus, Trash2 } from 'lucide-solid'
 import { For } from 'solid-js'
 
@@ -6,7 +5,7 @@ import type { AuthPrincipalSettings } from '../../types'
 import { useSettingsConfirm } from './SettingsConfirm'
 import { type SettingsSectionProps } from './settingsSectionProps'
 import { applyConfirmed } from './SettingsWorkflowUtils'
-import { FormField, FieldGroup } from '@adea-ai/ui/components/ui/field'
+import { FormField, FieldGroup, FieldLegend, FieldSet } from '@adea-ai/ui/components/ui/field'
 import { SettingsSection } from '@adea-ai/ui/components/composites/settings'
 import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
 import { Card, CardContent, CardHeader, CardTitle } from '@adea-ai/ui/components/ui/card'
@@ -75,7 +74,7 @@ export function AccessSection(
               // principals render in settings order
               <Card size="sm">
                 <CardHeader>
-                  <div class="principal-card-heading">
+                  <div class="flex items-center gap-2.5">
                     <KeyRound size={16} aria-hidden="true" />
                     <CardTitle>{principal.principal || `Principal ${index() + 1}`}</CardTitle>
                     <ActionButton
@@ -178,12 +177,14 @@ export function AccessSection(
                       />
                     </FormField>
                   </FieldGroup>
-                  <div class="scope-options">
-                    <For each={['query', 'status', 'admin'] as const}>
-                      {(scope) => (
-                        <Label>
+                  <FieldSet class="mt-3">
+                    <FieldLegend class="sr-only">{`Scopes for ${principal.principal || `Principal ${index() + 1}`}`}</FieldLegend>
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                      <For each={['query', 'status', 'admin'] as const}>
+                        {(scope) => (
                           <Checkbox
-                            aria-label={`${scope} scope for ${principal.principal}`}
+                            class="items-center"
+                            label={scope}
                             checked={principal.scopes.includes(scope)}
                             onChange={(checked: boolean) =>
                               change(index(), {
@@ -193,11 +194,10 @@ export function AccessSection(
                               })
                             }
                           />
-                          {scope}
-                        </Label>
-                      )}
-                    </For>
-                  </div>
+                        )}
+                      </For>
+                    </div>
+                  </FieldSet>
                 </CardContent>
               </Card>
             )

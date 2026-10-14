@@ -1323,8 +1323,13 @@ test('desktop settings navigation opens the audit trail and renders both event s
   expect(state.saveSettingsCalls).toBe(0)
   expect(screen.getByText('Runtime retrieval')).toBeTruthy()
   expect(screen.getByText('Desktop actions')).toBeTruthy()
-  expect(screen.getByText('memory.export').className).toContain('success')
-  expect(screen.getByText('brain_documents').className).toContain('failure')
+  // The outcome is stated in words by the shared status chip, not by colour alone.
+  expect(screen.getByText('memory.export').closest('[data-slot="card"]')?.textContent).toContain(
+    'Succeeded'
+  )
+  expect(screen.getByText('brain_documents').closest('[data-slot="card"]')?.textContent).toContain(
+    'Failed'
+  )
   expect(screen.getByText('settings_saved')).toBeTruthy()
 
   // Refreshing keeps the audit list stable.
