@@ -1,15 +1,7 @@
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 import { Alert, AlertDescription } from '@adea-ai/ui/components/ui/alert'
 import { RefreshCw } from 'lucide-solid'
-import {
-  createEffect,
-  createSignal,
-  createUniqueId,
-  lazy,
-  mergeProps,
-  Suspense,
-  type JSX,
-} from 'solid-js'
+import { createUniqueId, lazy, Suspense, type JSX } from 'solid-js'
 
 import { isLoopbackUrl } from '../../operations'
 import type { DesktopSettings } from '../../types'
@@ -22,12 +14,8 @@ import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
 import { Input } from '@adea-ai/ui/components/ui/input'
 import { NativeSelect } from '@adea-ai/ui/components/ui/native-select'
 import { Switch } from '@adea-ai/ui/components/ui/switch'
+import { Text } from '@adea-ai/ui/components/ui/typography'
 
-const ValueCombobox = lazy(() =>
-  import('@adea-ai/ui/components/ui/combobox').then((module) => ({
-    default: module.ValueCombobox,
-  }))
-)
 const SecretInputGroup = lazy(() =>
   import('@adea-ai/ui/components/ui/input-group').then((module) => ({
     default: module.SecretInputGroup,
@@ -69,7 +57,6 @@ export function EmbeddingSection(incoming: {
       modelsError={props.modelsError}
       modelsTruncated={props.modelsTruncated}
       onRefreshModels={props.onRefreshModels}
-      modelControl="select"
       modelCatalog={
         props.settings.embedding.provider === 'local'
           ? [
@@ -85,13 +72,13 @@ export function EmbeddingSection(incoming: {
           : []
       }
     >
-      <div class="settings-note">
+      <Text variant="micro" tone="muted" as="p">
         <strong>Local service command:</strong>{' '}
         {props.settings.embedding_service_program
           ? `${props.settings.embedding_service_program} (managed in config.toml)`
           : 'automatic command derived from the model and loopback endpoint'}
         . Desktop preserves explicit executable commands but does not edit shell command arrays.
-      </div>
+      </Text>
       <FieldGroup columns={2}>
         <NumberField
           label="Vector dimension"
@@ -186,16 +173,10 @@ function ProviderSection<T extends ProviderValue>(incoming: {
   modelsError: string
   modelsTruncated: boolean
   onRefreshModels: () => void
-  modelControl?: 'combobox' | 'select'
   update: (provider: T) => void
   children?: JSX.Element
 }) {
-  const props = mergeProps(
-    {
-      modelControl: 'combobox',
-    },
-    incoming
-  )
+  const props = incoming
   const confirm = useSettingsConfirm()
   const modelFieldId = createUniqueId()
   const secretFieldId = createUniqueId()
@@ -212,85 +193,6 @@ function ProviderSection<T extends ProviderValue>(incoming: {
       ? props.advertisedModels
       : props.modelCatalog
   const catalogValues = () => activeCatalog().map((candidate) => candidate.value)
-  // The select mode is derived from the active catalog so a provider refresh
-  // can never leave a stale select visible: when the current model is not in
-  // the active catalog the custom input is shown with the value preserved.
-  // The explicit override remembers only a user's own catalog/custom choice
-  // and is cleared whenever the available catalog changes.
-  const [explicitModelMode, setExplicitModelMode] = createSignal<'catalog' | 'custom' | null>(null)
-  const modelMode = (): 'catalog' | 'custom' =>
-    explicitModelMode() ?? (catalogValues().includes(props.provider.model) ? 'catalog' : 'custom')
-  const catalogKey = () => catalogValues().join('\u0000')
-  const [previousCatalogKey, setPreviousCatalogKey] = createSignal(catalogKey())
-  createEffect(() => {
-    const key = catalogKey()
-    if (key !== previousCatalogKey()) {
-      setPreviousCatalogKey(key)
-      setExplicitModelMode(null)
-    }
-  })
-  const modelInput = () => (
-    <FormField label="Model" controlId={modelFieldId}>
-      <Input
-        id={modelFieldId}
-        aria-label="Model"
-        value={props.provider.model}
-        onInput={(event) =>
-          props.update({
-            ...props.provider,
-            model: event.target.value,
-          })
-        }
-        required
-        maxLength={256}
-      />
-    </FormField>
-  )
-  const modelSelect = () => (
-    <FormField label="Model" controlId={modelFieldId}>
-      <Suspense
-        fallback={
-          <Input
-            id={modelFieldId}
-            aria-label="Model catalog"
-            value={props.provider.model}
-            readOnly
-          />
-        }
-      >
-        <ValueCombobox
-          id={modelFieldId}
-          aria-label="Model catalog"
-
-          value={modelMode() === 'catalog' ? props.provider.model : 'custom'}
-          choices={[
-            ...activeCatalog(),
-            {
-              value: 'custom',
-              label: 'Custom',
-            },
-          ]}
-          onValueChange={(selected) => {
-            if (selected === 'custom') {
-              setExplicitModelMode('custom')
-              return
-            }
-            if (catalogValues().includes(selected)) {
-              setExplicitModelMode('catalog')
-              props.update({
-                ...props.provider,
-                model: selected,
-              })
-            } else {
-              // Unmatched selections (programmatic or label-based) open the
-              // custom field with the current model preserved.
-              setExplicitModelMode('custom')
-            }
-          }}
-        />
-      </Suspense>
-    </FormField>
-  )
   const dropdownCatalog = () =>
     catalogValues().includes(props.provider.model)
       ? activeCatalog()
@@ -324,11 +226,7 @@ function ProviderSection<T extends ProviderValue>(incoming: {
   )
   const modelControls = (
     <div class="model-field">
-      {props.modelControl === 'select'
-        ? modelDropdown()
-        : modelMode() === 'custom'
-          ? modelInput()
-          : modelSelect()}
+      {modelDropdown()}
       <div class="model-refresh">
         <ActionButton
           tooltip={`Refresh ${props.title} models from provider`}
@@ -353,11 +251,11 @@ function ProviderSection<T extends ProviderValue>(incoming: {
         </Alert>
       )}
       {props.advertisedModels && props.advertisedModels.length > 0 && (
-        <small class="model-note">
+        <Text variant="micro" tone="muted" as="p">
           {props.advertisedModels.length} model{props.advertisedModels.length === 1 ? '' : 's'}{' '}
           advertised by the provider{props.modelsTruncated ? ' (first 512 shown)' : ''}. A current
-          model that is not advertised stays selected in the custom field.
-        </small>
+          model that is not advertised stays selected in the list.
+        </Text>
       )}
     </div>
   )
@@ -516,7 +414,6 @@ export function QuerySection(incoming: {
       modelsError={props.modelsError}
       modelsTruncated={props.modelsTruncated}
       onRefreshModels={props.onRefreshModels}
-      modelControl="select"
       modelCatalog={[]}
     >
       <SettingsRow

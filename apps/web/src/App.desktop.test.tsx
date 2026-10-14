@@ -1599,6 +1599,68 @@ test('advanced settings exports an explicit workspace set as a derived vault', a
     window.confirm = originalConfirm
   }
 })
+test('advanced settings singularises vault counts and shows a failed export error', async () => {
+  const originalConfirm = window.confirm
+  const originalResult = state.vaultExportResult
+  const user = userEvent.setup()
+  window.confirm = () => true
+  try {
+    render(() => <App />)
+    await waitFor(() =>
+      expect(
+        getSystemAction({
+          name: updatesButtonName,
+        })
+      ).toBeTruthy()
+    )
+    await openSidebarDestination('Settings')
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('tab', {
+        name: 'Advanced',
+      })
+    )
+    state.vaultExportResult = {
+      ...originalResult,
+      report: { ...originalResult.report!, documents: 1, content_rewrites: 1 },
+    }
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Export vault',
+      })
+    )
+    const succeeded = await screen.findByText(/Exported 1 document;/)
+    expect(succeeded.textContent).toBe('Exported 1 document; 1 content rewrite and 0 unchanged.')
+    // The shared section body owns the spacing; the notice carries no margin class.
+    expect(screen.getByRole('status').className).not.toContain('safety-note')
+
+    state.vaultExportResult = {
+      ...originalResult,
+      status: 'failed',
+      phase: 'failed',
+      documents_completed: 1,
+      files_written: 1,
+      report: null,
+      error: 'output directory is not writable',
+    }
+    await user.click(screen.getByRole('button', { name: 'Export vault' }))
+    const failed = await screen.findByText(/Vault export failed:/)
+    expect(failed.textContent).toBe(
+      'Vault export failed: 1 document scanned, 1 file staged. Error: output directory is not writable'
+    )
+    expect(failed.closest('[role="alert"]')).toBeTruthy()
+  } finally {
+    state.vaultExportResult = originalResult
+    window.confirm = originalConfirm
+  }
+})
 test('advanced import preview cancellation keeps draft values unchanged', async () => {
   const originalConfirm = window.confirm
   window.confirm = () => false
