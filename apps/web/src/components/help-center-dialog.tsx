@@ -65,7 +65,7 @@ export function HelpCenterDialog(props: HelpCenterDialogProps) {
       }}
     >
       <DialogContent
-        class="max-w-md"
+        size="sm"
         aria-label="Help Center"
         onKeyDown={(event: KeyboardEvent) => {
           // Link help tooltips cannot trap Escape in this popup.

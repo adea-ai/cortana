@@ -140,7 +140,7 @@ export function SourcePanel(props: {
               tooltip="Close sources"
               onClick={props.onClose}
             >
-              <X size={17} aria-hidden="true" />
+              <X aria-hidden="true" />
             </ActionButton>
           </Show>
           <ActionButton
@@ -159,7 +159,7 @@ export function SourcePanel(props: {
             tooltip="Source settings"
             onClick={props.onOpenSourcesSettings}
           >
-            <Settings size={16} aria-hidden="true" />
+            <Settings aria-hidden="true" />
           </ActionButton>
         </PanelActions>
       </PanelHeader>
@@ -192,7 +192,7 @@ export function SourcePanel(props: {
                     disabled={job.status === 'cancelling'}
                     onClick={() => props.onCancelSourceJob?.(job.id)}
                   >
-                    <CircleStop size={12} aria-hidden="true" />
+                    <CircleStop aria-hidden="true" />
                   </ActionButton>
                 </Show>
               </div>
@@ -342,9 +342,9 @@ export function SourcePanel(props: {
                             }}
                           >
                             {isCollapsed() ? (
-                              <ChevronRight size={13} aria-hidden="true" />
+                              <ChevronRight aria-hidden="true" />
                             ) : (
-                              <ChevronDown size={13} aria-hidden="true" />
+                              <ChevronDown aria-hidden="true" />
                             )}
                           </ActionButton>
                           <Button
@@ -405,7 +405,7 @@ export function SourcePanel(props: {
                                 props.onOpenSourceSetup?.(item.source, item.project)
                               }}
                             >
-                              <ExternalLink size={13} aria-hidden="true" />
+                              <ExternalLink aria-hidden="true" />
                             </ActionButton>
                           </Show>
                           <Show when={props.onAuthorizeSource && needsBrowserAuthorization()}>
@@ -434,7 +434,7 @@ export function SourcePanel(props: {
                                 props.onAuthorizeSource?.(item.source, item.project)
                               }}
                             >
-                              <KeyRound size={13} aria-hidden="true" />
+                              <KeyRound aria-hidden="true" />
                             </ActionButton>
                           </Show>
                           <Show when={props.onToggleSource && item.kind !== 'indexed'}>
@@ -523,7 +523,7 @@ export function SourcePanel(props: {
                 aria-label="Clear document filter"
                 onClick={() => props.onDocumentQueryChange('')}
               >
-                <X size={14} aria-hidden="true" />
+                <X aria-hidden="true" />
               </ActionButton>
             </InputGroupAddon>
           </Show>
