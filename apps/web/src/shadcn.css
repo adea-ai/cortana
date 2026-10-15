@@ -51,64 +51,6 @@ body,
   white-space: nowrap;
 }
 
-.source-tree {
-  max-height: 42%;
-  min-height: 90px;
-  padding: 10px 8px;
-  overflow-y: auto;
-  border-bottom: 1px solid var(--border);
-}
-
-.source-tree section {
-  margin-bottom: 11px;
-}
-
-.source-tree button span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.source-row {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-}
-
-.source-tree .source-row > .tree-toggle {
-  flex: 0 0 auto;
-}
-
-.source-tree .source-row > .source-select {
-  min-width: 0;
-  flex: 1;
-}
-
-.source-select-content {
-  display: grid;
-  text-align: start;
-  min-width: 0;
-  width: 100%;
-  gap: 8px;
-  align-items: center;
-  grid-template-columns: 22px minmax(0, 1fr) 8px auto;
-}
-
-.source-tree .source-row > .source-action {
-  flex: 0 0 auto;
-  margin: 0 2px;
-}
-
-.source-node-hint {
-  display: block;
-  margin: -3px 10px 4px 57px;
-  overflow: hidden;
-  color: var(--muted-foreground);
-  font-size: var(--text-2xs);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .document-explorer {
   display: flex;
   min-height: 0;
