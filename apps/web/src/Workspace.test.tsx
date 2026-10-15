@@ -701,6 +701,76 @@ test('graph exposes workspace and source nodes with bounded type filters', async
   ).toBeNull()
   expect(screen.getByText('Showing 1 of 1 node · 2 links')).toBeTruthy()
 })
+test('a graph filter with no matches keeps the toolbar so the filter can be edited or cleared', async () => {
+  render(() => (
+    <Workspace
+      {...props}
+      document={null}
+      tab="graph"
+      graph={{
+        nodes: [
+          {
+            id: 'document:one',
+            kind: 'document',
+            label: 'Release notes',
+            project: 'work',
+            source: 'code',
+            document_id: 'one',
+          },
+        ],
+        edges: [],
+        next_cursor: null,
+      }}
+    />
+  ))
+  await waitFor(() => expect(screen.queryByText('Loading knowledge graph')).toBeNull())
+  const filter = screen.getByRole('searchbox', { name: 'Filter graph nodes' }) as HTMLInputElement
+  fireEvent.input(filter, { target: { value: 'zzz' } })
+  expect(screen.getByText('No matching graph nodes')).toBeTruthy()
+  // The field survives the empty result: same element, still typed into.
+  expect(screen.getByRole('searchbox', { name: 'Filter graph nodes' })).toBe(filter)
+  expect(filter.value).toBe('zzz')
+  expect(screen.getByRole('combobox', { name: 'Filter graph relationships' })).toBeTruthy()
+  fireEvent.input(filter, { target: { value: 'release' } })
+  expect(screen.queryByText('No matching graph nodes')).toBeNull()
+  expect(screen.getByRole('button', { name: /Open document: Release notes/ })).toBeTruthy()
+  fireEvent.input(filter, { target: { value: 'zzz' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Clear filter' }))
+  expect(screen.queryByText('No matching graph nodes')).toBeNull()
+  expect(filter.value).toBe('')
+  // Clearing must not remount the toolbar either.
+  expect(screen.getByRole('searchbox', { name: 'Filter graph nodes' })).toBe(filter)
+  expect(screen.getByRole('button', { name: /Open document: Release notes/ })).toBeTruthy()
+})
+test('a node type with no nodes keeps the type filter available instead of reporting no graph data', async () => {
+  render(() => (
+    <Workspace
+      {...props}
+      document={null}
+      tab="graph"
+      graph={{
+        nodes: [
+          {
+            id: 'document:one',
+            kind: 'document',
+            label: 'Release notes',
+            project: 'work',
+            source: 'code',
+            document_id: 'one',
+          },
+        ],
+        edges: [],
+        next_cursor: null,
+      }}
+    />
+  ))
+  await waitFor(() => expect(screen.queryByText('Loading knowledge graph')).toBeNull())
+  fireEvent.click(screen.getByRole('button', { name: 'Workspaces' }))
+  expect(screen.getByText('No matching graph nodes')).toBeTruthy()
+  expect(screen.queryByText('No graph data')).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'All' }))
+  expect(screen.getByRole('button', { name: /Open document: Release notes/ })).toBeTruthy()
+})
 const evidenceItem = {
   chunk_id: 'release-notes',
   source: 'work-code',

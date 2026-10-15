@@ -272,9 +272,6 @@ export function Workspace(props: {
             busy
           />
         </Match>
-        <Match when={props.evidence.length === 0 && !hasResults()}>
-          <EmptyState title="No evidence found" detail="Try a broader phrase or another source." />
-        </Match>
         <Match when={props.tab === 'timeline'}>
           <TimelineView evidence={props.evidence} onSelect={selectEvidenceByChunkId} />
         </Match>
@@ -301,6 +298,19 @@ export function Workspace(props: {
         </Match>
       </Switch>
     </main>
+  )
+}
+
+function SourceLinkError() {
+  return (
+    <div class="mx-7 mt-3.5">
+      <Alert variant="warning" role="alert">
+        <AlertDescription>
+          Cortana could not open the original source. Check that the source app is installed and try
+          again.
+        </AlertDescription>
+      </Alert>
+    </div>
   )
 }
 
@@ -373,12 +383,7 @@ function BrainDocumentView(props: {
         </Show>
       </DocumentPathBar>
       <Show when={sourceOpenError()}>
-        <Alert variant="warning" class="source-link-error" role="alert">
-          <AlertDescription>
-            Cortana could not open the original source. Check that the source app is installed and
-            try again.
-          </AlertDescription>
-        </Alert>
+        <SourceLinkError />
       </Show>
       <div class="document-grid">
         <div>
@@ -691,12 +696,7 @@ function DocumentView(props: {
         </aside>
       </div>
       <Show when={sourceOpenError()}>
-        <Alert variant="warning" class="source-link-error" role="alert">
-          <AlertDescription>
-            Cortana could not open the original source. Check that the source app is installed and
-            try again.
-          </AlertDescription>
-        </Alert>
+        <SourceLinkError />
       </Show>
     </article>
   )
