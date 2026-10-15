@@ -240,3 +240,23 @@ test('a storage read that throws falls back to what this session wrote', () => {
     restoreReads()
   }
 })
+
+test('a workspace id that names an inherited object member still follows the device default', () => {
+  writeDeviceThemePreference('nord')
+  for (const workspaceId of ['constructor', 'toString', 'hasOwnProperty', '__proto__']) {
+    expect(readWorkspaceThemePreference(workspaceId)).toBeNull()
+    expect(resolveWorkspaceTheme(workspaceId)).toBe('nord')
+  }
+  // Its own override is still found, cleared and moved like any other id's.
+  writeWorkspaceThemePreference('constructor', 'dracula')
+  expect(resolveWorkspaceTheme('constructor')).toBe('dracula')
+  moveWorkspaceThemePreference('constructor', 'constructor-2')
+  expect(readWorkspaceThemePreference('constructor')).toBeNull()
+  expect(resolveWorkspaceTheme('constructor-2')).toBe('dracula')
+  const stored = window.localStorage.getItem(WORKSPACE_THEME_KEY)
+  // Clearing an id that has no override of its own does not rewrite the stored map.
+  clearWorkspaceThemePreference('constructor')
+  moveWorkspaceThemePreference('toString', 'elsewhere')
+  expect(window.localStorage.getItem(WORKSPACE_THEME_KEY)).toBe(stored)
+  expect(resolveWorkspaceTheme('elsewhere')).toBe('nord')
+})

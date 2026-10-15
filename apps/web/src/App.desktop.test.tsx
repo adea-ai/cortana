@@ -3715,6 +3715,40 @@ test('device default theme applies to workspaces without an override and clears 
   fireEvent.change(personalTheme, { target: { value: '' } })
   expect(window.localStorage.getItem('cortana.workspace-themes.v1')).toBe('{}')
 })
+test('a workspace named after an inherited object member shows the device default, not a phantom override', async () => {
+  const originalSettings = state.settings
+  try {
+    state.settings = {
+      ...originalSettings,
+      workspaces: originalSettings.workspaces.map((workspace) =>
+        workspace.id === 'personal'
+          ? { ...workspace, id: 'constructor', name: 'Constructor' }
+          : workspace
+      ),
+    }
+    window.localStorage.setItem('cortana.device-theme.v1', 'nord')
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByRole('button', { name: 'User settings' })).toBeTruthy())
+    await openSidebarDestination('Settings')
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
+    fireEvent.click(screen.getByRole('tab', { name: 'Workspaces' }))
+    const constructorTheme = (await screen.findByRole('combobox', {
+      name: /Theme for Constructor/,
+    })) as HTMLSelectElement
+    expect(constructorTheme.value).toBe('')
+    expect(screen.getAllByText('Following the device default.')).toHaveLength(2)
+    fireEvent.change(constructorTheme, { target: { value: 'dracula' } })
+    expect(JSON.parse(window.localStorage.getItem('cortana.workspace-themes.v1') || '{}')).toEqual({
+      constructor: 'dracula',
+    })
+    expect(constructorTheme.value).toBe('dracula')
+    fireEvent.change(constructorTheme, { target: { value: '' } })
+    expect(window.localStorage.getItem('cortana.workspace-themes.v1')).toBe('{}')
+    expect(constructorTheme.value).toBe('')
+  } finally {
+    state.settings = originalSettings
+  }
+})
 // happy-dom's Storage ignores prototype patches once it holds items, so a stand-in that
 // delegates to the real storage except for writes replaces it until the returned restore runs.
 function failStorageWrites(): () => void {

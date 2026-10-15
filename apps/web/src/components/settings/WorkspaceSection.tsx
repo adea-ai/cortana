@@ -76,6 +76,9 @@ export function WorkspaceSection(incoming: {
   const logoInputs = new Map<string, HTMLInputElement | undefined>()
   const workspaceLogoInput = (workspaceId: string) => logoInputs.get(workspaceId)
   const [workspaceThemes, setWorkspaceThemes] = createSignal(readWorkspaceThemePreferences())
+  // Own-property lookup: a workspace id like `constructor` must not find an inherited member.
+  const workspaceOverride = (workspaceId: string): ThemeMode | undefined =>
+    Object.hasOwn(workspaceThemes(), workspaceId) ? workspaceThemes()[workspaceId] : undefined
   const [deviceTheme, setDeviceTheme] = createSignal(readDeviceThemePreference() ?? DEFAULT_THEME)
   const [workspaceQuery, setWorkspaceQuery] = createSignal('')
   const hasWorkspaceSources = (workspaceId: string) =>
@@ -365,7 +368,7 @@ export function WorkspaceSection(incoming: {
                     <FormField
                       label="Workspace theme"
                       hint={
-                        workspaceThemes()[workspace().id]
+                        workspaceOverride(workspace().id)
                           ? `Overrides the device default (${themeLabel(deviceTheme())}). Choose Device default to clear it.`
                           : 'Following the device default.'
                       }
@@ -373,7 +376,7 @@ export function WorkspaceSection(incoming: {
                       <NativeSelect
                         class="w-full"
                         aria-label={`Theme for ${workspace().name || 'new workspace'}`}
-                        value={workspaceThemes()[workspace().id] ?? ''}
+                        value={workspaceOverride(workspace().id) ?? ''}
                         disabled={!catalogueReady()}
                         onChange={(event) => {
                           const next = (event.target as HTMLSelectElement).value as ThemeMode
@@ -391,7 +394,7 @@ export function WorkspaceSection(incoming: {
                           }))
                           writeWorkspaceThemePreference(workspaceId, next)
                         }}
-                        options={themeOptions(workspaceThemes()[workspace().id] ?? '', [
+                        options={themeOptions(workspaceOverride(workspace().id) ?? '', [
                           { value: '', label: `Device default · ${themeLabel(deviceTheme())}` },
                         ])}
                       />

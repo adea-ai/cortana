@@ -66,9 +66,17 @@ export function readWorkspaceThemePreferences(): WorkspaceThemeMap {
   )
 }
 
+/**
+ * Own-property lookup: a workspace id such as `constructor` must not find an
+ * inherited member of the stored map and so skip the device default.
+ */
+function ownOverride(map: Record<string, string>, workspaceId: string): string | undefined {
+  return Object.hasOwn(map, workspaceId) ? map[workspaceId] : undefined
+}
+
 export function readWorkspaceThemePreference(workspaceId: string): ThemeMode | null {
   if (!workspaceId) return null
-  const stored = readMap()[workspaceId]
+  const stored = ownOverride(readMap(), workspaceId)
   return stored === undefined ? null : normalizeThemeId(stored)
 }
 
@@ -80,7 +88,7 @@ export function writeWorkspaceThemePreference(workspaceId: string, theme: ThemeM
 /** Removing the override sends the workspace back to the device default. */
 export function clearWorkspaceThemePreference(workspaceId: string): void {
   const map = readMap()
-  if (!(workspaceId in map)) return
+  if (!Object.hasOwn(map, workspaceId)) return
   delete map[workspaceId]
   writeMap(map)
 }
@@ -127,7 +135,7 @@ export function resolveWorkspaceTheme(workspaceId: string): ThemeMode {
 export function moveWorkspaceThemePreference(fromId: string, toId: string): void {
   if (!fromId || !toId || fromId === toId) return
   const map = readMap()
-  const theme = map[fromId]
+  const theme = ownOverride(map, fromId)
   if (!theme) return
   delete map[fromId]
   map[toId] = theme
