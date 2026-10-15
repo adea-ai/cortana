@@ -72,7 +72,12 @@ import type {
 import { useSettingsConfirm } from './SettingsConfirm'
 import { type SettingsSectionProps } from './settingsSectionProps'
 import { StatusGlyph } from './SettingsWorkflowShared'
-import { applyConfirmed, useDesktopForeground } from './SettingsWorkflowUtils'
+import {
+  applyConfirmed,
+  jobGlyphState,
+  sourceSubtitle,
+  useDesktopForeground,
+} from './SettingsWorkflowUtils'
 import { Text } from '@adea-ai/ui/components/ui/typography'
 import { FormField, FieldGroup } from '@adea-ai/ui/components/ui/field'
 import { SettingsSection } from '@adea-ai/ui/components/composites/settings'
@@ -82,6 +87,7 @@ import { CodeBlock } from '@adea-ai/ui/components/ui/code-block'
 import { ScrollArea } from '@adea-ai/ui/components/ui/scroll-area'
 import { Checkbox } from '@adea-ai/ui/components/ui/checkbox'
 import { Input } from '@adea-ai/ui/components/ui/input'
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@adea-ai/ui/components/ui/input-group'
 import { RadioGroupItem, RadioGroup } from '@adea-ai/ui/components/ui/radio-group'
 import { NativeSelect } from '@adea-ai/ui/components/ui/native-select'
 import { Switch } from '@adea-ai/ui/components/ui/switch'
@@ -1099,13 +1105,15 @@ export function SourcesSection(
             </p>
 
             {activeJob() && (
-              <Alert class="safety-note" role="status">
-                <AlertDescription>
-                  Settings for {activeJob()!.source} are locked while its operation is running.
-                  Other sources remain configurable, but source actions still wait until this
-                  operation finishes.
-                </AlertDescription>
-              </Alert>
+              <div class="mb-3.5">
+                <Alert class="safety-note" role="status">
+                  <AlertDescription>
+                    Settings for {activeJob()!.source} are locked while its operation is running.
+                    Other sources remain configurable, but source actions still wait until this
+                    operation finishes.
+                  </AlertDescription>
+                </Alert>
+              </div>
             )}
 
             <div class="source-settings-list">
@@ -1177,11 +1185,11 @@ export function SourcesSection(
                               </span>
                             </div>
                             {!workspaceAssigned() && (
-                              <div class="source-workspace-picker">
+                              <div class="source-workspace-picker max-w-full flex-wrap">
                                 <Label for={`source-workspace-${index}`}>Assign workspace</Label>
                                 <NativeSelect
                                   id={`source-workspace-${index}`}
-                                  class="w-33"
+                                  class="max-w-60"
                                   aria-label={`Workspace for ${source().name}`}
                                   value={source().project ?? ''}
                                   disabled={sourceLocked()}
@@ -1333,7 +1341,6 @@ export function SourcesSection(
 
                           {!workspaceAssigned() && (
                             <Alert class="mt-3" variant="warning" role="alert">
-                              <AlertTriangle size={15} aria-hidden="true" />
                               <AlertDescription>
                                 This source uses the legacy{' '}
                                 <code>{source().project || 'unassigned'}</code> scope. Assign it to
@@ -1443,8 +1450,8 @@ export function SourcesSection(
                                       hint="absolute, non-root path"
                                       class="col-span-full"
                                     >
-                                      <div class="path-input">
-                                        <Input
+                                      <InputGroup>
+                                        <InputGroupInput
                                           value={source().root || ''}
                                           disabled={sourceLocked() || !source().editable}
                                           required={source().enabled}
@@ -1455,21 +1462,22 @@ export function SourcesSection(
                                             })
                                           }
                                         />
-                                        <ActionButton
-                                          variant="ghost"
-                                          size="icon-sm"
-                                          type="button"
-                                          disabled={sourceLocked() || !source().editable}
-                                          aria-label="Choose source directory"
-                                          tooltip="Choose source directory"
-
-                                          onClick={() =>
-                                            void choosePath(index, 'directory', 'root')
-                                          }
-                                        >
-                                          <FolderOpen size={14} aria-hidden="true" />
-                                        </ActionButton>
-                                      </div>
+                                        <InputGroupAddon align="end">
+                                          <ActionButton
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            type="button"
+                                            disabled={sourceLocked() || !source().editable}
+                                            aria-label="Choose source directory"
+                                            tooltip="Choose source directory"
+                                            onClick={() =>
+                                              void choosePath(index, 'directory', 'root')
+                                            }
+                                          >
+                                            <FolderOpen size={14} aria-hidden="true" />
+                                          </ActionButton>
+                                        </InputGroupAddon>
+                                      </InputGroup>
                                     </FormField>
                                   )}
                                   {source().kind === 'buzz' && (
@@ -1482,6 +1490,7 @@ export function SourcesSection(
                                       <div class="grid gap-4">
                                         <ActionButton
                                           tooltip="Discover communities"
+                                          class="justify-self-start"
                                           variant="secondary"
                                           size="sm"
                                           type="button"
@@ -1583,8 +1592,8 @@ export function SourcesSection(
                                         hint="private token created by Cortana; optional when a token path environment variable is configured"
                                         class="col-span-full"
                                       >
-                                        <div class="path-input">
-                                          <Input
+                                        <InputGroup>
+                                          <InputGroupInput
                                             value={source().token_path || ''}
                                             disabled={sourceLocked() || !source().editable}
                                             required={source().enabled && !source().token_env}
@@ -1595,29 +1604,30 @@ export function SourcesSection(
                                               })
                                             }
                                           />
-                                          <ActionButton
-                                            variant="ghost"
-                                            size="icon-sm"
-                                            type="button"
-                                            disabled={sourceLocked() || !source().editable}
-                                            aria-label="Choose Google token destination"
-                                            tooltip="Choose Google token destination"
-
-                                            onClick={() =>
-                                              void choosePath(index, 'google-token', 'token_path')
-                                            }
-                                          >
-                                            <FolderOpen size={14} aria-hidden="true" />
-                                          </ActionButton>
-                                        </div>
+                                          <InputGroupAddon align="end">
+                                            <ActionButton
+                                              variant="ghost"
+                                              size="icon-sm"
+                                              type="button"
+                                              disabled={sourceLocked() || !source().editable}
+                                              aria-label="Choose Google token destination"
+                                              tooltip="Choose Google token destination"
+                                              onClick={() =>
+                                                void choosePath(index, 'google-token', 'token_path')
+                                              }
+                                            >
+                                              <FolderOpen size={14} aria-hidden="true" />
+                                            </ActionButton>
+                                          </InputGroupAddon>
+                                        </InputGroup>
                                       </FormField>
                                       <FormField
                                         label="Google Desktop OAuth client JSON"
                                         hint="downloaded from Google Cloud Console; required to authorize"
                                         class="col-span-full"
                                       >
-                                        <div class="path-input">
-                                          <Input
+                                        <InputGroup>
+                                          <InputGroupInput
                                             value={source().oauth_client_path || ''}
                                             disabled={sourceLocked() || !source().editable}
                                             placeholder="/Users/you/Downloads/google-oauth-client.json"
@@ -1627,25 +1637,26 @@ export function SourcesSection(
                                               })
                                             }
                                           />
-                                          <ActionButton
-                                            variant="ghost"
-                                            size="icon-sm"
-                                            type="button"
-                                            disabled={sourceLocked() || !source().editable}
-                                            aria-label="Choose Google OAuth client JSON"
-                                            tooltip="Choose Google OAuth client JSON"
-
-                                            onClick={() =>
-                                              void choosePath(
-                                                index,
-                                                'oauth-client',
-                                                'oauth_client_path'
-                                              )
-                                            }
-                                          >
-                                            <FolderOpen size={14} aria-hidden="true" />
-                                          </ActionButton>
-                                        </div>
+                                          <InputGroupAddon align="end">
+                                            <ActionButton
+                                              variant="ghost"
+                                              size="icon-sm"
+                                              type="button"
+                                              disabled={sourceLocked() || !source().editable}
+                                              aria-label="Choose Google OAuth client JSON"
+                                              tooltip="Choose Google OAuth client JSON"
+                                              onClick={() =>
+                                                void choosePath(
+                                                  index,
+                                                  'oauth-client',
+                                                  'oauth_client_path'
+                                                )
+                                              }
+                                            >
+                                              <FolderOpen size={14} aria-hidden="true" />
+                                            </ActionButton>
+                                          </InputGroupAddon>
+                                        </InputGroup>
                                       </FormField>
                                       <FormField
                                         label="Google token path environment variable"
@@ -1745,6 +1756,7 @@ export function SourcesSection(
                                         <div class="grid gap-4">
                                           <ActionButton
                                             tooltip="Discover repositories"
+                                            class="justify-self-start"
                                             variant="secondary"
                                             size="sm"
                                             type="button"
@@ -1806,8 +1818,8 @@ export function SourcesSection(
                                         hint="private token created by Cortana; use this for OAuth or leave blank for an environment token"
                                         class="col-span-full"
                                       >
-                                        <div class="path-input">
-                                          <Input
+                                        <InputGroup>
+                                          <InputGroupInput
                                             value={source().token_path || ''}
                                             disabled={sourceLocked() || !source().editable}
                                             required={source().enabled && !source().token_env}
@@ -1818,21 +1830,22 @@ export function SourcesSection(
                                               })
                                             }
                                           />
-                                          <ActionButton
-                                            variant="ghost"
-                                            size="icon-sm"
-                                            type="button"
-                                            disabled={sourceLocked() || !source().editable}
-                                            aria-label="Choose GitHub token destination"
-                                            tooltip="Choose GitHub token destination"
-
-                                            onClick={() =>
-                                              void choosePath(index, 'github-token', 'token_path')
-                                            }
-                                          >
-                                            <FolderOpen size={14} aria-hidden="true" />
-                                          </ActionButton>
-                                        </div>
+                                          <InputGroupAddon align="end">
+                                            <ActionButton
+                                              variant="ghost"
+                                              size="icon-sm"
+                                              type="button"
+                                              disabled={sourceLocked() || !source().editable}
+                                              aria-label="Choose GitHub token destination"
+                                              tooltip="Choose GitHub token destination"
+                                              onClick={() =>
+                                                void choosePath(index, 'github-token', 'token_path')
+                                              }
+                                            >
+                                              <FolderOpen size={14} aria-hidden="true" />
+                                            </ActionButton>
+                                          </InputGroupAddon>
+                                        </InputGroup>
                                       </FormField>
                                     </>
                                   )}
@@ -1850,6 +1863,7 @@ export function SourcesSection(
                                           <div class="grid gap-4">
                                             <ActionButton
                                               tooltip="Discover servers"
+                                              class="justify-self-start"
                                               variant="secondary"
                                               size="sm"
                                               type="button"
@@ -1919,6 +1933,7 @@ export function SourcesSection(
                                           <div class="grid gap-4">
                                             <ActionButton
                                               tooltip="Discover channels"
+                                              class="justify-self-start"
                                               variant="secondary"
                                               size="sm"
                                               type="button"
@@ -1941,6 +1956,7 @@ export function SourcesSection(
                                               <div class="grid gap-2">
                                                 <ActionButton
                                                   tooltip="Select all Discord text channels"
+                                                  class="justify-self-start"
                                                   variant="secondary"
                                                   size="sm"
                                                   type="button"
@@ -1954,7 +1970,7 @@ export function SourcesSection(
                                                     )
                                                   }
                                                 >
-                                                  NativeSelect all text channels
+                                                  Select all text channels
                                                 </ActionButton>
                                                 <small>
                                                   Selects text and announcement channels in assigned
@@ -2174,8 +2190,8 @@ export function SourcesSection(
                                             hint="private access token created through Discord Desktop RPC; used for server, channel, and message reads"
                                             class="col-span-full"
                                           >
-                                            <div class="path-input">
-                                              <Input
+                                            <InputGroup>
+                                              <InputGroupInput
                                                 value={source().token_path || ''}
                                                 disabled={sourceLocked() || !source().editable}
                                                 placeholder="/Users/you/.config/cortana/discord-rpc-token.json"
@@ -2185,33 +2201,34 @@ export function SourcesSection(
                                                   })
                                                 }
                                               />
-                                              <ActionButton
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                type="button"
-                                                disabled={sourceLocked() || !source().editable}
-                                                aria-label="Choose Discord RPC token destination"
-                                                tooltip="Choose Discord RPC token destination"
-
-                                                onClick={() =>
-                                                  void choosePath(
-                                                    index,
-                                                    'discord-token',
-                                                    'token_path'
-                                                  )
-                                                }
-                                              >
-                                                <FolderOpen size={14} aria-hidden="true" />
-                                              </ActionButton>
-                                            </div>
+                                              <InputGroupAddon align="end">
+                                                <ActionButton
+                                                  variant="ghost"
+                                                  size="icon-sm"
+                                                  type="button"
+                                                  disabled={sourceLocked() || !source().editable}
+                                                  aria-label="Choose Discord RPC token destination"
+                                                  tooltip="Choose Discord RPC token destination"
+                                                  onClick={() =>
+                                                    void choosePath(
+                                                      index,
+                                                      'discord-token',
+                                                      'token_path'
+                                                    )
+                                                  }
+                                                >
+                                                  <FolderOpen size={14} aria-hidden="true" />
+                                                </ActionButton>
+                                              </InputGroupAddon>
+                                            </InputGroup>
                                           </FormField>
                                           <FormField
                                             label="Discord RPC client JSON"
                                             hint="JSON containing the Discord application client_id and optional client_secret"
                                             class="col-span-full"
                                           >
-                                            <div class="path-input">
-                                              <Input
+                                            <InputGroup>
+                                              <InputGroupInput
                                                 value={source().oauth_client_path || ''}
                                                 disabled={sourceLocked() || !source().editable}
                                                 placeholder="/Users/you/.config/cortana/discord-rpc-client.json"
@@ -2221,25 +2238,26 @@ export function SourcesSection(
                                                   })
                                                 }
                                               />
-                                              <ActionButton
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                type="button"
-                                                disabled={sourceLocked() || !source().editable}
-                                                aria-label="Choose Discord RPC client JSON"
-                                                tooltip="Choose Discord RPC client JSON"
-
-                                                onClick={() =>
-                                                  void choosePath(
-                                                    index,
-                                                    'oauth-client',
-                                                    'oauth_client_path'
-                                                  )
-                                                }
-                                              >
-                                                <FolderOpen size={14} aria-hidden="true" />
-                                              </ActionButton>
-                                            </div>
+                                              <InputGroupAddon align="end">
+                                                <ActionButton
+                                                  variant="ghost"
+                                                  size="icon-sm"
+                                                  type="button"
+                                                  disabled={sourceLocked() || !source().editable}
+                                                  aria-label="Choose Discord RPC client JSON"
+                                                  tooltip="Choose Discord RPC client JSON"
+                                                  onClick={() =>
+                                                    void choosePath(
+                                                      index,
+                                                      'oauth-client',
+                                                      'oauth_client_path'
+                                                    )
+                                                  }
+                                                >
+                                                  <FolderOpen size={14} aria-hidden="true" />
+                                                </ActionButton>
+                                              </InputGroupAddon>
+                                            </InputGroup>
                                           </FormField>
                                         </>
                                       )}
@@ -2254,6 +2272,7 @@ export function SourcesSection(
                                             <div class="grid gap-4">
                                               <ActionButton
                                                 tooltip="Discover workspaces"
+                                                class="justify-self-start"
                                                 variant="secondary"
                                                 size="sm"
                                                 type="button"
@@ -2317,8 +2336,8 @@ export function SourcesSection(
                                             hint="private user token created by Cortana; used only to list the workspace for assignment. The SLACK_BOT_TOKEN environment variable is separate and stays the message-sync credential"
                                             class="col-span-full"
                                           >
-                                            <div class="path-input">
-                                              <Input
+                                            <InputGroup>
+                                              <InputGroupInput
                                                 value={source().token_path || ''}
                                                 disabled={sourceLocked() || !source().editable}
                                                 placeholder="/Users/you/.config/cortana/slack-user-token.json"
@@ -2328,33 +2347,34 @@ export function SourcesSection(
                                                   })
                                                 }
                                               />
-                                              <ActionButton
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                type="button"
-                                                disabled={sourceLocked() || !source().editable}
-                                                aria-label="Choose Slack OAuth token destination"
-                                                tooltip="Choose Slack OAuth token destination"
-
-                                                onClick={() =>
-                                                  void choosePath(
-                                                    index,
-                                                    'slack-token',
-                                                    'token_path'
-                                                  )
-                                                }
-                                              >
-                                                <FolderOpen size={14} aria-hidden="true" />
-                                              </ActionButton>
-                                            </div>
+                                              <InputGroupAddon align="end">
+                                                <ActionButton
+                                                  variant="ghost"
+                                                  size="icon-sm"
+                                                  type="button"
+                                                  disabled={sourceLocked() || !source().editable}
+                                                  aria-label="Choose Slack OAuth token destination"
+                                                  tooltip="Choose Slack OAuth token destination"
+                                                  onClick={() =>
+                                                    void choosePath(
+                                                      index,
+                                                      'slack-token',
+                                                      'token_path'
+                                                    )
+                                                  }
+                                                >
+                                                  <FolderOpen size={14} aria-hidden="true" />
+                                                </ActionButton>
+                                              </InputGroupAddon>
+                                            </InputGroup>
                                           </FormField>
                                           <FormField
                                             label="Slack OAuth client JSON"
                                             hint="JSON containing the OAuth app client_id; required for browser authorization. Register the loopback redirect URI http://127.0.0.1:47521/callback in the Slack app first"
                                             class="col-span-full"
                                           >
-                                            <div class="path-input">
-                                              <Input
+                                            <InputGroup>
+                                              <InputGroupInput
                                                 value={source().oauth_client_path || ''}
                                                 disabled={sourceLocked() || !source().editable}
                                                 placeholder="/Users/you/.config/cortana/slack-oauth-client.json"
@@ -2364,25 +2384,26 @@ export function SourcesSection(
                                                   })
                                                 }
                                               />
-                                              <ActionButton
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                type="button"
-                                                disabled={sourceLocked() || !source().editable}
-                                                aria-label="Choose Slack OAuth client JSON"
-                                                tooltip="Choose Slack OAuth client JSON"
-
-                                                onClick={() =>
-                                                  void choosePath(
-                                                    index,
-                                                    'oauth-client',
-                                                    'oauth_client_path'
-                                                  )
-                                                }
-                                              >
-                                                <FolderOpen size={14} aria-hidden="true" />
-                                              </ActionButton>
-                                            </div>
+                                              <InputGroupAddon align="end">
+                                                <ActionButton
+                                                  variant="ghost"
+                                                  size="icon-sm"
+                                                  type="button"
+                                                  disabled={sourceLocked() || !source().editable}
+                                                  aria-label="Choose Slack OAuth client JSON"
+                                                  tooltip="Choose Slack OAuth client JSON"
+                                                  onClick={() =>
+                                                    void choosePath(
+                                                      index,
+                                                      'oauth-client',
+                                                      'oauth_client_path'
+                                                    )
+                                                  }
+                                                >
+                                                  <FolderOpen size={14} aria-hidden="true" />
+                                                </ActionButton>
+                                              </InputGroupAddon>
+                                            </InputGroup>
                                           </FormField>
                                         </>
                                       )}
@@ -2499,13 +2520,7 @@ export function SourcesSection(
                           {observedJob()?.source === source().name && (
                             <div class={`source-validation-job ${observedJob()!.status}`}>
                               <div>
-                                <StatusGlyph
-                                  passed={observedJob()!.status === 'succeeded'}
-                                  optional={observedJob()!.status === 'cancelled'}
-                                  pending={['running', 'cancelling'].includes(
-                                    observedJob()!.status
-                                  )}
-                                />
+                                <StatusGlyph {...jobGlyphState(observedJob()!.status)} />
                                 <span class="source-validation-job-text">
                                   <strong>
                                     {sourceJobOperationLabel(observedJob()!.operation)} ·{' '}
@@ -2651,35 +2666,6 @@ function identifierFromPath(path: string): string {
       .replace(/[^a-z0-9_-]+/g, '-')
       .replace(/^-+|-+$/g, '') || 'source'
   )
-}
-function sourceSubtitle(source: SourceSettings): string {
-  if (source.kind === 'filesystem' || source.kind === 'external' || source.kind === 'buzz') {
-    return source.root || 'Choose a file or folder'
-  }
-  if (source.kind === 'github') {
-    return source.repositories.length
-      ? source.repositories.slice(0, 2).join(', ')
-      : source.token_path || source.token_env || 'GitHub account not connected'
-  }
-  if (source.kind === 'slack') {
-    return source.team_names.join(', ') || source.token_path || 'Slack account not connected'
-  }
-  if (
-    source.kind === 'google-drive' ||
-    source.kind === 'gmail' ||
-    source.kind === 'google-calendar'
-  ) {
-    return source.token_path || 'Google account not connected'
-  }
-  if (source.kind === 'discord') {
-    return source.servers.length
-      ? `${source.servers.length} server${source.servers.length === 1 ? '' : 's'} selected`
-      : source.token_path || 'Discord account not connected'
-  }
-  if (source.kind === 'apple-notes') {
-    return source.folders?.length ? source.folders.join(', ') : 'All Apple Notes folders'
-  }
-  return source.name || 'Not connected'
 }
 function canAuthorizeSource(source: SourceSettings): boolean {
   if (!source.oauth_client_path) return false

@@ -655,7 +655,6 @@ describe("Cortana's own client graph", () => {
       'src/components/composites/about-dialog/about-dialog.tsx',
       'src/components/composites/update-dialog/update-dialog.tsx',
       'src/components/composites/help-center/help-center.tsx',
-      'src/components/ui/combobox/combobox.tsx',
       // Overlays the shell and Settings open and close.
       'src/components/ui/dialog/dialog.tsx',
       'src/components/ui/tooltip/tooltip.tsx',
@@ -669,6 +668,11 @@ describe("Cortana's own client graph", () => {
     ])
       expect(files).toContain(reached)
     for (const unreached of [
+      // The Settings model picker was the last runtime import; it now renders a
+      // native select, so only test files (outside the graph) still use it.
+      'src/components/ui/combobox/combobox.tsx',
+      'src/components/ui/combobox/index.ts',
+      'src/components/ui/combobox/value-combobox.tsx',
       'src/components/ui/calendar/calendar.tsx',
       'src/components/ui/annotation-surface/annotation-surface.tsx',
       'src/components/composites/catalog-browser/catalog-browser.tsx',

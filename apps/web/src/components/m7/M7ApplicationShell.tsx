@@ -55,6 +55,7 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbList,
+  BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@adea-ai/ui/components/ui/breadcrumb'
 import {
@@ -66,6 +67,7 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@adea-ai/ui/components/ui/dropdown-menu'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@adea-ai/ui/components/ui/input-group'
@@ -215,11 +217,12 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
          * pointer-open reliable (a trigger inside the rail's scroller opens
          * and is instantly dismissed).
          */}
-        <Show when={props.workspaces && props.onWorkspaceChange}>
+        <Show when={props.workspaces && props.onWorkspaceChange && !navigation.isMobile()}>
           {/* Mobile switches workspaces through the sheet's rows; the strip
               picker yields the search cluster its width back on small
-              screens. */}
-          <div class="hidden md:block">
+              screens. It follows the rail's own mobile switch (800 px), so no
+              width has a picker without a rail. */}
+          <div>
             <DropdownMenu
               modal={false}
               open={workspaceMenuOpen()}
@@ -233,7 +236,7 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
                 aria-label="Switch workspace"
               >
                 <WorkspaceGlyph workspace={activeWorkspace()} size="small" />
-                <span class="hidden min-w-0 max-w-40 truncate md:inline">
+                <span class="min-w-0 max-w-40 truncate">
                   {activeWorkspace()?.name ?? 'Choose workspace'}
                 </span>
                 <ChevronDown aria-hidden="true" class="size-3.5 text-muted-foreground" />
@@ -294,10 +297,7 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
               <BreadcrumbItem>{props.workspaceName}</BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                {/* The shared breadcrumb has no page part; a current-page span is its contract. */}
-                <span aria-current="page" class="font-normal text-foreground">
-                  {props.location}
-                </span>
+                <BreadcrumbPage>{props.location}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -392,9 +392,12 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
               <DropdownMenuItem disabled={!props.canGoForward} onSelect={props.onHistoryForward}>
                 Next query
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => props.onOpenCommands(actionsRef.current)}>
+              <DropdownMenuItem
+                keyshortcuts="Control+P Meta+P"
+                onSelect={() => props.onOpenCommands(actionsRef.current)}
+              >
                 Command palette
-                <span class="ml-auto text-xs text-muted-foreground">{shortcutLabel('MOD P')}</span>
+                <DropdownMenuShortcut>{shortcutLabel('MOD P')}</DropdownMenuShortcut>
               </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>

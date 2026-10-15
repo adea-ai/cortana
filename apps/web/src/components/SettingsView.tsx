@@ -43,7 +43,12 @@ import {
   validateSourceIdentityScopes,
 } from './settings/SettingsSourceIdentity'
 import { StatusGlyph } from './settings/SettingsWorkflowShared'
-import { useDesktopForeground } from './settings/SettingsWorkflowUtils'
+import {
+  failedReadinessCheckLabels,
+  jobGlyphState,
+  readinessCheckLabel,
+  useDesktopForeground,
+} from './settings/SettingsWorkflowUtils'
 import {
   cancelDesktopInstaller,
   getDesktopInstaller,
@@ -2055,7 +2060,7 @@ function ReadinessSection(incoming: {
                   <div class="flex flex-wrap items-start gap-3">
                     <StatusGlyph passed={check.passed} />
                     <div data-readiness-copy="" class="flex min-w-0 flex-1 flex-col gap-1">
-                      <strong>{check.name.replaceAll('-', ' ')}</strong>
+                      <strong>{readinessCheckLabel(check.name)}</strong>
                       <span>{check.detail}</span>
                     </div>
                   </div>
@@ -2090,14 +2095,17 @@ function ReadinessSection(incoming: {
             <Alert class="safety-note" role="status">
               <AlertDescription>
                 <span>
-                  Readiness is blocked by:{' '}
-                  <strong>
-                    {props.readiness.core.checks
-                      .filter((check) => !check.passed)
-                      .map((check) => check.name.replaceAll('-', ' '))
-                      .join(', ') || 'an unknown runtime check'}
-                  </strong>
-                  . Review the failed check details above before retrying.
+                  {failedReadinessCheckLabels(props.readiness.core.checks).length > 0 ? (
+                    <>
+                      Readiness is blocked by:{' '}
+                      <strong>
+                        {failedReadinessCheckLabels(props.readiness.core.checks).join(', ')}
+                      </strong>
+                      . Review the failed check details above before retrying.
+                    </>
+                  ) : (
+                    'Readiness is blocked, but no individual check reported a failure. Review the production gates above, then run the scan again.'
+                  )}
                 </span>
               </AlertDescription>
               {props.onOpenServices &&
@@ -2128,7 +2136,7 @@ function ReadinessSection(incoming: {
               {['running', 'cancelling'].includes(props.job.status) ? (
                 <Spinner size="md" label={false} />
               ) : (
-                <StatusGlyph passed={props.job.status === 'succeeded'} />
+                <StatusGlyph {...jobGlyphState(props.job.status)} />
               )}
               <span class="installer-job-text">
                 <strong>{props.job.summary}</strong>

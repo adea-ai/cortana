@@ -1323,8 +1323,13 @@ test('desktop settings navigation opens the audit trail and renders both event s
   expect(state.saveSettingsCalls).toBe(0)
   expect(screen.getByText('Runtime retrieval')).toBeTruthy()
   expect(screen.getByText('Desktop actions')).toBeTruthy()
-  expect(screen.getByText('memory.export').className).toContain('success')
-  expect(screen.getByText('brain_documents').className).toContain('failure')
+  // The outcome is stated in words by the shared status chip, not by colour alone.
+  expect(screen.getByText('memory.export').closest('[data-slot="card"]')?.textContent).toContain(
+    'Succeeded'
+  )
+  expect(screen.getByText('brain_documents').closest('[data-slot="card"]')?.textContent).toContain(
+    'Failed'
+  )
   expect(screen.getByText('settings_saved')).toBeTruthy()
 
   // Refreshing keeps the audit list stable.
@@ -1596,6 +1601,172 @@ test('advanced settings exports an explicit workspace set as a derived vault', a
       },
     ])
   } finally {
+    window.confirm = originalConfirm
+  }
+})
+test('advanced settings singularises vault counts and shows a failed export error', async () => {
+  const originalConfirm = window.confirm
+  const originalResult = state.vaultExportResult
+  const user = userEvent.setup()
+  window.confirm = () => true
+  try {
+    render(() => <App />)
+    await waitFor(() =>
+      expect(
+        getSystemAction({
+          name: updatesButtonName,
+        })
+      ).toBeTruthy()
+    )
+    await openSidebarDestination('Settings')
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('tab', {
+        name: 'Advanced',
+      })
+    )
+    state.vaultExportResult = {
+      ...originalResult,
+      report: { ...originalResult.report!, documents: 1, content_rewrites: 1 },
+    }
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Export vault',
+      })
+    )
+    const succeeded = await screen.findByText(/Exported 1 document;/)
+    expect(succeeded.textContent).toBe('Exported 1 document; 1 content rewrite and 0 unchanged.')
+    // The shared section body owns the spacing; the notice carries no margin class.
+    expect(screen.getByRole('status').className).not.toContain('safety-note')
+
+    state.vaultExportResult = {
+      ...originalResult,
+      status: 'failed',
+      phase: 'failed',
+      documents_completed: 1,
+      files_written: 1,
+      report: null,
+      error: 'output directory is not writable',
+    }
+    await user.click(screen.getByRole('button', { name: 'Export vault' }))
+    const failed = await screen.findByText(/Vault export failed:/)
+    expect(failed.textContent).toBe(
+      'Vault export failed: 1 document scanned, 1 file staged. Error: output directory is not writable'
+    )
+    expect(failed.closest('[role="alert"]')).toBeTruthy()
+  } finally {
+    state.vaultExportResult = originalResult
+    window.confirm = originalConfirm
+  }
+})
+// The strings apps/desktop/src-tauri/src/vault_exports.rs can leave in `error`: the
+// sidecar's last stderr line kept as written (anyhow's "Error: " lead, an indented
+// "Caused by" cause, the trailing newline), its own fixed fallbacks, and raw spawn
+// errors that can span lines.
+const realVaultErrors: Array<[string, string, string]> = [
+  [
+    'anyhow bail with its Error: lead and newline',
+    'Error: refusing to replace an unmanaged directory without .cortana-vault.json: /Users/andrew/Documents/Obsidian Vault\n',
+    'refusing to replace an unmanaged directory without .cortana-vault.json: /Users/andrew/Documents/Obsidian Vault',
+  ],
+  [
+    'indented innermost cause',
+    '    Permission denied (os error 13)\n',
+    'Permission denied (os error 13)',
+  ],
+  ['empty stderr fallback', 'vault export failed', 'vault export failed'],
+  [
+    'process ended without a result',
+    'vault export process ended without a result',
+    'vault export process ended without a result',
+  ],
+  [
+    'multi-line spawn error',
+    'failed to wait for process: No child processes\nsecond line\n\tthird line',
+    'failed to wait for process: No child processes second line third line',
+  ],
+]
+test('advanced settings shows the real vault failure shapes as one clean line', async () => {
+  const originalResult = state.vaultExportResult
+  const user = userEvent.setup()
+  const originalConfirm = window.confirm
+  window.confirm = () => true
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(getSystemAction({ name: updatesButtonName })).toBeTruthy())
+    await openSidebarDestination('Settings')
+    fireEvent.click(await screen.findByRole('tab', { name: 'Advanced' }))
+    const failedJob = {
+      ...originalResult,
+      status: 'failed' as const,
+      phase: 'failed',
+      documents_completed: 3,
+      files_written: 0,
+      report: null,
+    }
+    for (const [shape, raw, shown] of realVaultErrors) {
+      state.vaultExportResult = { ...failedJob, error: raw }
+      await user.click(await screen.findByRole('button', { name: 'Export vault' }))
+      await waitFor(() =>
+        expect(screen.getByRole('alert').textContent, shape).toBe(
+          `Vault export failed: 3 documents scanned, 0 files staged. Error: ${shown}`
+        )
+      )
+    }
+
+    // An empty or blank error leaves the counts sentence without a dangling label.
+    for (const blank of ['', ' \n']) {
+      state.vaultExportResult = { ...failedJob, error: blank }
+      await user.click(screen.getByRole('button', { name: 'Export vault' }))
+      await waitFor(() =>
+        expect(screen.getByRole('alert').textContent).toBe(
+          'Vault export failed: 3 documents scanned, 0 files staged.'
+        )
+      )
+    }
+
+    // A long unbroken path must wrap inside the alert instead of widening the page.
+    const path = `/Users/andrew/${'nested-folder-name/'.repeat(40)}document.md`
+    state.vaultExportResult = {
+      ...failedJob,
+      error: `Error: failed to create vault file ${path}\n`,
+    }
+    await user.click(screen.getByRole('button', { name: 'Export vault' }))
+    const long = await screen.findByText(new RegExp('failed to create vault file'))
+    expect(long.textContent).toContain(path)
+    expect(long.className).toContain('wrap-anywhere')
+
+    // Only a failed job reports an error: the echo a cancelled run leaves on stderr, or a
+    // log line on a run that succeeded, is not a failure.
+    state.vaultExportResult = {
+      ...originalResult,
+      status: 'cancelled' as const,
+      phase: 'cancelled',
+      report: null,
+      error: 'Error: vault export cancelled while reading canonical documents\n',
+    }
+    await user.click(screen.getByRole('button', { name: 'Export vault' }))
+    await waitFor(() =>
+      expect(screen.getByRole('status').textContent).toBe(
+        'Vault export cancelled: 2 documents scanned, 2 files staged.'
+      )
+    )
+    state.vaultExportResult = { ...originalResult, error: 'slow query' }
+    await user.click(screen.getByRole('button', { name: 'Export vault' }))
+    await waitFor(() =>
+      expect(screen.getByRole('status').textContent).toBe(
+        'Exported 2 documents; 2 content rewrites and 0 unchanged.'
+      )
+    )
+  } finally {
+    state.vaultExportResult = originalResult
     window.confirm = originalConfirm
   }
 })
@@ -3323,6 +3494,8 @@ test('source settings quarantine legacy scopes and offer workspace assignment', 
       .find((alert) => alert.textContent?.includes('uses the legacy'))!
     expect(assignmentAlert.textContent).toContain('uses the legacy community scope')
     expect(assignmentAlert.getAttribute('data-slot')).toBe('alert')
+    // The warning variant draws its own icon; a second hand-added one doubled it.
+    expect(assignmentAlert.querySelectorAll('svg').length).toBe(1)
     expect(screen.getByRole('switch').getAttribute('aria-disabled')).toBe('true')
     expect(
       screen.queryByRole('button', {
@@ -4057,6 +4230,49 @@ test('the title bar carries the workspace picker with its own mark', async () =>
   expect(
     document.querySelector('#m7-primary-navigation [aria-label="Switch workspace"]')
   ).toBeNull()
+})
+test('the title bar workspace picker follows the rail breakpoint (800 px)', async () => {
+  // The picker used to show from 768 px while the rail became a sheet below
+  // 800 px, leaving 768-799 px with a picker and no rail.
+  const originalMatchMedia = Object.getOwnPropertyDescriptor(window, 'matchMedia')
+  const listeners = new Set<(event: MediaQueryListEvent) => void>()
+  let mobile = false
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: (query: string) =>
+      ({
+        get matches() {
+          return query === '(max-width: 799px)' && mobile
+        },
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) =>
+          listeners.add(listener),
+        removeEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) =>
+          listeners.delete(listener),
+        dispatchEvent: () => true,
+      }) as MediaQueryList,
+  })
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    expect(screen.getByRole('button', { name: 'Switch workspace' })).toBeTruthy()
+    mobile = true
+    listeners.forEach((listener) => listener({ matches: true } as MediaQueryListEvent))
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Switch workspace' })).toBeNull()
+    )
+    mobile = false
+    listeners.forEach((listener) => listener({ matches: false } as MediaQueryListEvent))
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Switch workspace' })).toBeTruthy()
+    )
+  } finally {
+    if (originalMatchMedia) Object.defineProperty(window, 'matchMedia', originalMatchMedia)
+    else Reflect.deleteProperty(window, 'matchMedia')
+  }
 })
 test('the mac title strip is a drag region clear of the traffic lights', async () => {
   // Tauri's Overlay title bar floats the traffic lights over the top bar, so
@@ -5109,6 +5325,122 @@ test('completed installers trigger one shell-owned post-install readiness scan',
     await waitFor(() => expect(screen.getByText('Readiness: ready')).toBeTruthy(), {
       timeout: 2_500,
     })
+  } finally {
+    state.installerJob = null
+    window.confirm = originalConfirm
+  }
+})
+const blockedReadinessScan =
+  (checks: Array<{ name: string; passed: boolean; detail: string }>) =>
+  (): ReturnType<typeof realApi.scanDesktopReadiness> =>
+    Promise.resolve({
+      scanned_at_unix_seconds: 1785000000,
+      platform: 'macos',
+      tools_ready: true,
+      core: {
+        passed: false,
+        query_mode: 'extractive',
+        embedding_generation: { stored: 'demo-v1', configured: 'demo-v1' },
+        checks,
+      },
+      core_error: null,
+      tools: [],
+    })
+test('readiness labels failed checks in sentence case and explains a block with no failed check', async () => {
+  const originalScan = state.readinessScan
+  try {
+    state.readinessScan = blockedReadinessScan([
+      {
+        name: 'api-health',
+        passed: false,
+        detail: 'Local API did not respond.',
+      },
+      {
+        name: 'embedding-health',
+        passed: true,
+        detail: 'Embedding runtime is ready.',
+      },
+    ])
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await openSidebarDestination('Settings')
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Run readiness scan',
+      })
+    )
+    await waitFor(() => expect(screen.getByText('Local API did not respond.')).toBeTruthy())
+    expect(screen.getAllByText('API health').length).toBe(2)
+    expect(screen.getByText('Embedding health')).toBeTruthy()
+    expect(screen.queryByText('Api Health')).toBeNull()
+    expect(screen.getByText(/Readiness is blocked by:/).textContent).toContain(
+      'Readiness is blocked by: API health. Review the failed check details'
+    )
+
+    state.readinessScan = blockedReadinessScan([
+      { name: 'api-health', passed: true, detail: 'Local API is ready.' },
+    ])
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Run again',
+      })
+    )
+    await waitFor(() => expect(screen.getByText('Local API is ready.')).toBeTruthy())
+    expect(
+      screen.getByText(
+        'Readiness is blocked, but no individual check reported a failure. Review the production gates above, then run the scan again.'
+      )
+    ).toBeTruthy()
+    expect(screen.queryByText(/unknown runtime check/)).toBeNull()
+  } finally {
+    state.readinessScan = originalScan
+  }
+})
+test('a cancelled installer job shows the neutral chip instead of Failed', async () => {
+  const originalConfirm = window.confirm
+  state.installerJob = null
+  window.confirm = () => true
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await openSidebarDestination('Settings')
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Run readiness scan',
+      })
+    )
+    await waitFor(() => expect(screen.getByText('uv is not installed')).toBeTruthy())
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Install',
+      })
+    )
+    await waitFor(() => expect(screen.getByText('Installing uv')).toBeTruthy())
+    state.installerJob = {
+      ...state.installerJob!,
+      status: 'cancelled',
+      completed_at_unix_seconds: 1785000010,
+    }
+    await waitFor(() => expect(screen.getByText('Status: cancelled')).toBeTruthy(), {
+      timeout: 2_500,
+    })
+    const job = screen.getByText('Installing uv').closest('[role="status"]') as HTMLElement
+    expect(within(job).getByRole('img', { name: 'Optional' })).toBeTruthy()
+    expect(within(job).queryByRole('img', { name: 'Failed' })).toBeNull()
   } finally {
     state.installerJob = null
     window.confirm = originalConfirm

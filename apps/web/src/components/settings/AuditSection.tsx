@@ -1,8 +1,13 @@
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 import { downloadBlob } from '@adea-ai/ui/lib/download'
 import { AlertDescription, Alert } from '@adea-ai/ui/components/ui/alert'
+import { Card, CardContent, CardHeader } from '@adea-ai/ui/components/ui/card'
 import { CodeBlock } from '@adea-ai/ui/components/ui/code-block'
+import { EmptyState } from '@adea-ai/ui/components/ui/empty'
+import { ItemGroup } from '@adea-ai/ui/components/ui/item'
 import { ScrollArea } from '@adea-ai/ui/components/ui/scroll-area'
+import { StatusChip, type StatusTone } from '@adea-ai/ui/components/ui/status-chip'
+import { Heading, Text } from '@adea-ai/ui/components/ui/typography'
 import { Download, RefreshCw } from 'lucide-solid'
 import { createEffect, createSignal, onCleanup } from 'solid-js'
 
@@ -108,46 +113,80 @@ export function AuditSection() {
           <AlertDescription>{error()}</AlertDescription>
         </Alert>
       )}
-      <AuditList title="Runtime retrieval" events={runtime()} />
-      <AuditList title="Desktop actions" events={desktop()} />
+      <AuditList
+        title="Runtime retrieval"
+        detail="Retrieval requests handled by the runtime are recorded here."
+        events={runtime()}
+      />
+      <AuditList
+        title="Desktop actions"
+        detail="Actions taken in Cortana Desktop are recorded here."
+        events={desktop()}
+      />
     </SettingsSection>
   )
 }
-function AuditList(incoming: { title: string; events: AuditEvent[] }) {
+export function AuditList(incoming: { title: string; detail: string; events: AuditEvent[] }) {
   const props = incoming
   return (
-    <div class="audit-list">
-      <h3>{props.title}</h3>
+    <div class="mt-5 mb-3.5 flex flex-col gap-3">
+      <Heading as="h3" size="subsection">
+        {props.title}
+      </Heading>
       {props.events.length === 0 ? (
-        <p>No events available.</p>
+        <EmptyState title="No events available." detail={props.detail} headingLevel={4} />
       ) : (
-        props.events.map((event) => (
-          // audit events render in fetch order
-          <article>
-            <strong class={`audit-event-title ${auditOutcome(event)}`}>
-              {String(event['event'] || event['action'] || 'event')}
-            </strong>
-            <time>
-              {event['timestamp']
-                ? new Date(String(event['timestamp'])).toLocaleString()
-                : event['at_unix_seconds']
-                  ? new Date(Number(event['at_unix_seconds']) * 1000).toLocaleString()
-                  : ''}
-            </time>
-            <ScrollArea class="col-span-full max-h-72" aria-label="Audit event details">
-              <CodeBlock code={JSON.stringify(event, null, 2)} language="json" complete />
-            </ScrollArea>
-          </article>
-        ))
+        <ItemGroup listLabel={props.title}>
+          {props.events.map((event) => {
+            const outcome = auditOutcome(event)
+            return (
+              // audit events render in fetch order
+              <Card size="sm" role="listitem">
+                <CardHeader>
+                  <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                    <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                      <Text variant="strong" class="break-all">
+                        {String(event['event'] || event['action'] || 'event')}
+                      </Text>
+                      {outcome && <StatusChip tone={outcome.tone} label={outcome.label} />}
+                    </div>
+                    <Text as="time" variant="micro" tone="muted">
+                      {auditTime(event)}
+                    </Text>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea class="max-h-72" aria-label="Audit event details">
+                    <CodeBlock code={JSON.stringify(event, null, 2)} language="json" complete />
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </ItemGroup>
       )}
     </div>
   )
 }
-function auditOutcome(event: AuditEvent): 'success' | 'failure' | 'neutral' {
-  if (event['success'] === true || event['passed'] === true) return 'success'
-  if (event['success'] === false || event['passed'] === false) return 'failure'
-  const value = String(event['status'] || event['outcome'] || event['result'] || '').toLowerCase()
-  if (/^(success|succeeded|completed|passed|ok)$/.test(value)) return 'success'
-  if (/^(failure|failed|error|cancelled|canceled|budget_exceeded)$/.test(value)) return 'failure'
-  return 'neutral'
+function auditTime(event: AuditEvent): string {
+  if (event['timestamp']) return new Date(String(event['timestamp'])).toLocaleString()
+  if (event['at_unix_seconds'])
+    return new Date(Number(event['at_unix_seconds']) * 1000).toLocaleString()
+  return ''
+}
+// The outcome is always said in words as well as tone, so it never relies on
+// colour alone. Events that report no outcome render no chip.
+export function auditOutcome(event: AuditEvent): { tone: StatusTone; label: string } | null {
+  if (event['success'] === true) return { tone: 'success', label: 'Succeeded' }
+  if (event['success'] === false) return { tone: 'danger', label: 'Failed' }
+  if (event['passed'] === true) return { tone: 'success', label: 'Passed' }
+  if (event['passed'] === false) return { tone: 'danger', label: 'Failed' }
+  const raw = String(event['status'] || event['outcome'] || event['result'] || '')
+  if (!raw) return null
+  const value = raw.toLowerCase()
+  const label = `${raw.charAt(0).toUpperCase()}${raw.slice(1).replaceAll('_', ' ')}`
+  if (/^(success|succeeded|completed|passed|ok)$/.test(value)) return { tone: 'success', label }
+  if (/^(failure|failed|error|cancelled|canceled|budget_exceeded)$/.test(value))
+    return { tone: 'danger', label }
+  return { tone: 'neutral', label }
 }
