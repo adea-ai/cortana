@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from 'solid-testi
 import userEvent from '@testing-library/user-event'
 import { demoStatus } from './demo'
 import { shortcutLabel } from './shortcuts'
+import { resolveWorkspaceTheme } from './workspaceThemePreference'
 import {
   desktopAuditEvents,
   desktopInfo,
@@ -3713,6 +3714,80 @@ test('device default theme applies to workspaces without an override and clears 
   await waitFor(() => expect(document.documentElement.getAttribute('data-theme')).toBe('nord'))
   fireEvent.change(personalTheme, { target: { value: '' } })
   expect(window.localStorage.getItem('cortana.workspace-themes.v1')).toBe('{}')
+})
+// happy-dom's Storage ignores prototype patches once it holds items, so a stand-in that
+// delegates to the real storage except for writes replaces it until the returned restore runs.
+function failStorageWrites(): () => void {
+  const real = window.localStorage
+  const stand: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> = {
+    getItem: (key) => real.getItem(key),
+    removeItem: (key) => real.removeItem(key),
+    setItem: () => {
+      throw new DOMException('The quota has been exceeded.', 'QuotaExceededError')
+    },
+  }
+  Object.defineProperty(window, 'localStorage', { value: stand, configurable: true })
+  return () => Object.defineProperty(window, 'localStorage', { value: real, configurable: true })
+}
+test('device default theme still applies when storage rejects the write, and recovers once it works', async () => {
+  window.localStorage.setItem(
+    'cortana.workspace-themes.v1',
+    JSON.stringify({ personal: 'dracula' })
+  )
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByRole('button', { name: 'User settings' })).toBeTruthy())
+  await openSidebarDestination('Settings')
+  await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
+  fireEvent.click(screen.getByRole('tab', { name: 'Workspaces' }))
+  const deviceTheme = (await screen.findByRole('combobox', {
+    name: 'Device default theme',
+  })) as HTMLSelectElement
+  const workTheme = (await screen.findByRole('combobox', {
+    name: /Theme for Work/,
+  })) as HTMLSelectElement
+  expect(document.documentElement.getAttribute('data-theme')).toBe('adea-dark')
+  const restoreStorage = failStorageWrites()
+  try {
+    // Work has no override: the selector, the resolved theme and the applied theme agree.
+    fireEvent.change(deviceTheme, { target: { value: 'nord' } })
+    await waitFor(() => expect(document.documentElement.getAttribute('data-theme')).toBe('nord'))
+    expect(deviceTheme.value).toBe('nord')
+    expect(resolveWorkspaceTheme('work')).toBe('nord')
+    expect(screen.getByText('Workspaces without their own theme use Nord.')).toBeTruthy()
+    expect(window.localStorage.getItem('cortana.device-theme.v1')).toBeNull()
+    // Personal keeps its stored override, which the failed device write never touched.
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Switch workspace' }))
+    const personalWorkspace = await screen.findByRole('menuitemradio', { name: 'Personal' })
+    fireEvent.pointerUp(personalWorkspace)
+    fireEvent.click(personalWorkspace)
+    await waitFor(() => expect(document.documentElement.getAttribute('data-theme')).toBe('dracula'))
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Switch workspace' }))
+    const workWorkspace = await screen.findByRole('menuitemradio', { name: 'Work' })
+    fireEvent.pointerUp(workWorkspace)
+    fireEvent.click(workWorkspace)
+    await waitFor(() => expect(document.documentElement.getAttribute('data-theme')).toBe('nord'))
+    // An override whose write fails is applied for the session as well, and clearing it
+    // returns Work to the (session-local) device default.
+    fireEvent.change(workTheme, { target: { value: 'rosepine-moon' } })
+    await waitFor(() =>
+      expect(document.documentElement.getAttribute('data-theme')).toBe('rosepine-moon')
+    )
+    expect(resolveWorkspaceTheme('work')).toBe('rosepine-moon')
+    fireEvent.change(workTheme, { target: { value: '' } })
+    await waitFor(() => expect(document.documentElement.getAttribute('data-theme')).toBe('nord'))
+    expect(window.localStorage.getItem('cortana.workspace-themes.v1')).toBe(
+      JSON.stringify({ personal: 'dracula' })
+    )
+  } finally {
+    restoreStorage()
+  }
+  // Storage works again: the next change persists and the session copy no longer matters.
+  fireEvent.change(deviceTheme, { target: { value: 'tokyonight-night' } })
+  expect(window.localStorage.getItem('cortana.device-theme.v1')).toBe('tokyonight-night')
+  await waitFor(() =>
+    expect(document.documentElement.getAttribute('data-theme')).toBe('tokyonight-night')
+  )
+  expect(resolveWorkspaceTheme('work')).toBe('tokyonight-night')
 })
 test('settings refuses padded or control-character source labels before save', async () => {
   const originalSettings = state.settings

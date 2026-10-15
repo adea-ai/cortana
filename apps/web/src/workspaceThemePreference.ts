@@ -6,10 +6,32 @@ export const WORKSPACE_THEME_EVENT = 'cortana:workspace-theme-changed'
 
 type WorkspaceThemeMap = Record<string, ThemeMode>
 
+/**
+ * What this page last wrote, kept beside storage. `persisted` says whether storage
+ * accepted that write. While it did not (quota, security error, storage disabled),
+ * the copy is the answer for every read, so the Settings selectors, the shell's
+ * resolution and the change event all see the same value for the rest of the session.
+ * Once a write persists, storage is the source of truth again and the copy is only
+ * the answer when storage cannot be read at all. Nothing here outlives a reload.
+ */
+type SessionCopy<T> = { value: T; persisted: boolean }
+
+let workspaceMapSession: SessionCopy<Record<string, string>> | null = null
+let deviceThemeSession: SessionCopy<ThemeMode> | null = null
+
+function notifyThemeChange(): void {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(WORKSPACE_THEME_EVENT))
+}
+
 function readMap(): Record<string, string> {
+  if (workspaceMapSession && !workspaceMapSession.persisted) return { ...workspaceMapSession.value }
+  let raw: string | null
   try {
-    const raw =
-      typeof localStorage === 'undefined' ? null : localStorage.getItem(WORKSPACE_THEME_KEY)
+    raw = typeof localStorage === 'undefined' ? null : localStorage.getItem(WORKSPACE_THEME_KEY)
+  } catch {
+    return workspaceMapSession ? { ...workspaceMapSession.value } : {}
+  }
+  try {
     if (!raw) return {}
     const parsed: unknown = JSON.parse(raw)
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
@@ -25,12 +47,16 @@ function readMap(): Record<string, string> {
 }
 
 function writeMap(map: Record<string, string>): void {
+  const session: SessionCopy<Record<string, string>> = { value: { ...map }, persisted: false }
+  workspaceMapSession = session
   try {
     localStorage.setItem(WORKSPACE_THEME_KEY, JSON.stringify(map))
-    if (typeof window !== 'undefined') window.dispatchEvent(new Event(WORKSPACE_THEME_EVENT))
+    session.persisted = true
   } catch {
-    // Workspace theme preferences remain session-local when storage is unavailable.
+    // Workspace theme preferences remain session-local when storage is unavailable:
+    // the session copy answers reads until a later write persists.
   }
+  notifyThemeChange()
 }
 
 /** Stored ids resolve through the legacy map, so pre-catalogue values keep working. */
@@ -66,22 +92,31 @@ export function clearWorkspaceThemePreference(workspaceId: string): void {
  * for the default.
  */
 export function readDeviceThemePreference(): ThemeMode | null {
+  if (deviceThemeSession && !deviceThemeSession.persisted) return deviceThemeSession.value
   try {
     const stored =
       typeof localStorage === 'undefined' ? null : localStorage.getItem(DEVICE_THEME_KEY)
     return stored && stored.length <= 128 ? normalizeThemeId(stored) : null
   } catch {
-    return null
+    return deviceThemeSession?.value ?? null
   }
 }
 
+/**
+ * When storage rejects the write the default still applies, for this session only:
+ * the change event fires either way, so the shell re-resolves and every consumer
+ * reads the same value, and the next successful write (or a reload) ends it.
+ */
 export function writeDeviceThemePreference(theme: ThemeMode): void {
+  const session: SessionCopy<ThemeMode> = { value: theme, persisted: false }
+  deviceThemeSession = session
   try {
     localStorage.setItem(DEVICE_THEME_KEY, theme)
-    if (typeof window !== 'undefined') window.dispatchEvent(new Event(WORKSPACE_THEME_EVENT))
+    session.persisted = true
   } catch {
-    // The device default remains session-local when storage is unavailable.
+    // Quota, security error or storage disabled: the session copy answers reads.
   }
+  notifyThemeChange()
 }
 
 /** Workspace override, then the device default, then the product default. */

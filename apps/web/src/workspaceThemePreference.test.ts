@@ -15,9 +15,38 @@ const WORKSPACE_THEME_KEY = 'cortana.workspace-themes.v1'
 const DEVICE_THEME_KEY = 'cortana.device-theme.v1'
 
 afterEach(() => {
+  // Successful writes end any session-local fallback a test left behind.
+  writeDeviceThemePreference(DEFAULT_THEME)
+  writeWorkspaceThemePreference('reset', DEFAULT_THEME)
+  clearWorkspaceThemePreference('reset')
   window.localStorage.removeItem(WORKSPACE_THEME_KEY)
   window.localStorage.removeItem(DEVICE_THEME_KEY)
 })
+
+const quotaError = () => new DOMException('The quota has been exceeded.', 'QuotaExceededError')
+const securityError = () => new DOMException('The operation is insecure.', 'SecurityError')
+
+// happy-dom's Storage ignores prototype patches once it holds items, so swap the whole object:
+// the stand-in delegates to the real storage except for the method that throws. Calling the
+// returned function puts the real storage back.
+function failStorage(method: 'setItem' | 'getItem', error: () => Error) {
+  const real = window.localStorage
+  const stand: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> = {
+    getItem: (key) => real.getItem(key),
+    setItem: (key, value) => real.setItem(key, value),
+    removeItem: (key) => real.removeItem(key),
+  }
+  stand[method] = () => {
+    throw error()
+  }
+  Object.defineProperty(window, 'localStorage', { value: stand, configurable: true })
+  return () => {
+    Object.defineProperty(window, 'localStorage', { value: real, configurable: true })
+  }
+}
+
+const failStorageWrites = (error: () => Error) => failStorage('setItem', error)
+const failStorageReads = (error: () => Error) => failStorage('getItem', error)
 
 test('resolves the workspace override, then the device default, then the product default', () => {
   expect(resolveWorkspaceTheme('work')).toBe(DEFAULT_THEME)
@@ -108,4 +137,106 @@ test('device default changes notify theme listeners', () => {
     window.removeEventListener(WORKSPACE_THEME_EVENT, listener)
   }
   expect(notified).toBe(3)
+})
+
+for (const [kind, error] of [
+  ['quota', quotaError],
+  ['security', securityError],
+] as const) {
+  test(`a ${kind} error on the device default write keeps the default session-local`, () => {
+    window.localStorage.setItem(WORKSPACE_THEME_KEY, JSON.stringify({ personal: 'dracula' }))
+    writeDeviceThemePreference('nord')
+    const notified: string[] = []
+    const listener = () => notified.push(resolveWorkspaceTheme('work'))
+    window.addEventListener(WORKSPACE_THEME_EVENT, listener)
+    const restoreWrites = failStorageWrites(error)
+    try {
+      writeDeviceThemePreference('tokyonight-night')
+      // The change event fires after the write failed, and re-resolving sees the new default.
+      expect(notified).toEqual(['tokyonight-night'])
+      // The selector's source and the shell's resolution agree: a workspace with no
+      // override follows the new default, and one with an override keeps it.
+      expect(readDeviceThemePreference()).toBe('tokyonight-night')
+      expect(resolveWorkspaceTheme('work')).toBe('tokyonight-night')
+      expect(resolveWorkspaceTheme('personal')).toBe('dracula')
+    } finally {
+      restoreWrites()
+      window.removeEventListener(WORKSPACE_THEME_EVENT, listener)
+    }
+    // Nothing reached storage, and the override map was not rewritten.
+    expect(window.localStorage.getItem(DEVICE_THEME_KEY)).toBe('nord')
+    expect(window.localStorage.getItem(WORKSPACE_THEME_KEY)).toBe(
+      JSON.stringify({ personal: 'dracula' })
+    )
+    // The session value outlives the failure until a write succeeds.
+    expect(resolveWorkspaceTheme('work')).toBe('tokyonight-night')
+  })
+
+  test(`a ${kind} error on an override write keeps the override session-local`, () => {
+    writeDeviceThemePreference('nord')
+    writeWorkspaceThemePreference('personal', 'rosepine-moon')
+    const notified: string[] = []
+    const listener = () => notified.push(resolveWorkspaceTheme('work'))
+    window.addEventListener(WORKSPACE_THEME_EVENT, listener)
+    const restoreWrites = failStorageWrites(error)
+    try {
+      writeWorkspaceThemePreference('work', 'dracula')
+      expect(notified).toEqual(['dracula'])
+      expect(readWorkspaceThemePreference('work')).toBe('dracula')
+      expect(resolveWorkspaceTheme('work')).toBe('dracula')
+      // The other entry is kept, and clearing falls back to the device default.
+      expect(resolveWorkspaceTheme('personal')).toBe('rosepine-moon')
+      clearWorkspaceThemePreference('work')
+      expect(readWorkspaceThemePreference('work')).toBeNull()
+      expect(resolveWorkspaceTheme('work')).toBe('nord')
+      expect(notified).toEqual(['dracula', 'nord'])
+      moveWorkspaceThemePreference('personal', 'personal-2')
+      expect(resolveWorkspaceTheme('personal-2')).toBe('rosepine-moon')
+      expect(readWorkspaceThemePreference('personal')).toBeNull()
+    } finally {
+      restoreWrites()
+      window.removeEventListener(WORKSPACE_THEME_EVENT, listener)
+    }
+    expect(JSON.parse(window.localStorage.getItem(WORKSPACE_THEME_KEY) ?? '{}')).toEqual({
+      personal: 'rosepine-moon',
+    })
+  })
+}
+
+test('a later successful write ends the session-local divergence', () => {
+  writeDeviceThemePreference('nord')
+  writeWorkspaceThemePreference('personal', 'dracula')
+  const restoreWrites = failStorageWrites(quotaError)
+  try {
+    writeDeviceThemePreference('tokyonight-night')
+    writeWorkspaceThemePreference('work', 'rosepine-moon')
+  } finally {
+    restoreWrites()
+  }
+  expect(resolveWorkspaceTheme('other')).toBe('tokyonight-night')
+  expect(resolveWorkspaceTheme('work')).toBe('rosepine-moon')
+  // Storage works again: the next write persists, and storage is the source of truth.
+  writeDeviceThemePreference('nord')
+  writeWorkspaceThemePreference('work', 'dracula')
+  expect(window.localStorage.getItem(DEVICE_THEME_KEY)).toBe('nord')
+  // The override written while storage failed was part of the session copy, so it persists too.
+  expect(JSON.parse(window.localStorage.getItem(WORKSPACE_THEME_KEY) ?? '{}')).toEqual({
+    personal: 'dracula',
+    work: 'dracula',
+  })
+  window.localStorage.setItem(DEVICE_THEME_KEY, 'everforest-dark')
+  expect(resolveWorkspaceTheme('other')).toBe('everforest-dark')
+})
+
+test('a storage read that throws falls back to what this session wrote', () => {
+  writeDeviceThemePreference('nord')
+  writeWorkspaceThemePreference('work', 'dracula')
+  const restoreReads = failStorageReads(securityError)
+  try {
+    expect(readDeviceThemePreference()).toBe('nord')
+    expect(resolveWorkspaceTheme('work')).toBe('dracula')
+    expect(resolveWorkspaceTheme('other')).toBe('nord')
+  } finally {
+    restoreReads()
+  }
 })
