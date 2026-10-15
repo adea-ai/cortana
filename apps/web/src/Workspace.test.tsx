@@ -915,3 +915,112 @@ test('workspace renders the shipped app icon asset with decorative alt/aria beha
   // No inline CortanaBrandMark markup remains anywhere in the workspace.
   expect(document.querySelector('svg[viewBox="0 0 1024 1024"]')).toBeNull()
 })
+test('answer notes use the shared Callout and keep the memory block a labelled region', () => {
+  render(() => (
+    <Workspace
+      {...props}
+      tab="answer"
+      answer={{
+        query: 'release',
+        answer: 'Merge after checks.\n\nKeep a rollback owner.',
+        evidence: [evidenceItem],
+        mode: 'extractive',
+        cached: false,
+        latency_ms: 10,
+        warnings: [],
+        plan: { queries: ['release'], model_generated: false },
+        memories: [
+          {
+            id: 'm1',
+            kind: 'fact',
+            project: 'work',
+            title: 'Rollback owner',
+            content: 'Sam owns rollback.',
+            confidence: 1,
+            importance: 1,
+            updated_at: '2026-07-01T00:00:00Z',
+          },
+          {
+            id: 'm2',
+            kind: 'fact',
+            project: 'work',
+            title: 'Release cadence',
+            content: 'Minor releases ship weekly.',
+            confidence: 1,
+            importance: 1,
+            updated_at: '2026-07-02T00:00:00Z',
+          },
+        ],
+      }}
+      evidence={[evidenceItem]}
+    />
+  ))
+  const callouts = [...document.querySelectorAll('[data-slot="callout"]')]
+  // Lead summary, native memories and the extractive-mode note.
+  expect(callouts.length).toBe(3)
+  expect(callouts.every((el) => el.hasAttribute('role'))).toBe(true)
+  expect(callouts[0]?.textContent).toContain('Merge after checks.')
+  expect(callouts[0]?.querySelectorAll('p').length).toBe(2)
+  const memory = screen.getByRole('region', { name: 'Native agent memory' })
+  expect(memory.getAttribute('data-slot')).toBe('callout')
+  expect(memory.querySelectorAll('article').length).toBe(2)
+  expect(callouts[2]?.textContent).toContain('Extractive mode keeps citations stable')
+  expect(document.querySelector('.answer-copy, .answer-memory, .answer-note')).toBeNull()
+})
+test('a reflection keeps its chronology and proposed memories as labelled Callout regions', () => {
+  render(() => (
+    <Workspace
+      {...props}
+      tab="answer"
+      reflection={{
+        contract_version: '1',
+        request_digest: 'd',
+        status: 'completed',
+        objective: 'Release habits',
+        memory_revision: 3,
+        privacy_scope_digest: 'p',
+        provider: { policy: 'deterministic-only', selected: 'deterministic', status: 'ok' },
+        claims: [
+          {
+            text: 'Releases are weekly.',
+            supporting_memory_ids: ['m1'],
+            supporting_evidence_ids: [],
+          },
+        ],
+        patterns: [],
+        tensions: [],
+        recommendations: [],
+        chronology: [{ observed_at: '2026-07-01', title: 'First release', memory_id: 'm1' }],
+        proposed_candidates: [
+          {
+            project: 'work',
+            title: 'Weekly cadence',
+            content: 'Ship weekly.',
+            content_type: 'fact',
+            retention_tier: 'durable',
+            scope: 'project',
+            supporting_memory_ids: ['m1'],
+            approval_required: true,
+          },
+        ],
+        derived_representations: [],
+        memory_relations: [],
+        evidence_ids: [],
+        metrics: {
+          memories_considered: 1,
+          memories_included: 1,
+          evidence_considered: 0,
+          evidence_included: 0,
+          estimated_tokens: 10,
+          canonical_memory_mutated: false,
+        },
+      }}
+    />
+  ))
+  for (const name of ['Reflection chronology', 'Review-only proposed memories']) {
+    const region = screen.getByRole('region', { name })
+    expect(region.getAttribute('data-slot')).toBe('callout')
+  }
+  expect(screen.getByText('Releases are weekly.').closest('[data-slot="callout"]')).toBeTruthy()
+  expect(document.querySelector('.answer-copy, .answer-memory, .answer-note')).toBeNull()
+})

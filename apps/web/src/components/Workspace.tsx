@@ -8,6 +8,7 @@ import {
   AccordionContent,
 } from '@adea-ai/ui/components/ui/accordion'
 import { Alert, AlertDescription } from '@adea-ai/ui/components/ui/alert'
+import { Callout } from '@adea-ai/ui/components/ui/callout'
 import { BookOpen, FileText, History, Link2, Network, Star } from 'lucide-solid'
 import {
   createComputed,
@@ -702,6 +703,10 @@ function DocumentView(props: {
   )
 }
 
+// One entry inside an answer callout: stacked text separated by a rule from the previous entry.
+const ANSWER_ENTRY_CLASS =
+  'flex flex-col gap-1.5 border-t border-border py-3 first-of-type:border-t-0'
+
 function ReflectionView(props: { response: ReflectResponse }) {
   const statements = (): Array<{ text: string; ids: string[]; evidenceIds?: string[] }> => [
     ...props.response.claims.map((item) => ({
@@ -736,23 +741,25 @@ function ReflectionView(props: { response: ReflectResponse }) {
           {props.response.memory_revision}
         </AlertDescription>
       </Alert>
-      <div class="answer-copy">
-        <For each={statements()}>
-          {(item) => (
-            <section class="answer-memory-entry">
-              <Text>{item.text}</Text>
-              <Text variant="caption" tone="muted">
-                Supporting memory: {item.ids.join(', ') || 'none'}
-                {'evidenceIds' in item && item.evidenceIds?.length
-                  ? ` · evidence: ${item.evidenceIds.join(', ')}`
-                  : ''}
-              </Text>
-            </section>
-          )}
-        </For>
-      </div>
+      <Callout size="lg" class="mt-5.5 mb-7.5">
+        <div class="flex flex-col gap-3.75">
+          <For each={statements()}>
+            {(item) => (
+              <section class={ANSWER_ENTRY_CLASS}>
+                <Text>{item.text}</Text>
+                <Text variant="caption" tone="muted">
+                  Supporting memory: {item.ids.join(', ') || 'none'}
+                  {'evidenceIds' in item && item.evidenceIds?.length
+                    ? ` · evidence: ${item.evidenceIds.join(', ')}`
+                    : ''}
+                </Text>
+              </section>
+            )}
+          </For>
+        </div>
+      </Callout>
       <Show when={props.response.chronology.length > 0}>
-        <section class="answer-memory" aria-label="Reflection chronology">
+        <Callout size="md" role="region" class="mt-7 mb-2" aria-label="Reflection chronology">
           <Heading as="h2" size="subsection" class="mb-3">
             Chronology
           </Heading>
@@ -763,16 +770,21 @@ function ReflectionView(props: { response: ReflectResponse }) {
               </Text>
             )}
           </For>
-        </section>
+        </Callout>
       </Show>
       <Show when={props.response.proposed_candidates.length > 0}>
-        <section class="answer-memory" aria-label="Review-only proposed memories">
+        <Callout
+          size="md"
+          role="region"
+          class="mt-7 mb-2"
+          aria-label="Review-only proposed memories"
+        >
           <Heading as="h2" size="subsection" class="mb-3">
             Proposed memories requiring approval
           </Heading>
           <For each={props.response.proposed_candidates}>
             {(item) => (
-              <article class="answer-memory-entry">
+              <article class={ANSWER_ENTRY_CLASS}>
                 <Heading as="h3" size="subsection">
                   {item.title}
                 </Heading>
@@ -784,7 +796,7 @@ function ReflectionView(props: { response: ReflectResponse }) {
               </article>
             )}
           </For>
-        </section>
+        </Callout>
       </Show>
       <Text tone="muted" class="lead">
         {props.response.metrics.memories_included} memories included · canonical memory unchanged
@@ -824,15 +836,17 @@ function AnswerView(props: {
           </div>
         )}
       </Show>
-      <div class="answer-copy">
-        <For
-          each={(props.response?.answer ?? 'Cortana found relevant evidence below.').split(
-            /\n{2,}/
-          )}
-        >
-          {(paragraph) => <Text>{paragraph}</Text>}
-        </For>
-      </div>
+      <Callout size="lg" class="mt-5.5 mb-7.5">
+        <div class="flex flex-col gap-3.75">
+          <For
+            each={(props.response?.answer ?? 'Cortana found relevant evidence below.').split(
+              /\n{2,}/
+            )}
+          >
+            {(paragraph) => <Text>{paragraph}</Text>}
+          </For>
+        </div>
+      </Callout>
       <Show when={props.response && props.response.plan.queries.length > 1}>
         <Accordion collapsible class="answer-plan">
           <AccordionItem value="details">
@@ -866,13 +880,13 @@ function AnswerView(props: {
         {props.evidence.length} cited passages
       </Text>
       <Show when={props.response?.memories && props.response.memories.length > 0}>
-        <section class="answer-memory" aria-label="Native agent memory">
+        <Callout size="md" role="region" class="mt-7 mb-2" aria-label="Native agent memory">
           <Text variant="label" as="p" class="mb-3">
             {props.response!.memories!.length} native memory entries
           </Text>
           <For each={props.response!.memories!.slice(0, 4)}>
             {(memory) => (
-              <article class="answer-memory-entry">
+              <article class={ANSWER_ENTRY_CLASS}>
                 <Heading as="h2" size="subsection">
                   {memory.title}
                 </Heading>
@@ -888,7 +902,7 @@ function AnswerView(props: {
               </article>
             )}
           </For>
-        </section>
+        </Callout>
       </Show>
       <For each={props.evidence.slice(0, 4)}>
         {(item, index) => (
@@ -911,13 +925,13 @@ function AnswerView(props: {
           </Card>
         )}
       </For>
-      <div class="answer-note">
+      <Callout size="sm">
         <Text variant="caption" tone="muted" as="p">
           {props.response?.mode === 'synthesized'
             ? 'Synthesized from the cited passages. Open a source to inspect the original evidence.'
             : 'Extractive mode keeps citations stable when no synthesis model is configured.'}
         </Text>
-      </div>
+      </Callout>
     </article>
   )
 }
