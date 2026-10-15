@@ -86,6 +86,7 @@ import {
 } from './workspacePreference'
 import {
   activeJobs,
+  describeSourceJobAttention,
   describeSourceJobProgress,
   sourceJobAttention,
   useSourceJobs,
@@ -2063,6 +2064,7 @@ function CortanaApplication() {
                   <Button
                     tooltip="Cortana · Updates"
                     variant="ghost"
+                    size="sm"
                     type="button"
                     onClick={(event) => openUpdateDialog(event.currentTarget)}
                   >
@@ -2640,6 +2642,7 @@ function ActiveSourceJobs(incoming: { jobs: DesktopSourceJob[]; onOpen: () => vo
     <Show when={active().length > 0}>
       <Button
         variant="ghost"
+        size="sm"
         type="button"
         aria-label="Open active source jobs"
         tooltip={`${detail()}. Open the activity inbox.`}
@@ -2658,6 +2661,7 @@ function SourceJobsErrorIndicator(incoming: { error: string; onOpen: () => void 
     <Show when={detail()}>
       <Button
         variant="ghost"
+        size="sm"
         type="button"
         aria-label="Open source job status"
         tooltip={`${detail()}. Open the activity inbox.`}
@@ -2679,13 +2683,14 @@ function SourceJobAttentionIndicator(incoming: { jobs: DesktopSourceJob[]; onOpe
     <Show when={attention().length > 0}>
       <Button
         variant="ghost"
+        size="sm"
         type="button"
         aria-label="Open source job attention"
         tooltip={`${detail()}. Open the activity inbox.`}
         onClick={props.onOpen}
       >
-        <StatusChip compact label="Source jobs need attention" tone="danger" /> {attention().length}{' '}
-        source job{attention().length === 1 ? '' : 's'} need attention
+        <StatusChip compact label="Source jobs need attention" tone="danger" />{' '}
+        {describeSourceJobAttention(attention().length)}
       </Button>
     </Show>
   )
@@ -2707,6 +2712,7 @@ function InstallerIndicator(incoming: { job: DesktopInstallJob | null; onOpen: (
     <Show when={job()}>
       <Button
         variant="ghost"
+        size="sm"
         type="button"
         aria-label={`Open installer status for ${job()!.tool}`}
         tooltip={`${job()!.summary}. Open readiness for details.`}
@@ -2734,6 +2740,7 @@ function ServiceActivityIndicator(incoming: {
     <Show when={activity()}>
       <Button
         variant="ghost"
+        size="sm"
         type="button"
         aria-label="Open service activity"
         tooltip={`${action()} ${activity()!.target}${activity()!.detail ? `: ${activity()!.detail}` : ''}. Open services for details.`}
@@ -2760,6 +2767,7 @@ function ReadinessActivityIndicator(incoming: {
     <Show when={activity()}>
       <Button
         variant="ghost"
+        size="sm"
         type="button"
         aria-label="Open readiness activity"
         tooltip={`${activity()!.detail || (active() ? 'System readiness scan is running.' : 'System readiness scan completed.')}`}

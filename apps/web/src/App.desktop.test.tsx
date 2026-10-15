@@ -4306,6 +4306,49 @@ test('the title bar carries the workspace picker with its own mark', async () =>
     document.querySelector('#m7-primary-navigation [aria-label="Switch workspace"]')
   ).toBeNull()
 })
+test('the title bar workspace picker follows the rail breakpoint (800 px)', async () => {
+  // The picker used to show from 768 px while the rail became a sheet below
+  // 800 px, leaving 768-799 px with a picker and no rail.
+  const originalMatchMedia = Object.getOwnPropertyDescriptor(window, 'matchMedia')
+  const listeners = new Set<(event: MediaQueryListEvent) => void>()
+  let mobile = false
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: (query: string) =>
+      ({
+        get matches() {
+          return query === '(max-width: 799px)' && mobile
+        },
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) =>
+          listeners.add(listener),
+        removeEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) =>
+          listeners.delete(listener),
+        dispatchEvent: () => true,
+      }) as MediaQueryList,
+  })
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    expect(screen.getByRole('button', { name: 'Switch workspace' })).toBeTruthy()
+    mobile = true
+    listeners.forEach((listener) => listener({ matches: true } as MediaQueryListEvent))
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Switch workspace' })).toBeNull()
+    )
+    mobile = false
+    listeners.forEach((listener) => listener({ matches: false } as MediaQueryListEvent))
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Switch workspace' })).toBeTruthy()
+    )
+  } finally {
+    if (originalMatchMedia) Object.defineProperty(window, 'matchMedia', originalMatchMedia)
+    else Reflect.deleteProperty(window, 'matchMedia')
+  }
+})
 test('the mac title strip is a drag region clear of the traffic lights', async () => {
   // Tauri's Overlay title bar floats the traffic lights over the top bar, so
   // the strip reserves their width and starts native dragging only on empty

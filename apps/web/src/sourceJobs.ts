@@ -101,6 +101,11 @@ export function sourceJobAttention(jobs: DesktopSourceJob[]): DesktopSourceJob[]
   })
 }
 
+/** Shell label for the attention count, with noun and verb agreeing in number. */
+export function describeSourceJobAttention(count: number): string {
+  return `${count} source job${count === 1 ? ' needs' : 's need'} attention`
+}
+
 /** Return the fixed wall-clock budget enforced by the native job boundary. */
 export function sourceJobBudgetSeconds(job: DesktopSourceJob): number | null {
   // Google OAuth uses a five-minute native loopback callback timeout. Keep
