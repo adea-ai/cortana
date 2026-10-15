@@ -62,6 +62,7 @@ mock.module('./api', () => ({
 const {
   activeJobIds,
   activeJobs,
+  describeSourceJobAttention,
   describeSourceJobProgress,
   describeSourceJob,
   dropJob,
@@ -157,6 +158,11 @@ test('activeJobs and activeJobIds filter to running and cancelling only', () => 
   expect(isActiveJob(jobOf('x', 'running'))).toBe(true)
   expect(isActiveJob(jobOf('x', 'cancelling'))).toBe(true)
   expect(isActiveJob(jobOf('x', 'succeeded'))).toBe(false)
+})
+test('describeSourceJobAttention agrees the noun and verb with the count', () => {
+  expect(describeSourceJobAttention(1)).toBe('1 source job needs attention')
+  expect(describeSourceJobAttention(2)).toBe('2 source jobs need attention')
+  expect(describeSourceJobAttention(11)).toBe('11 source jobs need attention')
 })
 test('recentCompletedJobs keeps terminal snapshots for operational history', () => {
   const jobs = [
