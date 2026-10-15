@@ -1599,6 +1599,172 @@ test('advanced settings exports an explicit workspace set as a derived vault', a
     window.confirm = originalConfirm
   }
 })
+test('advanced settings singularises vault counts and shows a failed export error', async () => {
+  const originalConfirm = window.confirm
+  const originalResult = state.vaultExportResult
+  const user = userEvent.setup()
+  window.confirm = () => true
+  try {
+    render(() => <App />)
+    await waitFor(() =>
+      expect(
+        getSystemAction({
+          name: updatesButtonName,
+        })
+      ).toBeTruthy()
+    )
+    await openSidebarDestination('Settings')
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('tab', {
+        name: 'Advanced',
+      })
+    )
+    state.vaultExportResult = {
+      ...originalResult,
+      report: { ...originalResult.report!, documents: 1, content_rewrites: 1 },
+    }
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Export vault',
+      })
+    )
+    const succeeded = await screen.findByText(/Exported 1 document;/)
+    expect(succeeded.textContent).toBe('Exported 1 document; 1 content rewrite and 0 unchanged.')
+    // The shared section body owns the spacing; the notice carries no margin class.
+    expect(screen.getByRole('status').className).not.toContain('safety-note')
+
+    state.vaultExportResult = {
+      ...originalResult,
+      status: 'failed',
+      phase: 'failed',
+      documents_completed: 1,
+      files_written: 1,
+      report: null,
+      error: 'output directory is not writable',
+    }
+    await user.click(screen.getByRole('button', { name: 'Export vault' }))
+    const failed = await screen.findByText(/Vault export failed:/)
+    expect(failed.textContent).toBe(
+      'Vault export failed: 1 document scanned, 1 file staged. Error: output directory is not writable'
+    )
+    expect(failed.closest('[role="alert"]')).toBeTruthy()
+  } finally {
+    state.vaultExportResult = originalResult
+    window.confirm = originalConfirm
+  }
+})
+// The strings apps/desktop/src-tauri/src/vault_exports.rs can leave in `error`: the
+// sidecar's last stderr line kept as written (anyhow's "Error: " lead, an indented
+// "Caused by" cause, the trailing newline), its own fixed fallbacks, and raw spawn
+// errors that can span lines.
+const realVaultErrors: Array<[string, string, string]> = [
+  [
+    'anyhow bail with its Error: lead and newline',
+    'Error: refusing to replace an unmanaged directory without .cortana-vault.json: /Users/andrew/Documents/Obsidian Vault\n',
+    'refusing to replace an unmanaged directory without .cortana-vault.json: /Users/andrew/Documents/Obsidian Vault',
+  ],
+  [
+    'indented innermost cause',
+    '    Permission denied (os error 13)\n',
+    'Permission denied (os error 13)',
+  ],
+  ['empty stderr fallback', 'vault export failed', 'vault export failed'],
+  [
+    'process ended without a result',
+    'vault export process ended without a result',
+    'vault export process ended without a result',
+  ],
+  [
+    'multi-line spawn error',
+    'failed to wait for process: No child processes\nsecond line\n\tthird line',
+    'failed to wait for process: No child processes second line third line',
+  ],
+]
+test('advanced settings shows the real vault failure shapes as one clean line', async () => {
+  const originalResult = state.vaultExportResult
+  const user = userEvent.setup()
+  const originalConfirm = window.confirm
+  window.confirm = () => true
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(getSystemAction({ name: updatesButtonName })).toBeTruthy())
+    await openSidebarDestination('Settings')
+    fireEvent.click(await screen.findByRole('tab', { name: 'Advanced' }))
+    const failedJob = {
+      ...originalResult,
+      status: 'failed' as const,
+      phase: 'failed',
+      documents_completed: 3,
+      files_written: 0,
+      report: null,
+    }
+    for (const [shape, raw, shown] of realVaultErrors) {
+      state.vaultExportResult = { ...failedJob, error: raw }
+      await user.click(await screen.findByRole('button', { name: 'Export vault' }))
+      await waitFor(() =>
+        expect(screen.getByRole('alert').textContent, shape).toBe(
+          `Vault export failed: 3 documents scanned, 0 files staged. Error: ${shown}`
+        )
+      )
+    }
+
+    // An empty or blank error leaves the counts sentence without a dangling label.
+    for (const blank of ['', ' \n']) {
+      state.vaultExportResult = { ...failedJob, error: blank }
+      await user.click(screen.getByRole('button', { name: 'Export vault' }))
+      await waitFor(() =>
+        expect(screen.getByRole('alert').textContent).toBe(
+          'Vault export failed: 3 documents scanned, 0 files staged.'
+        )
+      )
+    }
+
+    // A long unbroken path must wrap inside the alert instead of widening the page.
+    const path = `/Users/andrew/${'nested-folder-name/'.repeat(40)}document.md`
+    state.vaultExportResult = {
+      ...failedJob,
+      error: `Error: failed to create vault file ${path}\n`,
+    }
+    await user.click(screen.getByRole('button', { name: 'Export vault' }))
+    const long = await screen.findByText(new RegExp('failed to create vault file'))
+    expect(long.textContent).toContain(path)
+    expect(long.className).toContain('wrap-anywhere')
+
+    // Only a failed job reports an error: the echo a cancelled run leaves on stderr, or a
+    // log line on a run that succeeded, is not a failure.
+    state.vaultExportResult = {
+      ...originalResult,
+      status: 'cancelled' as const,
+      phase: 'cancelled',
+      report: null,
+      error: 'Error: vault export cancelled while reading canonical documents\n',
+    }
+    await user.click(screen.getByRole('button', { name: 'Export vault' }))
+    await waitFor(() =>
+      expect(screen.getByRole('status').textContent).toBe(
+        'Vault export cancelled: 2 documents scanned, 2 files staged.'
+      )
+    )
+    state.vaultExportResult = { ...originalResult, error: 'slow query' }
+    await user.click(screen.getByRole('button', { name: 'Export vault' }))
+    await waitFor(() =>
+      expect(screen.getByRole('status').textContent).toBe(
+        'Exported 2 documents; 2 content rewrites and 0 unchanged.'
+      )
+    )
+  } finally {
+    state.vaultExportResult = originalResult
+    window.confirm = originalConfirm
+  }
+})
 test('advanced import preview cancellation keeps draft values unchanged', async () => {
   const originalConfirm = window.confirm
   window.confirm = () => false

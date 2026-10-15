@@ -36,6 +36,17 @@ import {
   CardTitle,
 } from '@adea-ai/ui/components/ui/card'
 
+const countOf = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`
+
+// job.error is the sidecar's last stderr line, bounded by the desktop shell, so
+// it keeps the runtime's "Error: " lead, any indentation and the trailing newline.
+// Show the message as one line without them.
+const vaultFailure = (error: string | null | undefined) =>
+  (error ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^Error:\s*/, '')
+
 export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: boolean }) {
   const confirm = useSettingsConfirm()
   const [portableBusy, setPortableBusy] = createSignal<
@@ -317,12 +328,11 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
       </Card>
       <Show when={portableNotice() || portableError()}>
         <Alert
-          class="safety-note"
           variant={portableError() ? 'destructive' : 'default'}
           role={portableError() ? 'alert' : 'status'}
         >
           <AlertDescription>
-            <span>{portableError() || portableNotice()}</span>
+            <span class="wrap-anywhere">{portableError() || portableNotice()}</span>
           </AlertDescription>
         </Alert>
       </Show>
@@ -406,25 +416,27 @@ export function AdvancedSettingsSection(props: SettingsSectionProps & { dirty: b
       <Show when={vaultJob()}>
         {(job) => (
           <Alert
-            class="safety-note"
             variant={job().status === 'failed' ? 'destructive' : 'default'}
             role={job().status === 'failed' ? 'alert' : 'status'}
             aria-live="polite"
           >
             <AlertDescription>
-              <span>
+              <span class="wrap-anywhere">
                 {job().status === 'succeeded' && job().report
-                  ? `${job().dry_run ? 'Previewed' : 'Exported'} ${job().report!.documents} documents; ${job().report!.content_rewrites} content rewrites and ${job().report!.unchanged_documents} unchanged.`
-                  : `Vault export ${job().phase}: ${job().documents_completed} documents scanned, ${job().files_written} files staged.`}
+                  ? `${job().dry_run ? 'Previewed' : 'Exported'} ${countOf(job().report!.documents, 'document')}; ${countOf(job().report!.content_rewrites, 'content rewrite')} and ${job().report!.unchanged_documents} unchanged.`
+                  : `Vault export ${job().phase}: ${countOf(job().documents_completed, 'document')} scanned, ${countOf(job().files_written, 'file')} staged.`}
+                {job().status === 'failed' && vaultFailure(job().error)
+                  ? ` Error: ${vaultFailure(job().error)}`
+                  : ''}
               </span>
             </AlertDescription>
           </Alert>
         )}
       </Show>
       <Show when={vaultError()}>
-        <Alert class="safety-note" variant="destructive" role="alert">
+        <Alert variant="destructive" role="alert">
           <AlertDescription>
-            <span>{vaultError()}</span>
+            <span class="wrap-anywhere">{vaultError()}</span>
           </AlertDescription>
         </Alert>
       </Show>

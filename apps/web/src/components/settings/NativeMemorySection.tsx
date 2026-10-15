@@ -26,7 +26,7 @@ export function NativeMemorySection(
       title="Native agentic memory"
       description="Cortana keeps operational memory in its own private local store. Memory is explicit, scoped, auditable, and protected by the local data-directory permissions."
     >
-      <Alert class="safety-note" role="status">
+      <Alert role="status">
         <AlertDescription>
           Knowledge documents remain source-backed. Agents may explicitly remember, recall, and
           redact bounded records through the native MCP, HTTP, or CLI interfaces.
