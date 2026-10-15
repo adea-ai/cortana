@@ -94,7 +94,7 @@ import {
 // Subpath imports, not the package root: the eager graph pays only for the
 // theme module, not the whole component barrel.
 import { ThemeProvider, useTheme } from '@adea-ai/ui/components/theme/lazy'
-import { APPEARANCE_STORAGE_KEY, normalizeThemeId } from './theme'
+import { APPEARANCE_STORAGE_KEY } from './theme'
 import {
   AppShell,
   AppShellBody,
@@ -107,7 +107,7 @@ import {
   ResizablePanelGroup,
 } from '@adea-ai/ui/components/ui/resizable'
 import { createMediaQuery } from './lib/mediaQuery'
-import { readWorkspaceThemePreference, WORKSPACE_THEME_EVENT } from './workspaceThemePreference'
+import { resolveWorkspaceTheme, WORKSPACE_THEME_EVENT } from './workspaceThemePreference'
 import type {
   AnswerResponse,
   BrainDocument,
@@ -573,20 +573,16 @@ function CortanaApplication() {
   onMount(() => prefetchDeferredSurfaces())
   createEffect(() => {
     // The workspace read stays tracked so a workspace switch re-applies that
-    // workspace's theme; the provider write stays untracked because setSelection
+    // workspace's theme (its override, else the device default); the provider write stays untracked because setSelection
     // reads and replaces the selection signal, and a tracked call would make
     // this effect depend on the value it writes and re-run forever.
     const workspaceId = effectiveWorkspace()
     untrack(() => {
-      setThemeSelection({
-        darkThemeId: normalizeThemeId(readWorkspaceThemePreference(workspaceId)),
-      })
+      setThemeSelection({ darkThemeId: resolveWorkspaceTheme(workspaceId) })
     })
     const syncTheme = () => {
       untrack(() => {
-        setThemeSelection({
-          darkThemeId: normalizeThemeId(readWorkspaceThemePreference(effectiveWorkspace())),
-        })
+        setThemeSelection({ darkThemeId: resolveWorkspaceTheme(effectiveWorkspace()) })
       })
     }
     window.addEventListener(WORKSPACE_THEME_EVENT, syncTheme)
