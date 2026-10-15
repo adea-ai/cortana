@@ -57,7 +57,7 @@ function edgeOriginFilter(
 }
 
 function utilityKindOf(value: AppView): UtilityKind {
-  return isUtilityKind(value) ? value : 'inbox'
+  return isUtilityKind(value) ? value : 'index'
 }
 import { ContextPanel } from './components/ContextPanel'
 import { AppErrorBoundary } from './components/AppErrorBoundary'
@@ -2479,7 +2479,6 @@ function CortanaApplication() {
                     status={status()}
                     statusError={statusError()}
                     onRetryStatus={retryStatus}
-                    sourceJobs={sourceJobs.jobs}
                     query={activeQuery()}
                     answer={answer()}
                     evidence={evidence}
@@ -2489,14 +2488,11 @@ function CortanaApplication() {
                     contextLoading={contextLoading()}
                     contextError={contextError()}
                     contextTokens={estimateTokens(agentContext())}
-                    sourceJobError={sourceJobsError()}
-                    onRetrySourceJobs={sourceJobsRetry()}
                     onSearchFocus={focusSearch}
                     onRetrieveContext={() => void retrieveAgentContext()}
                     onOpenSettings={() =>
                       openSettingsAt(view() === 'index' ? 'sources' : 'services')
                     }
-                    onCancelSourceJob={cancelSourceJob}
                   />
                 </Suspense>
               )}
