@@ -408,12 +408,26 @@ function CortanaApplication() {
     getStatus: readUpdateState,
     check: checkUpdateState,
     install: async (expectedVersion) => {
+      const currentState = () =>
+        desktopUpdate() ? toUpdateState(desktopUpdate()!) : readUpdateState()
       if (
         !(await confirm(
           `Install signed Cortana ${expectedVersion} and restart the Desktop app?\n\nThe native updater will verify the release signature before installation.`
         ))
       ) {
-        return desktopUpdate() ? toUpdateState(desktopUpdate()!) : readUpdateState()
+        return currentState()
+      }
+      // The dialog polls the updater while the question is open, so the offer
+      // can change before the answer arrives. Install only what is still being
+      // offered; otherwise report the updater's current state and let the
+      // operator decide again.
+      const offered = desktopUpdate()
+      if (
+        !isDesktopApp ||
+        offered?.available_version !== expectedVersion ||
+        !['available', 'failed', 'cancelled'].includes(offered.phase)
+      ) {
+        return currentState()
       }
       const update = await installDesktopUpdate(expectedVersion, true)
       setDesktopUpdate(update)
@@ -1321,27 +1335,47 @@ function CortanaApplication() {
       setView('settings')
     })
   }
-  async function toggleSource(nextSource: string, project: string, enabled: boolean) {
-    const key = `${project}:${nextSource}`
-    if (sourceToggleBusy()) return
+  // Every guard that decides whether a source toggle may go ahead. It runs
+  // before the confirmation and again after it, because the shell keeps moving
+  // while the dialog is open: Settings can be edited or reloaded, and the
+  // source can change or disappear. Returns the saved source to change, or
+  // null when the toggle must not proceed. Before the question a blocked toggle
+  // sends the operator to Settings; after it the operator is already wherever
+  // they went, so it stays put and only reports what blocked it.
+  function permittedSourceToToggle(
+    nextSource: string,
+    project: string,
+    enabled: boolean,
+    redirect = true
+  ) {
+    if (sourceToggleBusy()) return null
     if (!isDesktopApp || !desktopSettings()) {
-      setSettingsSection('sources')
-      setView('settings')
-      return
+      if (redirect) {
+        setSettingsSection('sources')
+        setView('settings')
+      }
+      return null
     }
     if (settingsDirty()) {
       setSourceToggleError('Save or discard settings changes before toggling a source.')
-      setSettingsSection('sources')
-      setView('settings')
-      return
+      if (redirect) {
+        setSettingsSection('sources')
+        setView('settings')
+      }
+      return null
     }
     const current = configuredSourceFor(nextSource, project)
     if (!current || current.enabled === enabled) {
       setSourceToggleError(
         current ? '' : `${nextSource} is not present in the saved Desktop source configuration.`
       )
-      return
+      return null
     }
+    return current
+  }
+  async function toggleSource(nextSource: string, project: string, enabled: boolean) {
+    const key = `${project}:${nextSource}`
+    if (!permittedSourceToToggle(nextSource, project, enabled)) return
     if (
       !(await confirm(
         `${enabled ? 'Enable' : 'Disable'} ${nextSource} in ${project}?\n\nThis changes future ingestion only. Existing indexed data remains queryable and is not deleted.`
@@ -1349,6 +1383,10 @@ function CortanaApplication() {
     ) {
       return
     }
+    // Re-read everything: the source and settings seen before the question may
+    // have been replaced while it was open.
+    const current = permittedSourceToToggle(nextSource, project, enabled, false)
+    if (!current) return
     setSourceToggleBusy(key)
     setSourceToggleError('')
     setSourceToggleNotice('')
@@ -1468,25 +1506,50 @@ function CortanaApplication() {
       setSourceToggleBusy(null)
     }
   }
-  async function authorizeSource(sourceName: string, project: string) {
-    if (sourceToggleBusy()) return
+  // The guards for starting Google authorization, run before the confirmation
+  // and again after it for the same reason as permittedSourceToToggle. Returns
+  // the saved source to authorize, or null when authorization must not start.
+  function permittedSourceToAuthorize(sourceName: string, project: string, redirect = true) {
+    if (sourceToggleBusy()) return null
     if (!isDesktopApp || !desktopSettings() || desktopSettings()!.needs_setup || settingsDirty()) {
-      setSettingsSection('sources')
-      setView('settings')
-      return
+      if (redirect) {
+        setSettingsSection('sources')
+        setView('settings')
+      } else if (settingsDirty()) {
+        setSourceToggleError('Save or discard settings changes before authorizing a source.')
+      }
+      return null
     }
     const configuredSource = configuredSourceFor(sourceName, project)
     if (!configuredSource) {
       setSourceToggleError(
         `${sourceName} in ${project} is not present in the saved Desktop source configuration.`
       )
-      return
+      return null
     }
+    return configuredSource
+  }
+  async function authorizeSource(sourceName: string, project: string) {
+    const confirmedSource = permittedSourceToAuthorize(sourceName, project)
+    if (!confirmedSource) return
     if (
       !(await confirm(
         `Authorize ${sourceName} in ${project} with Google?\n\nCortana will open the system browser and store the read-only token in the configured private file.`
       ))
     ) {
+      return
+    }
+    const configuredSource = permittedSourceToAuthorize(sourceName, project, false)
+    if (!configuredSource) return
+    if (
+      configuredSource.name !== confirmedSource.name ||
+      configuredSource.kind !== confirmedSource.kind
+    ) {
+      // The operator approved authorizing the source as it was; a different
+      // connector under the same label needs its own approval.
+      setSourceToggleError(
+        `${sourceName} in ${project} changed while waiting for confirmation. Review it and try again.`
+      )
       return
     }
     setSourceToggleBusy(`authorize:${sourceName}`)
@@ -1717,7 +1780,13 @@ function CortanaApplication() {
       proceed()
       return
     }
+    // Re-checked after the answer: the dialog can stay open while the draft is
+    // saved or Settings is left some other way. If Settings is no longer on
+    // screen the request is stale and does nothing; otherwise the operator still
+    // asked to leave, so it proceeds. A draft saved meanwhile has nothing left
+    // to discard, and clearing an already-clear flag is harmless.
     const discard = () => {
+      if (view() !== 'settings') return
       setSettingsDirty(false)
       proceed()
     }
