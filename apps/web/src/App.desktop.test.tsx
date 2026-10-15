@@ -3495,6 +3495,8 @@ test('source settings quarantine legacy scopes and offer workspace assignment', 
       .find((alert) => alert.textContent?.includes('uses the legacy'))!
     expect(assignmentAlert.textContent).toContain('uses the legacy community scope')
     expect(assignmentAlert.getAttribute('data-slot')).toBe('alert')
+    // The warning variant draws its own icon; a second hand-added one doubled it.
+    expect(assignmentAlert.querySelectorAll('svg').length).toBe(1)
     expect(screen.getByRole('switch').getAttribute('aria-disabled')).toBe('true')
     expect(
       screen.queryByRole('button', {
@@ -5355,6 +5357,122 @@ test('completed installers trigger one shell-owned post-install readiness scan',
     await waitFor(() => expect(screen.getByText('Readiness: ready')).toBeTruthy(), {
       timeout: 2_500,
     })
+  } finally {
+    state.installerJob = null
+    window.confirm = originalConfirm
+  }
+})
+const blockedReadinessScan =
+  (checks: Array<{ name: string; passed: boolean; detail: string }>) =>
+  (): ReturnType<typeof realApi.scanDesktopReadiness> =>
+    Promise.resolve({
+      scanned_at_unix_seconds: 1785000000,
+      platform: 'macos',
+      tools_ready: true,
+      core: {
+        passed: false,
+        query_mode: 'extractive',
+        embedding_generation: { stored: 'demo-v1', configured: 'demo-v1' },
+        checks,
+      },
+      core_error: null,
+      tools: [],
+    })
+test('readiness labels failed checks in sentence case and explains a block with no failed check', async () => {
+  const originalScan = state.readinessScan
+  try {
+    state.readinessScan = blockedReadinessScan([
+      {
+        name: 'api-health',
+        passed: false,
+        detail: 'Local API did not respond.',
+      },
+      {
+        name: 'embedding-health',
+        passed: true,
+        detail: 'Embedding runtime is ready.',
+      },
+    ])
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await openSidebarDestination('Settings')
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Run readiness scan',
+      })
+    )
+    await waitFor(() => expect(screen.getByText('Local API did not respond.')).toBeTruthy())
+    expect(screen.getAllByText('API health').length).toBe(2)
+    expect(screen.getByText('Embedding health')).toBeTruthy()
+    expect(screen.queryByText('Api Health')).toBeNull()
+    expect(screen.getByText(/Readiness is blocked by:/).textContent).toContain(
+      'Readiness is blocked by: API health. Review the failed check details'
+    )
+
+    state.readinessScan = blockedReadinessScan([
+      { name: 'api-health', passed: true, detail: 'Local API is ready.' },
+    ])
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Run again',
+      })
+    )
+    await waitFor(() => expect(screen.getByText('Local API is ready.')).toBeTruthy())
+    expect(
+      screen.getByText(
+        'Readiness is blocked, but no individual check reported a failure. Review the production gates above, then run the scan again.'
+      )
+    ).toBeTruthy()
+    expect(screen.queryByText(/unknown runtime check/)).toBeNull()
+  } finally {
+    state.readinessScan = originalScan
+  }
+})
+test('a cancelled installer job shows the neutral chip instead of Failed', async () => {
+  const originalConfirm = window.confirm
+  state.installerJob = null
+  window.confirm = () => true
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await openSidebarDestination('Settings')
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', {
+          name: 'Settings',
+        })
+      ).toBeTruthy()
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Run readiness scan',
+      })
+    )
+    await waitFor(() => expect(screen.getByText('uv is not installed')).toBeTruthy())
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Install',
+      })
+    )
+    await waitFor(() => expect(screen.getByText('Installing uv')).toBeTruthy())
+    state.installerJob = {
+      ...state.installerJob!,
+      status: 'cancelled',
+      completed_at_unix_seconds: 1785000010,
+    }
+    await waitFor(() => expect(screen.getByText('Status: cancelled')).toBeTruthy(), {
+      timeout: 2_500,
+    })
+    const job = screen.getByText('Installing uv').closest('[role="status"]') as HTMLElement
+    expect(within(job).getByRole('img', { name: 'Optional' })).toBeTruthy()
+    expect(within(job).queryByRole('img', { name: 'Failed' })).toBeNull()
   } finally {
     state.installerJob = null
     window.confirm = originalConfirm
