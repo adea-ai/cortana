@@ -171,9 +171,13 @@ test('refresh exposes provider-advertised models without stale cloud presets', a
     })
   ).toBeTruthy()
   expect(state.refreshCalls).toEqual(['embedding'])
-  expect(screen.getByText(/2 models advertised by the provider/)).toBeTruthy()
+  const note = screen.getByText(/2 models advertised by the provider/)
+  // The model control is a select with no custom field, so the note must not name one.
+  expect(note.textContent).toContain('stays selected in the list.')
+  expect(note.textContent).not.toContain('custom field')
+  expect(note.className).not.toContain('model-note')
 })
-test('a current model that is not advertised falls back to the custom field unchanged', async () => {
+test('a current model that is not advertised stays selected in the list unchanged', async () => {
   state.settings.embedding.model = 'provider-custom-embedding'
   await renderEmbeddingSettings()
   fireEvent.click(

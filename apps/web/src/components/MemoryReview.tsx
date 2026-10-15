@@ -124,6 +124,17 @@ function MemoryPolicy(props: {
   )
 }
 
+// Stored timestamps are ISO strings; show them like the rest of the app and
+// keep the raw value when it does not parse.
+const formatDate = (value: string) => {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString()
+}
+const formatDateTime = (value: string) => {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
+}
+
 type CandidateRange = ReturnType<typeof virtualRange>
 
 function CandidateQueue(props: {
@@ -132,6 +143,7 @@ function CandidateQueue(props: {
   selectedId: string
   selectedIds: Set<string>
   loading: boolean
+  error: string
   busy: boolean
   onScroll: (top: number) => void
   onSelect: (id: string) => void
@@ -189,7 +201,7 @@ function CandidateQueue(props: {
               )}
             </For>
           </VirtualWindow>
-          <Show when={!props.loading && props.filtered.length === 0}>
+          <Show when={!props.loading && !props.error && props.filtered.length === 0}>
             <Empty>
               <EmptyHeader>
                 <EmptyTitle>No candidates match this view</EmptyTitle>
@@ -203,6 +215,7 @@ function CandidateQueue(props: {
       </Card>
       <Show when={props.selectedIds.size > 0}>
         <div
+          role="group"
           class="flex flex-wrap items-center justify-end gap-2"
           aria-label="Bulk-safe candidate actions"
         >
@@ -491,7 +504,12 @@ export function MemoryReview(props: {
             disabled={loading()}
             onClick={() => void refresh()}
           >
-            {loading() ? <Spinner /> : <RefreshCw size={14} aria-hidden="true" />} Refresh
+            {loading() ? (
+              <Spinner size="sm" label={false} />
+            ) : (
+              <RefreshCw size={14} aria-hidden="true" />
+            )}{' '}
+            Refresh
           </MemoryButton>
         </div>
       </header>
@@ -544,7 +562,7 @@ export function MemoryReview(props: {
         }
       >
         <Show when={notice()}>
-          <Alert variant="success" role="status">
+          <Alert role="status">
             <AlertDescription>{notice()}</AlertDescription>
           </Alert>
         </Show>
@@ -557,6 +575,7 @@ export function MemoryReview(props: {
           selectedId={selectedId()}
           selectedIds={selectedIds()}
           loading={loading()}
+          error={error()}
           busy={busy()}
           onScroll={setScrollTop}
           onSelect={setSelectedId}
@@ -682,7 +701,7 @@ function CandidateMetadata(props: {
         <PropertyTerm>Sensitivity</PropertyTerm>
         <PropertyValue>{props.selected.sensitivity}</PropertyValue>
         <PropertyTerm>Expires</PropertyTerm>
-        <PropertyValue>{props.selected.expires_at}</PropertyValue>
+        <PropertyValue>{formatDate(props.selected.expires_at)}</PropertyValue>
         <PropertyTerm>Classification</PropertyTerm>
         <PropertyValue>
           {props.selected.consolidation?.classification ??
@@ -707,7 +726,7 @@ function CandidateMetadata(props: {
               <PropertyTerm>Last error</PropertyTerm>
               <PropertyValue>{consolidation().last_error ?? 'None'}</PropertyValue>
               <PropertyTerm>Evaluated</PropertyTerm>
-              <PropertyValue>{consolidation().updated_at}</PropertyValue>
+              <PropertyValue>{formatDateTime(consolidation().updated_at)}</PropertyValue>
             </>
           )}
         </Show>

@@ -860,12 +860,6 @@ body,
   align-items: center;
 }
 
-.model-field .model-note {
-  color: var(--muted-foreground);
-  font-size: var(--text-2xs);
-  line-height: 1.45;
-}
-
 .discord-guild {
   margin: 6px 0;
 }
