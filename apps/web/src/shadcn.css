@@ -917,7 +917,6 @@ body,
 .core-readiness strong {
   font-size: var(--text-xs);
   font-weight: var(--font-weight-semibold);
-  text-transform: capitalize;
 }
 
 .readiness-list strong small {
@@ -952,7 +951,6 @@ body,
 
 .installer-job small {
   color: var(--muted-foreground);
-  text-transform: capitalize;
 }
 
 .core-readiness {
