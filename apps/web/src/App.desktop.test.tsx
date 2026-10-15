@@ -117,6 +117,7 @@ afterEach(() => {
   state.checkedUpdateChannels = []
   state.desktopUpdateCheckError = null
   state.auditError = null
+  state.desktopUpdateSnapshot = null
   state.installDesktopUpdateCalls = 0
   state.lastInstallDesktopUpdate = null
   state.installDesktopUpdateError = null
@@ -229,6 +230,7 @@ const state = {
   checkedUpdateChannels: [] as string[],
   desktopUpdateCheckError: null as Error | null,
   auditError: null as Error | null,
+  desktopUpdateSnapshot: null as DesktopUpdate | null,
   installDesktopUpdateCalls: 0,
   lastInstallDesktopUpdate: null as {
     expectedVersion: string
@@ -550,7 +552,7 @@ mock.module('./api', () => ({
       : Promise.resolve(desktopAuditEvents.slice(0, limit)),
   getDesktopUpdate: () => {
     state.getDesktopUpdateCalls += 1
-    return Promise.resolve(desktopUpdate)
+    return Promise.resolve(state.desktopUpdateSnapshot ?? desktopUpdate)
   },
   exportDesktopSettings: () => {
     state.exportDesktopSettingsCalls += 1
@@ -808,6 +810,38 @@ async function installUpdateFromDialog() {
   const install = await screen.findByRole('button', { name: 'Install and restart' })
   await waitFor(() => expect(isActionDisabled(install as HTMLButtonElement)).toBe(false))
   fireEvent.click(install)
+}
+// The shared confirmation is modal, so the rest of the page is aria-hidden while
+// it is open. These helpers reach that page the way a background task or a
+// global shortcut does: programmatically, without going through the dialog.
+async function editSettingsDraftBehindConfirmation() {
+  fireEvent.keyDown(window, { key: ',', metaKey: true })
+  // The first visit loads the lazy Settings chunk, which can outlast the
+  // default wait.
+  await screen.findByRole(
+    'heading',
+    { level: 1, name: 'Settings', hidden: true },
+    { timeout: 5000 }
+  )
+  fireEvent.click(screen.getByRole('tab', { name: 'Workspaces', hidden: true }))
+  fireEvent.input((await screen.findAllByLabelText('Display name', {}, { timeout: 5000 }))[0], {
+    target: { value: 'Draft work' },
+  })
+}
+async function saveSettingsBehindConfirmation(reloaded: DesktopSettings) {
+  const calls = state.saveSettingsCalls
+  state.settings = reloaded
+  fireEvent.click(screen.getByRole('button', { name: 'Save changes', hidden: true }))
+  await waitFor(() => expect(state.saveSettingsCalls).toBe(calls + 1))
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 20))
+  })
+}
+async function continueConfirmation() {
+  fireEvent.click(
+    within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Continue' })
+  )
+  await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull())
 }
 test('shadcn settings compose generated source controls', async () => {
   const sourceSettings = {
@@ -1932,6 +1966,79 @@ test('updates require confirmation before invoking native installation', async (
     window.confirm = originalConfirm
   }
 })
+test('updates confirm in the shared dialog and cancelling keeps the update retryable', async () => {
+  state.installDesktopUpdateCalls = 0
+  state.lastInstallDesktopUpdate = null
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await openUpdaterFromMenu()
+  await installUpdateFromDialog()
+  const confirmation = await screen.findByRole('alertdialog')
+  expect(within(confirmation).getByText(/Install signed Cortana 9\.9\.9 and restart/)).toBeTruthy()
+  fireEvent.click(within(confirmation).getByRole('button', { name: 'Cancel' }))
+  await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull())
+  expect(state.installDesktopUpdateCalls).toBe(0)
+  await installUpdateFromDialog()
+  const retry = await screen.findByRole('alertdialog')
+  fireEvent.click(within(retry).getByRole('button', { name: 'Continue' }))
+  await waitFor(() => expect(state.installDesktopUpdateCalls).toBe(1))
+  expect(state.lastInstallDesktopUpdate as unknown).toEqual({
+    expectedVersion: '9.9.9',
+    restart: true,
+  })
+})
+// While the confirmation is open the dialog polls the native updater (it shows
+// the install as in progress), so a changed offer reaches the shell before the
+// operator answers. Continue must not install what is no longer on offer.
+async function changeUpdateOfferWhileConfirming(snapshot: DesktopUpdate) {
+  state.installDesktopUpdateCalls = 0
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await openUpdaterFromMenu()
+  await installUpdateFromDialog()
+  const confirmation = await screen.findByRole('alertdialog')
+  const polls = state.getDesktopUpdateCalls
+  state.desktopUpdateSnapshot = snapshot
+  await waitFor(() => expect(state.getDesktopUpdateCalls).toBeGreaterThan(polls), {
+    timeout: 3000,
+  })
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 20))
+  })
+  fireEvent.click(within(confirmation).getByRole('button', { name: 'Continue' }))
+  await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull())
+}
+test('updates do not install a version that changed while the confirmation was open', async () => {
+  await changeUpdateOfferWhileConfirming({ ...desktopUpdate, available_version: '10.0.0' })
+  expect(state.installDesktopUpdateCalls).toBe(0)
+  expect(await screen.findByText(/Version 10\.0\.0 is ready/)).toBeTruthy()
+})
+test('updates do not install an offer that disappeared while the confirmation was open', async () => {
+  await changeUpdateOfferWhileConfirming({
+    ...desktopUpdate,
+    available_version: null,
+    phase: 'current',
+  })
+  expect(state.installDesktopUpdateCalls).toBe(0)
+  expect(screen.queryByRole('button', { name: 'Install and restart' })).toBeNull()
+})
+test('updates do not start a second install while one began during the confirmation', async () => {
+  await changeUpdateOfferWhileConfirming({ ...desktopUpdate, phase: 'installing' })
+  expect(state.installDesktopUpdateCalls).toBe(0)
+})
+test('closing the app while an update confirmation is open never installs', async () => {
+  state.installDesktopUpdateCalls = 0
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await openUpdaterFromMenu()
+  await installUpdateFromDialog()
+  await screen.findByRole('alertdialog')
+  cleanup()
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 60))
+  })
+  expect(state.installDesktopUpdateCalls).toBe(0)
+})
 test('updates surface native install failures while retaining retryable update state', async () => {
   const originalConfirm = window.confirm
   const originalError = state.installDesktopUpdateError
@@ -3017,6 +3124,68 @@ test('settings warns before discarding dirty changes', async () => {
     window.confirm = originalConfirm
   }
 })
+test('leaving settings with edits asks in the shared dialog and cancel keeps the draft', async () => {
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await openSidebarDestination('Settings')
+  await screen.findByRole('heading', { level: 1, name: 'Settings' })
+  fireEvent.click(screen.getByRole('tab', { name: 'Workspaces' }))
+  fireEvent.input((await screen.findAllByLabelText('Display name'))[0], {
+    target: { value: 'Draft work' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Knowledge' }))
+  const confirmation = await screen.findByRole('alertdialog')
+  expect(within(confirmation).getByText('Discard unsaved Cortana settings changes?')).toBeTruthy()
+  fireEvent.click(within(confirmation).getByRole('button', { name: 'Cancel' }))
+  await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull())
+  expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+  expect((await screen.findAllByLabelText('Display name'))[0]).toHaveProperty('value', 'Draft work')
+  fireEvent.click(screen.getByRole('button', { name: 'Knowledge' }))
+  const second = await screen.findByRole('alertdialog')
+  fireEvent.click(within(second).getByRole('button', { name: 'Continue' }))
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  expect(screen.queryByRole('heading', { level: 1, name: 'Settings' })).toBeNull()
+})
+test('leaving settings proceeds when the draft was saved while the confirmation was open', async () => {
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await openSidebarDestination('Settings')
+  await screen.findByRole('heading', { level: 1, name: 'Settings' })
+  fireEvent.click(screen.getByRole('tab', { name: 'Workspaces' }))
+  fireEvent.input((await screen.findAllByLabelText('Display name'))[0], {
+    target: { value: 'Draft work' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Knowledge' }))
+  await screen.findByRole('alertdialog')
+  await saveSettingsBehindConfirmation(state.settings)
+  await continueConfirmation()
+  // Nothing was left to discard, and the operator still asked to leave.
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  expect(screen.queryByRole('heading', { level: 1, name: 'Settings' })).toBeNull()
+  expect(state.saveSettingsCalls).toBe(1)
+})
+test('a second leave request replaces the open discard confirmation', async () => {
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await openSidebarDestination('Settings')
+  await screen.findByRole('heading', { level: 1, name: 'Settings' })
+  fireEvent.click(screen.getByRole('tab', { name: 'Workspaces' }))
+  fireEvent.input((await screen.findAllByLabelText('Display name'))[0], {
+    target: { value: 'Draft work' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Knowledge' }))
+  await screen.findByRole('alertdialog')
+  fireEvent.click(screen.getByRole('button', { name: 'Knowledge', hidden: true }))
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 20))
+  })
+  // One question at a time; the replaced one counted as a decline.
+  expect(screen.getAllByRole('alertdialog')).toHaveLength(1)
+  expect(screen.getByRole('heading', { level: 1, name: 'Settings', hidden: true })).toBeTruthy()
+  await continueConfirmation()
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  expect(screen.queryByRole('heading', { level: 1, name: 'Settings' })).toBeNull()
+})
 test('settings can discard a draft without leaving the control plane', async () => {
   const originalConfirm = window.confirm
   const originalSettings = state.settings
@@ -3597,6 +3766,176 @@ test('source tree toggles a saved connector without touching indexed data', asyn
     window.confirm = originalConfirm
     state.settings = originalSettings
     state.applySettingsUpdate = false
+    state.lastSettingsUpdate = null
+  }
+})
+test('source tree toggle waits for the shared dialog and cancelling saves nothing', async () => {
+  const originalSettings = state.settings
+  state.applySettingsUpdate = true
+  state.saveSettingsCalls = 0
+  state.settings = {
+    ...desktopSettings,
+    sources: [{ ...workSource, enabled: false }],
+  }
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    fireEvent.click(await screen.findByRole('switch', { name: 'Enable work-code' }))
+    const confirmation = await screen.findByRole('alertdialog')
+    expect(within(confirmation).getByText(/Enable work-code in work\?/)).toBeTruthy()
+    fireEvent.click(within(confirmation).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull())
+    expect(state.saveSettingsCalls).toBe(0)
+    fireEvent.click(screen.getByRole('switch', { name: 'Enable work-code' }))
+    const second = await screen.findByRole('alertdialog')
+    fireEvent.click(within(second).getByRole('button', { name: 'Continue' }))
+    await waitFor(() => expect(state.saveSettingsCalls).toBe(1))
+    expect(state.lastSettingsUpdate?.sources).toEqual([
+      expect.objectContaining({ name: 'work-code', enabled: true }),
+    ])
+  } finally {
+    state.settings = originalSettings
+    state.applySettingsUpdate = false
+    state.lastSettingsUpdate = null
+  }
+})
+test('source toggle does not save when Settings became dirty while the confirmation was open', async () => {
+  const originalSettings = state.settings
+  state.settings = { ...desktopSettings, sources: [{ ...workSource, enabled: false }] }
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    fireEvent.click(await screen.findByRole('switch', { name: 'Enable work-code' }))
+    await screen.findByRole('alertdialog')
+    await editSettingsDraftBehindConfirmation()
+    await continueConfirmation()
+    expect(state.saveSettingsCalls).toBe(0)
+    expect((await screen.findAllByLabelText('Display name'))[0]).toHaveProperty(
+      'value',
+      'Draft work'
+    )
+  } finally {
+    state.settings = originalSettings
+  }
+})
+test('source toggle does not save when the source reached the requested state during the confirmation', async () => {
+  const originalSettings = state.settings
+  state.settings = { ...desktopSettings, sources: [{ ...workSource, enabled: false }] }
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    fireEvent.click(await screen.findByRole('switch', { name: 'Enable work-code' }))
+    await screen.findByRole('alertdialog')
+    await editSettingsDraftBehindConfirmation()
+    await saveSettingsBehindConfirmation({ ...desktopSettings, sources: [workSource] })
+    await continueConfirmation()
+    // Only the Settings save happened; the toggle did not write a second time.
+    expect(state.saveSettingsCalls).toBe(1)
+  } finally {
+    state.settings = originalSettings
+  }
+})
+test('source toggle does not save a source that was removed during the confirmation', async () => {
+  const originalSettings = state.settings
+  state.settings = { ...desktopSettings, sources: [{ ...workSource, enabled: false }] }
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    fireEvent.click(await screen.findByRole('switch', { name: 'Enable work-code' }))
+    await screen.findByRole('alertdialog')
+    await editSettingsDraftBehindConfirmation()
+    await saveSettingsBehindConfirmation({ ...desktopSettings, sources: [] })
+    await continueConfirmation()
+    expect(state.saveSettingsCalls).toBe(1)
+    expect(state.lastSettingsUpdate?.sources).toEqual([
+      expect.objectContaining({ name: 'work-code', enabled: false }),
+    ])
+  } finally {
+    state.settings = originalSettings
+  }
+})
+test('source toggle does not enable a different connector that took over the label during the confirmation', async () => {
+  const originalSettings = state.settings
+  state.settings = { ...desktopSettings, sources: [{ ...workSource, enabled: false }] }
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    fireEvent.click(await screen.findByRole('switch', { name: 'Enable work-code' }))
+    await screen.findByRole('alertdialog')
+    await editSettingsDraftBehindConfirmation()
+    // A reload leaves a different connector answering to the confirmed label:
+    // another name whose canonical source label is work-code.
+    await saveSettingsBehindConfirmation({
+      ...desktopSettings,
+      sources: [
+        {
+          ...workSource,
+          name: 'work-drive',
+          root: '/Users/you/drive',
+          source: 'work-code',
+          enabled: false,
+        },
+      ],
+    })
+    await continueConfirmation()
+    // Only the Settings save happened; the replacement stayed disabled.
+    expect(state.saveSettingsCalls).toBe(1)
+    fireEvent.click(await screen.findByRole('button', { name: 'Knowledge', hidden: true }))
+    expect(
+      await screen.findByText(/work-code in work changed while waiting for confirmation/)
+    ).toBeTruthy()
+  } finally {
+    state.settings = originalSettings
+    state.lastSettingsUpdate = null
+  }
+})
+test('source toggle does not enable a connector of a different kind under the same name', async () => {
+  const originalSettings = state.settings
+  state.settings = { ...desktopSettings, sources: [{ ...workSource, enabled: false }] }
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    fireEvent.click(await screen.findByRole('switch', { name: 'Enable work-code' }))
+    await screen.findByRole('alertdialog')
+    await editSettingsDraftBehindConfirmation()
+    await saveSettingsBehindConfirmation({
+      ...desktopSettings,
+      sources: [{ ...workSource, kind: 'google-drive', enabled: false }],
+    })
+    await continueConfirmation()
+    expect(state.saveSettingsCalls).toBe(1)
+    fireEvent.click(await screen.findByRole('button', { name: 'Knowledge', hidden: true }))
+    expect(
+      await screen.findByText(/work-code in work changed while waiting for confirmation/)
+    ).toBeTruthy()
+  } finally {
+    state.settings = originalSettings
+    state.lastSettingsUpdate = null
+  }
+})
+test('source toggle saves against the settings current after the confirmation', async () => {
+  const originalSettings = state.settings
+  state.settings = { ...desktopSettings, sources: [{ ...workSource, enabled: false }] }
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    fireEvent.click(await screen.findByRole('switch', { name: 'Enable work-code' }))
+    await screen.findByRole('alertdialog')
+    await editSettingsDraftBehindConfirmation()
+    // A reload replaces the saved source with a newer copy of itself (a changed
+    // document cap) while the question is open. Continue must enable the source
+    // in that newer configuration instead of matching the object it saw before.
+    await saveSettingsBehindConfirmation({
+      ...desktopSettings,
+      sources: [{ ...workSource, enabled: false, max_documents: 7 }],
+    })
+    await continueConfirmation()
+    await waitFor(() => expect(state.saveSettingsCalls).toBe(2))
+    expect(state.lastSettingsUpdate?.sources).toEqual([
+      expect.objectContaining({ name: 'work-code', enabled: true, max_documents: 7 }),
+    ])
+  } finally {
+    state.settings = originalSettings
     state.lastSettingsUpdate = null
   }
 })
@@ -6320,6 +6659,125 @@ test('Google source authorization action starts a tracked browser job', async ()
     state.sourceJob = null
     state.authorizationCalls = []
     window.confirm = originalConfirm
+  }
+})
+test('source tree Google authorization asks in the shared dialog and cancelling starts nothing', async () => {
+  const originalSettings = state.settings
+  const originalStatus = state.status
+  state.settings = { ...desktopSettings, sources: [workSource] }
+  state.status = () =>
+    Promise.resolve({
+      ...demoStatus,
+      ingestion: {
+        ...demoStatus.ingestion,
+        configured_sources: demoStatus.ingestion.configured_sources.map((summary) =>
+          summary.name === 'work-code'
+            ? Object.assign({}, summary, {
+                authorization: {
+                  method: 'google_oauth' as const,
+                  setup_required: false,
+                  authorized: false,
+                },
+              })
+            : summary
+        ),
+      },
+    })
+  state.authorizationCalls = []
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    fireEvent.click(await screen.findByRole('button', { name: 'Authorize work-code' }))
+    const confirmation = await screen.findByRole('alertdialog')
+    expect(within(confirmation).getByText(/Authorize work-code in work with Google\?/)).toBeTruthy()
+    fireEvent.click(within(confirmation).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull())
+    expect(state.authorizationCalls).toEqual([])
+    fireEvent.click(screen.getByRole('button', { name: 'Authorize work-code' }))
+    const second = await screen.findByRole('alertdialog')
+    fireEvent.click(within(second).getByRole('button', { name: 'Continue' }))
+    await waitFor(() => expect(state.authorizationCalls).toEqual(['work-code']))
+  } finally {
+    state.settings = originalSettings
+    state.status = originalStatus
+    state.sourceJob = null
+    state.authorizationCalls = []
+  }
+})
+async function renderGoogleSourceNeedingAuthorization() {
+  state.settings = { ...desktopSettings, sources: [workSource] }
+  state.status = () =>
+    Promise.resolve({
+      ...demoStatus,
+      ingestion: {
+        ...demoStatus.ingestion,
+        configured_sources: demoStatus.ingestion.configured_sources.map((summary) =>
+          summary.name === 'work-code'
+            ? Object.assign({}, summary, {
+                authorization: {
+                  method: 'google_oauth' as const,
+                  setup_required: false,
+                  authorized: false,
+                },
+              })
+            : summary
+        ),
+      },
+    })
+  state.authorizationCalls = []
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  fireEvent.click(await screen.findByRole('button', { name: 'Authorize work-code' }))
+  await screen.findByRole('alertdialog')
+}
+test('Google authorization does not start when Settings became dirty while the confirmation was open', async () => {
+  const originalSettings = state.settings
+  const originalStatus = state.status
+  try {
+    await renderGoogleSourceNeedingAuthorization()
+    await editSettingsDraftBehindConfirmation()
+    await continueConfirmation()
+    expect(state.authorizationCalls).toEqual([])
+  } finally {
+    state.settings = originalSettings
+    state.status = originalStatus
+    state.sourceJob = null
+    state.authorizationCalls = []
+  }
+})
+test('Google authorization does not start for a source removed during the confirmation', async () => {
+  const originalSettings = state.settings
+  const originalStatus = state.status
+  try {
+    await renderGoogleSourceNeedingAuthorization()
+    await editSettingsDraftBehindConfirmation()
+    await saveSettingsBehindConfirmation({ ...desktopSettings, sources: [] })
+    await continueConfirmation()
+    expect(state.authorizationCalls).toEqual([])
+  } finally {
+    state.settings = originalSettings
+    state.status = originalStatus
+    state.sourceJob = null
+    state.authorizationCalls = []
+  }
+})
+test('Google authorization does not start for a source whose kind changed during the confirmation', async () => {
+  const originalSettings = state.settings
+  const originalStatus = state.status
+  try {
+    await renderGoogleSourceNeedingAuthorization()
+    await editSettingsDraftBehindConfirmation()
+    await saveSettingsBehindConfirmation({
+      ...desktopSettings,
+      sources: [{ ...workSource, kind: 'google-drive' }],
+    })
+    await continueConfirmation()
+    expect(state.authorizationCalls).toEqual([])
+  } finally {
+    state.settings = originalSettings
+    state.status = originalStatus
+    state.sourceJob = null
+    state.authorizationCalls = []
   }
 })
 test('Google authorization accepts a token path supplied through the configured environment variable', async () => {

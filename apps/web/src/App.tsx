@@ -69,6 +69,7 @@ import {
   M7ShellProvider,
   M7StatusBar,
 } from './components/m7/M7ApplicationShell'
+import { SettingsConfirmProvider, useSettingsConfirm } from './components/settings/SettingsConfirm'
 import { SourcePanel } from './components/SourcePanel'
 import { isUtilityKind, type UtilityKind } from './utilityKinds'
 import { Workspace, type WorkspaceTab } from './components/Workspace'
@@ -279,7 +280,9 @@ export function App() {
       initial={{ appearance: 'dark', accent: 'theme', font: 'geist' }}
     >
       <AppErrorBoundary>
-        <CortanaApplication />
+        <SettingsConfirmProvider>
+          <CortanaApplication />
+        </SettingsConfirmProvider>
       </AppErrorBoundary>
     </ThemeProvider>
   )
@@ -291,6 +294,7 @@ function CortanaApplication() {
   // Context reads belong in the component body: effects run outside the render's
   // context stack, where useTheme() would find no provider.
   const { setSelection: setThemeSelection } = useTheme()
+  const confirm = useSettingsConfirm()
   const [activeQuery, setActiveQuery] = createSignal(query())
   const [status, setStatus] = createSignal<BrainStatus | null>(null)
   // Evidence rows are keyed by chunk_id so repeated queries keep stable row
@@ -404,12 +408,26 @@ function CortanaApplication() {
     getStatus: readUpdateState,
     check: checkUpdateState,
     install: async (expectedVersion) => {
+      const currentState = () =>
+        desktopUpdate() ? toUpdateState(desktopUpdate()!) : readUpdateState()
       if (
-        !window.confirm(
+        !(await confirm(
           `Install signed Cortana ${expectedVersion} and restart the Desktop app?\n\nThe native updater will verify the release signature before installation.`
-        )
+        ))
       ) {
-        return desktopUpdate() ? toUpdateState(desktopUpdate()!) : readUpdateState()
+        return currentState()
+      }
+      // The dialog polls the updater while the question is open, so the offer
+      // can change before the answer arrives. Install only what is still being
+      // offered; otherwise report the updater's current state and let the
+      // operator decide again.
+      const offered = desktopUpdate()
+      if (
+        !isDesktopApp ||
+        offered?.available_version !== expectedVersion ||
+        !['available', 'failed', 'cancelled'].includes(offered.phase)
+      ) {
+        return currentState()
       }
       const update = await installDesktopUpdate(expectedVersion, true)
       setDesktopUpdate(update)
@@ -953,7 +971,7 @@ function CortanaApplication() {
       } else if (modifier && key === ',') {
         // The rail's utilities menu advertises this chord on its Settings entry.
         event.preventDefault()
-        if (canLeaveSettings()) setView('settings')
+        leaveSettings(() => setView('settings'))
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -1291,12 +1309,14 @@ function CortanaApplication() {
   function submit(event: SubmitEvent) {
     event.preventDefault()
     const value = query().trim()
-    if (!value || !canLeaveSettings()) return
-    // The title-bar search is global, so submitting it from a utility or
-    // settings view must return to the answer surface; otherwise the request
-    // succeeds behind the current page and looks like a broken search action.
-    setView('knowledge')
-    void runSearch(value)
+    if (!value) return
+    leaveSettings(() => {
+      // The title-bar search is global, so submitting it from a utility or
+      // settings view must return to the answer surface; otherwise the request
+      // succeeds behind the current page and looks like a broken search action.
+      setView('knowledge')
+      void runSearch(value)
+    })
   }
   function configuredSourceFor(sourceName: string, project: string) {
     return desktopSettings()?.sources.find(
@@ -1306,36 +1326,71 @@ function CortanaApplication() {
     )
   }
   function openSettingsAt(section: 'readiness' | 'services' | 'sources' | 'memory') {
-    if (!canLeaveSettings()) return
-    setSettingsSection(section)
-    setView('settings')
-  }
-  async function toggleSource(nextSource: string, project: string, enabled: boolean) {
-    const key = `${project}:${nextSource}`
-    if (sourceToggleBusy()) return
-    if (!isDesktopApp || !desktopSettings()) {
-      setSettingsSection('sources')
+    leaveSettings(() => {
+      setSettingsSection(section)
       setView('settings')
-      return
+    })
+  }
+  // Every guard that decides whether a source toggle may go ahead. It runs
+  // before the confirmation and again after it, because the shell keeps moving
+  // while the dialog is open: Settings can be edited or reloaded, and the
+  // source can change or disappear. Returns the saved source to change, or
+  // null when the toggle must not proceed. Before the question a blocked toggle
+  // sends the operator to Settings; after it the operator is already wherever
+  // they went, so it stays put and only reports what blocked it.
+  function permittedSourceToToggle(
+    nextSource: string,
+    project: string,
+    enabled: boolean,
+    redirect = true
+  ) {
+    if (sourceToggleBusy()) return null
+    if (!isDesktopApp || !desktopSettings()) {
+      if (redirect) {
+        setSettingsSection('sources')
+        setView('settings')
+      }
+      return null
     }
     if (settingsDirty()) {
       setSourceToggleError('Save or discard settings changes before toggling a source.')
-      setSettingsSection('sources')
-      setView('settings')
-      return
+      if (redirect) {
+        setSettingsSection('sources')
+        setView('settings')
+      }
+      return null
     }
     const current = configuredSourceFor(nextSource, project)
     if (!current || current.enabled === enabled) {
       setSourceToggleError(
         current ? '' : `${nextSource} is not present in the saved Desktop source configuration.`
       )
+      return null
+    }
+    return current
+  }
+  async function toggleSource(nextSource: string, project: string, enabled: boolean) {
+    const key = `${project}:${nextSource}`
+    const confirmedSource = permittedSourceToToggle(nextSource, project, enabled)
+    if (!confirmedSource) return
+    if (
+      !(await confirm(
+        `${enabled ? 'Enable' : 'Disable'} ${nextSource} in ${project}?\n\nThis changes future ingestion only. Existing indexed data remains queryable and is not deleted.`
+      ))
+    ) {
       return
     }
-    if (
-      !window.confirm(
-        `${enabled ? 'Enable' : 'Disable'} ${nextSource} in ${project}?\n\nThis changes future ingestion only. Existing indexed data remains queryable and is not deleted.`
+    // Re-read everything: the source and settings seen before the question may
+    // have been replaced while it was open.
+    const current = permittedSourceToToggle(nextSource, project, enabled, false)
+    if (!current) return
+    if (current.name !== confirmedSource.name || current.kind !== confirmedSource.kind) {
+      // The operator approved changing the source as it was. Sources are found
+      // by label, so a different connector can now answer to it; it needs its
+      // own approval. A refreshed copy of the same connector is still accepted.
+      setSourceToggleError(
+        `${nextSource} in ${project} changed while waiting for confirmation. Review it and try again.`
       )
-    ) {
       return
     }
     setSourceToggleBusy(key)
@@ -1457,25 +1512,50 @@ function CortanaApplication() {
       setSourceToggleBusy(null)
     }
   }
-  async function authorizeSource(sourceName: string, project: string) {
-    if (sourceToggleBusy()) return
+  // The guards for starting Google authorization, run before the confirmation
+  // and again after it for the same reason as permittedSourceToToggle. Returns
+  // the saved source to authorize, or null when authorization must not start.
+  function permittedSourceToAuthorize(sourceName: string, project: string, redirect = true) {
+    if (sourceToggleBusy()) return null
     if (!isDesktopApp || !desktopSettings() || desktopSettings()!.needs_setup || settingsDirty()) {
-      setSettingsSection('sources')
-      setView('settings')
-      return
+      if (redirect) {
+        setSettingsSection('sources')
+        setView('settings')
+      } else if (settingsDirty()) {
+        setSourceToggleError('Save or discard settings changes before authorizing a source.')
+      }
+      return null
     }
     const configuredSource = configuredSourceFor(sourceName, project)
     if (!configuredSource) {
       setSourceToggleError(
         `${sourceName} in ${project} is not present in the saved Desktop source configuration.`
       )
+      return null
+    }
+    return configuredSource
+  }
+  async function authorizeSource(sourceName: string, project: string) {
+    const confirmedSource = permittedSourceToAuthorize(sourceName, project)
+    if (!confirmedSource) return
+    if (
+      !(await confirm(
+        `Authorize ${sourceName} in ${project} with Google?\n\nCortana will open the system browser and store the read-only token in the configured private file.`
+      ))
+    ) {
       return
     }
+    const configuredSource = permittedSourceToAuthorize(sourceName, project, false)
+    if (!configuredSource) return
     if (
-      !window.confirm(
-        `Authorize ${sourceName} in ${project} with Google?\n\nCortana will open the system browser and store the read-only token in the configured private file.`
-      )
+      configuredSource.name !== confirmedSource.name ||
+      configuredSource.kind !== confirmedSource.kind
     ) {
+      // The operator approved authorizing the source as it was; a different
+      // connector under the same label needs its own approval.
+      setSourceToggleError(
+        `${sourceName} in ${project} changed while waiting for confirmation. Review it and try again.`
+      )
       return
     }
     setSourceToggleBusy(`authorize:${sourceName}`)
@@ -1698,23 +1778,49 @@ function CortanaApplication() {
       }
     }
   }
-  function canLeaveSettings() {
-    if (view() !== 'settings' || !settingsDirty()) return true
-    const leave = window.confirm('Discard unsaved Cortana settings changes?')
-    if (leave) setSettingsDirty(false)
-    return leave
+  // Run `proceed` once unsaved Settings edits are safe to leave. With nothing
+  // to lose it runs synchronously; otherwise the shared confirmation dialog
+  // asks first, and declining leaves the app exactly where it was.
+  function leaveSettings(proceed: () => void) {
+    if (view() !== 'settings' || !settingsDirty()) {
+      proceed()
+      return
+    }
+    // Re-checked after the answer: the dialog can stay open while the draft is
+    // saved or Settings is left some other way. If Settings is no longer on
+    // screen the request is stale and does nothing; otherwise the operator still
+    // asked to leave, so it proceeds. A draft saved meanwhile has nothing left
+    // to discard, and clearing an already-clear flag is harmless.
+    const discard = () => {
+      if (view() !== 'settings') return
+      setSettingsDirty(false)
+      proceed()
+    }
+    const decision = confirm('Discard unsaved Cortana settings changes?')
+    if (typeof decision === 'boolean') {
+      if (decision) discard()
+      return
+    }
+    void decision.then((confirmed) => {
+      if (confirmed) discard()
+      return confirmed
+    })
   }
   function navigate(next: AppView) {
-    if (next !== 'settings' && !canLeaveSettings()) return
-    setView(next)
-    // Returning to Knowledge restores the default tab unless the last
-    // surface is the completed answer, which stays the active result.
-    if (next === 'knowledge' && workspaceTab() !== 'answer') setWorkspaceTab('document')
+    const go = () => {
+      setView(next)
+      // Returning to Knowledge restores the default tab unless the last
+      // surface is the completed answer, which stays the active result.
+      if (next === 'knowledge' && workspaceTab() !== 'answer') setWorkspaceTab('document')
+    }
+    if (next === 'settings') go()
+    else leaveSettings(go)
   }
   function focusSearch() {
-    if (!canLeaveSettings()) return
-    setView('knowledge')
-    focusWhenReady(() => searchRef.current, true)
+    leaveSettings(() => {
+      setView('knowledge')
+      focusWhenReady(() => searchRef.current, true)
+    })
   }
   function openAboutDialog(opener?: HTMLButtonElement) {
     aboutOpenerRef.current = opener
@@ -1722,41 +1828,47 @@ function CortanaApplication() {
     setAboutOpen(true)
   }
   function openHelpDialog(opener?: HTMLButtonElement) {
-    if (!canLeaveSettings()) return
-    helpOpenerRef.current = opener
-    setHelpDialogMounted(true)
-    setHelpOpen(true)
+    leaveSettings(() => {
+      helpOpenerRef.current = opener
+      setHelpDialogMounted(true)
+      setHelpOpen(true)
+    })
   }
   function openUpdateDialog(opener?: HTMLButtonElement) {
-    if (!canLeaveSettings()) return
-    updateDialogOpenerRef.current = opener
-    setUpdateDialogMounted(true)
-    setUpdateDialogOpen(true)
+    leaveSettings(() => {
+      updateDialogOpenerRef.current = opener
+      setUpdateDialogMounted(true)
+      setUpdateDialogOpen(true)
+    })
   }
-  async function openFeedback(opener?: HTMLButtonElement) {
+  function openFeedback(opener?: HTMLButtonElement) {
     void opener
-    if (!canLeaveSettings()) return
-    try {
-      await openExternal(
-        cortanaFeedbackUrl(desktopInfo()?.desktop_version, isDesktopApp ? 'desktop' : 'web')
-      )
-      setFeedbackError('')
-    } catch (caught: unknown) {
-      setFeedbackError(
-        caught instanceof Error
-          ? `Could not open the Cortana feedback form: ${caught.message}. Please try again.`
-          : 'Could not open the Cortana feedback form. Please try again.'
-      )
-    }
+    leaveSettings(() => {
+      void (async () => {
+        try {
+          await openExternal(
+            cortanaFeedbackUrl(desktopInfo()?.desktop_version, isDesktopApp ? 'desktop' : 'web')
+          )
+          setFeedbackError('')
+        } catch (caught: unknown) {
+          setFeedbackError(
+            caught instanceof Error
+              ? `Could not open the Cortana feedback form: ${caught.message}. Please try again.`
+              : 'Could not open the Cortana feedback form. Please try again.'
+          )
+        }
+      })()
+    })
   }
   function focusDocumentFilter() {
-    if (!canLeaveSettings()) return
-    setView('knowledge')
-    setLeftOpen(true)
-    // The source panel is hidden while the graph is full-screen; leave the
-    // graph so the filter and document list are reachable again.
-    if (workspaceTab() === 'graph') setWorkspaceTab('document')
-    focusWhenReady(() => document.getElementById('document-filter') as HTMLElement | null)
+    leaveSettings(() => {
+      setView('knowledge')
+      setLeftOpen(true)
+      // The source panel is hidden while the graph is full-screen; leave the
+      // graph so the filter and document list are reachable again.
+      if (workspaceTab() === 'graph') setWorkspaceTab('document')
+      focusWhenReady(() => document.getElementById('document-filter') as HTMLElement | null)
+    })
   }
   function panelOrigin(origin?: HTMLElement | null) {
     return (
@@ -1822,9 +1934,10 @@ function CortanaApplication() {
     setDocumentRetryNonce((current) => current + 1)
   }
   function openGraph() {
-    if (!canLeaveSettings()) return
-    setView('knowledge')
-    setWorkspaceTab('graph')
+    leaveSettings(() => {
+      setView('knowledge')
+      setWorkspaceTab('graph')
+    })
   }
   function retryGraph() {
     setGraphRetryNonce((current) => current + 1)
@@ -1991,9 +2104,7 @@ function CortanaApplication() {
                   variant="ghost"
                   size="sm"
                   tooltip="Review indexed documents, source counts, and retrieval metrics."
-                  onClick={() => {
-                    if (canLeaveSettings()) setView('index')
-                  }}
+                  onClick={() => leaveSettings(() => setView('index'))}
                 >
                   View index metrics
                 </Button>
@@ -2007,58 +2118,53 @@ function CortanaApplication() {
                 </Button>
                 <ActiveSourceJobs
                   jobs={sourceJobs.jobs}
-                  onOpen={() => {
-                    if (!canLeaveSettings()) return
-                    setView('inbox')
-                  }}
+                  onOpen={() => leaveSettings(() => setView('inbox'))}
                 />
                 <SourceJobsErrorIndicator
                   error={sourceJobsError()}
-                  onOpen={() => {
-                    if (!canLeaveSettings()) return
-                    setView('inbox')
-                  }}
+                  onOpen={() => leaveSettings(() => setView('inbox'))}
                 />
                 <SourceJobAttentionIndicator
                   jobs={sourceJobs.jobs}
-                  onOpen={() => {
-                    if (!canLeaveSettings()) return
-                    setView('inbox')
-                  }}
+                  onOpen={() => leaveSettings(() => setView('inbox'))}
                 />
                 <InstallerIndicator
                   job={installerJob()}
-                  onOpen={() => {
-                    if (!canLeaveSettings()) return
-                    setSettingsSection('readiness')
-                    setView('settings')
-                  }}
+                  onOpen={() =>
+                    leaveSettings(() => {
+                      setSettingsSection('readiness')
+                      setView('settings')
+                    })
+                  }
                 />
                 <ServiceActivityIndicator
                   activity={serviceActivity()}
-                  onOpen={() => {
-                    if (!canLeaveSettings()) return
-                    setSettingsSection('services')
-                    setView('settings')
-                  }}
+                  onOpen={() =>
+                    leaveSettings(() => {
+                      setSettingsSection('services')
+                      setView('settings')
+                    })
+                  }
                 />
                 <ReadinessActivityIndicator
                   activity={readinessActivity()}
-                  onOpen={() => {
-                    if (!canLeaveSettings()) return
-                    setSettingsSection('readiness')
-                    setView('settings')
-                  }}
+                  onOpen={() =>
+                    leaveSettings(() => {
+                      setSettingsSection('readiness')
+                      setView('settings')
+                    })
+                  }
                 />
                 <ServiceHealthIndicator
                   report={desktopServices()}
                   error={desktopServicesError()}
                   embeddingRequired={desktopSettings()?.embedding.provider !== 'cloud'}
-                  onOpen={() => {
-                    if (!canLeaveSettings()) return
-                    setSettingsSection('services')
-                    setView('settings')
-                  }}
+                  onOpen={() =>
+                    leaveSettings(() => {
+                      setSettingsSection('services')
+                      setView('settings')
+                    })
+                  }
                 />
                 {isDesktopApp ? (
                   <Button
