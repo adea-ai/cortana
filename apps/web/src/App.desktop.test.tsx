@@ -3852,6 +3852,65 @@ test('source toggle does not save a source that was removed during the confirmat
     state.settings = originalSettings
   }
 })
+test('source toggle does not enable a different connector that took over the label during the confirmation', async () => {
+  const originalSettings = state.settings
+  state.settings = { ...desktopSettings, sources: [{ ...workSource, enabled: false }] }
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    fireEvent.click(await screen.findByRole('switch', { name: 'Enable work-code' }))
+    await screen.findByRole('alertdialog')
+    await editSettingsDraftBehindConfirmation()
+    // A reload leaves a different connector answering to the confirmed label:
+    // another name whose canonical source label is work-code.
+    await saveSettingsBehindConfirmation({
+      ...desktopSettings,
+      sources: [
+        {
+          ...workSource,
+          name: 'work-drive',
+          root: '/Users/you/drive',
+          source: 'work-code',
+          enabled: false,
+        },
+      ],
+    })
+    await continueConfirmation()
+    // Only the Settings save happened; the replacement stayed disabled.
+    expect(state.saveSettingsCalls).toBe(1)
+    fireEvent.click(await screen.findByRole('button', { name: 'Knowledge', hidden: true }))
+    expect(
+      await screen.findByText(/work-code in work changed while waiting for confirmation/)
+    ).toBeTruthy()
+  } finally {
+    state.settings = originalSettings
+    state.lastSettingsUpdate = null
+  }
+})
+test('source toggle does not enable a connector of a different kind under the same name', async () => {
+  const originalSettings = state.settings
+  state.settings = { ...desktopSettings, sources: [{ ...workSource, enabled: false }] }
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    fireEvent.click(await screen.findByRole('switch', { name: 'Enable work-code' }))
+    await screen.findByRole('alertdialog')
+    await editSettingsDraftBehindConfirmation()
+    await saveSettingsBehindConfirmation({
+      ...desktopSettings,
+      sources: [{ ...workSource, kind: 'google-drive', enabled: false }],
+    })
+    await continueConfirmation()
+    expect(state.saveSettingsCalls).toBe(1)
+    fireEvent.click(await screen.findByRole('button', { name: 'Knowledge', hidden: true }))
+    expect(
+      await screen.findByText(/work-code in work changed while waiting for confirmation/)
+    ).toBeTruthy()
+  } finally {
+    state.settings = originalSettings
+    state.lastSettingsUpdate = null
+  }
+})
 test('source toggle saves against the settings current after the confirmation', async () => {
   const originalSettings = state.settings
   state.settings = { ...desktopSettings, sources: [{ ...workSource, enabled: false }] }

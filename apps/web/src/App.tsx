@@ -1375,7 +1375,8 @@ function CortanaApplication() {
   }
   async function toggleSource(nextSource: string, project: string, enabled: boolean) {
     const key = `${project}:${nextSource}`
-    if (!permittedSourceToToggle(nextSource, project, enabled)) return
+    const confirmedSource = permittedSourceToToggle(nextSource, project, enabled)
+    if (!confirmedSource) return
     if (
       !(await confirm(
         `${enabled ? 'Enable' : 'Disable'} ${nextSource} in ${project}?\n\nThis changes future ingestion only. Existing indexed data remains queryable and is not deleted.`
@@ -1387,6 +1388,15 @@ function CortanaApplication() {
     // have been replaced while it was open.
     const current = permittedSourceToToggle(nextSource, project, enabled, false)
     if (!current) return
+    if (current.name !== confirmedSource.name || current.kind !== confirmedSource.kind) {
+      // The operator approved changing the source as it was. Sources are found
+      // by label, so a different connector can now answer to it; it needs its
+      // own approval. A refreshed copy of the same connector is still accepted.
+      setSourceToggleError(
+        `${nextSource} in ${project} changed while waiting for confirmation. Review it and try again.`
+      )
+      return
+    }
     setSourceToggleBusy(key)
     setSourceToggleError('')
     setSourceToggleNotice('')
