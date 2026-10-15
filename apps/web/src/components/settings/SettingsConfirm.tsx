@@ -52,14 +52,16 @@ export function SettingsConfirmProvider(props: { children: JSX.Element }) {
     const attempt = (retries: number) => {
       restoreTimer = window.setTimeout(() => {
         if (disposed) return
+        // Restoring is only for stranded focus. If the operator, or the action
+        // they confirmed, has put focus on a real control by now, it stays
+        // there: this check guards every attempt, including the first.
+        if (!focusStranded()) return
         const { trigger, scope } = current
         if (trigger?.isConnected) {
           trigger.focus()
           if (document.activeElement === trigger) return
           // The trigger cannot take focus yet: a confirmed action disables it
-          // while it saves. Keep trying briefly, unless the operator has since
-          // moved focus somewhere real.
-          if (!focusStranded()) return
+          // while it saves. Keep trying briefly.
           if (retries > 0) return attempt(retries - 1)
         }
         if (!scope?.isConnected) return

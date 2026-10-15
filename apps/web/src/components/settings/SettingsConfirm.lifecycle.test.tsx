@@ -175,3 +175,82 @@ test('focus falls back to the enclosing dialog when the trigger is gone', async 
   opener.remove()
   await waitFor(() => expect(document.activeElement).toBe(host))
 })
+
+test('focus the operator moves during the restore delay is left alone', async () => {
+  const { ask } = renderProbe()
+  const opener = screen.getByRole('button', { name: 'Opener' })
+  const elsewhere = document.createElement('input')
+  document.body.append(elsewhere)
+  opener.focus()
+  const decision = ask('Discard edits?')
+  await screen.findByRole('alertdialog')
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+  await settled(decision, 'the confirmation')
+
+  // The operator clicks into another field before the delayed restore runs.
+  elsewhere.focus()
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  expect(document.activeElement).toBe(elsewhere)
+  elsewhere.remove()
+})
+
+test('focus a confirmed action moves on purpose is not pulled back to the trigger', async () => {
+  const { ask } = renderProbe()
+  const opener = screen.getByRole('button', { name: 'Opener' })
+  const target = document.createElement('button')
+  document.body.append(target)
+  opener.focus()
+  const decision = ask('Restart now?')
+  await screen.findByRole('alertdialog')
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+  await settled(decision, 'the confirmation')
+  // The confirmed action finishes by focusing its own result.
+  target.focus()
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  expect(document.activeElement).toBe(target)
+  target.remove()
+})
+
+test('the scope fallback does not take focus the operator already placed elsewhere', async () => {
+  const probe: { confirm: Confirm | null } = { confirm: null }
+  function Probe() {
+    probe.confirm = useSettingsConfirm()
+    return (
+      <div role="dialog" aria-label="Host dialog" tabindex="-1">
+        <Button type="button">Opener</Button>
+        <Button type="button">Sibling</Button>
+      </div>
+    )
+  }
+  render(() => (
+    <SettingsConfirmProvider>
+      <Probe />
+    </SettingsConfirmProvider>
+  ))
+  const host = screen.getByRole('dialog', { name: 'Host dialog' })
+  const opener = screen.getByRole('button', { name: 'Opener' })
+  const outside = document.createElement('input')
+  document.body.append(outside)
+  opener.focus()
+  const decision = Promise.resolve(probe.confirm?.('Remove it?'))
+  await screen.findByRole('alertdialog')
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+  await settled(decision, 'the confirmation')
+  opener.remove()
+  outside.focus()
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  expect(document.activeElement).toBe(outside)
+  expect(document.activeElement).not.toBe(host)
+  outside.remove()
+})
+
+test('focus is still restored to the trigger when nothing has taken it', async () => {
+  const { ask } = renderProbe()
+  const opener = screen.getByRole('button', { name: 'Opener' })
+  opener.focus()
+  const decision = ask('Cancel me?')
+  await screen.findByRole('alertdialog')
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+  await settled(decision, 'the confirmation')
+  await waitFor(() => expect(document.activeElement).toBe(opener))
+})
