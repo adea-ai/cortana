@@ -10,8 +10,11 @@ import type { DesktopSettings, WorkspaceSettings } from '../../types'
 import { readWorkspaceLogoFile, writeWorkspaceLogo } from '../../workspaceLogoStore'
 import { WorkspaceLogo } from '../../workspaceLogos'
 import {
+  clearWorkspaceThemePreference,
   moveWorkspaceThemePreference,
+  readDeviceThemePreference,
   readWorkspaceThemePreferences,
+  writeDeviceThemePreference,
   writeWorkspaceThemePreference,
 } from '../../workspaceThemePreference'
 import { useSettingsConfirm } from './SettingsConfirm'
@@ -21,7 +24,7 @@ import {
   isWorkspaceIdDerivedFromName,
 } from './SettingsSourceIdentity'
 import { applyConfirmed } from './SettingsWorkflowUtils'
-import { FormField } from '@adea-ai/ui/components/ui/field'
+import { FieldGroup, FormField } from '@adea-ai/ui/components/ui/field'
 import { SettingsSection } from '@adea-ai/ui/components/composites/settings'
 import {
   Accordion,
@@ -53,12 +56,19 @@ export function WorkspaceSection(incoming: {
   const sharedTheme = useTheme()
   onMount(() => void sharedTheme.loadCatalogue?.())
   const catalogueReady = () => sharedTheme.catalogueReady?.() ?? true
-  const themeOptions = (selected: string) =>
+  const themeOptions = (selected: string, leading: { value: string; label: string }[] = []) =>
     catalogueReady()
-      ? sharedTheme.themes
-          .filter((variant) => variant.appearance === 'dark')
-          .map((variant) => ({ value: variant.id, label: themeDisplayName(variant) }))
+      ? [
+          ...leading,
+          ...sharedTheme.themes
+            .filter((variant) => variant.appearance === 'dark')
+            .map((variant) => ({ value: variant.id, label: themeDisplayName(variant) })),
+        ]
       : [{ value: selected, label: 'Loading themes…' }]
+  const themeLabel = (themeId: string) => {
+    const variant = sharedTheme.themes.find((candidate) => candidate.id === themeId)
+    return variant ? themeDisplayName(variant) : themeId
+  }
   const [logoError, setLogoError] = createSignal('')
   const [logoLoading, setLogoLoading] = createSignal<string | null>(null)
   // The visible control is a standard button (file inputs cannot hold one), so
@@ -66,6 +76,7 @@ export function WorkspaceSection(incoming: {
   const logoInputs = new Map<string, HTMLInputElement | undefined>()
   const workspaceLogoInput = (workspaceId: string) => logoInputs.get(workspaceId)
   const [workspaceThemes, setWorkspaceThemes] = createSignal(readWorkspaceThemePreferences())
+  const [deviceTheme, setDeviceTheme] = createSignal(readDeviceThemePreference() ?? DEFAULT_THEME)
   const [workspaceQuery, setWorkspaceQuery] = createSignal('')
   const hasWorkspaceSources = (workspaceId: string) =>
     props.settings.sources.some((source) => source.project === workspaceId)
@@ -202,6 +213,37 @@ export function WorkspaceSection(incoming: {
           </InputGroup>
         </FormField>
       )}
+      <Card size="sm">
+        <CardHeader>
+          <div class="workspace-card-title">
+            <strong>Device default theme</strong>
+            <small>
+              Applies to every workspace that does not choose its own theme. Stored on this device.
+            </small>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <FieldGroup columns={2}>
+            <FormField
+              label="Default theme"
+              hint={`Workspaces without their own theme use ${themeLabel(deviceTheme())}.`}
+            >
+              <NativeSelect
+                class="w-full"
+                aria-label="Device default theme"
+                value={deviceTheme()}
+                disabled={!catalogueReady()}
+                onChange={(event) => {
+                  const next = (event.target as HTMLSelectElement).value as ThemeMode
+                  setDeviceTheme(next)
+                  writeDeviceThemePreference(next)
+                }}
+                options={themeOptions(deviceTheme())}
+              />
+            </FormField>
+          </FieldGroup>
+        </CardContent>
+      </Card>
       <div class={`workspace-settings-grid workspace-settings-grid--${visibleWorkspaces().length}`}>
         <Index each={visibleWorkspaces()}>
           {(entry) => {
@@ -307,7 +349,7 @@ export function WorkspaceSection(incoming: {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div class="workspace-identity-row">
+                  <FieldGroup columns={2}>
                     <FormField label="Display name">
                       <Input
                         value={workspace().name}
@@ -320,24 +362,41 @@ export function WorkspaceSection(incoming: {
                         maxLength={80}
                       />
                     </FormField>
-                    <FormField label="Workspace theme">
+                    <FormField
+                      label="Workspace theme"
+                      hint={
+                        workspaceThemes()[workspace().id]
+                          ? `Overrides the device default (${themeLabel(deviceTheme())}). Choose Device default to clear it.`
+                          : 'Following the device default.'
+                      }
+                    >
                       <NativeSelect
                         class="w-full"
                         aria-label={`Theme for ${workspace().name || 'new workspace'}`}
-                        value={workspaceThemes()[workspace().id] ?? DEFAULT_THEME}
+                        value={workspaceThemes()[workspace().id] ?? ''}
                         disabled={!catalogueReady()}
                         onChange={(event) => {
                           const next = (event.target as HTMLSelectElement).value as ThemeMode
+                          const workspaceId = workspace().id
+                          if (!next) {
+                            setWorkspaceThemes(
+                              ({ [workspaceId]: _cleared, ...remaining }) => remaining
+                            )
+                            clearWorkspaceThemePreference(workspaceId)
+                            return
+                          }
                           setWorkspaceThemes((current) => ({
                             ...current,
-                            [workspace().id]: next,
+                            [workspaceId]: next,
                           }))
-                          writeWorkspaceThemePreference(workspace().id, next)
+                          writeWorkspaceThemePreference(workspaceId, next)
                         }}
-                        options={themeOptions(workspaceThemes()[workspace().id] ?? DEFAULT_THEME)}
+                        options={themeOptions(workspaceThemes()[workspace().id] ?? '', [
+                          { value: '', label: `Device default · ${themeLabel(deviceTheme())}` },
+                        ])}
                       />
                     </FormField>
-                  </div>
+                  </FieldGroup>
                   <Accordion collapsible>
                     <AccordionItem value={`workspace-${workspace().id}`}>
                       <AccordionTrigger>Advanced workspace details</AccordionTrigger>

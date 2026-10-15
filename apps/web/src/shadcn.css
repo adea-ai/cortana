@@ -565,13 +565,6 @@ body,
   font-size: var(--text-2xs);
 }
 
-.workspace-identity-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: end;
-  gap: 12px;
-}
-
 .workspace-order-actions {
   display: flex;
   gap: 4px;
