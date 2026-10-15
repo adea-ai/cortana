@@ -982,65 +982,10 @@ body,
   max-width: min(560px, calc(100vw - 50px));
 }
 
-.audit-list article {
-  padding: 16px;
-}
-
-.principal-card-heading {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.scope-options,
-.audit-list article > div {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.principal-list,
-.audit-list {
+.principal-list {
   display: grid;
   gap: 12px;
   margin-bottom: 14px;
-}
-
-.scope-options {
-  margin-top: 12px;
-}
-
-.scope-options label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.audit-list {
-  margin-top: 20px;
-}
-
-.audit-list h3 {
-  margin-bottom: 0;
-}
-
-.audit-list article {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 6px 12px;
-}
-
-.audit-list article time {
-  color: var(--muted-foreground);
-  font-size: var(--text-2xs);
-}
-
-.audit-event-title.success {
-  color: var(--success);
-}
-
-.audit-event-title.failure {
-  color: var(--destructive);
 }
 
 .memory-review-layout,
