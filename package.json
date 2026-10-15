@@ -20,7 +20,7 @@
     "format:check": "oxfmt --check .",
     "format:write": "oxfmt .",
     "fmt": "oxfmt .",
-    "lint": "bun scripts/check-web-ui-contract.mjs && oxlint --deny-warnings",
+    "lint": "bun apps/web/tooling/generate-ui-tailwind-sources.ts && bun scripts/check-web-ui-contract.mjs && oxlint --deny-warnings",
     "docs:check": "uv run python scripts/check-docs-consistency.py",
     "test": "bun scripts/run-js-tests.mjs",
     "test:unit": "node scripts/run-unit-lanes.mjs",
