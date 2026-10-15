@@ -885,20 +885,6 @@ body,
   gap: 7px;
 }
 
-.path-input {
-  display: flex;
-  gap: 7px;
-}
-
-.path-input input {
-  min-width: 0;
-  flex: 1;
-}
-
-.path-input button {
-  flex: 0 0 auto;
-}
-
 .secret-input input {
   min-width: 0;
   flex: 1;
