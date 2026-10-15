@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from 'solid-testi
 import userEvent from '@testing-library/user-event'
 import { demoStatus } from './demo'
 import { shortcutLabel } from './shortcuts'
+import { resolveWorkspaceTheme } from './workspaceThemePreference'
 import {
   desktopAuditEvents,
   desktopInfo,
@@ -61,6 +62,7 @@ afterEach(() => {
   window.localStorage.removeItem('cortana.source-selection.v1')
   window.localStorage.removeItem('cortana.theme.v1')
   window.localStorage.removeItem('cortana.workspace-themes.v1')
+  window.localStorage.removeItem('cortana.device-theme.v1')
   window.localStorage.removeItem('cortana.appearance')
   state.getDocumentsCalls = []
   state.getGraphCalls = 0
@@ -4150,6 +4152,188 @@ test('workspace theme controls persist and apply per workspace', async () => {
   await waitFor(() =>
     expect(document.documentElement.getAttribute('data-theme')).toBe('rosepine-moon')
   )
+})
+test('device default theme applies to workspaces without an override and clears overrides', async () => {
+  window.localStorage.setItem(
+    'cortana.workspace-themes.v1',
+    JSON.stringify({ personal: 'graphite' })
+  )
+  render(() => <App />)
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', {
+        name: 'User settings',
+      })
+    ).toBeTruthy()
+  )
+  await openSidebarDestination('Settings')
+  await waitFor(() =>
+    expect(
+      screen.getByRole('heading', {
+        name: 'Settings',
+      })
+    ).toBeTruthy()
+  )
+  fireEvent.click(
+    screen.getByRole('tab', {
+      name: 'Workspaces',
+    })
+  )
+  const deviceTheme = await screen.findByRole('combobox', {
+    name: 'Device default theme',
+  })
+  const workTheme = await screen.findByRole('combobox', {
+    name: /Theme for Work/,
+  })
+  const personalTheme = await screen.findByRole('combobox', {
+    name: /Theme for Personal/,
+  })
+  expect((workTheme as HTMLSelectElement).value).toBe('')
+  expect(within(workTheme).getByRole('option', { name: 'Device default · Adea' })).toBeTruthy()
+  expect(screen.getAllByText('Following the device default.')).toHaveLength(1)
+  expect(
+    screen.getByText('Overrides the device default (Adea). Choose Device default to clear it.')
+  ).toBeTruthy()
+  expect(screen.getByText('Workspaces without their own theme use Adea.')).toBeTruthy()
+  // Work has no override, so changing the device default applies immediately.
+  fireEvent.change(deviceTheme, { target: { value: 'nord' } })
+  expect(window.localStorage.getItem('cortana.device-theme.v1')).toBe('nord')
+  await waitFor(() => expect(document.documentElement.getAttribute('data-theme')).toBe('nord'))
+  expect(screen.getByText('Workspaces without their own theme use Nord.')).toBeTruthy()
+  expect(within(workTheme).getByRole('option', { name: 'Device default · Nord' })).toBeTruthy()
+  // The legacy map is read as before and is not rewritten by the default.
+  expect(window.localStorage.getItem('cortana.workspace-themes.v1')).toBe(
+    JSON.stringify({ personal: 'graphite' })
+  )
+  // Switching workspace applies its override, else the device default.
+  fireEvent.pointerDown(screen.getByRole('button', { name: 'Switch workspace' }))
+  const personalWorkspace = await screen.findByRole('menuitemradio', { name: 'Personal' })
+  fireEvent.pointerUp(personalWorkspace)
+  fireEvent.click(personalWorkspace)
+  await waitFor(() => expect(document.documentElement.getAttribute('data-theme')).toBe('adea-dark'))
+  fireEvent.pointerDown(screen.getByRole('button', { name: 'Switch workspace' }))
+  const workWorkspace = await screen.findByRole('menuitemradio', { name: 'Work' })
+  fireEvent.pointerUp(workWorkspace)
+  fireEvent.click(workWorkspace)
+  await waitFor(() => expect(document.documentElement.getAttribute('data-theme')).toBe('nord'))
+  fireEvent.change(workTheme, { target: { value: 'dracula' } })
+  await waitFor(() => expect(document.documentElement.getAttribute('data-theme')).toBe('dracula'))
+  // Choosing Device default clears the override again.
+  fireEvent.change(workTheme, { target: { value: '' } })
+  expect(JSON.parse(window.localStorage.getItem('cortana.workspace-themes.v1') || '{}')).toEqual({
+    personal: 'graphite',
+  })
+  await waitFor(() => expect(document.documentElement.getAttribute('data-theme')).toBe('nord'))
+  fireEvent.change(personalTheme, { target: { value: '' } })
+  expect(window.localStorage.getItem('cortana.workspace-themes.v1')).toBe('{}')
+})
+test('a workspace named after an inherited object member shows the device default, not a phantom override', async () => {
+  const originalSettings = state.settings
+  try {
+    state.settings = {
+      ...originalSettings,
+      workspaces: originalSettings.workspaces.map((workspace) =>
+        workspace.id === 'personal'
+          ? { ...workspace, id: 'constructor', name: 'Constructor' }
+          : workspace
+      ),
+    }
+    window.localStorage.setItem('cortana.device-theme.v1', 'nord')
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByRole('button', { name: 'User settings' })).toBeTruthy())
+    await openSidebarDestination('Settings')
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
+    fireEvent.click(screen.getByRole('tab', { name: 'Workspaces' }))
+    const constructorTheme = (await screen.findByRole('combobox', {
+      name: /Theme for Constructor/,
+    })) as HTMLSelectElement
+    expect(constructorTheme.value).toBe('')
+    expect(screen.getAllByText('Following the device default.')).toHaveLength(2)
+    fireEvent.change(constructorTheme, { target: { value: 'dracula' } })
+    expect(JSON.parse(window.localStorage.getItem('cortana.workspace-themes.v1') || '{}')).toEqual({
+      constructor: 'dracula',
+    })
+    expect(constructorTheme.value).toBe('dracula')
+    fireEvent.change(constructorTheme, { target: { value: '' } })
+    expect(window.localStorage.getItem('cortana.workspace-themes.v1')).toBe('{}')
+    expect(constructorTheme.value).toBe('')
+  } finally {
+    state.settings = originalSettings
+  }
+})
+// happy-dom's Storage ignores prototype patches once it holds items, so a stand-in that
+// delegates to the real storage except for writes replaces it until the returned restore runs.
+function failStorageWrites(): () => void {
+  const real = window.localStorage
+  const stand: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> = {
+    getItem: (key) => real.getItem(key),
+    removeItem: (key) => real.removeItem(key),
+    setItem: () => {
+      throw new DOMException('The quota has been exceeded.', 'QuotaExceededError')
+    },
+  }
+  Object.defineProperty(window, 'localStorage', { value: stand, configurable: true })
+  return () => Object.defineProperty(window, 'localStorage', { value: real, configurable: true })
+}
+test('device default theme still applies when storage rejects the write, and recovers once it works', async () => {
+  window.localStorage.setItem(
+    'cortana.workspace-themes.v1',
+    JSON.stringify({ personal: 'dracula' })
+  )
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByRole('button', { name: 'User settings' })).toBeTruthy())
+  await openSidebarDestination('Settings')
+  await waitFor(() => expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy())
+  fireEvent.click(screen.getByRole('tab', { name: 'Workspaces' }))
+  const deviceTheme = (await screen.findByRole('combobox', {
+    name: 'Device default theme',
+  })) as HTMLSelectElement
+  const workTheme = (await screen.findByRole('combobox', {
+    name: /Theme for Work/,
+  })) as HTMLSelectElement
+  expect(document.documentElement.getAttribute('data-theme')).toBe('adea-dark')
+  const restoreStorage = failStorageWrites()
+  try {
+    // Work has no override: the selector, the resolved theme and the applied theme agree.
+    fireEvent.change(deviceTheme, { target: { value: 'nord' } })
+    await waitFor(() => expect(document.documentElement.getAttribute('data-theme')).toBe('nord'))
+    expect(deviceTheme.value).toBe('nord')
+    expect(resolveWorkspaceTheme('work')).toBe('nord')
+    expect(screen.getByText('Workspaces without their own theme use Nord.')).toBeTruthy()
+    expect(window.localStorage.getItem('cortana.device-theme.v1')).toBeNull()
+    // Personal keeps its stored override, which the failed device write never touched.
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Switch workspace' }))
+    const personalWorkspace = await screen.findByRole('menuitemradio', { name: 'Personal' })
+    fireEvent.pointerUp(personalWorkspace)
+    fireEvent.click(personalWorkspace)
+    await waitFor(() => expect(document.documentElement.getAttribute('data-theme')).toBe('dracula'))
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Switch workspace' }))
+    const workWorkspace = await screen.findByRole('menuitemradio', { name: 'Work' })
+    fireEvent.pointerUp(workWorkspace)
+    fireEvent.click(workWorkspace)
+    await waitFor(() => expect(document.documentElement.getAttribute('data-theme')).toBe('nord'))
+    // An override whose write fails is applied for the session as well, and clearing it
+    // returns Work to the (session-local) device default.
+    fireEvent.change(workTheme, { target: { value: 'rosepine-moon' } })
+    await waitFor(() =>
+      expect(document.documentElement.getAttribute('data-theme')).toBe('rosepine-moon')
+    )
+    expect(resolveWorkspaceTheme('work')).toBe('rosepine-moon')
+    fireEvent.change(workTheme, { target: { value: '' } })
+    await waitFor(() => expect(document.documentElement.getAttribute('data-theme')).toBe('nord'))
+    expect(window.localStorage.getItem('cortana.workspace-themes.v1')).toBe(
+      JSON.stringify({ personal: 'dracula' })
+    )
+  } finally {
+    restoreStorage()
+  }
+  // Storage works again: the next change persists and the session copy no longer matters.
+  fireEvent.change(deviceTheme, { target: { value: 'tokyonight-night' } })
+  expect(window.localStorage.getItem('cortana.device-theme.v1')).toBe('tokyonight-night')
+  await waitFor(() =>
+    expect(document.documentElement.getAttribute('data-theme')).toBe('tokyonight-night')
+  )
+  expect(resolveWorkspaceTheme('work')).toBe('tokyonight-night')
 })
 test('settings refuses padded or control-character source labels before save', async () => {
   const originalSettings = state.settings
