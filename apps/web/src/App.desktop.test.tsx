@@ -1930,6 +1930,27 @@ test('updates require confirmation before invoking native installation', async (
     window.confirm = originalConfirm
   }
 })
+test('updates confirm in the shared dialog and cancelling keeps the update retryable', async () => {
+  state.installDesktopUpdateCalls = 0
+  state.lastInstallDesktopUpdate = null
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await openUpdaterFromMenu()
+  await installUpdateFromDialog()
+  const confirmation = await screen.findByRole('alertdialog')
+  expect(within(confirmation).getByText(/Install signed Cortana 9\.9\.9 and restart/)).toBeTruthy()
+  fireEvent.click(within(confirmation).getByRole('button', { name: 'Cancel' }))
+  await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull())
+  expect(state.installDesktopUpdateCalls).toBe(0)
+  await installUpdateFromDialog()
+  const retry = await screen.findByRole('alertdialog')
+  fireEvent.click(within(retry).getByRole('button', { name: 'Continue' }))
+  await waitFor(() => expect(state.installDesktopUpdateCalls).toBe(1))
+  expect(state.lastInstallDesktopUpdate as unknown).toEqual({
+    expectedVersion: '9.9.9',
+    restart: true,
+  })
+})
 test('updates surface native install failures while retaining retryable update state', async () => {
   const originalConfirm = window.confirm
   const originalError = state.installDesktopUpdateError
@@ -3015,6 +3036,28 @@ test('settings warns before discarding dirty changes', async () => {
     window.confirm = originalConfirm
   }
 })
+test('leaving settings with edits asks in the shared dialog and cancel keeps the draft', async () => {
+  render(() => <App />)
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await openSidebarDestination('Settings')
+  await screen.findByRole('heading', { level: 1, name: 'Settings' })
+  fireEvent.click(screen.getByRole('tab', { name: 'Workspaces' }))
+  fireEvent.input((await screen.findAllByLabelText('Display name'))[0], {
+    target: { value: 'Draft work' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Knowledge' }))
+  const confirmation = await screen.findByRole('alertdialog')
+  expect(within(confirmation).getByText('Discard unsaved Cortana settings changes?')).toBeTruthy()
+  fireEvent.click(within(confirmation).getByRole('button', { name: 'Cancel' }))
+  await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull())
+  expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy()
+  expect((await screen.findAllByLabelText('Display name'))[0]).toHaveProperty('value', 'Draft work')
+  fireEvent.click(screen.getByRole('button', { name: 'Knowledge' }))
+  const second = await screen.findByRole('alertdialog')
+  fireEvent.click(within(second).getByRole('button', { name: 'Continue' }))
+  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  expect(screen.queryByRole('heading', { level: 1, name: 'Settings' })).toBeNull()
+})
 test('settings can discard a draft without leaving the control plane', async () => {
   const originalConfirm = window.confirm
   const originalSettings = state.settings
@@ -3593,6 +3636,36 @@ test('source tree toggles a saved connector without touching indexed data', asyn
     expect(state.lastSettingsUpdate?.secrets).toEqual([])
   } finally {
     window.confirm = originalConfirm
+    state.settings = originalSettings
+    state.applySettingsUpdate = false
+    state.lastSettingsUpdate = null
+  }
+})
+test('source tree toggle waits for the shared dialog and cancelling saves nothing', async () => {
+  const originalSettings = state.settings
+  state.applySettingsUpdate = true
+  state.saveSettingsCalls = 0
+  state.settings = {
+    ...desktopSettings,
+    sources: [{ ...workSource, enabled: false }],
+  }
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    fireEvent.click(await screen.findByRole('switch', { name: 'Enable work-code' }))
+    const confirmation = await screen.findByRole('alertdialog')
+    expect(within(confirmation).getByText(/Enable work-code in work\?/)).toBeTruthy()
+    fireEvent.click(within(confirmation).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull())
+    expect(state.saveSettingsCalls).toBe(0)
+    fireEvent.click(screen.getByRole('switch', { name: 'Enable work-code' }))
+    const second = await screen.findByRole('alertdialog')
+    fireEvent.click(within(second).getByRole('button', { name: 'Continue' }))
+    await waitFor(() => expect(state.saveSettingsCalls).toBe(1))
+    expect(state.lastSettingsUpdate?.sources).toEqual([
+      expect.objectContaining({ name: 'work-code', enabled: true }),
+    ])
+  } finally {
     state.settings = originalSettings
     state.applySettingsUpdate = false
     state.lastSettingsUpdate = null
@@ -6136,6 +6209,49 @@ test('Google source authorization action starts a tracked browser job', async ()
     state.sourceJob = null
     state.authorizationCalls = []
     window.confirm = originalConfirm
+  }
+})
+test('source tree Google authorization asks in the shared dialog and cancelling starts nothing', async () => {
+  const originalSettings = state.settings
+  const originalStatus = state.status
+  state.settings = { ...desktopSettings, sources: [workSource] }
+  state.status = () =>
+    Promise.resolve({
+      ...demoStatus,
+      ingestion: {
+        ...demoStatus.ingestion,
+        configured_sources: demoStatus.ingestion.configured_sources.map((summary) =>
+          summary.name === 'work-code'
+            ? Object.assign({}, summary, {
+                authorization: {
+                  method: 'google_oauth' as const,
+                  setup_required: false,
+                  authorized: false,
+                },
+              })
+            : summary
+        ),
+      },
+    })
+  state.authorizationCalls = []
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    fireEvent.click(await screen.findByRole('button', { name: 'Authorize work-code' }))
+    const confirmation = await screen.findByRole('alertdialog')
+    expect(within(confirmation).getByText(/Authorize work-code in work with Google\?/)).toBeTruthy()
+    fireEvent.click(within(confirmation).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull())
+    expect(state.authorizationCalls).toEqual([])
+    fireEvent.click(screen.getByRole('button', { name: 'Authorize work-code' }))
+    const second = await screen.findByRole('alertdialog')
+    fireEvent.click(within(second).getByRole('button', { name: 'Continue' }))
+    await waitFor(() => expect(state.authorizationCalls).toEqual(['work-code']))
+  } finally {
+    state.settings = originalSettings
+    state.status = originalStatus
+    state.sourceJob = null
+    state.authorizationCalls = []
   }
 })
 test('Google authorization accepts a token path supplied through the configured environment variable', async () => {
