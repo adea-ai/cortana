@@ -254,10 +254,6 @@ body,
   margin: 6px 0;
 }
 
-.source-link-error {
-  margin: 14px 28px 0;
-}
-
 .answer-memory {
   margin: 28px 0 8px;
   padding: 18px 20px;
@@ -376,10 +372,6 @@ body,
   flex: 1;
 }
 
-.graph-toolbar [data-slot='native-select-wrapper'] {
-  max-width: 170px;
-}
-
 .graph-selection {
   position: absolute;
   z-index: calc(var(--z-docked) + 2);
@@ -434,11 +426,6 @@ body,
 
 .graph-view[data-compact] .graph-node {
   width: 100%;
-}
-
-.graph-view[data-compact] .graph-toolbar [data-slot='native-select-wrapper'] {
-  flex: 1 1 140px;
-  max-width: none;
 }
 
 .timeline-view {

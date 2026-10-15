@@ -1,20 +1,10 @@
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
-import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from '@adea-ai/ui/components/ui/accordion'
-import { Alert, AlertAction, AlertDescription } from '@adea-ai/ui/components/ui/alert'
+import { Alert, AlertDescription } from '@adea-ai/ui/components/ui/alert'
 import {
   AlertTriangle,
   Check,
-  CheckCircle2,
-  CircleStop,
-  CircleX,
   Copy,
   FileText,
-  Inbox,
   MessageCircle,
   RefreshCw,
   Search,
@@ -25,22 +15,13 @@ import {
 import { For, Show } from 'solid-js'
 
 import { codeRevisionLabel } from '../codeEvidence'
-import type {
-  AnswerResponse,
-  BrainStatus,
-  ContextBundle,
-  DesktopSourceJob,
-  Evidence,
-} from '../types'
-import { describeSourceJobProgress, recentCompletedJobs } from '../sourceJobs'
-import { describeSyncRunProgress } from '../operations'
+import type { AnswerResponse, BrainStatus, ContextBundle, Evidence } from '../types'
 import { useClipboardCopy } from '../useClipboardCopy'
 import { ActionButton as Button } from '@adea-ai/ui/components/composites/action-button'
 import { ListGroup, ListRow } from '@adea-ai/ui/components/composites/list-row'
 import { Badge } from '@adea-ai/ui/components/ui/badge'
 import { Table, TableBody, TableRow, TableCell, TableHead } from '@adea-ai/ui/components/ui/table'
 import { Card, CardContent, CardHeader } from '@adea-ai/ui/components/ui/card'
-import { CodeBlock } from '@adea-ai/ui/components/ui/code-block'
 import { Separator } from '@adea-ai/ui/components/ui/separator'
 import {
   PageHeader,
@@ -57,18 +38,12 @@ import {
   EmptyContent,
 } from '@adea-ai/ui/components/ui/empty'
 import { Stat } from '@adea-ai/ui/components/composites/stat'
-import { StatusChip } from '@adea-ai/ui/components/ui/status-chip'
 
 import type { UtilityKind } from '../utilityKinds'
 import { Heading, Text } from '@adea-ai/ui/components/ui/typography'
 export { isUtilityKind, type UtilityKind } from '../utilityKinds'
 
 const TITLES: Record<UtilityKind, { eyebrow: string; title: string; description: string }> = {
-  inbox: {
-    eyebrow: 'Attention',
-    title: 'Inbox',
-    description: 'Current sync health and source-job activity. Nothing here is fabricated history.',
-  },
   conversations: {
     eyebrow: 'Session',
     title: 'Conversations',
@@ -91,7 +66,6 @@ export function UtilityView(props: {
   status: BrainStatus | null
   statusError?: string
   onRetryStatus?: () => void
-  sourceJobs: DesktopSourceJob[]
   query: string
   answer: AnswerResponse | null
   evidence: Evidence[]
@@ -101,12 +75,9 @@ export function UtilityView(props: {
   contextLoading: boolean
   contextError: string
   contextTokens: number
-  sourceJobError?: string
-  onRetrySourceJobs?: () => void
   onSearchFocus: () => void
   onRetrieveContext: () => void
   onOpenSettings: () => void
-  onCancelSourceJob?: (id: string) => void
 }) {
   const titles = () => TITLES[props.kind]
   return (
@@ -123,18 +94,6 @@ export function UtilityView(props: {
         data-utility-body=""
         class="grid min-h-0 flex-1 grid-cols-1 content-start gap-7 overflow-y-auto px-5 pt-5 pb-14 min-[1180px]:grid-cols-2"
       >
-        <Show when={props.kind === 'inbox'}>
-          <InboxView
-            status={props.status}
-            statusError={props.statusError ?? ''}
-            sourceJobs={props.sourceJobs}
-            sourceJobError={props.sourceJobError}
-            onRetrySourceJobs={props.onRetrySourceJobs}
-            onOpenSettings={props.onOpenSettings}
-            onRetryStatus={props.onRetryStatus}
-            onCancelSourceJob={props.onCancelSourceJob}
-          />
-        </Show>
         <Show when={props.kind === 'conversations'}>
           <ConversationsView
             query={props.query}
@@ -169,259 +128,6 @@ export function UtilityView(props: {
   )
 }
 
-function InboxView(props: {
-  status: BrainStatus | null
-  statusError: string
-  sourceJobs: DesktopSourceJob[]
-  sourceJobError?: string
-  onRetrySourceJobs?: () => void
-  onOpenSettings: () => void
-  onRetryStatus?: () => void
-  onCancelSourceJob?: (id: string) => void
-}) {
-  const attention = () =>
-    (props.status?.sync_runs ?? []).filter((run) =>
-      ['running', 'failed', 'cancelled', 'budget_exceeded'].includes(run.status)
-    )
-  const activeJobs = () =>
-    props.sourceJobs.filter((job) => job.status === 'running' || job.status === 'cancelling')
-  const completedJobs = () => recentCompletedJobs(props.sourceJobs)
-  const empty = () =>
-    !props.sourceJobError &&
-    attention().length === 0 &&
-    activeJobs().length === 0 &&
-    completedJobs().length === 0
-
-  const emptyView = (
-    <Show
-      when={props.status}
-      fallback={
-        <Empty>
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              {props.statusError ? (
-                <AlertTriangle size={26} aria-hidden="true" />
-              ) : (
-                <Spinner size="xl" label={false} />
-              )}
-            </EmptyMedia>
-            <EmptyTitle>
-              {props.statusError ? 'Sync health unavailable' : 'Loading sync health'}
-            </EmptyTitle>
-            <EmptyDescription>
-              {props.statusError ||
-                'Waiting for the runtime status snapshot before reporting source health or sync history.'}
-            </EmptyDescription>
-          </EmptyHeader>
-          <EmptyContent>
-            <For
-              each={[
-                ...(props.onRetryStatus
-                  ? [
-                      {
-                        label: 'Retry status',
-                        icon: <RefreshCw size={15} aria-hidden="true" />,
-                        onClick: props.onRetryStatus!,
-                      },
-                    ]
-                  : []),
-                {
-                  label: 'Open settings',
-                  icon: <Settings size={15} aria-hidden="true" />,
-                  onClick: props.onOpenSettings,
-                },
-              ]}
-            >
-              {({ label, icon, onClick }) => (
-                <Button variant="secondary" size="sm" tooltip={label} onClick={onClick}>
-                  {icon}
-                  {label}
-                </Button>
-              )}
-            </For>
-          </EmptyContent>
-        </Empty>
-      }
-    >
-      <Empty>
-        <EmptyHeader>
-          <EmptyMedia variant="icon">{<Inbox size={26} aria-hidden="true" />}</EmptyMedia>
-          <EmptyTitle>{'No sync attention'}</EmptyTitle>
-          <EmptyDescription>
-            {props.statusError
-              ? `${props.statusError} No attention is recorded in the last known snapshot.`
-              : 'Every configured source is idle and the last sync of each source finished cleanly. New sync activity will appear here as it happens.'}
-          </EmptyDescription>
-        </EmptyHeader>
-        <EmptyContent>
-          <For
-            each={[
-              {
-                label: 'Open settings',
-                icon: <Settings size={15} aria-hidden="true" />,
-                onClick: props.onOpenSettings,
-              },
-            ]}
-          >
-            {({ label, icon, onClick }) => (
-              <Button variant="secondary" size="sm" tooltip={label} onClick={onClick}>
-                {icon}
-                {label}
-              </Button>
-            )}
-          </For>
-        </EmptyContent>
-      </Empty>
-    </Show>
-  )
-
-  return (
-    <Show when={!empty()} fallback={emptyView}>
-      <Show when={props.sourceJobError}>
-        <Alert variant="destructive" class="min-[1180px]:col-span-full" role="alert">
-          <AlertDescription>{props.sourceJobError}</AlertDescription>
-          <Show when={props.onRetrySourceJobs}>
-            <AlertAction>
-              <Button
-                tooltip="Retry source jobs"
-                variant="outline"
-                size="xs"
-                type="button"
-                onClick={props.onRetrySourceJobs}
-              >
-                Retry source jobs
-              </Button>
-            </AlertAction>
-          </Show>
-        </Alert>
-      </Show>
-      <Show when={props.statusError && props.status}>
-        <Alert variant="destructive" class="min-[1180px]:col-span-full" role="status">
-          <AlertDescription>
-            {props.statusError} Showing the last known sync snapshot.
-          </AlertDescription>
-          <Show when={props.onRetryStatus}>
-            <AlertAction>
-              <Button
-                tooltip="Retry status"
-                variant="outline"
-                size="xs"
-                type="button"
-                onClick={props.onRetryStatus}
-              >
-                Retry status
-              </Button>
-            </AlertAction>
-          </Show>
-        </Alert>
-      </Show>
-      <Show when={attention().length > 0}>
-        <section class="flex min-w-0 flex-col gap-3">
-          <Heading size="section">Sync attention</Heading>
-          <ListGroup>
-            <For each={attention()}>
-              {(run) => (
-                <ListRow
-                  leading={<SyncIcon status={run.status} />}
-                  description={`${run.project} · started ${new Date(run.started_at).toLocaleString()} · ${describeSyncRunProgress(run)} · ${run.progress_documents ?? run.documents ?? '—'} documents · ${run.progress_bytes ?? run.bytes ?? '—'} bytes`}
-                  trailing={<StatusPill status={run.status} />}
-                >
-                  {run.source}
-                </ListRow>
-              )}
-            </For>
-          </ListGroup>
-        </section>
-      </Show>
-      <Show when={activeJobs().length > 0}>
-        <section class="flex min-w-0 flex-col gap-3">
-          <Heading size="section">Active source jobs</Heading>
-          <ListGroup>
-            <For each={activeJobs()}>
-              {(job) => (
-                <ListRow
-                  leading={<Spinner size="sm" label={false} />}
-                  description={`${job.project} · ${job.operation} · ${describeSourceJobProgress(job)} · started ${new Date(job.started_at_unix_seconds * 1000).toLocaleString()}`}
-                  trailing={
-                    <>
-                      <StatusPill status={job.status} />
-                      <Show when={props.onCancelSourceJob}>
-                        <Button
-                          tooltip={`Cancel ${job.project} ${job.source} ${job.operation}`}
-                          variant="outline"
-                          size="xs"
-                          type="button"
-                          disabled={job.status === 'cancelling'}
-                          aria-label={`Cancel ${job.project} ${job.source} ${job.operation}`}
-                          onClick={() => props.onCancelSourceJob?.(job.id)}
-                        >
-                          <CircleStop size={14} aria-hidden="true" /> Cancel
-                        </Button>
-                      </Show>
-                    </>
-                  }
-                >
-                  {job.source}
-                </ListRow>
-              )}
-            </For>
-          </ListGroup>
-        </section>
-      </Show>
-      <Show when={completedJobs().length > 0}>
-        <section class="flex min-w-0 flex-col gap-3">
-          <Heading size="section">Recent source jobs</Heading>
-          <ListGroup>
-            <For each={completedJobs()}>
-              {(job) => {
-                const terminalStatus = job.status === 'cancelling' ? 'running' : job.status
-                const started = new Date(job.started_at_unix_seconds * 1000)
-                const completed = job.completed_at_unix_seconds
-                  ? new Date(job.completed_at_unix_seconds * 1000)
-                  : null
-                const duration = completed
-                  ? `${Math.max(0, Math.round((completed.getTime() - started.getTime()) / 1000))}s`
-                  : 'duration unavailable'
-                return (
-                  <>
-                    <ListRow
-                      leading={<SyncIcon status={terminalStatus} />}
-                      description={`${job.project} · ${job.summary} · started ${started.toLocaleString()} · ${duration}`}
-                      trailing={<StatusPill status={terminalStatus} />}
-                    >
-                      {job.source} · {job.operation}
-                    </ListRow>
-                    <Show when={job.log}>
-                      <Accordion collapsible class="mt-2">
-                        <AccordionItem value="details">
-                          <AccordionTrigger>View job log</AccordionTrigger>
-                          <AccordionContent>
-                            <CodeBlock code={job.log!} title="Log" maxHeight={180} wrap complete />
-                          </AccordionContent>
-                        </AccordionItem>
-                      </Accordion>
-                    </Show>
-                  </>
-                )
-              }}
-            </For>
-          </ListGroup>
-        </section>
-      </Show>
-      <div class="flex flex-wrap gap-2 min-[1180px]:col-span-full">
-        <Button
-          tooltip="Manage ingestion in settings"
-          variant="secondary"
-          size="sm"
-          onClick={props.onOpenSettings}
-        >
-          <Settings size={15} aria-hidden="true" /> Manage ingestion in settings
-        </Button>
-      </div>
-    </Show>
-  )
-}
-
 function ConversationsView(props: {
   query: string
   answer: AnswerResponse | null
@@ -452,7 +158,7 @@ function ConversationsView(props: {
                 {<AlertTriangle size={26} aria-hidden="true" />}
               </EmptyMedia>
               <EmptyTitle>{'The brain is unreachable'}</EmptyTitle>
-              <EmptyDescription>{`${props.error} Start the Rust API or add ?demo=1 to preview the workspace.`}</EmptyDescription>
+              <EmptyDescription>{`${props.error.replace(/[.!?]+$/, '')}. Start the Rust API or add ?demo=1 to preview the workspace.`}</EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
               <For
@@ -896,42 +602,4 @@ function IndexView(props: {
       )}
     </Show>
   )
-}
-
-function SyncIcon(props: { status: string }) {
-  return (
-    <>
-      {props.status === 'running' || props.status === 'cancelling' ? (
-        <Spinner size="md" label={false} />
-      ) : props.status === 'succeeded' ? (
-        <CheckCircle2 size={16} aria-hidden="true" />
-      ) : props.status === 'cancelled' ? (
-        <CircleX size={16} aria-hidden="true" />
-      ) : (
-        <AlertTriangle size={16} aria-hidden="true" />
-      )}
-    </>
-  )
-}
-
-function StatusPill(props: {
-  status: 'running' | 'cancelling' | 'succeeded' | 'failed' | 'cancelled' | 'budget_exceeded'
-}) {
-  const label = () =>
-    props.status === 'budget_exceeded'
-      ? 'Budget exceeded'
-      : props.status === 'cancelling'
-        ? 'Cancelling…'
-        : props.status === 'succeeded'
-          ? 'Succeeded'
-          : props.status[0].toUpperCase() + props.status.slice(1)
-  const tone = () =>
-    props.status === 'running' || props.status === 'cancelling'
-      ? 'info'
-      : props.status === 'succeeded'
-        ? 'success'
-        : props.status === 'cancelled'
-          ? 'neutral'
-          : 'danger'
-  return <StatusChip label={label()} tone={tone()} />
 }

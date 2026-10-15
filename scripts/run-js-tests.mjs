@@ -68,6 +68,7 @@ const isolatedNames = new Set([
   'SettingsView.demo.test.tsx',
   'SourceInitialSync.test.tsx',
   'sourceJobs.test.ts',
+  'Workspace.sourceLink.test.tsx',
   'prepare-desktop-resources.test.mjs',
 ])
 const exclusiveNames = new Set([
