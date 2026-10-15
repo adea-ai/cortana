@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.68.5](https://github.com/adea-ai/cortana/compare/v0.68.4...v0.68.5) (2026-10-15)
+
+
+### Bug Fixes
+
+* **web:** correct Settings Memory, Embedding and Advanced states ([#2571](https://github.com/adea-ai/cortana/issues/2571)) ([ab8ed76](https://github.com/adea-ai/cortana/commit/ab8ed76908e28e4251b897da210ba2b6b57c674a))
+* **web:** correct Settings source and readiness copy and layout ([#2576](https://github.com/adea-ai/cortana/issues/2576)) ([8a42b35](https://github.com/adea-ai/cortana/commit/8a42b35747dfa6c7cd095fce0a8ea0dee78ac08a))
+
+
+### Performance
+
+* **web:** generate Tailwind sources from Cortana's runtime UI imports ([#2566](https://github.com/adea-ai/cortana/issues/2566)) ([f26a1ac](https://github.com/adea-ai/cortana/commit/f26a1ac2b01bc903a86b0198d375c8e146ecbbde))
+
+
+### Maintenance
+
+* consolidate dependency and repository guidance updates ([#2567](https://github.com/adea-ai/cortana/issues/2567)) ([0a62f3a](https://github.com/adea-ai/cortana/commit/0a62f3a17a89422b48d005646d4d7c06193f89fc))
+* **web:** use InputGroup for source path pickers ([#2570](https://github.com/adea-ai/cortana/issues/2570)) ([f75a06b](https://github.com/adea-ai/cortana/commit/f75a06b63f542cf3d2ae462cbb0794b6129708ad)), closes [#2568](https://github.com/adea-ai/cortana/issues/2568)
+* **web:** use shared menu, breadcrumb and dialog parts in the shell ([#2574](https://github.com/adea-ai/cortana/issues/2574)) ([ae01cfd](https://github.com/adea-ai/cortana/commit/ae01cfd6bbdbe6273b4ffdbbeff688d468a638cd))
+* **web:** use shared parts for Audit events and Access scopes ([#2572](https://github.com/adea-ai/cortana/issues/2572)) ([f5dd38f](https://github.com/adea-ai/cortana/commit/f5dd38fe77b9d602884fb184e68d9ce985c6a7b1))
+
 ## [0.68.4](https://github.com/adea-ai/cortana/compare/v0.68.3...v0.68.4) (2026-10-13)
 
 
