@@ -341,8 +341,11 @@ export function SourcePanel(props: {
                 <For each={sources}>
                   {(item) => {
                     const health = () => sourceHealth(item)
-                    const key = sourceKey(item)
-                    const isCollapsed = () => collapsed().has(key)
+                    // The status poll reconciles rows by source name, so after a workspace switch
+                    // this same row can describe a connector with the same name in another
+                    // workspace. Derive the key from the live item each time, never once.
+                    const key = () => sourceKey(item)
+                    const isCollapsed = () => collapsed().has(key())
                     // Source names are only unique inside a workspace. When the
                     // panel shows all workspaces, matching by name alone would
                     // highlight every same-named connector and make a click
@@ -367,7 +370,7 @@ export function SourcePanel(props: {
                       <>
                         <TreeRow
                           item={{
-                            id: key,
+                            id: key(),
                             parentId: null,
                             level: 1,
                             expandable: true,
@@ -459,7 +462,7 @@ export function SourcePanel(props: {
                                 <span data-tree-keyboard-stop>
                                   <Switch
                                     checked={item.enabled}
-                                    aria-busy={sourceToggleBusy() === key}
+                                    aria-busy={sourceToggleBusy() === key()}
                                     aria-label={`${item.enabled ? 'Disable' : 'Enable'} ${item.name}`}
                                     disabled={
                                       sourceToggleDisabled() ||
@@ -481,8 +484,8 @@ export function SourcePanel(props: {
                         <Show when={!isCollapsed()}>
                           <TreeRow
                             item={{
-                              id: `${key}${SOURCE_DETAILS_SUFFIX}`,
-                              parentId: key,
+                              id: `${key()}${SOURCE_DETAILS_SUFFIX}`,
+                              parentId: key(),
                               level: 2,
                               expandable: false,
                               expanded: false,

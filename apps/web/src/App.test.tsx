@@ -532,26 +532,26 @@ test('workspace and source selection scopes the source tree and document request
   if (primaryWorkspace === 'work') {
     await waitFor(() =>
       expect(
-        screen.getByRole('button', {
+        screen.getByRole('treeitem', {
           name: /^work-code/,
         })
       ).toBeTruthy()
     )
     expect(
-      screen.queryByRole('button', {
+      screen.queryByRole('treeitem', {
         name: /^personal-notes/,
       })
     ).toBeNull()
   } else {
     await waitFor(() =>
       expect(
-        screen.getByRole('button', {
+        screen.getByRole('treeitem', {
           name: /^personal-notes/,
         })
       ).toBeTruthy()
     )
     expect(
-      screen.queryByRole('button', {
+      screen.queryByRole('treeitem', {
         name: /^work-code/,
       })
     ).toBeNull()
@@ -568,13 +568,13 @@ test('workspace and source selection scopes the source tree and document request
     `^${primaryWorkspace === 'work' ? 'work-code' : 'personal-notes'}`
   )
   expect(
-    screen.queryByRole('button', {
+    screen.queryByRole('treeitem', {
       name: primaryHiddenSource,
     })
   ).toBeNull()
   await waitFor(() =>
     expect(
-      screen.getByRole('button', {
+      screen.getByRole('treeitem', {
         name: targetWorkspaceSource,
       })
     ).toBeTruthy()
@@ -587,17 +587,17 @@ test('workspace and source selection scopes the source tree and document request
   })
 
   // Selecting a source inside the workspace presses it and rescopes documents.
-  const firstSource = screen.getByRole('button', {
+  const firstSource = screen.getByRole('treeitem', {
     name: targetWorkspaceSource,
   })
   fireEvent.click(firstSource)
   await waitFor(() =>
     expect(
       screen
-        .getByRole('button', {
+        .getByRole('treeitem', {
           name: targetWorkspaceSource,
         })
-        .getAttribute('aria-pressed')
+        .getAttribute('aria-selected')
     ).toBe('true')
   )
   expect(state.documentsCalls.at(-1)).toEqual({
@@ -609,17 +609,17 @@ test('workspace and source selection scopes the source tree and document request
 
   // Clicking the same source again toggles the selection off.
   fireEvent.click(
-    screen.getByRole('button', {
+    screen.getByRole('treeitem', {
       name: targetWorkspaceSource,
     })
   )
   await waitFor(() =>
     expect(
       screen
-        .getByRole('button', {
+        .getByRole('treeitem', {
           name: targetWorkspaceSource,
         })
-        .getAttribute('aria-pressed')
+        .getAttribute('aria-selected')
     ).toBe('false')
   )
   expect(state.documentsCalls.at(-1)?.source).toBeUndefined()

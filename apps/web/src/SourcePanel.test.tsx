@@ -1,5 +1,6 @@
 import { afterEach, expect, test } from 'bun:test'
 import { cleanup, fireEvent, render, screen, within } from 'solid-testing-library'
+import { createSignal } from 'solid-js'
 import { Bot, Code2, Cloud, Database, GitBranch, MessageCircle } from 'lucide-solid'
 import type {
   BrainDocumentSummary,
@@ -115,6 +116,74 @@ test('source rows expand and collapse with the arrow keys and keep focus on the 
   fireEvent.keyDown(row, { key: 'ArrowRight' })
   expect(row.getAttribute('aria-expanded')).toBe('true')
   expect(document.activeElement).toBe(row)
+})
+const workCodeRow = () => screen.getByRole('treeitem', { name: /^work-code \d/ })
+test('a workspace switch keeps source rows keyed to the new workspace for pointer, Enter and Space', () => {
+  const duplicateStatus: BrainStatus = {
+    ...demoStatus,
+    ingestion: {
+      ...demoStatus.ingestion,
+      configured_sources: [
+        ...demoStatus.ingestion.configured_sources,
+        {
+          ...demoStatus.ingestion.configured_sources[0],
+          project: 'personal',
+          acl: ['personal'],
+        },
+      ],
+    },
+  }
+  const selected: Array<[string, string]> = []
+  const [workspaceId, setWorkspaceId] = createSignal('work')
+  render(() => (
+    <SourcePanel
+      status={duplicateStatus}
+      statusError=""
+      workspace={workspaceId()}
+      workspaces={[workspace, personalWorkspace]}
+      documentQuery=""
+      selected="work-code"
+      documents={[]}
+      selectedDocument=""
+      documentsLoading={false}
+      documentsError=""
+      hasMoreDocuments={false}
+      onSelect={(source, project) => selected.push([source, project])}
+      onDocumentQueryChange={() => {}}
+      onSelectDocument={() => {}}
+      onLoadMoreDocuments={() => {}}
+      onOpenSourcesSettings={() => {}}
+      onClose={() => {}}
+      jobs={[]}
+    />
+  ))
+  // Collapse the Work row so stale expansion state would show up after the switch.
+  workCodeRow().focus()
+  fireEvent.keyDown(workCodeRow(), { key: 'ArrowLeft' })
+  expect(workCodeRow().getAttribute('aria-expanded')).toBe('false')
+
+  setWorkspaceId('personal')
+  // The same-named connector in the other workspace is a different row: it is
+  // expanded, selected (the shell keeps the source name) and addressed by its
+  // own workspace.
+  expect(workCodeRow().getAttribute('aria-expanded')).toBe('true')
+  expect(workCodeRow().getAttribute('aria-selected')).toBe('true')
+  expect(workCodeRow().getAttribute('data-tree-id')).toBe('personal:work-code')
+
+  fireEvent.click(workCodeRow())
+  workCodeRow().focus()
+  fireEvent.keyDown(workCodeRow(), { key: 'Enter' })
+  fireEvent.keyDown(workCodeRow(), { key: ' ' })
+  expect(selected).toEqual([
+    ['work-code', 'personal'],
+    ['work-code', 'personal'],
+    ['work-code', 'personal'],
+  ])
+  // Keyboard focus stays on the row and Left/Right still act on it.
+  expect(document.activeElement).toBe(workCodeRow())
+  fireEvent.keyDown(workCodeRow(), { key: 'ArrowLeft' })
+  expect(workCodeRow().getAttribute('aria-expanded')).toBe('false')
+  expect(document.activeElement).toBe(workCodeRow())
 })
 test('Enter and Space select the focused source row', () => {
   const selected: string[] = []
