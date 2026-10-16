@@ -236,47 +236,12 @@ body,
   gap: 8px;
 }
 
-.answer-copy {
-  display: flex;
-  flex-direction: column;
-  margin: 22px 0 30px;
-  padding: 22px 24px;
-  gap: 15px;
-  border-left: 3px solid var(--primary);
-  background: var(--card);
-}
-
 .answer-plan {
   margin: 0 0 26px;
 }
 
 .answer-plan li {
   margin: 6px 0;
-}
-
-.answer-memory {
-  margin: 28px 0 8px;
-  padding: 18px 20px;
-  border-left: 3px solid var(--primary);
-  background: var(--card);
-}
-
-.answer-memory-entry {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 12px 0;
-  border-top: 1px solid var(--border);
-}
-
-.answer-memory-entry:first-of-type {
-  border-top: 0;
-}
-
-.answer-note {
-  padding: 12px 14px;
-  border-left: 2px solid var(--primary);
-  background: var(--card);
 }
 
 .graph-view {
