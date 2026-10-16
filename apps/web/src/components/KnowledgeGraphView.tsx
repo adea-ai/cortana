@@ -169,6 +169,7 @@ export default function KnowledgeGraphView(props: {
         <Match when={props.graphLoading && nodes().length === 0}>
           <EmptyState
             class="m-4 min-h-64"
+            headingLevel={2}
             icon={<Search aria-hidden="true" />}
             busy
             title="Loading knowledge graph"
@@ -179,6 +180,7 @@ export default function KnowledgeGraphView(props: {
         <Match when={props.graphError && nodes().length === 0}>
           <EmptyState
             class="m-4 min-h-64"
+            headingLevel={2}
             icon={<Search aria-hidden="true" />}
             title="Graph unavailable"
             detail={props.graphError}
@@ -189,6 +191,7 @@ export default function KnowledgeGraphView(props: {
         <Match when={!props.graphLoading && nothingToShow() && !filtered()}>
           <EmptyState
             class="m-4 min-h-64"
+            headingLevel={2}
             icon={<Search aria-hidden="true" />}
             title="No graph data"
             detail="Index a source to build linked workspace nodes."
@@ -528,6 +531,7 @@ export default function KnowledgeGraphView(props: {
             </OrbitLayout>
             <Show when={nothingToShow()}>
               <EmptyState
+                headingLevel={2}
                 class={compactGraph() ? '' : 'absolute inset-x-0 top-48 bottom-0'}
                 icon={<Search aria-hidden="true" />}
                 title="No matching graph nodes"

@@ -1203,7 +1203,7 @@ test('desktop setup does not query documents before the control plane is ready',
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
-          level: 1,
+          level: 2,
           name: 'No graph data',
         })
       ).toBeTruthy()
@@ -1227,7 +1227,7 @@ test('graph retry issues a fresh scoped request after a failure', async () => {
     await waitFor(() =>
       expect(
         screen.getByRole('heading', {
-          level: 1,
+          level: 2,
           name: 'Graph unavailable',
         })
       ).toBeTruthy()

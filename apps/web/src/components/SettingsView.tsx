@@ -1998,7 +1998,7 @@ function ReadinessSection(incoming: {
             <CardContent>
               <div class="flex items-start gap-3">
                 <StatusGlyph passed={props.readiness.tools_ready} />
-                <div data-readiness-copy="" class="flex min-w-0 flex-1 flex-col gap-1">
+                <div class="flex min-w-0 flex-1 flex-col gap-1">
                   <strong>
                     {props.readiness.tools_ready ? 'Local tools ready' : 'Setup required'}
                   </strong>
@@ -2020,7 +2020,7 @@ function ReadinessSection(incoming: {
                   <CardContent>
                     <div class="flex flex-wrap items-start gap-3">
                       <StatusGlyph passed={tool.available} optional={!tool.required} />
-                      <div data-readiness-copy="" class="flex min-w-0 flex-1 flex-col gap-1">
+                      <div class="flex min-w-0 flex-1 flex-col gap-1">
                         <strong>
                           {tool.label} {!tool.required && <small>optional</small>}
                         </strong>
@@ -2059,7 +2059,7 @@ function ReadinessSection(incoming: {
                 <CardContent>
                   <div class="flex flex-wrap items-start gap-3">
                     <StatusGlyph passed={check.passed} />
-                    <div data-readiness-copy="" class="flex min-w-0 flex-1 flex-col gap-1">
+                    <div class="flex min-w-0 flex-1 flex-col gap-1">
                       <strong>{readinessCheckLabel(check.name)}</strong>
                       <span>{check.detail}</span>
                     </div>
