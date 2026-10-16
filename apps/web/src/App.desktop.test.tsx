@@ -904,7 +904,41 @@ test('shadcn settings keep configured secrets write-only', async () => {
   )
   expect(secretInputs.length).toBeGreaterThan(0)
   expect(secretInputs.every((input) => input.value === '')).toBe(true)
-  expect(secretInputs.every((input) => input.getAttribute('data-slot') === 'input')).toBe(true)
+  expect(
+    secretInputs.every((input) => input.getAttribute('data-slot') === 'input-group-input')
+  ).toBe(true)
+})
+test('source token clear lives inside the field and goes with it when disabled', async () => {
+  const slackSource: SourceSettings = {
+    ...workSource,
+    name: 'team-slack',
+    kind: 'slack',
+    token_env: 'CORTANA_SLACK_TOKEN',
+  }
+  const bare: SourceSettings = { ...slackSource, name: 'bare-slack', token_env: null }
+  render(() => (
+    <SettingsView
+      desktopSettings={{
+        ...desktopSettings,
+        sources: [slackSource, bare],
+        secrets: [{ name: 'CORTANA_SLACK_TOKEN', configured: true, source: 'secret-file' }],
+      }}
+      initialSection="sources"
+      onSaved={() => undefined}
+    />
+  ))
+  for (const button of await screen.findAllByRole('button', { name: /Advanced source settings/ })) {
+    fireEvent.click(button)
+  }
+  const inputs = (await screen.findAllByLabelText('New token')) as HTMLInputElement[]
+  expect(inputs).toHaveLength(2)
+  const [configured, unset] = inputs
+  expect(configured!.closest('[data-slot="input-group"]')).toBe(
+    screen.getByRole('button', { name: 'Clear stored token' }).closest('[data-slot="input-group"]')
+  )
+  expect(configured!.disabled).toBe(false)
+  expect(unset!.disabled).toBe(true)
+  expect(screen.getAllByRole('button', { name: 'Clear stored token' })).toHaveLength(1)
 })
 test('lazy provider controls keep generated field labels and help associated', async () => {
   const providerSettings: DesktopSettings = {

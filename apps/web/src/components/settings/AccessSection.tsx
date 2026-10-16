@@ -11,6 +11,7 @@ import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
 import { Card, CardContent, CardHeader, CardTitle } from '@adea-ai/ui/components/ui/card'
 import { Checkbox } from '@adea-ai/ui/components/ui/checkbox'
 import { Input } from '@adea-ai/ui/components/ui/input'
+import { SecretInputGroup } from '@adea-ai/ui/components/ui/input-group'
 
 export function AccessSection(
   incoming: SettingsSectionProps & {
@@ -136,34 +137,28 @@ export function AccessSection(
                       />
                     </FormField>
                     <FormField label="New bearer token" hint="write-only; leave blank to retain">
-                      <Input
-                        type="password"
-                        autocomplete="new-password"
+                      <SecretInputGroup
                         value={props.secretValues[principal().token_env] || ''}
-                        onInput={(event) =>
+                        disabled={false}
+                        clearLabel="Clear stored token"
+                        onChange={(event) =>
                           props.onSecret({
                             ...props.secretValues,
-                            [principal().token_env]: event.target.value,
+                            [principal().token_env]: event.currentTarget.value,
                           })
                         }
+                        onClear={
+                          secret()?.configured && !props.clearedSecrets.has(principal().token_env)
+                            ? () =>
+                                applyConfirmed(
+                                  confirm(
+                                    `Clear the stored bearer token for ${principal().principal}? The change remains a draft until you save settings.`
+                                  ),
+                                  () => props.onClearSecret(principal().token_env)
+                                )
+                            : undefined
+                        }
                       />
-                      {secret()?.configured && !props.clearedSecrets.has(principal().token_env) && (
-                        <ActionButton
-                          tooltip="Clear stored token"
-                          variant="destructive"
-                          size="sm"
-                          onClick={() =>
-                            applyConfirmed(
-                              confirm(
-                                `Clear the stored bearer token for ${principal().principal}? The change remains a draft until you save settings.`
-                              ),
-                              () => props.onClearSecret(principal().token_env)
-                            )
-                          }
-                        >
-                          Clear stored token
-                        </ActionButton>
-                      )}
                     </FormField>
                     <FormField
                       label="ACL labels"

@@ -34,7 +34,7 @@ import { StatusChip, type StatusTone } from '@adea-ai/ui/components/ui/status-ch
 import { ActionButton as MemoryButton } from '@adea-ai/ui/components/composites/action-button'
 import { Card, CardContent, CardHeader } from '@adea-ai/ui/components/ui/card'
 import { CodeBlock } from '@adea-ai/ui/components/ui/code-block'
-import { FieldSet, FormField } from '@adea-ai/ui/components/ui/field'
+import { FieldGroup, FieldSet, FormField, NumberField } from '@adea-ai/ui/components/ui/field'
 import {
   ItemDescription,
   ItemGroup,
@@ -87,35 +87,29 @@ function MemoryPolicy(props: {
   const patch = (next: Partial<MemoryReviewPolicy>) => props.onChange({ ...props.policy, ...next })
   return (
     <>
-      <div class="grid gap-4 sm:grid-cols-3">
-        <FormField label="Working ceiling (days)">
-          <Input
-            type="number"
-            min={1}
-            max={7}
-            value={props.policy.maxWorkingDays}
-            onInput={(event) => patch({ maxWorkingDays: Number(event.target.value) })}
-          />
-        </FormField>
-        <FormField label="Durable ceiling (days)">
-          <Input
-            type="number"
-            min={1}
-            max={3650}
-            value={props.policy.maxDurableDays}
-            onInput={(event) => patch({ maxDurableDays: Number(event.target.value) })}
-          />
-        </FormField>
-        <FormField label="Candidate expiry (days)">
-          <Input
-            type="number"
-            min={1}
-            max={7}
-            value={props.policy.candidateExpiryDays}
-            onInput={(event) => patch({ candidateExpiryDays: Number(event.target.value) })}
-          />
-        </FormField>
-      </div>
+      <FieldGroup columns={3}>
+        <NumberField
+          label="Working ceiling (days)"
+          min={1}
+          max={7}
+          value={props.policy.maxWorkingDays}
+          onChange={(maxWorkingDays) => patch({ maxWorkingDays })}
+        />
+        <NumberField
+          label="Durable ceiling (days)"
+          min={1}
+          max={3650}
+          value={props.policy.maxDurableDays}
+          onChange={(maxDurableDays) => patch({ maxDurableDays })}
+        />
+        <NumberField
+          label="Candidate expiry (days)"
+          min={1}
+          max={7}
+          value={props.policy.candidateExpiryDays}
+          onChange={(candidateExpiryDays) => patch({ candidateExpiryDays })}
+        />
+      </FieldGroup>
       <Text variant="caption" tone="muted" as="p">
         Candidate processing is manual. Automatic retention and recurring processing remain
         disabled.
