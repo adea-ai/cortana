@@ -87,7 +87,12 @@ import { CodeBlock } from '@adea-ai/ui/components/ui/code-block'
 import { ScrollArea } from '@adea-ai/ui/components/ui/scroll-area'
 import { Checkbox } from '@adea-ai/ui/components/ui/checkbox'
 import { Input } from '@adea-ai/ui/components/ui/input'
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@adea-ai/ui/components/ui/input-group'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  SecretInputGroup,
+} from '@adea-ai/ui/components/ui/input-group'
 import { RadioGroupItem, RadioGroup } from '@adea-ai/ui/components/ui/radio-group'
 import { NativeSelect } from '@adea-ai/ui/components/ui/native-select'
 import { Switch } from '@adea-ai/ui/components/ui/switch'
@@ -1147,6 +1152,12 @@ export function SourcesSection(
                       : undefined
                   const runningThis = () => activeJob()?.source === source().name
                   const sourceLocked = () => runningThis()
+                  const secretDisabledReason = () =>
+                    !source().editable
+                      ? 'This source is managed by policy'
+                      : !source().token_env
+                        ? 'Set a token environment variable first'
+                        : 'Locked while this source is syncing'
                   const sourceLabel = () =>
                     SOURCE_KINDS.find((kind) => kind.value === source().kind)?.label ||
                     'External connector'
@@ -1678,51 +1689,41 @@ export function SourcesSection(
                                         label="Google token path value"
                                         hint="write-only path; leave blank to keep the existing value"
                                       >
-                                        <div class="secret-input">
-                                          <Input
-                                            type="password"
-                                            autocomplete="new-password"
-                                            disabled={
-                                              sourceLocked() ||
-                                              !source().editable ||
-                                              !source().token_env
+                                        <SecretInputGroup
+                                          value={
+                                            source().token_env
+                                              ? props.secretValues[source().token_env!] || ''
+                                              : ''
+                                          }
+                                          disabled={
+                                            sourceLocked() ||
+                                            !source().editable ||
+                                            !source().token_env
+                                          }
+                                          clearLabel="Clear Google token path"
+                                          disabledReason={secretDisabledReason()}
+                                          onChange={(event) => {
+                                            if (source().token_env) {
+                                              props.onSecret({
+                                                ...props.secretValues,
+                                                [source().token_env!]: event.currentTarget.value,
+                                              })
                                             }
-                                            value={
-                                              source().token_env
-                                                ? props.secretValues[source().token_env!] || ''
-                                                : ''
-                                            }
-                                            onInput={(event) => {
-                                              if (source().token_env) {
-                                                props.onSecret({
-                                                  ...props.secretValues,
-                                                  [source().token_env!]: event.target.value,
-                                                })
-                                              }
-                                            }}
-                                          />
-                                          {source().token_env &&
+                                          }}
+                                          onClear={
+                                            source().token_env &&
                                             secret()?.configured &&
-                                            !props.clearedSecrets.has(secret()!.name) && (
-                                              <ActionButton
-                                                tooltip="Clear"
-                                                variant="destructive"
-                                                size="sm"
-                                                type="button"
-                                                disabled={sourceLocked()}
-                                                onClick={() =>
+                                            !props.clearedSecrets.has(secret()!.name)
+                                              ? () =>
                                                   applyConfirmed(
                                                     confirm(
                                                       `Clear the stored Google token path for ${source().name}? The change remains a draft until you save settings.`
                                                     ),
                                                     () => props.onClearSecret(source().token_env!)
                                                   )
-                                                }
-                                              >
-                                                Clear
-                                              </ActionButton>
-                                            )}
-                                        </div>
+                                              : undefined
+                                          }
+                                        />
                                       </FormField>
                                       <FormField
                                         label="Google query"
@@ -2136,51 +2137,41 @@ export function SourcesSection(
                                           label="New token"
                                           hint="write-only; leave blank to keep existing"
                                         >
-                                          <div class="secret-input">
-                                            <Input
-                                              type="password"
-                                              autocomplete="new-password"
-                                              disabled={
-                                                sourceLocked() ||
-                                                !source().editable ||
-                                                !source().token_env
+                                          <SecretInputGroup
+                                            value={
+                                              source().token_env
+                                                ? props.secretValues[source().token_env!] || ''
+                                                : ''
+                                            }
+                                            disabled={
+                                              sourceLocked() ||
+                                              !source().editable ||
+                                              !source().token_env
+                                            }
+                                            clearLabel="Clear stored token"
+                                            disabledReason={secretDisabledReason()}
+                                            onChange={(event) => {
+                                              if (source().token_env) {
+                                                props.onSecret({
+                                                  ...props.secretValues,
+                                                  [source().token_env!]: event.currentTarget.value,
+                                                })
                                               }
-                                              value={
-                                                source().token_env
-                                                  ? props.secretValues[source().token_env!] || ''
-                                                  : ''
-                                              }
-                                              onInput={(event) => {
-                                                if (source().token_env) {
-                                                  props.onSecret({
-                                                    ...props.secretValues,
-                                                    [source().token_env!]: event.target.value,
-                                                  })
-                                                }
-                                              }}
-                                            />
-                                            {source().token_env &&
+                                            }}
+                                            onClear={
+                                              source().token_env &&
                                               secret()?.configured &&
-                                              !props.clearedSecrets.has(secret()!.name) && (
-                                                <ActionButton
-                                                  tooltip="Clear"
-                                                  variant="destructive"
-                                                  size="sm"
-                                                  type="button"
-                                                  disabled={sourceLocked()}
-                                                  onClick={() =>
+                                              !props.clearedSecrets.has(secret()!.name)
+                                                ? () =>
                                                     applyConfirmed(
                                                       confirm(
                                                         `Clear the stored token for ${source().name}? The change remains a draft until you save settings.`
                                                       ),
                                                       () => props.onClearSecret(source().token_env!)
                                                     )
-                                                  }
-                                                >
-                                                  Clear
-                                                </ActionButton>
-                                              )}
-                                          </div>
+                                                : undefined
+                                            }
+                                          />
                                         </FormField>
                                       )}
                                       {source().kind === 'discord' && (

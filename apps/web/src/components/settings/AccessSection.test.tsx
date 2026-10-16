@@ -166,3 +166,36 @@ test('removing a principal leaves the others showing their own values and scopes
     'CORTANA_OPS_TOKEN'
   )
 })
+
+test('the stored-token clear action sits inside the token field under the same name', () => {
+  const [settings, setSettings] = createSignal<DesktopSettings>({
+    ...desktopSettings,
+    auth_principals: [
+      {
+        principal: 'desktop-agent',
+        token_env: 'CORTANA_DEMO_TOKEN',
+        scopes: ['query'],
+        acl: ['work'],
+      },
+    ],
+    secrets: [{ name: 'CORTANA_DEMO_TOKEN', configured: true, source: 'secret-file' }],
+  })
+  render(() => (
+    <SettingsConfirmProvider>
+      <AccessSection
+        settings={settings()}
+        update={(change) => setSettings(change)}
+        secretValues={{}}
+        onSecret={() => undefined}
+        clearedSecrets={new Set()}
+        onClearSecret={() => undefined}
+      />
+    </SettingsConfirmProvider>
+  ))
+  const field = screen.getByLabelText('New bearer token') as HTMLInputElement
+  const clear = screen.getByRole('button', { name: 'Clear stored token' })
+  expect(field.type).toBe('password')
+  expect(clear.closest('[data-slot="input-group"]')).toBe(
+    field.closest('[data-slot="input-group"]')
+  )
+})

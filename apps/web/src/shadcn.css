@@ -761,16 +761,6 @@ body,
   opacity: 0.55;
 }
 
-.secret-input {
-  display: flex;
-  gap: 7px;
-}
-
-.secret-input input {
-  min-width: 0;
-  flex: 1;
-}
-
 .safety-note {
   margin-top: 20px;
 }
