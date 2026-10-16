@@ -2744,25 +2744,27 @@ function InitialSyncFlow(incoming: {
       <Show when={plan()} keyed>
         {(currentPlan) => (
           <>
-            <PropertyList>
+            <PropertyList class="max-sm:grid-cols-1">
               <PropertyTerm>Source</PropertyTerm>
-              <PropertyValue>
+              <PropertyValue class="max-sm:mb-2 max-sm:last:mb-0">
                 {currentPlan.source} · {currentPlan.kind} · {currentPlan.project}
               </PropertyValue>
               <PropertyTerm>Selected budget</PropertyTerm>
-              <PropertyValue>
+              <PropertyValue class="max-sm:mb-2 max-sm:last:mb-0">
                 {currentPlan.budget_documents.toLocaleString()} documents ·{' '}
                 {mebibytes(currentPlan.budget_bytes)} MiB · {minutes(currentPlan.budget_seconds)}{' '}
                 minutes
               </PropertyValue>
               <PropertyTerm>Validation gate</PropertyTerm>
-              <PropertyValue>
+              <PropertyValue class="max-sm:mb-2 max-sm:last:mb-0">
                 {currentPlan.requires_validation ? 'Required at equal or larger limits' : 'None'}
               </PropertyValue>
               <PropertyTerm>Deletion reconciliation</PropertyTerm>
-              <PropertyValue>Disabled</PropertyValue>
+              <PropertyValue class="max-sm:mb-2 max-sm:last:mb-0">Disabled</PropertyValue>
               <PropertyTerm>Writes indexed data</PropertyTerm>
-              <PropertyValue>Yes — committed batches become searchable</PropertyValue>
+              <PropertyValue class="max-sm:mb-2 max-sm:last:mb-0">
+                Yes — committed batches become searchable
+              </PropertyValue>
             </PropertyList>
             {!currentPlan.enabled && (
               <Alert class="safety-note" variant="warning">

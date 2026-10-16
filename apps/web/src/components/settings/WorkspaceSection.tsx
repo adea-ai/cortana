@@ -262,99 +262,101 @@ export function WorkspaceSection(incoming: {
             return (
               <Card size="sm">
                 <CardHeader>
-                  <div class="flex items-center gap-2">
+                  <div class="flex flex-wrap items-center gap-2">
                     <WorkspaceLogo workspace={workspace()} size="large" />
-                    <div class="flex min-w-0 flex-1 flex-col gap-1">
+                    <div class="flex min-w-40 flex-1 flex-col gap-1">
                       <CardTitle>{workspace().name || 'New workspace'}</CardTitle>
                       <CardDescription>Workspace identity</CardDescription>
                     </div>
-                    <ActionButton
-                      variant="ghost"
-                      size="icon-sm"
-                      type="button"
-                      aria-label={`Upload logo for ${workspace().name}`}
-                      disabled={logoLoading() === workspace().id}
-                      tooltip={
-                        logoLoading() === workspace().id
-                          ? 'Saving workspace logo'
-                          : 'Upload workspace logo'
-                      }
-                      onClick={() => workspaceLogoInput(workspace().id)?.click()}
-                    >
-                      {logoLoading() === workspace().id ? (
-                        <Spinner size="sm" label="Saving workspace logo" />
-                      ) : (
-                        <Upload size={14} aria-hidden="true" />
+                    <div class="ml-auto flex gap-1">
+                      <ActionButton
+                        variant="ghost"
+                        size="icon-sm"
+                        type="button"
+                        aria-label={`Upload logo for ${workspace().name}`}
+                        disabled={logoLoading() === workspace().id}
+                        tooltip={
+                          logoLoading() === workspace().id
+                            ? 'Saving workspace logo'
+                            : 'Upload workspace logo'
+                        }
+                        onClick={() => workspaceLogoInput(workspace().id)?.click()}
+                      >
+                        {logoLoading() === workspace().id ? (
+                          <Spinner size="sm" label="Saving workspace logo" />
+                        ) : (
+                          <Upload size={14} aria-hidden="true" />
+                        )}
+                      </ActionButton>
+                      <Input
+                        ref={(element: HTMLInputElement) => logoInputs.set(workspace().id, element)}
+                        type="file"
+                        accept="image/*"
+                        aria-label={`Upload logo file for ${workspace().name}`}
+                        aria-hidden="true"
+                        tabIndex={-1}
+                        class="hidden"
+                        onInput={(event) => {
+                          void updateLogo(workspace().id, event.target.files?.[0])
+                          event.currentTarget.value = ''
+                        }}
+                      />
+                      {props.settings.workspaces.length > 1 && (
+                        <div class="flex gap-1">
+                          <ActionButton
+                            variant="ghost"
+                            size="icon-sm"
+                            type="button"
+                            aria-label={`Move ${workspace().name} up`}
+                            disabled={index() === 0}
+                            tooltip="Move workspace up"
+                            onClick={() => moveWorkspace(index(), -1)}
+                          >
+                            <ArrowUp size={15} aria-hidden="true" />
+                          </ActionButton>
+                          <ActionButton
+                            variant="ghost"
+                            size="icon-sm"
+                            type="button"
+                            aria-label={`Move ${workspace().name} down`}
+                            disabled={index() === props.settings.workspaces.length - 1}
+                            tooltip="Move workspace down"
+                            onClick={() => moveWorkspace(index(), 1)}
+                          >
+                            <ArrowDown size={15} aria-hidden="true" />
+                          </ActionButton>
+                          <ActionButton
+                            variant="destructive"
+                            size="icon-sm"
+                            type="button"
+                            aria-label={`Remove ${workspace().name}`}
+                            disabled={hasWorkspaceSources(workspace().id)}
+                            tooltip={
+                              hasWorkspaceSources(workspace().id)
+                                ? 'Move assigned sources before removing this workspace'
+                                : 'Remove workspace'
+                            }
+                            onClick={() =>
+                              applyConfirmed(
+                                confirm(
+                                  `Remove the ${workspace().name} workspace? This changes only the settings draft and does not delete indexed data.`,
+                                  { destructive: true }
+                                ),
+                                () =>
+                                  props.update((current) => ({
+                                    ...current,
+                                    workspaces: current.workspaces.filter(
+                                      (_, position) => position !== index()
+                                    ),
+                                  }))
+                              )
+                            }
+                          >
+                            <Trash2 size={15} aria-hidden="true" />
+                          </ActionButton>
+                        </div>
                       )}
-                    </ActionButton>
-                    <Input
-                      ref={(element: HTMLInputElement) => logoInputs.set(workspace().id, element)}
-                      type="file"
-                      accept="image/*"
-                      aria-label={`Upload logo file for ${workspace().name}`}
-                      aria-hidden="true"
-                      tabIndex={-1}
-                      class="hidden"
-                      onInput={(event) => {
-                        void updateLogo(workspace().id, event.target.files?.[0])
-                        event.currentTarget.value = ''
-                      }}
-                    />
-                    {props.settings.workspaces.length > 1 && (
-                      <div class="flex gap-1">
-                        <ActionButton
-                          variant="ghost"
-                          size="icon-sm"
-                          type="button"
-                          aria-label={`Move ${workspace().name} up`}
-                          disabled={index() === 0}
-                          tooltip="Move workspace up"
-                          onClick={() => moveWorkspace(index(), -1)}
-                        >
-                          <ArrowUp size={15} aria-hidden="true" />
-                        </ActionButton>
-                        <ActionButton
-                          variant="ghost"
-                          size="icon-sm"
-                          type="button"
-                          aria-label={`Move ${workspace().name} down`}
-                          disabled={index() === props.settings.workspaces.length - 1}
-                          tooltip="Move workspace down"
-                          onClick={() => moveWorkspace(index(), 1)}
-                        >
-                          <ArrowDown size={15} aria-hidden="true" />
-                        </ActionButton>
-                        <ActionButton
-                          variant="destructive"
-                          size="icon-sm"
-                          type="button"
-                          aria-label={`Remove ${workspace().name}`}
-                          disabled={hasWorkspaceSources(workspace().id)}
-                          tooltip={
-                            hasWorkspaceSources(workspace().id)
-                              ? 'Move assigned sources before removing this workspace'
-                              : 'Remove workspace'
-                          }
-                          onClick={() =>
-                            applyConfirmed(
-                              confirm(
-                                `Remove the ${workspace().name} workspace? This changes only the settings draft and does not delete indexed data.`,
-                                { destructive: true }
-                              ),
-                              () =>
-                                props.update((current) => ({
-                                  ...current,
-                                  workspaces: current.workspaces.filter(
-                                    (_, position) => position !== index()
-                                  ),
-                                }))
-                            )
-                          }
-                        >
-                          <Trash2 size={15} aria-hidden="true" />
-                        </ActionButton>
-                      </div>
-                    )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
