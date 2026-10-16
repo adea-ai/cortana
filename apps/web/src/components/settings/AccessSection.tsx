@@ -157,8 +157,7 @@ export function AccessSection(
                           onClick={() =>
                             applyConfirmed(
                               confirm(
-                                `Clear the stored bearer token for ${principal().principal}? The change remains a draft until you save settings.`,
-                                { destructive: true }
+                                `Clear the stored bearer token for ${principal().principal}? The change remains a draft until you save settings.`
                               ),
                               () => props.onClearSecret(principal().token_env)
                             )
