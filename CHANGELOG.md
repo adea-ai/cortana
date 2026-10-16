@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.69.0](https://github.com/adea-ai/cortana/compare/v0.68.5...v0.69.0) (2026-10-16)
+
+
+### Features
+
+* **web:** add a device default theme with a per-workspace override ([#2573](https://github.com/adea-ai/cortana/issues/2573)) ([1b15381](https://github.com/adea-ai/cortana/commit/1b15381b8c5ab78b2b5c6777ad053aacbbdba89b))
+
+
+### Bug Fixes
+
+* **web:** match the theme-color meta to the default theme background ([#2569](https://github.com/adea-ai/cortana/issues/2569)) ([452e836](https://github.com/adea-ai/cortana/commit/452e8362cb782a191a445bfd40c9a32351d6d676)), closes [#2568](https://github.com/adea-ai/cortana/issues/2568)
+* **web:** wait for the demo desktop settings before choosing a workspace ([#2587](https://github.com/adea-ai/cortana/issues/2587)) ([3120c70](https://github.com/adea-ai/cortana/commit/3120c70dc9b5a303a2b498b086e0c1f8cdf45cad))
+
+
+### Tests
+
+* **web:** qualify Escape as Cancel in the settings confirmation ([#2582](https://github.com/adea-ai/cortana/issues/2582)) ([4b2b5ad](https://github.com/adea-ai/cortana/commit/4b2b5ad1c74acc7b74a5d56ecae542b3fd1775e5))
+
+
+### Maintenance
+
+* **web:** adopt released UI parts and drop dead local styles ([#2583](https://github.com/adea-ai/cortana/issues/2583)) ([5118bbb](https://github.com/adea-ai/cortana/commit/5118bbb8531e078ad652bfca190442b18a8d555e))
+* **web:** confirm shell actions in the shared dialog, not window.confirm ([#2579](https://github.com/adea-ai/cortana/issues/2579)) ([e86eed9](https://github.com/adea-ai/cortana/commit/e86eed9cebee624f263c740e72dab4ad6ff4628c))
+* **web:** move remaining local layouts onto shared parts and drop their CSS ([#2586](https://github.com/adea-ai/cortana/issues/2586)) ([a2ed798](https://github.com/adea-ai/cortana/commit/a2ed798fc042e389391b8e10d07a73359c560e56))
+* **web:** move the header and panel sheet onto shared parts and utilities ([#2584](https://github.com/adea-ai/cortana/issues/2584)) ([2b203a9](https://github.com/adea-ai/cortana/commit/2b203a94b1a1155a941a2d8cc01b29d751b486ac))
+* **web:** move the source panel onto the shared Tree with the disclosure marker ([#2581](https://github.com/adea-ai/cortana/issues/2581)) ([222fc17](https://github.com/adea-ai/cortana/commit/222fc175390d32c851d01627bc2f15781555f68f))
+* **web:** use the shared Callout for answer notes, bump @adea-ai/ui to 0.136.0 ([#2580](https://github.com/adea-ai/cortana/issues/2580)) ([0c6a697](https://github.com/adea-ai/cortana/commit/0c6a69710d6f93efb3aef6607d28bfb663a70658))
+* **web:** use the shared secret field and number fields for tokens and memory limits ([#2585](https://github.com/adea-ai/cortana/issues/2585)) ([1938436](https://github.com/adea-ai/cortana/commit/1938436c73127c1a0f9c0e91fd49a3ddb1182768))
+
 ## [0.68.5](https://github.com/adea-ai/cortana/compare/v0.68.4...v0.68.5) (2026-10-15)
 
 
