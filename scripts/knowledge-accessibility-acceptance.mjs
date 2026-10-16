@@ -268,10 +268,10 @@ async function run() {
     await page.waitForFunction(() =>
       document.querySelector('[data-m7-explorer-heading]')?.textContent?.includes('Work')
     )
-    const workSource = page.getByRole('button', { name: /^work-code / })
+    const workSource = page.getByRole('treeitem', { name: /^work-code / })
     await workSource.waitFor()
     ensure(
-      (await page.getByRole('button', { name: /^personal-notes / }).count()) === 0,
+      (await page.getByRole('treeitem', { name: /^personal-notes / }).count()) === 0,
       'workspace switch left a source from the previous workspace in the tree'
     )
     progress.completed_cases.push('workspace-switching')

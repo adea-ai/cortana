@@ -4,17 +4,7 @@ import {
   AlertDescription as SharedFeedbackDescription,
 } from '@adea-ai/ui/components/ui/alert'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@adea-ai/ui/components/ui/input-group'
-import {
-  ChevronDown,
-  ChevronRight,
-  CircleStop,
-  Database,
-  ExternalLink,
-  KeyRound,
-  Search,
-  Settings,
-  X,
-} from 'lucide-solid'
+import { CircleStop, Database, ExternalLink, KeyRound, Search, Settings, X } from 'lucide-solid'
 import { createEffect, createMemo, createSignal, For, Show } from 'solid-js'
 import { createStore, reconcile } from 'solid-js/store'
 
@@ -24,7 +14,6 @@ import { SourceIcon } from './sourceIcons'
 import { createMediaQuery } from '@/lib/mediaQuery'
 
 import { sourceDisplayName } from './sourceIconData'
-import { ActionButton as Button } from '@adea-ai/ui/components/composites/action-button'
 import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
 import { EmptyState } from '@adea-ai/ui/components/ui/empty'
 import {
@@ -47,6 +36,7 @@ import { Skeleton } from '@adea-ai/ui/components/ui/skeleton'
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 import { StatusChip, type StatusTone } from '@adea-ai/ui/components/ui/status-chip'
 import { Switch } from '@adea-ai/ui/components/ui/switch'
+import { Tree, TreeRow, type TreeItemDescriptor } from '@adea-ai/ui/components/composites/tree'
 import type {
   BrainDocumentSummary,
   BrainStatus,
@@ -56,6 +46,9 @@ import type {
 import { VirtualDocumentList } from './VirtualDocumentList'
 
 const EMPTY_JOBS: DesktopSourceJob[] = []
+// A source row's expanded content is one child row of counts and health.
+const SOURCE_DETAILS_SUFFIX = '#details'
+const sourceKey = (item: OperationalSource) => `${item.project}:${item.source}`
 
 export function SourcePanel(props: {
   status: BrainStatus | null
@@ -98,6 +91,21 @@ export function SourcePanel(props: {
   const sourceToggleError = () => props.sourceToggleError ?? ''
   const sourceToggleNotice = () => props.sourceToggleNotice ?? ''
   const jobs = () => props.jobs ?? EMPTY_JOBS
+  const [activeSourceRow, setActiveSourceRow] = createSignal<string | null>(null)
+  const setSourceExpanded = (key: string, expanded: boolean) => {
+    setCollapsed((current) => {
+      const next = new Set(current)
+      if (expanded) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+  // Pointer, Enter and Space all select the source; only a source row selects,
+  // the details row under it does not.
+  const selectSourceRow = (id: string) => {
+    const item = sources.find((candidate) => sourceKey(candidate) === id)
+    if (item) props.onSelect(item.source, item.project)
+  }
   const selectedWorkspaceId = () => props.workspace || props.workspaces[0]?.id || ''
   // Status polls replace the snapshot wholesale. Reconcile by source name —
   // unique within the workspace-filtered list — so an unchanged poll keeps
@@ -114,6 +122,31 @@ export function SourcePanel(props: {
   // The job snapshot store reconciles by id, so this only re-runs when a job
   // actually changed instead of on every poll tick.
   const active = createMemo(() => activeJobs(jobs()))
+  const visibleSourceItems = createMemo<TreeItemDescriptor[]>(() =>
+    sources.flatMap((item) => {
+      const key = sourceKey(item)
+      const open = !collapsed().has(key)
+      const row: TreeItemDescriptor = {
+        id: key,
+        parentId: null,
+        level: 1,
+        expandable: true,
+        expanded: open,
+      }
+      return open
+        ? [
+            row,
+            {
+              id: `${key}${SOURCE_DETAILS_SUFFIX}`,
+              parentId: key,
+              level: 2,
+              expandable: false,
+              expanded: false,
+            },
+          ]
+        : [row]
+    })
+  )
   const selectedWorkspace = () =>
     props.workspaces.find((item) => item.id === props.workspace) ?? props.workspaces[0]
   const selectedSource = () => sources.find((item) => item.source === props.selected)
@@ -294,13 +327,25 @@ export function SourcePanel(props: {
               />
             }
           >
-            <div class="source-tree">
-              <section>
+            <div class="max-h-2/5 min-h-22.5 overflow-y-auto border-b border-border px-2 py-2.5">
+              <Tree
+                aria-label="Indexed sources"
+                disclosure="marker"
+                visibleItems={visibleSourceItems()}
+                activeId={activeSourceRow()}
+                onActiveIdChange={setActiveSourceRow}
+                onExpand={(id, expanded) => setSourceExpanded(id, expanded)}
+                onActivate={(id) => selectSourceRow(id)}
+                onSelectItem={(id) => selectSourceRow(id)}
+              >
                 <For each={sources}>
                   {(item) => {
                     const health = () => sourceHealth(item)
-                    const key = `${item.project}:${item.source}`
-                    const isCollapsed = () => collapsed().has(key)
+                    // The status poll reconciles rows by source name, so after a workspace switch
+                    // this same row can describe a connector with the same name in another
+                    // workspace. Derive the key from the live item each time, never once.
+                    const key = () => sourceKey(item)
+                    const isCollapsed = () => collapsed().has(key())
                     // Source names are only unique inside a workspace. When the
                     // panel shows all workspaces, matching by name alone would
                     // highlight every same-named connector and make a click
@@ -322,43 +367,21 @@ export function SourcePanel(props: {
                           (job.source === item.source || job.source === item.name)
                       )
                     return (
-                      <div>
-                        <div class="source-row">
-                          <ActionButton
-                            variant="ghost"
-                            size="icon-sm"
-                            type="button"
-                            class="tree-toggle"
-                            aria-label={`${isCollapsed() ? 'Expand' : 'Collapse'} ${item.name}`}
-                            tooltip={`${isCollapsed() ? 'Expand' : 'Collapse'} ${item.name}`}
-                            aria-expanded={!isCollapsed()}
-                            onClick={() => {
-                              setCollapsed((current) => {
-                                const next = new Set(current)
-                                if (next.has(key)) next.delete(key)
-                                else next.add(key)
-                                return next
-                              })
-                            }}
-                          >
-                            {isCollapsed() ? (
-                              <ChevronRight aria-hidden="true" />
-                            ) : (
-                              <ChevronDown aria-hidden="true" />
-                            )}
-                          </ActionButton>
-                          <Button
-                            variant={isSelected() ? 'secondary' : 'ghost'}
-                            type="button"
-                            class="source-select"
-                            aria-pressed={isSelected()}
-                            aria-label={`${item.source} ${item.documents.toLocaleString()}`}
-                            onClick={() => props.onSelect(item.source, item.project)}
-                            tooltip={health().label}
-                          >
-                            <span class="source-select-content">
-                              <SourceIcon kind={item.kind} size={17} />
-                              <span>{sourceDisplayName(item.kind, item.name)}</span>
+                      <>
+                        <TreeRow
+                          item={{
+                            id: key(),
+                            parentId: null,
+                            level: 1,
+                            expandable: true,
+                            expanded: !isCollapsed(),
+                          }}
+                          selected={isSelected()}
+                          aria-label={`${item.source} ${item.documents.toLocaleString()}`}
+                          title={health().label}
+                          leading={<SourceIcon kind={item.kind} size={17} />}
+                          trailing={
+                            <>
                               <StatusChip
                                 compact
                                 tone={
@@ -375,95 +398,109 @@ export function SourcePanel(props: {
                                 label={health().label}
                               />
                               <small>{item.documents.toLocaleString()}</small>
-                            </span>
-                          </Button>
-                          <Show when={props.onOpenSourceSetup && needsProviderSetup()}>
-                            <ActionButton
-                              variant="ghost"
-                              size="icon-sm"
-                              type="button"
-                              class="source-action"
-                              aria-label={`Open ${item.name} setup`}
-                              tooltip={
-                                sourceJobActive()
-                                  ? 'Wait for the active source job to finish'
-                                  : auth()?.method === 'google_oauth'
-                                    ? 'Open Google source settings'
-                                    : auth()?.method === 'github_oauth'
-                                      ? 'Open GitHub source settings'
-                                      : auth()?.method === 'discord_rpc'
-                                        ? 'Open Discord source settings'
-                                        : 'Open the provider setup page'
-                              }
-                              disabled={
-                                sourceToggleBusy() !== null ||
-                                sourceToggleDisabled() ||
-                                sourceJobActive()
-                              }
-                              onClick={(event: MouseEvent) => {
-                                event.stopPropagation()
-                                props.onOpenSourceSetup?.(item.source, item.project)
-                              }}
-                            >
-                              <ExternalLink aria-hidden="true" />
-                            </ActionButton>
-                          </Show>
-                          <Show when={props.onAuthorizeSource && needsBrowserAuthorization()}>
-                            <ActionButton
-                              variant="ghost"
-                              size="icon-sm"
-                              type="button"
-                              class="source-action"
-                              aria-label={`Authorize ${item.name}`}
-                              tooltip={
-                                sourceJobActive()
-                                  ? 'Wait for the active source job to finish'
-                                  : auth()?.method === 'github_oauth'
-                                    ? 'Authorize this GitHub source in your browser'
-                                    : auth()?.method === 'discord_rpc'
-                                      ? 'Approve this Discord source in the running Discord Desktop client'
-                                      : 'Authorize this Google source in your browser'
-                              }
-                              disabled={
-                                sourceToggleBusy() !== null ||
-                                sourceToggleDisabled() ||
-                                sourceJobActive()
-                              }
-                              onClick={(event: MouseEvent) => {
-                                event.stopPropagation()
-                                props.onAuthorizeSource?.(item.source, item.project)
-                              }}
-                            >
-                              <KeyRound aria-hidden="true" />
-                            </ActionButton>
-                          </Show>
-                          <Show when={props.onToggleSource && item.kind !== 'indexed'}>
-                            <Switch
-                              checked={item.enabled}
-                              aria-busy={sourceToggleBusy() === key}
-                              aria-label={`${item.enabled ? 'Disable' : 'Enable'} ${item.name}`}
-                              disabled={
-                                sourceToggleDisabled() ||
-                                sourceToggleBusy() !== null ||
-                                sourceJobActive()
-                              }
-                              onClick={(event: MouseEvent) => event.stopPropagation()}
-                              onChange={(checked: boolean) =>
-                                props.onToggleSource?.(item.source, item.project, checked)
-                              }
-                            />
-                          </Show>
-                        </div>
+                              <Show when={props.onOpenSourceSetup && needsProviderSetup()}>
+                                <ActionButton
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  type="button"
+                                  aria-label={`Open ${item.name} setup`}
+                                  tooltip={
+                                    sourceJobActive()
+                                      ? 'Wait for the active source job to finish'
+                                      : auth()?.method === 'google_oauth'
+                                        ? 'Open Google source settings'
+                                        : auth()?.method === 'github_oauth'
+                                          ? 'Open GitHub source settings'
+                                          : auth()?.method === 'discord_rpc'
+                                            ? 'Open Discord source settings'
+                                            : 'Open the provider setup page'
+                                  }
+                                  disabled={
+                                    sourceToggleBusy() !== null ||
+                                    sourceToggleDisabled() ||
+                                    sourceJobActive()
+                                  }
+                                  onClick={(event: MouseEvent) => {
+                                    event.stopPropagation()
+                                    props.onOpenSourceSetup?.(item.source, item.project)
+                                  }}
+                                >
+                                  <ExternalLink aria-hidden="true" />
+                                </ActionButton>
+                              </Show>
+                              <Show when={props.onAuthorizeSource && needsBrowserAuthorization()}>
+                                <ActionButton
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  type="button"
+                                  aria-label={`Authorize ${item.name}`}
+                                  tooltip={
+                                    sourceJobActive()
+                                      ? 'Wait for the active source job to finish'
+                                      : auth()?.method === 'github_oauth'
+                                        ? 'Authorize this GitHub source in your browser'
+                                        : auth()?.method === 'discord_rpc'
+                                          ? 'Approve this Discord source in the running Discord Desktop client'
+                                          : 'Authorize this Google source in your browser'
+                                  }
+                                  disabled={
+                                    sourceToggleBusy() !== null ||
+                                    sourceToggleDisabled() ||
+                                    sourceJobActive()
+                                  }
+                                  onClick={(event: MouseEvent) => {
+                                    event.stopPropagation()
+                                    props.onAuthorizeSource?.(item.source, item.project)
+                                  }}
+                                >
+                                  <KeyRound aria-hidden="true" />
+                                </ActionButton>
+                              </Show>
+                              <Show when={props.onToggleSource && item.kind !== 'indexed'}>
+                                {/* The switch's visual control is a plain element, so the tree
+                                    needs this wrapper to treat a click on it as the switch's own. */}
+                                <span data-tree-keyboard-stop>
+                                  <Switch
+                                    checked={item.enabled}
+                                    aria-busy={sourceToggleBusy() === key()}
+                                    aria-label={`${item.enabled ? 'Disable' : 'Enable'} ${item.name}`}
+                                    disabled={
+                                      sourceToggleDisabled() ||
+                                      sourceToggleBusy() !== null ||
+                                      sourceJobActive()
+                                    }
+                                    onClick={(event: MouseEvent) => event.stopPropagation()}
+                                    onChange={(checked: boolean) =>
+                                      props.onToggleSource?.(item.source, item.project, checked)
+                                    }
+                                  />
+                                </span>
+                              </Show>
+                            </>
+                          }
+                        >
+                          {sourceDisplayName(item.kind, item.name)}
+                        </TreeRow>
                         <Show when={!isCollapsed()}>
-                          <span class="source-node-hint">
-                            {item.chunks.toLocaleString()} chunks · {health().label}
-                          </span>
+                          <TreeRow
+                            item={{
+                              id: `${key()}${SOURCE_DETAILS_SUFFIX}`,
+                              parentId: key(),
+                              level: 2,
+                              expandable: false,
+                              expanded: false,
+                            }}
+                          >
+                            <span class="text-2xs text-muted-foreground">
+                              {item.chunks.toLocaleString()} chunks · {health().label}
+                            </span>
+                          </TreeRow>
                         </Show>
-                      </div>
+                      </>
                     )
                   }}
                 </For>
-              </section>
+              </Tree>
             </div>
           </Show>
         </Show>

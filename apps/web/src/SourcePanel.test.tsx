@@ -1,5 +1,6 @@
 import { afterEach, expect, test } from 'bun:test'
-import { cleanup, fireEvent, render, screen } from 'solid-testing-library'
+import { cleanup, fireEvent, render, screen, within } from 'solid-testing-library'
+import { createSignal } from 'solid-js'
 import { Bot, Code2, Cloud, Database, GitBranch, MessageCircle } from 'lucide-solid'
 import type {
   BrainDocumentSummary,
@@ -70,15 +71,150 @@ test('shadcn renderer uses shared source controls without a redundant workspace 
   expect(document.querySelectorAll('button').length).toBeGreaterThan(0)
   expect(document.querySelector('[role="switch"]')).toBeTruthy()
 })
-test('source disclosure keeps keyboard focus when local state rerenders the panel', () => {
+test('source rows are tree items whose chevron expands without selecting or moving focus', () => {
+  const selected: string[] = []
+  render(() => (
+    <SourcePanel
+      status={demoStatus}
+      statusError=""
+      workspace="work"
+      workspaces={[workspace]}
+      documentQuery=""
+      selected=""
+      documents={[]}
+      selectedDocument=""
+      documentsLoading={false}
+      documentsError=""
+      hasMoreDocuments={false}
+      onSelect={(source) => selected.push(source)}
+      onDocumentQueryChange={() => {}}
+      onSelectDocument={() => {}}
+      onLoadMoreDocuments={() => {}}
+      onOpenSourcesSettings={() => {}}
+      onClose={() => {}}
+      jobs={[]}
+    />
+  ))
+  const tree = screen.getByRole('tree', { name: 'Indexed sources' })
+  const row = within(tree).getAllByRole('treeitem', { expanded: true })[0]
+  expect(row.getAttribute('aria-level')).toBe('1')
+  const chevron = row.querySelector('[data-slot="tree-row-disclosure"]') as HTMLElement
+  expect(chevron).toBeTruthy()
+  // The chevron is a pointer target only: not focusable and not a button.
+  expect(chevron.getAttribute('tabindex')).toBeNull()
+  fireEvent.click(chevron)
+  expect(row.getAttribute('aria-expanded')).toBe('false')
+  expect(selected).toEqual([])
+})
+test('source rows expand and collapse with the arrow keys and keep focus on the row', () => {
   renderPanel(demoStatus, '', '', undefined, 'work', true)
-  const disclosure = screen.getAllByRole('button', {
-    name: /^Collapse /,
-  })[0]
-  disclosure.focus()
-  fireEvent.click(disclosure)
-  expect(document.activeElement).toBe(disclosure)
-  expect(disclosure.getAttribute('aria-expanded')).toBe('false')
+  const row = screen.getAllByRole('treeitem', { expanded: true })[0]
+  row.focus()
+  fireEvent.keyDown(row, { key: 'ArrowLeft' })
+  expect(row.getAttribute('aria-expanded')).toBe('false')
+  expect(document.activeElement).toBe(row)
+  fireEvent.keyDown(row, { key: 'ArrowRight' })
+  expect(row.getAttribute('aria-expanded')).toBe('true')
+  expect(document.activeElement).toBe(row)
+})
+const workCodeRow = () => screen.getByRole('treeitem', { name: /^work-code \d/ })
+test('a workspace switch keeps source rows keyed to the new workspace for pointer, Enter and Space', () => {
+  const duplicateStatus: BrainStatus = {
+    ...demoStatus,
+    ingestion: {
+      ...demoStatus.ingestion,
+      configured_sources: [
+        ...demoStatus.ingestion.configured_sources,
+        {
+          ...demoStatus.ingestion.configured_sources[0],
+          project: 'personal',
+          acl: ['personal'],
+        },
+      ],
+    },
+  }
+  const selected: Array<[string, string]> = []
+  const [workspaceId, setWorkspaceId] = createSignal('work')
+  render(() => (
+    <SourcePanel
+      status={duplicateStatus}
+      statusError=""
+      workspace={workspaceId()}
+      workspaces={[workspace, personalWorkspace]}
+      documentQuery=""
+      selected="work-code"
+      documents={[]}
+      selectedDocument=""
+      documentsLoading={false}
+      documentsError=""
+      hasMoreDocuments={false}
+      onSelect={(source, project) => selected.push([source, project])}
+      onDocumentQueryChange={() => {}}
+      onSelectDocument={() => {}}
+      onLoadMoreDocuments={() => {}}
+      onOpenSourcesSettings={() => {}}
+      onClose={() => {}}
+      jobs={[]}
+    />
+  ))
+  // Collapse the Work row so stale expansion state would show up after the switch.
+  workCodeRow().focus()
+  fireEvent.keyDown(workCodeRow(), { key: 'ArrowLeft' })
+  expect(workCodeRow().getAttribute('aria-expanded')).toBe('false')
+
+  setWorkspaceId('personal')
+  // The same-named connector in the other workspace is a different row: it is
+  // expanded, selected (the shell keeps the source name) and addressed by its
+  // own workspace.
+  expect(workCodeRow().getAttribute('aria-expanded')).toBe('true')
+  expect(workCodeRow().getAttribute('aria-selected')).toBe('true')
+  expect(workCodeRow().getAttribute('data-tree-id')).toBe('personal:work-code')
+
+  fireEvent.click(workCodeRow())
+  workCodeRow().focus()
+  fireEvent.keyDown(workCodeRow(), { key: 'Enter' })
+  fireEvent.keyDown(workCodeRow(), { key: ' ' })
+  expect(selected).toEqual([
+    ['work-code', 'personal'],
+    ['work-code', 'personal'],
+    ['work-code', 'personal'],
+  ])
+  // Keyboard focus stays on the row and Left/Right still act on it.
+  expect(document.activeElement).toBe(workCodeRow())
+  fireEvent.keyDown(workCodeRow(), { key: 'ArrowLeft' })
+  expect(workCodeRow().getAttribute('aria-expanded')).toBe('false')
+  expect(document.activeElement).toBe(workCodeRow())
+})
+test('Enter and Space select the focused source row', () => {
+  const selected: string[] = []
+  render(() => (
+    <SourcePanel
+      status={demoStatus}
+      statusError=""
+      workspace="work"
+      workspaces={[workspace]}
+      documentQuery=""
+      selected=""
+      documents={[]}
+      selectedDocument=""
+      documentsLoading={false}
+      documentsError=""
+      hasMoreDocuments={false}
+      onSelect={(source) => selected.push(source)}
+      onDocumentQueryChange={() => {}}
+      onSelectDocument={() => {}}
+      onLoadMoreDocuments={() => {}}
+      onOpenSourcesSettings={() => {}}
+      onClose={() => {}}
+      jobs={[]}
+    />
+  ))
+  const row = screen.getAllByRole('treeitem', { expanded: true })[0]
+  row.focus()
+  fireEvent.keyDown(row, { key: 'Enter' })
+  fireEvent.keyDown(row, { key: ' ' })
+  expect(selected).toHaveLength(2)
+  expect(selected[0]).toBe(selected[1])
 })
 test('SourcePanel uses the shared secondary action style for pagination', () => {
   renderPanel(demoStatus, '', '', undefined, 'work', true)
@@ -135,12 +271,12 @@ test('SourcePanel never falls back to an all-workspaces source tree', () => {
     />
   ))
   expect(
-    screen.getByRole('button', {
+    screen.getByRole('treeitem', {
       name: /^work-code/,
     })
   ).toBeTruthy()
   expect(
-    screen.queryByRole('button', {
+    screen.queryByRole('treeitem', {
       name: /^personal-gmail/,
     })
   ).toBeNull()
@@ -167,7 +303,7 @@ test('SourcePanel keeps the last known source index visible during a refresh fai
   renderPanel(demoStatus, 'Status refresh failed')
   expect(screen.getByText(/Status refresh failed Showing the last known source index/)).toBeTruthy()
   expect(
-    screen.getByRole('button', {
+    screen.getByRole('treeitem', {
       name: /^work-code/,
     })
   ).toBeTruthy()
@@ -364,13 +500,13 @@ test('source selection is scoped to the active workspace when names repeat', () 
       jobs={[]}
     />
   ))
-  const rows = screen.getAllByRole('button', {
-    name: /work-code/,
+  const rows = screen.getAllByRole('treeitem', {
+    name: /^work-code \d/,
   })
-  expect(rows).toHaveLength(2)
-  expect(rows.filter((row) => row.getAttribute('aria-pressed') === 'true')).toHaveLength(1)
+  expect(rows).toHaveLength(1)
+  expect(rows.filter((row) => row.getAttribute('aria-selected') === 'true')).toHaveLength(1)
 })
-test('source-select button is rendered as a button control', () => {
+test('source rows are named tree items and report the selected source', () => {
   render(() => (
     <SourcePanel
       status={demoStatus}
@@ -393,13 +529,11 @@ test('source-select button is rendered as a button control', () => {
       jobs={[]}
     />
   ))
-  const selectButton = screen.getByRole('button', {
+  const row = screen.getByRole('treeitem', {
     name: /work-code \d+/,
   })
-  expect(selectButton).toBeTruthy()
-  expect(selectButton.className).toContain('source-select')
-  expect(selectButton.getAttribute('type')).toBe('button')
-  expect(selectButton.getAttribute('aria-pressed')).toBe('true')
+  expect(row.getAttribute('aria-selected')).toBe('true')
+  expect(row.getAttribute('aria-level')).toBe('1')
 })
 test('source panel exposes setup and browser authorization actions only when required', () => {
   let setupSource = ''
