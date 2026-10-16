@@ -649,10 +649,19 @@ async function auditAccessibility(page, label) {
         await page.waitForTimeout(300)
         await auditAccessibility(page, 'settings destructive confirmation')
         await screenshot(page, `settings-source-confirmation-${theme}-1440`)
-        // The shared alert dialog deliberately ignores Escape — a destructive
-        // confirmation wants an explicit choice — so dismiss through Cancel,
-        // which restores focus to the Remove trigger.
+        // Escape is the confirmation's Cancel: it closes only the confirmation, the
+        // source is not removed, and focus returns to the Remove trigger.
+        await page.keyboard.press('Escape')
+        await page.getByRole('alertdialog').waitFor({ state: 'detached' })
+        await removeSource.waitFor()
+        await page.waitForFunction(
+          () => document.activeElement?.getAttribute('aria-label') === 'Remove work-code'
+        )
+        // The named Cancel action still works the same way.
+        await removeSource.click()
+        await page.getByRole('alertdialog').waitFor()
         await page.getByRole('button', { name: 'Cancel' }).click()
+        await page.getByRole('alertdialog').waitFor({ state: 'detached' })
         await page.waitForFunction(
           () => document.activeElement?.getAttribute('aria-label') === 'Remove work-code'
         )
