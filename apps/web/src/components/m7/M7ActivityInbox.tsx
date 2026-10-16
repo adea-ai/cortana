@@ -5,15 +5,7 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from '@adea-ai/ui/components/ui/accordion'
-import {
-  AlertTriangle,
-  CheckCircle2,
-  CircleStop,
-  CircleX,
-  Inbox,
-  RefreshCw,
-  Settings,
-} from 'lucide-solid'
+import { AlertTriangle, CheckCircle2, CircleStop, CircleX, Inbox, Settings } from 'lucide-solid'
 import { For, Show } from 'solid-js'
 
 import { describeSyncRunProgress } from '@/operations'
@@ -30,14 +22,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@adea-ai/ui/components/ui/card'
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@adea-ai/ui/components/ui/empty'
+import { EmptyState } from '@adea-ai/ui/components/ui/empty'
 import { Progress } from '@adea-ai/ui/components/ui/progress'
 import { Heading, Text } from '@adea-ai/ui/components/ui/typography'
 import { CodeBlock } from '@adea-ai/ui/components/ui/code-block'
@@ -68,11 +53,13 @@ function statusBadge(status: SourceSyncSummary['status'] | DesktopSourceJob['sta
         ? 'Cancelling…'
         : status[0].toUpperCase() + status.slice(1)
   const tone =
-    status === 'failed' || status === 'cancelled' || status === 'budget_exceeded'
+    status === 'failed' || status === 'budget_exceeded'
       ? 'danger'
-      : status === 'succeeded'
-        ? 'success'
-        : 'info'
+      : status === 'cancelled'
+        ? 'neutral'
+        : status === 'succeeded'
+          ? 'success'
+          : 'info'
   return <StatusChip tone={tone} label={label} />
 }
 
@@ -102,54 +89,37 @@ function ActivityEmpty(props: {
   onOpenSettings: () => void
 }) {
   return (
-    <Empty class="min-h-72">
-      <EmptyHeader>
-        <EmptyMedia variant="icon">
-          {props.loading ? (
-            <Spinner size="md" label={false} />
-          ) : props.error ? (
-            <AlertTriangle aria-hidden="true" />
-          ) : (
-            <Inbox aria-hidden="true" />
-          )}
-        </EmptyMedia>
-        <EmptyTitle>
-          {props.loading
-            ? 'Loading sync health'
-            : props.error
-              ? 'Sync health unavailable'
-              : 'No sync attention'}
-        </EmptyTitle>
-        <EmptyDescription>
-          {props.error ||
-            (props.loading
-              ? 'Waiting for the runtime status snapshot before reporting source health or sync history.'
-              : 'Every configured source is idle and the latest syncs finished cleanly. New activity appears here as it happens.')}
-        </EmptyDescription>
-      </EmptyHeader>
-      <EmptyContent>
-        <div class="flex flex-wrap justify-center gap-2">
-          <Show when={props.error && props.onRetryStatus}>
-            <Button
-              tooltip="Retry status"
-              variant="secondary"
-              size="sm"
-              onClick={props.onRetryStatus}
-            >
-              <RefreshCw aria-hidden="true" /> Retry status
-            </Button>
-          </Show>
-          <Button
-            tooltip="Review configuration and resolve setup requirements."
-            variant="secondary"
-            size="sm"
-            onClick={props.onOpenSettings}
-          >
-            <Settings aria-hidden="true" /> Open settings
-          </Button>
-        </div>
-      </EmptyContent>
-    </Empty>
+    <EmptyState
+      class="min-h-64"
+      headingLevel={2}
+      busy={props.loading}
+      icon={props.error ? <AlertTriangle aria-hidden="true" /> : <Inbox aria-hidden="true" />}
+      announceAs={props.error ? 'alert' : props.loading ? 'status' : undefined}
+      title={
+        props.loading
+          ? 'Loading sync health'
+          : props.error
+            ? 'Sync health unavailable'
+            : 'No sync attention'
+      }
+      detail={
+        props.error ||
+        (props.loading
+          ? 'Waiting for the runtime status snapshot before reporting source health or sync history.'
+          : 'Every configured source is idle and the latest syncs finished cleanly. New activity appears here as it happens.')
+      }
+      actionTooltip="Review configuration and resolve setup requirements."
+      {...(props.error && props.onRetryStatus
+        ? {
+            action: props.onRetryStatus,
+            actionLabel: 'Retry status',
+            actionTooltip: 'Retry status',
+            secondaryAction: props.onOpenSettings,
+            secondaryActionLabel: 'Open settings',
+            secondaryActionTooltip: 'Review configuration and resolve setup requirements.',
+          }
+        : { action: props.onOpenSettings, actionLabel: 'Open settings' })}
+    />
   )
 }
 
@@ -162,20 +132,16 @@ function SyncActivityCard(props: { run: SourceSyncSummary }) {
   return (
     <Card>
       <CardHeader>
-        <div class="flex min-w-0 items-start justify-between gap-3">
-          <div data-activity-card-copy="" class="flex min-w-0 flex-1 flex-col gap-2">
-            <CardTitle>
-              <span class="flex min-w-0 items-center gap-2">
-                {statusIcon(props.run.status)}
-                <span class="min-w-0 break-words">{props.run.source}</span>
-              </span>
-            </CardTitle>
-            <CardDescription class="break-words">
-              {props.run.project} · started {new Date(props.run.started_at).toLocaleString()}
-            </CardDescription>
-          </div>
-          <CardAction>{statusBadge(props.run.status)}</CardAction>
-        </div>
+        <CardTitle>
+          <span class="flex min-w-0 items-center gap-2">
+            {statusIcon(props.run.status)}
+            <span class="min-w-0 break-words">{props.run.source}</span>
+          </span>
+        </CardTitle>
+        <CardDescription class="break-words">
+          {props.run.project} · started {new Date(props.run.started_at).toLocaleString()}
+        </CardDescription>
+        <CardAction>{statusBadge(props.run.status)}</CardAction>
       </CardHeader>
       <CardContent>
         <div class="flex min-w-0 items-center gap-4 max-[520px]:flex-col max-[520px]:items-stretch max-[520px]:gap-3">
@@ -214,22 +180,18 @@ function SourceJobCard(props: { job: DesktopSourceJob; onCancel?: (id: string) =
   return (
     <Card>
       <CardHeader>
-        <div class="flex min-w-0 items-start justify-between gap-3">
-          <div data-activity-card-copy="" class="flex min-w-0 flex-1 flex-col gap-2">
-            <CardTitle>
-              <span class="flex min-w-0 items-center gap-2">
-                {statusIcon(props.job.status)}
-                <span class="min-w-0 break-words">
-                  {props.job.source} · {sourceOperationLabel(props.job.operation)}
-                </span>
-              </span>
-            </CardTitle>
-            <CardDescription class="break-words">
-              {props.job.project} · started {started().toLocaleString()}
-            </CardDescription>
-          </div>
-          <CardAction>{statusBadge(props.job.status)}</CardAction>
-        </div>
+        <CardTitle>
+          <span class="flex min-w-0 items-center gap-2">
+            {statusIcon(props.job.status)}
+            <span class="min-w-0 break-words">
+              {props.job.source} · {sourceOperationLabel(props.job.operation)}
+            </span>
+          </span>
+        </CardTitle>
+        <CardDescription class="break-words">
+          {props.job.project} · started {started().toLocaleString()}
+        </CardDescription>
+        <CardAction>{statusBadge(props.job.status)}</CardAction>
       </CardHeader>
       <CardContent>
         <div class="flex min-w-0 items-center gap-4 max-[520px]:flex-col max-[520px]:items-stretch max-[520px]:gap-3">

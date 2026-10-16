@@ -10,8 +10,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@adea-ai/ui/components/ui/alert-dialog'
+import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
 
-type ConfirmSettingsAction = (description: string) => boolean | Promise<boolean>
+export type ConfirmOptions = {
+  /** The action removes, clears or discards something: the Continue button is styled destructive. */
+  destructive?: boolean
+}
+
+type ConfirmSettingsAction = (
+  description: string,
+  options?: ConfirmOptions
+) => boolean | Promise<boolean>
 
 // Existing behavior tests inject a deterministic confirm function. Preserve
 // that seam without exposing the browser-native dialog in production.
@@ -27,6 +36,7 @@ const FOCUS_RESTORE_RETRIES = 30
 
 type PendingConfirmation = {
   description: string
+  destructive: boolean
   resolve: (confirmed: boolean) => void
   trigger: HTMLElement | null
   scope: HTMLElement | null
@@ -104,7 +114,7 @@ export function SettingsConfirmProvider(props: { children: JSX.Element }) {
     current?.resolve(false)
   })
 
-  const confirm: ConfirmSettingsAction = (description) => {
+  const confirm: ConfirmSettingsAction = (description, options) => {
     if (disposed) return Promise.resolve(false)
     const superseded = pendingRef
     if (superseded) {
@@ -122,6 +132,7 @@ export function SettingsConfirmProvider(props: { children: JSX.Element }) {
       const opener = active?.closest('[role="alertdialog"]') ? superseded : null
       const next = {
         description,
+        destructive: options?.destructive ?? false,
         resolve,
         trigger: opener ? opener.trigger : active,
         scope: opener
@@ -147,8 +158,20 @@ export function SettingsConfirmProvider(props: { children: JSX.Element }) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => settle(false)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={() => settle(true)}>
+            <AlertDialogCancel
+              as={ActionButton}
+              tooltip="Close without changing anything"
+              variant="outline"
+              onClick={() => settle(false)}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              as={ActionButton}
+              tooltip="Confirm and continue"
+              variant={pending()?.destructive ? 'destructive' : 'default'}
+              onClick={() => settle(true)}
+            >
               Continue
             </AlertDialogAction>
           </AlertDialogFooter>

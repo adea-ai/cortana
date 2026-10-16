@@ -121,3 +121,44 @@ test('Escape closes only the confirmation and leaves its parent dialog open', as
   await new Promise((resolve) => setTimeout(resolve, 150))
   expect(results).toEqual([false])
 })
+
+function VariantButtons() {
+  const confirm = useSettingsConfirm()
+  return (
+    <>
+      <ActionButton tooltip="Check" onClick={() => void confirm('Run the check now?')}>
+        Check
+      </ActionButton>
+      <ActionButton
+        tooltip="Remove"
+        onClick={() => void confirm('Remove this source?', { destructive: true })}
+      >
+        Remove
+      </ActionButton>
+    </>
+  )
+}
+
+const continueClasses = async (opener: string) => {
+  fireEvent.click(screen.getByRole('button', { name: opener }))
+  await screen.findByRole('alertdialog', { name: 'Confirm this action' })
+  const classes = screen.getByRole('button', { name: 'Continue' }).className
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+  await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull())
+  return classes
+}
+
+// Only a confirmation that removes, clears or discards something earns the
+// destructive Continue; a routine one gets the default button.
+test('Continue is destructive only when the confirmation says the action is', async () => {
+  render(() => (
+    <SettingsConfirmProvider>
+      <VariantButtons />
+    </SettingsConfirmProvider>
+  ))
+  const routine = await continueClasses('Check')
+  const destructive = await continueClasses('Remove')
+  expect(routine).not.toBe(destructive)
+  expect(destructive).toMatch(/destructive/)
+  expect(routine).not.toMatch(/destructive/)
+})

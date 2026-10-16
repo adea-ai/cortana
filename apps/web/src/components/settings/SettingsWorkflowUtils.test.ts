@@ -60,27 +60,27 @@ test('failed readiness checks are listed by label in scan order', () => {
 test('a cancelled job is neutral, not failed', () => {
   expect(jobGlyphState('succeeded')).toEqual({
     passed: true,
-    optional: false,
+    cancelled: false,
     pending: false,
   })
   expect(jobGlyphState('failed')).toEqual({
     passed: false,
-    optional: false,
+    cancelled: false,
     pending: false,
   })
   expect(jobGlyphState('cancelled')).toEqual({
     passed: false,
-    optional: true,
+    cancelled: true,
     pending: false,
   })
   expect(jobGlyphState('running')).toEqual({
     passed: false,
-    optional: false,
+    cancelled: false,
     pending: true,
   })
   expect(jobGlyphState('cancelling')).toEqual({
     passed: false,
-    optional: false,
+    cancelled: false,
     pending: true,
   })
 })

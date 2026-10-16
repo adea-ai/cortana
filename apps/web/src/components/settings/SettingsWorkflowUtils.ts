@@ -35,16 +35,16 @@ export function failedReadinessCheckLabels(
 
 /**
  * Chip state for a finished source or installer job. A cancelled job is a
- * deliberate stop, not a failure, so it takes the neutral `optional` chip.
+ * deliberate stop, not a failure, so it reads "Cancelled" in the neutral tone.
  */
 export function jobGlyphState(status: string): {
   passed: boolean
-  optional: boolean
+  cancelled: boolean
   pending: boolean
 } {
   return {
     passed: status === 'succeeded',
-    optional: status === 'cancelled',
+    cancelled: status === 'cancelled',
     pending: status === 'running' || status === 'cancelling',
   }
 }

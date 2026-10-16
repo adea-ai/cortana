@@ -1,3 +1,4 @@
+import { Text } from '@adea-ai/ui/components/ui/typography'
 import { KeyRound, Plus, Trash2 } from 'lucide-solid'
 import { For, Index } from 'solid-js'
 
@@ -93,7 +94,8 @@ export function AccessSection(
                       onClick={() =>
                         applyConfirmed(
                           confirm(
-                            `Remove ${principal().principal} from agent access? Its stored credential will be removed only after you save these changes.`
+                            `Remove ${principal().principal} from agent access? Its stored credential will be removed only after you save these changes.`,
+                            { destructive: true }
                           ),
                           () =>
                             props.update((current) => ({
@@ -207,10 +209,10 @@ export function AccessSection(
       <ActionButton tooltip="Add principal" variant="secondary" size="sm" onClick={add}>
         <Plus size={15} aria-hidden="true" /> Add principal
       </ActionButton>
-      <p class="settings-note">
+      <Text as="p" variant="micro" tone="muted">
         Settings take effect after the server restarts. Desktop requests select a matching private
         native credential by scope without exposing it to web content.
-      </p>
+      </Text>
     </SettingsSection>
   )
 }
