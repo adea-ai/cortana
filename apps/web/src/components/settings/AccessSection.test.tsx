@@ -199,3 +199,43 @@ test('the stored-token clear action sits inside the token field under the same n
     field.closest('[data-slot="input-group"]')
   )
 })
+
+// `onClear` depends on the stored secret and the cleared set, both of which
+// change while the section is open: the action must appear and disappear with
+// them while the field keeps its element, value and focus.
+test('the clear action follows the configured and cleared state without remounting the field', async () => {
+  const env = 'CORTANA_DEMO_TOKEN'
+  const [secrets, setSecrets] = createSignal<DesktopSettings['secrets']>([])
+  const [cleared, setCleared] = createSignal(new Set<string>())
+  render(() => (
+    <SettingsConfirmProvider>
+      <AccessSection
+        settings={{
+          ...desktopSettings,
+          auth_principals: [
+            { principal: 'desktop-agent', token_env: env, scopes: ['query'], acl: ['work'] },
+          ],
+          secrets: secrets(),
+        }}
+        update={() => undefined}
+        secretValues={{}}
+        onSecret={() => undefined}
+        clearedSecrets={cleared()}
+        onClearSecret={() => undefined}
+      />
+    </SettingsConfirmProvider>
+  ))
+  const field = screen.getByLabelText('New bearer token') as HTMLInputElement
+  field.focus()
+  expect(screen.queryByRole('button', { name: 'Clear stored token' })).toBeNull()
+
+  setSecrets([{ name: env, configured: true, source: 'secret-file' }])
+  expect(screen.getByRole('button', { name: 'Clear stored token' })).toBeTruthy()
+  expect(screen.getByLabelText('New bearer token')).toBe(field)
+  expect(document.activeElement).toBe(field)
+
+  setCleared(new Set([env]))
+  expect(screen.queryByRole('button', { name: 'Clear stored token' })).toBeNull()
+  expect(screen.getByLabelText('New bearer token')).toBe(field)
+  expect(document.activeElement).toBe(field)
+})
