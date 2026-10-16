@@ -1,4 +1,3 @@
-import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 import { Alert, AlertDescription } from '@adea-ai/ui/components/ui/alert'
 import {
   AlertTriangle,
@@ -6,7 +5,6 @@ import {
   Copy,
   FileText,
   MessageCircle,
-  RefreshCw,
   Search,
   Settings,
   Sparkles,
@@ -29,15 +27,8 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from '@adea-ai/ui/components/layout/page'
-import {
-  Empty,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-  EmptyDescription,
-  EmptyContent,
-} from '@adea-ai/ui/components/ui/empty'
-import { Stat } from '@adea-ai/ui/components/composites/stat'
+import { EmptyState } from '@adea-ai/ui/components/ui/empty'
+import { Stat, StatGroup } from '@adea-ai/ui/components/composites/stat'
 
 import type { UtilityKind } from '../utilityKinds'
 import { Heading, Text } from '@adea-ai/ui/components/ui/typography'
@@ -140,81 +131,40 @@ function ConversationsView(props: {
     <Show
       when={!props.loading}
       fallback={
-        <Empty>
-          <EmptyHeader>
-            <EmptyMedia variant="icon">{<Spinner size="xl" label={false} />}</EmptyMedia>
-            <EmptyTitle>{'Searching the brain'}</EmptyTitle>
-            <EmptyDescription>{`Fusing semantic and exact-term evidence for “${props.query}”.`}</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+        <EmptyState
+          headingLevel={2}
+          busy
+          announceAs="status"
+          title="Searching the brain"
+          detail={`Fusing semantic and exact-term evidence for “${props.query}”.`}
+        />
       }
     >
       <Show
         when={!(props.error && !props.answer)}
         fallback={
-          <Empty>
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                {<AlertTriangle size={26} aria-hidden="true" />}
-              </EmptyMedia>
-              <EmptyTitle>{'The brain is unreachable'}</EmptyTitle>
-              <EmptyDescription>{`${props.error.replace(/[.!?]+$/, '')}. Start the Rust API or add ?demo=1 to preview the workspace.`}</EmptyDescription>
-            </EmptyHeader>
-            <EmptyContent>
-              <For
-                each={[
-                  {
-                    label: 'Search the brain',
-                    icon: <Search size={15} aria-hidden="true" />,
-                    onClick: props.onSearchFocus,
-                  },
-                ]}
-              >
-                {({ label, icon, onClick }) => (
-                  <Button variant="secondary" size="sm" tooltip={label} onClick={onClick}>
-                    {icon}
-                    {label}
-                  </Button>
-                )}
-              </For>
-            </EmptyContent>
-          </Empty>
+          <EmptyState
+            headingLevel={2}
+            icon={<AlertTriangle aria-hidden="true" />}
+            announceAs="alert"
+            title="The brain is unreachable"
+            detail={`${props.error.replace(/[.!?]+$/, '')}. Start the Rust API or add ?demo=1 to preview the workspace.`}
+            action={props.onSearchFocus}
+            actionLabel="Search the brain"
+          />
         }
       >
         <Show
           when={props.answer}
           fallback={
-            <Empty>
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  {<MessageCircle size={26} aria-hidden="true" />}
-                </EmptyMedia>
-                <EmptyTitle>{'No conversation yet'}</EmptyTitle>
-                <EmptyDescription>
-                  {
-                    'Ask a question in the search bar above. The current query, answer, and cited evidence will be tracked here.'
-                  }
-                </EmptyDescription>
-              </EmptyHeader>
-              <EmptyContent>
-                <For
-                  each={[
-                    {
-                      label: 'Search the brain',
-                      icon: <Search size={15} aria-hidden="true" />,
-                      onClick: props.onSearchFocus,
-                    },
-                  ]}
-                >
-                  {({ label, icon, onClick }) => (
-                    <Button variant="secondary" size="sm" tooltip={label} onClick={onClick}>
-                      {icon}
-                      {label}
-                    </Button>
-                  )}
-                </For>
-              </EmptyContent>
-            </Empty>
+            <EmptyState
+              headingLevel={2}
+              icon={<MessageCircle aria-hidden="true" />}
+              title="No conversation yet"
+              detail="Ask a question in the search bar above. The current query, answer, and cited evidence will be tracked here."
+              action={props.onSearchFocus}
+              actionLabel="Search the brain"
+            />
           }
         >
           {(answer) => (
@@ -315,54 +265,31 @@ function AgentToolsView(props: {
         <Show
           when={!props.contextLoading}
           fallback={
-            <Empty>
-              <EmptyHeader>
-                <EmptyMedia variant="icon">{<Spinner size="xl" label={false} />}</EmptyMedia>
-                <EmptyTitle>{'Retrieving context'}</EmptyTitle>
-                <EmptyDescription>{`Building a token-bounded bundle for “${props.query}”.`}</EmptyDescription>
-              </EmptyHeader>
-            </Empty>
+            <EmptyState
+              headingLevel={3}
+              busy
+              announceAs="status"
+              title="Retrieving context"
+              detail={`Building a token-bounded bundle for “${props.query}”.`}
+            />
           }
         >
           <Show
             when={props.contextBundle}
             fallback={
-              <Empty>
-                <EmptyHeader>
-                  <EmptyMedia variant="icon">
-                    {<TerminalSquare size={26} aria-hidden="true" />}
-                  </EmptyMedia>
-                  <EmptyTitle>{'No context generated yet'}</EmptyTitle>
-                  <EmptyDescription>
-                    {
-                      'Retrieve the token-bounded context bundle for the current conversation. It is the same citation-ready surface the agent integrations receive.'
-                    }
-                  </EmptyDescription>
-                </EmptyHeader>
-                <EmptyContent>
-                  <For
-                    each={[
-                      {
-                        label: 'Retrieve context',
-                        icon: <Sparkles size={15} aria-hidden="true" />,
-                        onClick: props.onRetrieveContext,
-                      },
-                    ]}
-                  >
-                    {({ label, icon, onClick }) => (
-                      <Button variant="secondary" size="sm" tooltip={label} onClick={onClick}>
-                        {icon}
-                        {label}
-                      </Button>
-                    )}
-                  </For>
-                </EmptyContent>
-              </Empty>
+              <EmptyState
+                headingLevel={3}
+                icon={<TerminalSquare aria-hidden="true" />}
+                title="No context generated yet"
+                detail="Retrieve the token-bounded context bundle for the current conversation. It is the same citation-ready surface the agent integrations receive."
+                action={props.onRetrieveContext}
+                actionLabel="Retrieve context"
+              />
             }
           >
             {(contextBundle) => (
               <>
-                <div class="utility-metrics">
+                <StatGroup fit>
                   <Stat label="Retrieval" value={contextBundle().retrieval_mode || 'hybrid'} />
                   <Stat
                     label="Retrieved"
@@ -389,7 +316,7 @@ function AgentToolsView(props: {
                     label="Max tokens"
                     value={contextBundle().metrics.max_tokens.toLocaleString()}
                   />
-                </div>
+                </StatGroup>
                 <Show when={contextBundle().retrieval_warning}>
                   <Alert variant="warning" role="status">
                     <AlertDescription>{contextBundle().retrieval_warning}</AlertDescription>
@@ -472,49 +399,25 @@ function IndexView(props: {
     <Show
       when={props.status}
       fallback={
-        <Empty>
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              {props.statusError ? (
-                <AlertTriangle size={26} aria-hidden="true" />
-              ) : (
-                <Spinner size="xl" label={false} />
-              )}
-            </EmptyMedia>
-            <EmptyTitle>{props.statusError ? 'Index unavailable' : 'Loading index'}</EmptyTitle>
-            <EmptyDescription>
-              {props.statusError ||
-                'Waiting for the runtime status snapshot before reporting live index metrics.'}
-            </EmptyDescription>
-          </EmptyHeader>
-          <EmptyContent>
-            <For
-              each={[
-                ...(props.onRetryStatus
-                  ? [
-                      {
-                        label: 'Retry status',
-                        icon: <RefreshCw size={15} aria-hidden="true" />,
-                        onClick: props.onRetryStatus,
-                      },
-                    ]
-                  : []),
-                {
-                  label: 'Open settings',
-                  icon: <Settings size={15} aria-hidden="true" />,
-                  onClick: props.onOpenSettings,
-                },
-              ]}
-            >
-              {({ label, icon, onClick }) => (
-                <Button variant="secondary" size="sm" tooltip={label} onClick={onClick}>
-                  {icon}
-                  {label}
-                </Button>
-              )}
-            </For>
-          </EmptyContent>
-        </Empty>
+        <EmptyState
+          headingLevel={2}
+          {...(props.statusError
+            ? { icon: <AlertTriangle aria-hidden="true" />, announceAs: 'alert' as const }
+            : { busy: true, announceAs: 'status' as const })}
+          title={props.statusError ? 'Index unavailable' : 'Loading index'}
+          detail={
+            props.statusError ||
+            'Waiting for the runtime status snapshot before reporting live index metrics.'
+          }
+          {...(props.onRetryStatus
+            ? {
+                action: props.onRetryStatus,
+                actionLabel: 'Retry status',
+                secondaryAction: props.onOpenSettings,
+                secondaryActionLabel: 'Open settings',
+              }
+            : { action: props.onOpenSettings, actionLabel: 'Open settings' })}
+        />
       }
     >
       {(status) => (
@@ -531,7 +434,7 @@ function IndexView(props: {
           </Show>
           <section class="flex min-w-0 flex-col gap-3">
             <Heading size="section">Live metrics</Heading>
-            <div class="utility-metrics">
+            <StatGroup fit>
               <Stat label="Documents" value={status().documents.toLocaleString()} />
               <Stat label="Chunks" value={status().chunks.toLocaleString()} />
               <Stat label="Sources" value={status().sources.length.toLocaleString()} />
@@ -558,7 +461,7 @@ function IndexView(props: {
                 value={`${status().memory.active.toLocaleString()} active · ${status().memory.total.toLocaleString()} total`}
               />
               <Stat label="Expired memory" value={status().memory.expired.toLocaleString()} />
-            </div>
+            </StatGroup>
           </section>
           <section class="flex min-w-0 flex-col gap-3">
             <Heading size="section">Configuration</Heading>

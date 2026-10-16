@@ -92,7 +92,8 @@ export function AccessSection(
                       onClick={() =>
                         applyConfirmed(
                           confirm(
-                            `Remove ${principal().principal} from agent access? Its stored credential will be removed only after you save these changes.`
+                            `Remove ${principal().principal} from agent access? Its stored credential will be removed only after you save these changes.`,
+                            { destructive: true }
                           ),
                           () =>
                             props.update((current) => ({
@@ -155,7 +156,8 @@ export function AccessSection(
                           onClick={() =>
                             applyConfirmed(
                               confirm(
-                                `Clear the stored bearer token for ${principal().principal}? The change remains a draft until you save settings.`
+                                `Clear the stored bearer token for ${principal().principal}? The change remains a draft until you save settings.`,
+                                { destructive: true }
                               ),
                               () => props.onClearSecret(principal().token_env)
                             )

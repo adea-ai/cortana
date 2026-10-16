@@ -1796,7 +1796,7 @@ function CortanaApplication() {
       setSettingsDirty(false)
       proceed()
     }
-    const decision = confirm('Discard unsaved Cortana settings changes?')
+    const decision = confirm('Discard unsaved Cortana settings changes?', { destructive: true })
     if (typeof decision === 'boolean') {
       if (decision) discard()
       return

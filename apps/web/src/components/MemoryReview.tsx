@@ -401,7 +401,8 @@ export function MemoryReview(props: {
     if (
       canonicalWrite &&
       !(await confirm(
-        `Confirm ${action.replace('-', ' ')} for ${boundedIds.length} candidate${boundedIds.length === 1 ? '' : 's'}? Canonical memory may change only if backend policy approves.`
+        `Confirm ${action.replace('-', ' ')} for ${boundedIds.length} candidate${boundedIds.length === 1 ? '' : 's'}? Canonical memory may change only if backend policy approves.`,
+        { destructive: action === 'reject' || action === 'redact' }
       ))
     ) {
       return

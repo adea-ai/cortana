@@ -364,7 +364,8 @@ function ProviderSection<T extends ProviderValue>(incoming: {
                   ? () =>
                       applyConfirmed(
                         confirm(
-                          'Clear the stored provider API key? The change remains a draft until you save settings.'
+                          'Clear the stored provider API key? The change remains a draft until you save settings.',
+                          { destructive: true }
                         ),
                         () => props.onClearSecret(props.provider.api_key_env!)
                       )

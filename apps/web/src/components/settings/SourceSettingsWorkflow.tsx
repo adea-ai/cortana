@@ -79,6 +79,7 @@ import {
   useDesktopForeground,
 } from './SettingsWorkflowUtils'
 import { Text } from '@adea-ai/ui/components/ui/typography'
+import { PropertyList, PropertyTerm, PropertyValue } from '@adea-ai/ui/components/composites/stat'
 import { FormField, FieldGroup } from '@adea-ai/ui/components/ui/field'
 import { SettingsSection } from '@adea-ai/ui/components/composites/settings'
 import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
@@ -1318,7 +1319,8 @@ export function SourcesSection(
                                   }
                                   applyConfirmed(
                                     confirm(
-                                      `Remove ${source().name} from configuration? Existing indexed data is not deleted.`
+                                      `Remove ${source().name} from configuration? Existing indexed data is not deleted.`,
+                                      { destructive: true }
                                     ),
                                     remove
                                   )
@@ -1713,7 +1715,8 @@ export function SourcesSection(
                                                 onClick={() =>
                                                   applyConfirmed(
                                                     confirm(
-                                                      `Clear the stored Google token path for ${source().name}? The change remains a draft until you save settings.`
+                                                      `Clear the stored Google token path for ${source().name}? The change remains a draft until you save settings.`,
+                                                      { destructive: true }
                                                     ),
                                                     () => props.onClearSecret(source().token_env!)
                                                   )
@@ -2171,7 +2174,8 @@ export function SourcesSection(
                                                   onClick={() =>
                                                     applyConfirmed(
                                                       confirm(
-                                                        `Clear the stored token for ${source().name}? The change remains a draft until you save settings.`
+                                                        `Clear the stored token for ${source().name}? The change remains a draft until you save settings.`,
+                                                        { destructive: true }
                                                       ),
                                                       () => props.onClearSecret(source().token_env!)
                                                     )
@@ -2730,36 +2734,26 @@ function InitialSyncFlow(incoming: {
       <Show when={plan()} keyed>
         {(currentPlan) => (
           <>
-            <dl class="initial-sync-plan">
-              <div>
-                <dt>Source</dt>
-                <dd>
-                  {currentPlan.source} · {currentPlan.kind} · {currentPlan.project}
-                </dd>
-              </div>
-              <div>
-                <dt>Selected budget</dt>
-                <dd>
-                  {currentPlan.budget_documents.toLocaleString()} documents ·{' '}
-                  {mebibytes(currentPlan.budget_bytes)} MiB · {minutes(currentPlan.budget_seconds)}{' '}
-                  minutes
-                </dd>
-              </div>
-              <div>
-                <dt>Validation gate</dt>
-                <dd>
-                  {currentPlan.requires_validation ? 'Required at equal or larger limits' : 'None'}
-                </dd>
-              </div>
-              <div>
-                <dt>Deletion reconciliation</dt>
-                <dd>Disabled</dd>
-              </div>
-              <div>
-                <dt>Writes indexed data</dt>
-                <dd>Yes — committed batches become searchable</dd>
-              </div>
-            </dl>
+            <PropertyList>
+              <PropertyTerm>Source</PropertyTerm>
+              <PropertyValue>
+                {currentPlan.source} · {currentPlan.kind} · {currentPlan.project}
+              </PropertyValue>
+              <PropertyTerm>Selected budget</PropertyTerm>
+              <PropertyValue>
+                {currentPlan.budget_documents.toLocaleString()} documents ·{' '}
+                {mebibytes(currentPlan.budget_bytes)} MiB · {minutes(currentPlan.budget_seconds)}{' '}
+                minutes
+              </PropertyValue>
+              <PropertyTerm>Validation gate</PropertyTerm>
+              <PropertyValue>
+                {currentPlan.requires_validation ? 'Required at equal or larger limits' : 'None'}
+              </PropertyValue>
+              <PropertyTerm>Deletion reconciliation</PropertyTerm>
+              <PropertyValue>Disabled</PropertyValue>
+              <PropertyTerm>Writes indexed data</PropertyTerm>
+              <PropertyValue>Yes — committed batches become searchable</PropertyValue>
+            </PropertyList>
             {!currentPlan.enabled && (
               <Alert class="safety-note" variant="warning">
                 <AlertDescription>

@@ -333,7 +333,8 @@ export function WorkspaceSection(incoming: {
                           onClick={() =>
                             applyConfirmed(
                               confirm(
-                                `Remove the ${workspace().name} workspace? This changes only the settings draft and does not delete indexed data.`
+                                `Remove the ${workspace().name} workspace? This changes only the settings draft and does not delete indexed data.`,
+                                { destructive: true }
                               ),
                               () =>
                                 props.update((current) => ({

@@ -534,14 +534,6 @@ body,
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .initial-sync-plan {
-    grid-template-columns: 1fr;
-  }
-
-  .initial-sync-plan > div {
-    flex-wrap: wrap;
-  }
-
   .initial-sync-actions {
     align-items: flex-start;
     flex-wrap: wrap;
@@ -671,28 +663,6 @@ body,
 .initial-sync-state {
   color: var(--muted-foreground);
   font-size: var(--text-2xs);
-}
-
-.initial-sync-plan {
-  display: grid;
-  margin: 0;
-  gap: 7px 18px;
-  grid-template-columns: max-content 1fr;
-}
-
-.initial-sync-plan > div {
-  display: flex;
-  gap: 8px;
-  font-size: var(--text-2xs);
-}
-
-.initial-sync-plan dt {
-  color: var(--muted-foreground);
-}
-
-.initial-sync-plan dd {
-  margin: 0;
-  color: var(--foreground);
 }
 
 .initial-sync-actions {
@@ -904,13 +874,6 @@ body,
   overflow: hidden;
   flex-direction: column;
   background: var(--background);
-}
-
-/* Stat tiles fill the row at a 150px minimum; no Tailwind scale value expresses auto-fill. */
-.utility-metrics {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 10px;
 }
 
 .m7-shell-provider {

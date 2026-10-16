@@ -458,7 +458,7 @@ function SettingsViewContent(incoming: {
   }
   const discard = async () => {
     if (!dirty() || saving()) return
-    if (!(await confirm('Discard unsaved Cortana settings changes?'))) return
+    if (!(await confirm('Discard unsaved Cortana settings changes?', { destructive: true }))) return
     setSaving(true)
     setError('')
     try {
