@@ -171,10 +171,7 @@ function CandidateQueue(props: {
           <VirtualWindow totalSize={props.range.totalHeight} offset={props.range.offsetTop}>
             <For each={props.filtered.slice(props.range.start, props.range.end)}>
               {(candidate) => (
-                <div
-                  role="listitem"
-                  class="flex h-18 items-center gap-2 px-2.5"
-                >
+                <div role="listitem" class="flex h-18 items-center gap-2 px-2.5">
                   <Checkbox
                     aria-label={`Select ${candidate.title}`}
                     checked={props.selectedIds.has(candidate.id)}
