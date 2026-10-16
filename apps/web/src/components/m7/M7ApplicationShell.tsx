@@ -48,7 +48,12 @@ import {
   SideRailSection,
 } from '@adea-ai/ui/components/layout/side-rail'
 import { StatusBar, StatusBarSpacer } from '@adea-ai/ui/components/layout/status-bar'
-import { Popover, PopoverContent, PopoverTrigger } from '@adea-ai/ui/components/ui/popover'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTitle,
+  PopoverTrigger,
+} from '@adea-ai/ui/components/ui/popover'
 import { Activity } from 'lucide-solid'
 import { TopBar, TopBarSection } from '@adea-ai/ui/components/layout/top-bar'
 import {
@@ -197,7 +202,7 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
       macosInset={titlebar}
       onPointerDown={titlebar ? startWindowDrag : undefined}
     >
-      <TopBarSection class="m7-header-leading">
+      <TopBarSection class="overflow-hidden">
         <Button
           tooltip="Toggle navigation"
           ref={(element: HTMLButtonElement) => (navigation.mobileTriggerRef.current = element)}
@@ -265,45 +270,53 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
             </DropdownMenu>
           </div>
         </Show>
-        <div class="m7-header-context hidden min-w-0 items-center gap-1 sm:flex">
-          <div class="flex items-center gap-1" role="group" aria-label="Search history">
-            <Button
-              tooltip={
-                props.canGoBack ? 'Return to the previous search query' : 'No previous search query'
-              }
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Previous search query"
-              disabled={!props.canGoBack}
-              onClick={props.onHistoryBack}
-            >
-              <ArrowLeft aria-hidden="true" />
-            </Button>
-            <Button
-              tooltip={
-                props.canGoForward ? 'Return to the next search query' : 'No next search query'
-              }
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Next search query"
-              disabled={!props.canGoForward}
-              onClick={props.onHistoryForward}
-            >
-              <ArrowRight aria-hidden="true" />
-            </Button>
+        <Show when={!navigation.isMobile()}>
+          <div class="flex min-w-0 items-center gap-1 overflow-hidden">
+            <div class="flex items-center gap-1" role="group" aria-label="Search history">
+              <Button
+                tooltip={
+                  props.canGoBack
+                    ? 'Return to the previous search query'
+                    : 'No previous search query'
+                }
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Previous search query"
+                disabled={!props.canGoBack}
+                onClick={props.onHistoryBack}
+              >
+                <ArrowLeft aria-hidden="true" />
+              </Button>
+              <Button
+                tooltip={
+                  props.canGoForward ? 'Return to the next search query' : 'No next search query'
+                }
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Next search query"
+                disabled={!props.canGoForward}
+                onClick={props.onHistoryForward}
+              >
+                <ArrowRight aria-hidden="true" />
+              </Button>
+            </div>
+            <Breadcrumb class="hidden min-w-0 lg:block">
+              <BreadcrumbList class="flex-nowrap">
+                <BreadcrumbItem class="min-w-0">
+                  <span class="block truncate">{props.workspaceName}</span>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem class="min-w-0">
+                  <BreadcrumbPage class="min-w-0">
+                    <span class="block truncate">{props.location}</span>
+                  </BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
           </div>
-          <Breadcrumb class="hidden min-w-0 lg:block">
-            <BreadcrumbList>
-              <BreadcrumbItem>{props.workspaceName}</BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>{props.location}</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
+        </Show>
       </TopBarSection>
-      <div class="m7-search-cluster flex min-w-0 items-center justify-center gap-2">
+      <div class="flex w-full min-w-0 items-center justify-center gap-2 justify-self-center">
         <form class="min-w-0 flex-1" onSubmit={props.onSubmit}>
           <InputGroup>
             <InputGroupAddon>
@@ -333,10 +346,12 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
           disabled={props.loading || !props.query.trim()}
         >
           <Sparkles aria-hidden="true" />
-          <span class="hidden md:inline">Reflect</span>
+          <Show when={!navigation.isMobile()}>
+            <span>Reflect</span>
+          </Show>
         </Button>
       </div>
-      <TopBarSection align="end" class="m7-header-actions">
+      <TopBarSection align="end" class="min-w-9 justify-self-end">
         <Show when={props.systemActions}>
           <Popover open={systemOpen()} onOpenChange={setSystemOpen}>
             <PopoverTrigger
@@ -355,8 +370,8 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
                 if ((event.target as HTMLElement).closest('button, a')) setSystemOpen(false)
               }}
             >
-              <h2 class="text-sm font-semibold">System status</h2>
-              <div class="mt-3 flex flex-col items-start gap-2">{props.systemActions}</div>
+              <PopoverTitle>System status</PopoverTitle>
+              <div class="flex flex-col items-start gap-2">{props.systemActions}</div>
             </PopoverContent>
           </Popover>
         </Show>
@@ -438,7 +453,7 @@ export function M7PanelBoundary(props: M7PanelBoundaryProps) {
           }}
           side={props.side}
           closeButton={false}
-          class="m7-panel-boundary max-w-none"
+          size="panel"
         >
           <SheetHeader class="sr-only">
             <SheetTitle>{props.title}</SheetTitle>
