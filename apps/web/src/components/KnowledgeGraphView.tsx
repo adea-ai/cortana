@@ -168,7 +168,7 @@ export default function KnowledgeGraphView(props: {
       <Switch>
         <Match when={props.graphLoading && nodes().length === 0}>
           <EmptyState
-            class="m-4 min-h-64"
+            class="m-4 min-h-64 self-stretch"
             headingLevel={2}
             icon={<Search aria-hidden="true" />}
             busy
@@ -179,7 +179,7 @@ export default function KnowledgeGraphView(props: {
         </Match>
         <Match when={props.graphError && nodes().length === 0}>
           <EmptyState
-            class="m-4 min-h-64"
+            class="m-4 min-h-64 self-stretch"
             headingLevel={2}
             icon={<Search aria-hidden="true" />}
             title="Graph unavailable"
@@ -190,7 +190,7 @@ export default function KnowledgeGraphView(props: {
         </Match>
         <Match when={!props.graphLoading && nothingToShow() && !filtered()}>
           <EmptyState
-            class="m-4 min-h-64"
+            class="m-4 min-h-64 self-stretch"
             headingLevel={2}
             icon={<Search aria-hidden="true" />}
             title="No graph data"

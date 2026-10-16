@@ -5962,7 +5962,7 @@ test('a cancelled installer job shows the neutral chip instead of Failed', async
       timeout: 2_500,
     })
     const job = screen.getByText('Installing uv').closest('[role="status"]') as HTMLElement
-    expect(within(job).getByRole('img', { name: 'Optional' })).toBeTruthy()
+    expect(within(job).getByRole('img', { name: 'Cancelled' })).toBeTruthy()
     expect(within(job).queryByRole('img', { name: 'Failed' })).toBeNull()
   } finally {
     state.installerJob = null

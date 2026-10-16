@@ -257,9 +257,11 @@ export function SourcePanel(props: {
         </SharedFeedbackAlert>
       </Show>
       <Show when={sourceToggleNotice()}>
-        <p class="document-list-state" role="status">
-          {sourceToggleNotice()}
-        </p>
+        <div class="px-2.5 py-2">
+          <Text as="p" variant="micro" tone="muted" role="status">
+            {sourceToggleNotice()}
+          </Text>
+        </div>
       </Show>
       <Show when={props.statusError && props.status}>
         <SharedFeedbackAlert variant="warning" role="status" class="my-2">
@@ -589,9 +591,11 @@ export function SourcePanel(props: {
           <Show
             when={props.documents.length}
             fallback={
-              <p class="document-list-state">
-                {props.documentsLoading ? 'Loading documents…' : 'No documents match this scope.'}
-              </p>
+              <div class="px-2.5 py-2">
+                <Text as="p" variant="micro" tone="muted">
+                  {props.documentsLoading ? 'Loading documents…' : 'No documents match this scope.'}
+                </Text>
+              </div>
             }
           >
             <VirtualDocumentList

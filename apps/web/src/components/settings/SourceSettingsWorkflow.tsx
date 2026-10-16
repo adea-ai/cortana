@@ -1099,11 +1099,11 @@ export function SourcesSection(
           </TabsList>
 
           <TabsContent value={sourceWorkspace()}>
-            <p class="source-workspace-caption">
+            <Text as="p" variant="micro" tone="muted" class="mt-2">
               {selectedWorkspace()
                 ? `Showing sources assigned to ${selectedWorkspace()!.name}.`
                 : 'Assign legacy sources to a workspace before enabling or syncing them.'}
-            </p>
+            </Text>
 
             {activeJob() && (
               <div class="mb-3.5">
@@ -1175,7 +1175,9 @@ export function SourcesSection(
                                 <strong>
                                   {sourceDisplayName(source().kind, source().name || 'New source')}
                                 </strong>
-                                <small>{sourceSubtitle(source())}</small>
+                                <Text as="small" variant="micro" tone="muted">
+                                  {sourceSubtitle(source())}
+                                </Text>
                                 <Show when={accessState(source())}>
                                   {(state) => (
                                     <small class={`source-access source-access--${state().tone}`}>
@@ -1223,8 +1225,10 @@ export function SourcesSection(
                               </div>
                             )}
                             <div class="source-card-actions">
-                              <div class="source-enabled-switch">
-                                <span>{source().enabled ? 'Enabled' : 'Disabled'}</span>
+                              <div class="inline-flex items-center gap-2">
+                                <Text variant="micro" tone="muted">
+                                  {source().enabled ? 'Enabled' : 'Disabled'}
+                                </Text>
                                 <Switch
                                   aria-label={`Enable ${source().name}`}
                                   checked={source().enabled}
@@ -1356,7 +1360,9 @@ export function SourcesSection(
                               <AccordionTrigger>
                                 <span class="source-advanced-label">
                                   <span>Advanced source settings</span>
-                                  <small>Workspace, credentials, filters, and safety limits</small>
+                                  <Text as="small" variant="micro" tone="muted">
+                                    Workspace, credentials, filters, and safety limits
+                                  </Text>
                                 </span>
                               </AccordionTrigger>
                               <AccordionContent>
@@ -2725,7 +2731,11 @@ function InitialSyncFlow(incoming: {
           )}
         </For>
       </RadioGroup>
-      {props.flow.planning && <p class="initial-sync-state">Requesting a native plan…</p>}
+      {props.flow.planning && (
+        <Text as="p" variant="micro" tone="muted">
+          Requesting a native plan…
+        </Text>
+      )}
       {props.flow.flowError && (
         <Alert class="safety-note" variant="destructive" role="alert">
           <AlertDescription>{props.flow.flowError}</AlertDescription>

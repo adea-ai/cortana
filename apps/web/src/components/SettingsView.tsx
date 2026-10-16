@@ -2,6 +2,7 @@ import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 import { ListRow } from '@adea-ai/ui/components/composites/list-row'
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardFooter,
@@ -860,7 +861,7 @@ function SettingsViewContent(incoming: {
             </SettingsLayout>
             {(error() || saved() || settings()!.restart_required) && (
               <Alert
-                class="settings-banner"
+                class="absolute right-6 bottom-4 left-6 md:left-auto md:max-w-xl"
                 variant={error() || restartFailed() ? 'destructive' : 'default'}
                 role={error() || restartFailed() ? 'alert' : 'status'}
               >
@@ -932,19 +933,17 @@ function SetupGuide(incoming: {
   return (
     <Card size="sm" role="region" aria-label="Guided setup progress">
       <CardHeader>
-        <div class="setup-guide-heading">
-          <div>
-            <Text variant="overline">First launch</Text>
-            <strong>Set up Cortana safely</strong>
-            <p>
-              Review each step, then save. The guide itself never starts ingestion; recurring sync
-              is a separate validation-gated action in Services.
-            </p>
-          </div>
-          <span>
+        <Text variant="overline">First launch</Text>
+        <CardTitle>Set up Cortana safely</CardTitle>
+        <CardDescription>
+          Review each step, then save. The guide itself never starts ingestion; recurring sync is a
+          separate validation-gated action in Services.
+        </CardDescription>
+        <CardAction>
+          <Text variant="micro">
             {complete} of {steps.length} ready
-          </span>
-        </div>
+          </Text>
+        </CardAction>
       </CardHeader>
       <CardContent>
         <div class="setup-steps">
@@ -966,11 +965,11 @@ function SetupGuide(incoming: {
         </div>
       </CardContent>
       <CardFooter>
-        <p class="setup-save-state">
+        <Text as="p" variant="micro" tone="muted">
           {props.dirty
             ? 'Unsaved setup changes are ready for review.'
             : 'The Save changes button creates an owner-only configuration with a rollback copy.'}
-        </p>
+        </Text>
       </CardFooter>
     </Card>
   )
@@ -1734,10 +1733,10 @@ function ServicesSection(incoming: {
           )
         })}
       </div>
-      <p class="settings-note">
+      <Text as="p" variant="micro" tone="muted">
         Recurring sync is opt-in and requires current source validation before installation.
         Starting the server, embedding, or backup service does not run ingestion.
-      </p>
+      </Text>
     </SettingsSection>
   )
 }
@@ -2022,7 +2021,12 @@ function ReadinessSection(incoming: {
                       <StatusGlyph passed={tool.available} optional={!tool.required} />
                       <div class="flex min-w-0 flex-1 flex-col gap-1">
                         <strong>
-                          {tool.label} {!tool.required && <small>optional</small>}
+                          {tool.label}{' '}
+                          {!tool.required && (
+                            <Text as="small" variant="micro" tone="muted">
+                              optional
+                            </Text>
+                          )}
                         </strong>
                         <span>{tool.version || tool.detail}</span>
                         {tool.path && <code>{tool.path}</code>}

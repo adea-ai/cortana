@@ -47,7 +47,7 @@ import { PropertyList, PropertyTerm, PropertyValue } from '@adea-ai/ui/component
 
 import { Checkbox } from '@adea-ai/ui/components/ui/checkbox'
 import { Input } from '@adea-ai/ui/components/ui/input'
-import { Empty, EmptyHeader, EmptyTitle, EmptyDescription } from '@adea-ai/ui/components/ui/empty'
+import { EmptyState } from '@adea-ai/ui/components/ui/empty'
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 import { Textarea } from '@adea-ai/ui/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@adea-ai/ui/components/ui/toggle-group'
@@ -200,14 +200,11 @@ function CandidateQueue(props: {
             </For>
           </VirtualWindow>
           <Show when={!props.loading && !props.error && props.filtered.length === 0}>
-            <Empty>
-              <EmptyHeader>
-                <EmptyTitle>No candidates match this view</EmptyTitle>
-                <EmptyDescription>
-                  Adjust the search text or switch the status view to see other candidates.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
+            <EmptyState
+              headingLevel={3}
+              title="No candidates match this view"
+              detail="Adjust the search text or switch the status view to see other candidates."
+            />
           </Show>
         </ScrollArea>
       </Card>

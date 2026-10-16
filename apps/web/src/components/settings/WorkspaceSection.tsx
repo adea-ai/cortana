@@ -1,3 +1,4 @@
+import { Text } from '@adea-ai/ui/components/ui/typography'
 import { Spinner } from '@adea-ai/ui/components/ui/spinner'
 import { Alert, AlertDescription } from '@adea-ai/ui/components/ui/alert'
 import { InputGroup, InputGroupInput, InputGroupAddon } from '@adea-ai/ui/components/ui/input-group'
@@ -33,7 +34,13 @@ import {
   AccordionTrigger,
 } from '@adea-ai/ui/components/ui/accordion'
 import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
-import { Card, CardContent, CardHeader } from '@adea-ai/ui/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@adea-ai/ui/components/ui/card'
 import { Input } from '@adea-ai/ui/components/ui/input'
 import { NativeSelect } from '@adea-ai/ui/components/ui/native-select'
 
@@ -218,12 +225,10 @@ export function WorkspaceSection(incoming: {
       )}
       <Card size="sm">
         <CardHeader>
-          <div class="workspace-card-title">
-            <strong>Device default theme</strong>
-            <small>
-              Applies to every workspace that does not choose its own theme. Stored on this device.
-            </small>
-          </div>
+          <CardTitle>Device default theme</CardTitle>
+          <CardDescription>
+            Applies to every workspace that does not choose its own theme. Stored on this device.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <FieldGroup columns={2}>
@@ -257,11 +262,11 @@ export function WorkspaceSection(incoming: {
             return (
               <Card size="sm">
                 <CardHeader>
-                  <div class="workspace-card-heading">
+                  <div class="flex items-center gap-2">
                     <WorkspaceLogo workspace={workspace()} size="large" />
-                    <div class="workspace-card-title">
-                      <strong>{workspace().name || 'New workspace'}</strong>
-                      <small>Workspace identity</small>
+                    <div class="flex min-w-0 flex-1 flex-col gap-1">
+                      <CardTitle>{workspace().name || 'New workspace'}</CardTitle>
+                      <CardDescription>Workspace identity</CardDescription>
                     </div>
                     <ActionButton
                       variant="ghost"
@@ -296,7 +301,7 @@ export function WorkspaceSection(incoming: {
                       }}
                     />
                     {props.settings.workspaces.length > 1 && (
-                      <div class="workspace-order-actions">
+                      <div class="flex gap-1">
                         <ActionButton
                           variant="ghost"
                           size="icon-sm"
@@ -406,9 +411,9 @@ export function WorkspaceSection(incoming: {
                       <AccordionTrigger>Advanced workspace details</AccordionTrigger>
                       <AccordionContent>
                         <div class="workspace-advanced-fields">
-                          <small class="workspace-advanced-note">
+                          <Text as="small" variant="micro" tone="muted" class="mb-2 block">
                             ID is internal; account labels are optional metadata.
-                          </small>
+                          </Text>
                           <FormField
                             label="Scope ID"
                             hint="generated from the display name; used internally"

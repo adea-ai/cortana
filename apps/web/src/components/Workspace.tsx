@@ -205,6 +205,7 @@ export function Workspace(props: {
       <Switch>
         <Match when={props.documentLoading}>
           <EmptyState
+            class="self-stretch"
             title="Opening document"
             detail="Loading the canonical indexed content…"
             announceAs="status"
@@ -218,6 +219,7 @@ export function Workspace(props: {
           <Suspense
             fallback={
               <EmptyState
+                class="self-stretch"
                 title="Loading knowledge graph"
                 detail="Loading graph view…"
                 announceAs="status"
@@ -253,6 +255,7 @@ export function Workspace(props: {
         </Match>
         <Match when={props.error}>
           <EmptyState
+            class="self-stretch"
             title="Cortana could not reach the brain"
             detail={`${props.error}. Start the Rust API or add ?demo=1 to preview the workspace.`}
             action={props.onRetry}
@@ -261,12 +264,14 @@ export function Workspace(props: {
         </Match>
         <Match when={props.tab === 'document'}>
           <EmptyState
+            class="self-stretch"
             title="Choose a document"
             detail="Open a workspace and source in the sidebar, then select any indexed document."
           />
         </Match>
         <Match when={props.loading && props.evidence.length === 0}>
           <EmptyState
+            class="self-stretch"
             title="Searching your brain"
             detail="Fusing semantic and exact-term evidence…"
             announceAs="status"
