@@ -2068,15 +2068,16 @@ function CortanaApplication() {
     if (!workspaceScope()) return
     // Wait for the canonical workspace inventory before auto-selecting; the
     // status-derived fallback list has a different order and would leave the
-    // shell pinned to the wrong workspace.
-    if (isDesktopApp && desktopSettings() === null) return
+    // shell pinned to the wrong workspace. Demo mode loads its own desktop
+    // settings after a dynamic import, so it waits for them the same way.
+    if ((isDesktopApp || isDemoMode) && desktopSettings() === null) return
     if (workspace() && workspaces().some((item) => item.id === workspace())) return
     // reconciles the workspace selection with the loaded inventory and persists it
     chooseWorkspace(workspaces()[0]?.id ?? '')
   })
   createEffect(() => {
     if (!isDesktopApp || !source()) return
-    if (isDesktopApp && desktopSettings() === null) return
+    if ((isDesktopApp || isDemoMode) && desktopSettings() === null) return
     if (!sourceInventoryReady() || configuredSourcesForWorkspace().includes(source())) return
     writeSourceSelectionPreference('')
     // evicts a source no longer in the configured inventory; also persists and rescopes
