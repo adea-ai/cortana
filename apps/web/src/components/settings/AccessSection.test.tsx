@@ -1,5 +1,5 @@
-import { afterEach, expect, test } from 'bun:test'
-import { cleanup, fireEvent, render, screen, within } from 'solid-testing-library'
+import { afterEach, expect, mock, test } from 'bun:test'
+import { cleanup, fireEvent, render, screen, waitFor, within } from 'solid-testing-library'
 import userEvent from '@testing-library/user-event'
 import { createSignal } from 'solid-js'
 
@@ -238,4 +238,63 @@ test('the clear action follows the configured and cleared state without remounti
   expect(screen.queryByRole('button', { name: 'Clear stored token' })).toBeNull()
   expect(screen.getByLabelText('New bearer token')).toBe(field)
   expect(document.activeElement).toBe(field)
+})
+
+// Clearing a stored bearer token discards a secret, so its confirmation earns
+// the destructive Continue. Everything is mocked: no token is read or changed.
+function renderStoredToken() {
+  const update = mock(() => undefined)
+  const onClearSecret = mock((_name: string) => undefined)
+  render(() => (
+    <SettingsConfirmProvider>
+      <AccessSection
+        settings={{
+          ...desktopSettings,
+          auth_principals: [
+            {
+              principal: 'desktop-agent',
+              token_env: 'CORTANA_DEMO_TOKEN',
+              scopes: ['query'],
+              acl: ['work'],
+            },
+          ],
+          secrets: [{ name: 'CORTANA_DEMO_TOKEN', configured: true, source: 'secret-file' }],
+        }}
+        update={update}
+        secretValues={{}}
+        onSecret={() => undefined}
+        clearedSecrets={new Set()}
+        onClearSecret={onClearSecret}
+      />
+    </SettingsConfirmProvider>
+  ))
+  return { update, onClearSecret }
+}
+
+test('clearing a stored bearer token asks first, with the destructive Continue', async () => {
+  const { update, onClearSecret } = renderStoredToken()
+
+  fireEvent.click(screen.getByRole('button', { name: 'Clear stored token' }))
+  const dialog = await screen.findByRole('alertdialog', { name: 'Confirm this action' })
+  expect(dialog.textContent).toContain('Clear the stored bearer token for desktop-agent?')
+  expect(screen.getByRole('button', { name: 'Continue' }).className).toMatch(/destructive/)
+  expect(onClearSecret).not.toHaveBeenCalled()
+
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+  await waitFor(() => expect(onClearSecret).toHaveBeenCalledTimes(1))
+  expect(onClearSecret).toHaveBeenCalledWith('CORTANA_DEMO_TOKEN')
+  expect(update).not.toHaveBeenCalled()
+})
+
+test('cancelling the bearer token clear changes nothing and saves nothing', async () => {
+  const { update, onClearSecret } = renderStoredToken()
+
+  fireEvent.click(screen.getByRole('button', { name: 'Clear stored token' }))
+  await screen.findByRole('alertdialog', { name: 'Confirm this action' })
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+  await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull())
+
+  expect(onClearSecret).not.toHaveBeenCalled()
+  expect(update).not.toHaveBeenCalled()
+  expect(screen.getByRole('button', { name: 'Clear stored token' })).toBeTruthy()
 })
