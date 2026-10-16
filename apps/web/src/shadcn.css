@@ -923,7 +923,9 @@ body,
 /*
  * TopBar owns the header grid, but its centre track (clamp(240px, 22vw, 480px))
  * is sized for a lone search field. This cluster also carries the Reflect
- * action, so the header keeps a wider centre track.
+ * action, so the header keeps a wider centre track. adea-ai/ui#446 adds
+ * TopBar centerWidth="wide" for exactly this; once it is released this rule
+ * goes and the header passes the prop.
  */
 .m7-application-header {
   gap: 0.5rem;
@@ -934,32 +936,6 @@ body,
   .m7-application-header {
     grid-template-columns: minmax(0, 1fr) clamp(240px, 32vw, 672px) minmax(0, 1fr);
   }
-}
-
-.m7-header-context {
-  overflow: hidden;
-}
-
-.m7-header-leading {
-  overflow: hidden;
-}
-
-.m7-search-cluster {
-  justify-self: center;
-  width: 100%;
-}
-
-.m7-search-cluster > form {
-  min-width: 0;
-}
-
-.m7-header-actions {
-  min-width: 2.25rem;
-  justify-self: end;
-}
-
-.m7-panel-boundary {
-  width: min(390px, 92vw);
 }
 
 /* Document and graph renderers consume these semantic aliases while their
@@ -1023,9 +999,6 @@ body,
   flex: 1;
 }
 @media (max-width: 799px) {
-  .m7-header-context {
-    display: none;
-  }
   .m7-app-content > .workspace {
     width: 100%;
   }

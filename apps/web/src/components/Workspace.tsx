@@ -254,7 +254,7 @@ export function Workspace(props: {
         <Match when={props.error}>
           <EmptyState
             title="Cortana could not reach the brain"
-            detail={`${props.error}. Start the Rust API or add ?demo=1 to preview the workspace.`}
+            detail={`${props.error.replace(/[.!?\s]+$/, '')}. Start the Rust API or add ?demo=1 to preview the workspace.`}
             action={props.onRetry}
             announceAs="alert"
           />
