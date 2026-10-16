@@ -264,7 +264,7 @@ export function WorkspaceSection(incoming: {
                 <CardHeader>
                   <div class="flex flex-wrap items-center gap-2">
                     <WorkspaceLogo workspace={workspace()} size="large" />
-                    <div class="flex min-w-40 flex-1 flex-col gap-1">
+                    <div class="flex min-w-40 flex-1 flex-col gap-1 break-words">
                       <CardTitle>{workspace().name || 'New workspace'}</CardTitle>
                       <CardDescription>Workspace identity</CardDescription>
                     </div>
