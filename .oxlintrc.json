@@ -97,5 +97,11 @@
     "adea/require-action-button-tooltip": "error"
   },
   "overrides": [],
-  "ignorePatterns": ["node_modules/**", "apps/web/dist/**", "coverage/**", "target/**"]
+  "ignorePatterns": [
+    "node_modules/**",
+    "apps/web/dist/**",
+    "coverage/**",
+    "target/**",
+    "third_party/**"
+  ]
 }

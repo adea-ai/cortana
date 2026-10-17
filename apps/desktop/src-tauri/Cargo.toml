@@ -46,6 +46,11 @@ tempfile = "3.20"
 # Tauri's GTK3 Linux stack requires glib 0.18.5. This local crate applies the exact upstream
 # VariantStrIter soundness fix while GTK3 prevents upgrading to glib 0.20.
 glib = { path = "../../../third_party/glib-0.18.5" }
+# tauri-plugin-updater 2.10.1 (the locked release) extracts Windows updates with zip 4.6.1, which
+# carries RUSTSEC-2026-0367/0368/0369. Every published release still requires zip ^4, so this local
+# crate is the published 2.10.1 archive with its zip requirement raised to 9, as upstream did in
+# tauri-apps/plugins-workspace#3698.
+tauri-plugin-updater = { path = "../../../third_party/tauri-plugin-updater-2.10.1" }
 
 # Mirror the root dev-profile tuning: optimized dependencies, debuggable
 # application code, smaller debug artifacts.
