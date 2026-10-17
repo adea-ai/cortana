@@ -134,3 +134,25 @@ or raise it only on a runner with enough CPU and memory headroom.
 ## License
 
 Cortana is licensed under [Apache License 2.0](LICENSE).
+
+## Web task toolchain and caches
+
+Bun 1.4.3, Node 24.21.0 and Vite+ 1.3.0 own the root web build/check/dev
+commands. Code Foundry is aligned to 1.48.2. The existing Solid/Vite build,
+UI contract checks and bundle budgets stay in the web package script. Root
+`type-check` still runs Python mypy and Rust all-target checking before the
+web checks; native Tauri packaging keeps its existing web commands.
+
+The root task graph fingerprints the actual Node/Bun executables, platform,
+configuration, lockfile, scripts, web sources and public build environment.
+Its uncached runtime gate runs before any cached task. Only `apps/web/dist`
+is restored as web build output; tests and development remain uncached.
+Windows root commands keep the original full environment and run uncached
+until the executable launcher/cache contract has native qualification.
+
+Bun dependency downloads use its shared install cache across worktrees. The
+desktop workflow restores only downloads and still performs a frozen install
+in each job. Its manual default-branch audit can save trusted entries; PRs
+only read. Native Cargo and sccache ownership/keys are preserved. The separate
+task-cache qualification workflow distinguishes immediate replay from a
+fresh hosted runner restoring a cache produced at the same commit.
