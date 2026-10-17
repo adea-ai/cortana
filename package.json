@@ -6,7 +6,7 @@
   ],
   "type": "module",
   "scripts": {
-    "build": "bun run --cwd apps/web build",
+    "build": "vp run orch:build",
     "desktop:build": "bun run --cwd apps/desktop build",
     "desktop:build:release": "bun run --cwd apps/desktop build:release",
     "desktop:bundle:mac": "bun run --cwd apps/desktop bundle:mac",
@@ -16,7 +16,7 @@
     "desktop:info": "bun run --cwd apps/desktop info",
     "desktop:test": "bun run --cwd apps/desktop test",
     "desktop:test:native": "bun run --cwd apps/desktop test:native",
-    "dev": "bun run --cwd apps/web dev",
+    "dev": "vp run orch:dev",
     "format:check": "oxfmt --check .",
     "format:write": "oxfmt .",
     "fmt": "oxfmt .",
@@ -28,8 +28,8 @@
     "test:knowledge-accessibility": "node scripts/knowledge-accessibility-acceptance.mjs",
     "test:integration": "uv run pytest -m integration",
     "test:smoke": "uv run pytest -m smoke",
-    "type-check": "uv run mypy src/cortana && cargo check --all-targets && bun run --cwd apps/web typecheck",
-    "typecheck": "bun run --cwd apps/web typecheck"
+    "type-check": "uv run mypy src/cortana && cargo check --all-targets && bun run typecheck",
+    "typecheck": "vp run orch:typecheck"
   },
   "devDependencies": {
     "@adea-ai/ui": "0.140.0",
@@ -39,9 +39,9 @@
     "@happy-dom/global-registrator": "^21.0.0",
     "@shadcn/lint": "^0.2.0",
     "@testing-library/dom": "^10.4.2",
-    "@types/bun": "^1.4.2",
+    "@types/bun": "^1.4.3",
     "babel-preset-solid": "^1.9.15",
-    "code-foundry": "1.44.11",
+    "code-foundry": "1.48.2",
     "oxfmt": "^0.72.0",
     "oxlint": "^1.86.0",
     "playwright": "^1.63.0",
@@ -49,7 +49,8 @@
     "typescript": "^7.0.2",
     "typescript6": "npm:typescript@^6.0.3",
     "vite": "^8.3.2",
-    "vite-plugin-solid": "^2.11.14"
+    "vite-plugin-solid": "^2.11.14",
+    "vite-plus": "1.3.0"
   },
   "overrides": {
     "seroval": "1.6.8"

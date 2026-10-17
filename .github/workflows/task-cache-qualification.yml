@@ -1,0 +1,85 @@
+name: Task cache qualification
+
+# Production web builds only; no desktop packaging or deployment.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'package.json'
+      - 'bun.lock'
+      - 'vite.config.ts'
+      - 'tsconfig.tooling.json'
+      - 'scripts/**'
+      - '.github/workflows/task-cache-qualification.yml'
+  pull_request:
+    types: [ready_for_review, synchronize]
+    paths:
+      - 'package.json'
+      - 'bun.lock'
+      - 'vite.config.ts'
+      - 'tsconfig.tooling.json'
+      - 'scripts/orch-*'
+      - '.github/workflows/task-cache-qualification.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: task-cache-qualification-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  production-build:
+    if: vars.CI_BILLING_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.3
+          no-cache: true
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.21.0
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Restore production task cache
+        id: cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: node_modules/.vite/task-cache
+          key: production-tasks-v2-${{ runner.os }}-${{ runner.arch }}-node24.21.0-bun1.4.3-vp1.3.0-${{ hashFiles('bun.lock', 'vite.config.ts') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            production-tasks-v2-${{ runner.os }}-${{ runner.arch }}-node24.21.0-bun1.4.3-vp1.3.0-${{ hashFiles('bun.lock', 'vite.config.ts') }}-
+      - name: Qualify real build replay
+        env:
+          RESTORED_KEY: ${{ steps.cache.outputs.cache-matched-key }}
+        run: |
+          set -euo pipefail
+          proof=node_modules/.vite/task-cache/qualification-head
+          head="$(git rev-parse HEAD)"
+          previous="$(cat "$proof" 2>/dev/null || true)"
+          for pass in first second; do
+            start=$SECONDS
+            bun run build > "$RUNNER_TEMP/build-$pass.log" 2>&1
+            cat "$RUNNER_TEMP/build-$pass.log"
+            echo "$pass elapsed: $((SECONDS-start))s" >> "$GITHUB_STEP_SUMMARY"
+          done
+          grep -Fq '1/1 cache hit' "$RUNNER_TEMP/build-second.log"
+          if test "$previous" = "$head"; then
+            grep -Fq '1/1 cache hit' "$RUNNER_TEMP/build-first.log"
+            echo 'Fresh runner restored the production web build for the same head.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "Restored entry: ${RESTORED_KEY:-none}" >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' "$head" > "$proof"
+      - name: Save production task cache
+        if: success() && github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: node_modules/.vite/task-cache
+          key: ${{ steps.cache.outputs.cache-primary-key }}
