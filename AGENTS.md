@@ -319,7 +319,7 @@ trigger CI. Applicable passing checks and protections gate merge, rather than WI
 ## Tools and commands
 
 Use committed `bun.lock`, `uv.lock` and Cargo lockfiles. `package.json` pins
-Node 24.21.0 and Bun 1.4.0; `.mise.toml` currently selects Bun 1.4.2 and Rust
+Node 24.21.0 and Bun 1.4.3; `.mise.toml` selects the same Bun and Rust
 1.99.0 with the same Node version. Report which pins you use when reproducing a
 check.
 
