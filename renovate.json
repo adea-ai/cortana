@@ -71,8 +71,8 @@
       "enabled": false
     },
     {
-      "description": "TypeScript stays on the 6.x line this repository pins; 7.x is a deliberate upgrade, not a routine bump.",
-      "matchPackageNames": ["typescript"],
+      "description": "The typescript6 npm alias supplies the classic JavaScript compiler API used by AST tooling. Keep that API on the latest 6.x release; the separate typescript compiler may update normally.",
+      "matchDepNames": ["typescript6"],
       "allowedVersions": "<7"
     }
   ]
