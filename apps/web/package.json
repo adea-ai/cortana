@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -b && bun ../../scripts/check-web-ui-contract.mjs && vite build && bun ../../scripts/check-web-bundle-budget.mjs",
+    "build": "bun check && bun ../../scripts/check-web-ui-contract.mjs && vite build && bun ../../scripts/check-web-bundle-budget.mjs",
     "dev": "vite",
     "preview": "vite preview",
-    "typecheck": "tsc -b --pretty false && tsc -p tsconfig.node.json --pretty false"
+    "typecheck": "bun check --no-pretty && bun check --no-pretty -p tsconfig.node.json"
   },
   "dependencies": {
     "@adea-ai/themes": "0.10.6",

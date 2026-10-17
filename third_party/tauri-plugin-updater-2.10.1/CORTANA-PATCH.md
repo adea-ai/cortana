@@ -20,6 +20,12 @@ for the desktop dependency graph only.
   `rollup.config.js`, `tsconfig.json`), the crate's own `Cargo.lock` and `banner.png`. None of them
   take part in the Rust build; `api-iife.js` stays because `build.rs` embeds it.
 - Licenses: `Apache-2.0 OR MIT`, unchanged; both license texts are kept.
+- Verification: `scripts/verify-vendored-updater.mjs` (run in the desktop workflow) pins the exact
+  retained file set and the SHA-256 of every file here except this note: all Rust sources
+  (including `src/commands.rs`), `build.rs`, `api-iife.js`, the `permissions/` tree, both manifests
+  and the license, README, SECURITY and CHANGELOG files. Only `Cargo.toml` differs from the
+  published archive. An added, missing or altered file fails the check. It also requires
+  `Cargo.lock` to resolve `zip 9.x` only and `tauri-plugin-updater` as this path crate.
 
 Do not remove this patch until a published `tauri-plugin-updater` release requires `zip >= 9`; then
 delete this directory, the `[patch.crates-io]` entry and the root workspace exclusion. Run
