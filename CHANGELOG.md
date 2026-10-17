@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.69.1](https://github.com/adea-ai/cortana/compare/v0.69.0...v0.69.1) (2026-10-17)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @adea-ai/ui to v0.140.0 ([#2591](https://github.com/adea-ai/cortana/issues/2591)) ([8f14bec](https://github.com/adea-ai/cortana/commit/8f14bec3b9b750b7701680f2487a3c1da5f97f41))
+* **web:** mark the Access bearer-token clear confirmation destructive ([#2590](https://github.com/adea-ai/cortana/issues/2590)) ([ce31980](https://github.com/adea-ai/cortana/commit/ce31980c0353ac33fe6bff4023eb88e2986a162a))
+
+
+### Maintenance
+
+* align the Bun pin on 1.4.3 and check web types with bun check ([#2592](https://github.com/adea-ai/cortana/issues/2592)) ([7ffcee6](https://github.com/adea-ai/cortana/commit/7ffcee6d559507454105c4177fac0d363786e2fb))
+* **deps:** update taiki-e/install-action digest to 8cca091 ([#2589](https://github.com/adea-ai/cortana/issues/2589)) ([998b4c0](https://github.com/adea-ai/cortana/commit/998b4c0e75ef7523054dca7e7b884c0626c9e8fc))
+
 ## [0.69.0](https://github.com/adea-ai/cortana/compare/v0.68.5...v0.69.0) (2026-10-16)
 
 
