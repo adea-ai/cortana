@@ -41,12 +41,17 @@ export const UNIDENTIFIED = 'unidentified'
 function onPath(name, searchPath) {
   for (const dir of searchPath.split(delimiter)) {
     if (!dir) continue
-    const candidate = join(dir, name)
-    try {
-      accessSync(candidate, constants.X_OK)
-      if (statSync(candidate).isFile()) return realpathSync(candidate)
-    } catch {
-      // not in this directory
+    // Native executables are invoked directly; .cmd launchers require a shell
+    // and do not identify the executable whose bytes belong in the cache key.
+    const names = process.platform === 'win32' ? [`${name}.exe`, name] : [name]
+    for (const filename of names) {
+      const candidate = join(dir, filename)
+      try {
+        accessSync(candidate, constants.X_OK)
+        if (statSync(candidate).isFile()) return realpathSync(candidate)
+      } catch {
+        // not in this directory
+      }
     }
   }
   return undefined

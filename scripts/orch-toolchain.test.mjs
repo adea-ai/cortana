@@ -7,6 +7,7 @@ import {
   readFileSync,
   chmodSync,
   symlinkSync,
+  copyFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -36,6 +37,25 @@ test.skipIf(process.platform === 'win32')(
       const digest = createHash('sha256').update(readFileSync(process.execPath)).digest('hex')
       expect(b.bun.sha256).toBe(digest)
       expect(b.node.sha256).toBe(digest)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  }
+)
+
+// Windows does not need shell launchers. Copy the running native executable so
+// PATH resolution must discover the .exe suffix rather than an extensionless file.
+test.skipIf(process.platform !== 'win32')(
+  'Windows identity resolves native executable suffixes',
+  () => {
+    const root = mkdtempSync(join(tmpdir(), 'cortana-native-identity-'))
+    try {
+      for (const name of ['node.exe', 'bun.exe']) copyFileSync(process.execPath, join(root, name))
+      const found = identity({ root, searchPath: root })
+      const digest = createHash('sha256').update(readFileSync(process.execPath)).digest('hex')
+      expect(found.node.sha256).toBe(digest)
+      expect(found.bun.sha256).toBe(digest)
+      expect(found.platform).toBe(`win32-${process.arch}`)
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

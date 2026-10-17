@@ -4,12 +4,10 @@ import { defineConfig } from 'vite-plus'
 import { expectedId } from './scripts/orch-toolchain.mjs'
 
 const root = dirname(fileURLToPath(import.meta.url))
-// The executable gate is qualified on macOS/Linux. Windows keeps the original
-// uncached command/environment until its native launcher path is qualified.
-const cacheable = process.platform === 'darwin' || process.platform === 'linux'
-const toolchain = cacheable ? expectedId(root) : ''
-const prefix = cacheable ? `ORCH_TOOLCHAIN=${toolchain} env -u FORCE_COLOR ` : ''
-const preflight = cacheable ? ['orch:toolchain'] : []
+const toolchain = expectedId(root)
+// A Node launcher sets the task environment without POSIX-only shell syntax.
+const prefix = `node scripts/orch-command.mjs ${toolchain} `
+const preflight = ['orch:toolchain']
 const input = [
   { auto: true },
   'package.json',
@@ -35,20 +33,18 @@ export default defineConfig({
   run: {
     tasks: {
       'orch:toolchain': {
-        command: cacheable ? `node scripts/orch-toolchain.mjs --expect ${toolchain}` : 'node -e 0',
+        command: `node scripts/orch-toolchain.mjs --expect ${toolchain}`,
         cache: false,
       },
       'orch:build': {
-        command: `${prefix}bun run --cwd apps/web build`,
+        command: `${prefix}run --cwd apps/web build`,
         dependsOn: preflight,
-        cache: cacheable
-          ? { input, output: ['apps/web/dist/**'], env: ['NODE_ENV', 'VITE_*', 'TAURI_ENV_*'] }
-          : false,
+        cache: { input, output: ['apps/web/dist/**'], env: ['NODE_ENV', 'VITE_*', 'TAURI_ENV_*'] },
       },
       'orch:typecheck': {
-        command: `${prefix}bun check -p tsconfig.tooling.json && ${prefix}bun run --cwd apps/web typecheck`,
+        command: `${prefix}check -p tsconfig.tooling.json && ${prefix}run --cwd apps/web typecheck`,
         dependsOn: preflight,
-        cache: cacheable ? { input } : false,
+        cache: { input },
       },
       'orch:dev': {
         command: 'bun run --cwd apps/web dev',

@@ -33,7 +33,14 @@ concurrency:
 jobs:
   production-build:
     if: vars.CI_BILLING_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -48,6 +55,8 @@ jobs:
           node-version: 24.21.0
       - name: Install dependencies
         run: bun install --frozen-lockfile
+      - name: Verify native executable identity and task launcher
+        run: bun test scripts/orch-toolchain.test.mjs scripts/orch-command.test.mjs
       - name: Restore production task cache
         id: cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
