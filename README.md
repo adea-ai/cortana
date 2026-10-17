@@ -147,8 +147,10 @@ The root task graph fingerprints the actual Node/Bun executables, platform,
 configuration, lockfile, scripts, web sources and public build environment.
 Its uncached runtime gate runs before any cached task. Only `apps/web/dist`
 is restored as web build output; tests and development remain uncached.
-Windows root commands keep the original full environment and run uncached
-until the executable launcher/cache contract has native qualification.
+Cached tasks use a portable Node launcher to preserve arguments and set their
+environment without a POSIX shell. Windows resolves native Node/Bun `.exe`
+files for executable identity; the qualification workflow builds and verifies
+cache replay on native Linux and Windows runners.
 
 Bun dependency downloads use its shared install cache across worktrees. The
 desktop workflow restores only downloads and still performs a frozen install

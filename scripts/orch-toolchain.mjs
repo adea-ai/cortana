@@ -41,12 +41,17 @@ export const UNIDENTIFIED = 'unidentified'
 function onPath(name, searchPath) {
   for (const dir of searchPath.split(delimiter)) {
     if (!dir) continue
-    const candidate = join(dir, name)
-    try {
-      accessSync(candidate, constants.X_OK)
-      if (statSync(candidate).isFile()) return realpathSync(candidate)
-    } catch {
-      // not in this directory
+    // Native executables are invoked directly; .cmd launchers require a shell
+    // and do not identify the executable whose bytes belong in the cache key.
+    const names = process.platform === 'win32' ? [`${name}.exe`, name] : [name]
+    for (const filename of names) {
+      const candidate = join(dir, filename)
+      try {
+        accessSync(candidate, constants.X_OK)
+        if (statSync(candidate).isFile()) return realpathSync(candidate)
+      } catch {
+        // not in this directory
+      }
     }
   }
   return undefined
@@ -99,30 +104,33 @@ function sha256(file, memo, root) {
   return digest
 }
 
-function describe(name, searchPath, memo, root) {
+/** Resolve and probe the executable actually fingerprinted, never a CWD lookup. */
+export function runtimeExecutable(name, searchPath = process.env.PATH ?? '') {
   const file = onPath(name, searchPath)
   if (!file) throw new Error(`\`${name}\` is not on PATH, so the toolchain cannot be identified`)
+  try {
+    const executable = execFileSync(file, ['-p', 'process.execPath'], {
+      encoding: 'utf8',
+      // Cached launchers inherit PATH; avoid enumerating unrelated variables.
+      ...(searchPath === process.env.PATH ? {} : { env: { ...process.env, PATH: searchPath } }),
+    }).trim()
+    if (!executable || !statSync(executable).isFile()) throw new Error('invalid executable path')
+    return realpathSync(executable)
+  } catch (error) {
+    throw new Error(`\`${name}\` executable probe failed: ${error.message}`, { cause: error })
+  }
+}
+
+function describe(name, searchPath, memo, root) {
+  const executable = runtimeExecutable(name, searchPath)
   let version
   try {
-    version = execFileSync(file, ['--version'], { encoding: 'utf8' }).trim()
+    version = execFileSync(executable, ['--version'], { encoding: 'utf8' }).trim()
   } catch (error) {
     throw new Error(`\`${name} --version\` failed: ${error.message}`, { cause: error })
   }
   if (!version) throw new Error(`\`${name} --version\` printed nothing`)
-  // Vite+ may prepend a transparent package-manager launcher only when the
-  // task starts. Identify the executable it actually runs, not the launcher
-  // text (which is identical across OSes and different from the direct binary).
-  let executable
-  try {
-    executable = execFileSync(file, ['-p', 'process.execPath'], {
-      encoding: 'utf8',
-      env: { ...process.env, PATH: searchPath },
-    }).trim()
-    if (!executable || !statSync(executable).isFile()) throw new Error('invalid executable path')
-  } catch (error) {
-    throw new Error(`\`${name}\` executable probe failed: ${error.message}`, { cause: error })
-  }
-  return { version, sha256: sha256(realpathSync(executable), memo, root) }
+  return { version, sha256: sha256(executable, memo, root) }
 }
 
 /**

@@ -1,4 +1,5 @@
 import { test, expect } from 'bun:test'
+import { execFileSync } from 'node:child_process'
 import {
   mkdtempSync,
   mkdirSync,
@@ -7,6 +8,7 @@ import {
   readFileSync,
   chmodSync,
   symlinkSync,
+  copyFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -36,6 +38,29 @@ test.skipIf(process.platform === 'win32')(
       const digest = createHash('sha256').update(readFileSync(process.execPath)).digest('hex')
       expect(b.bun.sha256).toBe(digest)
       expect(b.node.sha256).toBe(digest)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  }
+)
+
+// Windows does not need shell launchers. Copy the running native executable so
+// PATH resolution must discover the .exe suffix rather than an extensionless file.
+test.skipIf(process.platform !== 'win32')(
+  'Windows identity resolves native executable suffixes',
+  () => {
+    const root = mkdtempSync(join(tmpdir(), 'cortana-native-identity-'))
+    try {
+      const node = execFileSync('node', ['-p', 'process.execPath'], { encoding: 'utf8' }).trim()
+      // Bun changes CLI behavior when renamed node.exe; probe each real binary.
+      copyFileSync(node, join(root, 'node.exe'))
+      copyFileSync(process.execPath, join(root, 'bun.exe'))
+      const found = identity({ root, searchPath: root })
+      expect(found.node.sha256).toBe(createHash('sha256').update(readFileSync(node)).digest('hex'))
+      expect(found.bun.sha256).toBe(
+        createHash('sha256').update(readFileSync(process.execPath)).digest('hex')
+      )
+      expect(found.platform).toBe(`win32-${process.arch}`)
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
