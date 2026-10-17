@@ -3,7 +3,11 @@ members = ["crates/*"]
 # Without this, cargo commands at the root build only the root package and the
 # member crates' unit tests would silently never run.
 default-members = [".", "crates/core", "crates/retrieval", "crates/server", "crates/mcp"]
-exclude = ["apps/desktop/src-tauri", "third_party/glib-0.18.5"]
+exclude = [
+  "apps/desktop/src-tauri",
+  "third_party/glib-0.18.5",
+  "third_party/tauri-plugin-updater-2.10.1",
+]
 
 [workspace.package]
 edition = "2024"

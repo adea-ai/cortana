@@ -52,7 +52,7 @@ jobs:
           fi
           is_desktop_path() {
             case "$1" in
-              .github/workflows/desktop.yml|.github/workflows/desktop-acceptance.yml|.github/workflows/release-assets.yml|.github/workflows/dev-build.yml|bun.lock|package.json|Cargo.toml|Cargo.lock|rust-toolchain.toml|CHANGELOG.md|pyproject.toml|uv.lock|README.md|LICENSE|scripts/prepare-desktop-resources.mjs|scripts/prepare-desktop-sidecar.mjs|scripts/acceptance-provenance.mjs|scripts/acceptance-provenance.test.mjs|scripts/backup-restore-drill.sh|scripts/desktop-package-acceptance.mjs|scripts/desktop-package-acceptance.test.mjs|scripts/desktop-install-acceptance.mjs|scripts/desktop-install-acceptance.test.mjs|scripts/desktop-host-launch.mjs|scripts/desktop-host-launch.test.mjs|scripts/desktop-control-plane-acceptance.mjs|scripts/desktop-control-plane-acceptance.test.mjs|scripts/desktop-service-status-acceptance.mjs|scripts/desktop-service-status-acceptance.test.mjs|scripts/desktop-source-authorization-acceptance.mjs|scripts/desktop-source-authorization-acceptance.test.mjs|scripts/desktop-macos-lifecycle-acceptance.mjs|scripts/desktop-macos-lifecycle-acceptance.test.mjs|scripts/desktop-acceptance-matrix.mjs|scripts/desktop-acceptance-matrix.test.mjs|scripts/desktop-cache.test.mjs|scripts/release-workflow.test.mjs|scripts/knowledge-accessibility-acceptance.mjs|scripts/knowledge-accessibility-browser.mjs|scripts/knowledge-accessibility-browser.test.mjs|scripts/knowledge-accessibility-matrix.mjs|scripts/knowledge-accessibility-matrix.test.mjs|scripts/static-web-server.mjs|scripts/static-web-server.test.mjs|scripts/verify-desktop-acceptance-evidence.py|scripts/verify-vendored-glib.mjs|scripts/verify-macos-package.sh|scripts/verify-macos-trust.sh)
+              .github/workflows/desktop.yml|.github/workflows/desktop-acceptance.yml|.github/workflows/release-assets.yml|.github/workflows/dev-build.yml|bun.lock|package.json|Cargo.toml|Cargo.lock|rust-toolchain.toml|CHANGELOG.md|pyproject.toml|uv.lock|README.md|LICENSE|scripts/prepare-desktop-resources.mjs|scripts/prepare-desktop-sidecar.mjs|scripts/acceptance-provenance.mjs|scripts/acceptance-provenance.test.mjs|scripts/backup-restore-drill.sh|scripts/desktop-package-acceptance.mjs|scripts/desktop-package-acceptance.test.mjs|scripts/desktop-install-acceptance.mjs|scripts/desktop-install-acceptance.test.mjs|scripts/desktop-host-launch.mjs|scripts/desktop-host-launch.test.mjs|scripts/desktop-control-plane-acceptance.mjs|scripts/desktop-control-plane-acceptance.test.mjs|scripts/desktop-service-status-acceptance.mjs|scripts/desktop-service-status-acceptance.test.mjs|scripts/desktop-source-authorization-acceptance.mjs|scripts/desktop-source-authorization-acceptance.test.mjs|scripts/desktop-macos-lifecycle-acceptance.mjs|scripts/desktop-macos-lifecycle-acceptance.test.mjs|scripts/desktop-acceptance-matrix.mjs|scripts/desktop-acceptance-matrix.test.mjs|scripts/desktop-cache.test.mjs|scripts/release-workflow.test.mjs|scripts/knowledge-accessibility-acceptance.mjs|scripts/knowledge-accessibility-browser.mjs|scripts/knowledge-accessibility-browser.test.mjs|scripts/knowledge-accessibility-matrix.mjs|scripts/knowledge-accessibility-matrix.test.mjs|scripts/static-web-server.mjs|scripts/static-web-server.test.mjs|scripts/verify-desktop-acceptance-evidence.py|scripts/verify-vendored-glib.mjs|scripts/verify-vendored-updater.mjs|scripts/verify-macos-package.sh|scripts/verify-macos-trust.sh)
                 return 0
                 ;;
             esac
@@ -61,7 +61,7 @@ jobs:
             # covers nested Rust/Python/UI files (for example src/cortana/main.rs)
             # while keeping unrelated repository paths out of the final audit.
             local prefix
-            for prefix in apps/desktop/ apps/web/ src/ crates/ eval/ third_party/glib-0.18.5/ .github/actions/desktop-sccache/; do
+            for prefix in apps/desktop/ apps/web/ src/ crates/ eval/ third_party/glib-0.18.5/ third_party/tauri-plugin-updater-2.10.1/ .github/actions/desktop-sccache/; do
               if [[ "$1" == "$prefix"* ]]; then
                 return 0
               fi
@@ -121,6 +121,8 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Verify patched GTK dependency provenance
         run: bun scripts/verify-vendored-glib.mjs
+      - name: Verify patched updater dependency provenance
+        run: bun scripts/verify-vendored-updater.mjs
 
   # Keep the patched GTK iterator test independent from provenance checks so a
   # single failing check does not hide unrelated status in the other.
