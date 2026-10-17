@@ -7,10 +7,11 @@ if (!expected || expected === 'unidentified' || args.length === 0) {
   console.error('orch-command: identified toolchain and Bun arguments are required')
   process.exit(2)
 }
-const env = { ...process.env, ORCH_TOOLCHAIN: expected }
-delete env.FORCE_COLOR
+// Mutate only these two values; enumerating process.env would make the task
+// tracker observe unrelated CI variables and spoil fresh-runner cache reuse.
+process.env.ORCH_TOOLCHAIN = expected
+delete process.env.FORCE_COLOR
 const result = spawnSync(process.platform === 'win32' ? 'bun.exe' : 'bun', args, {
-  env,
   stdio: 'inherit',
 })
 if (result.error) console.error(`orch-command: ${result.error.message}`)
