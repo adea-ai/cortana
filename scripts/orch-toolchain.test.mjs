@@ -1,4 +1,5 @@
 import { test, expect } from 'bun:test'
+import { execFileSync } from 'node:child_process'
 import {
   mkdtempSync,
   mkdirSync,
@@ -50,11 +51,15 @@ test.skipIf(process.platform !== 'win32')(
   () => {
     const root = mkdtempSync(join(tmpdir(), 'cortana-native-identity-'))
     try {
-      for (const name of ['node.exe', 'bun.exe']) copyFileSync(process.execPath, join(root, name))
+      const node = execFileSync('node', ['-p', 'process.execPath'], { encoding: 'utf8' }).trim()
+      // Bun changes CLI behavior when renamed node.exe; probe each real binary.
+      copyFileSync(node, join(root, 'node.exe'))
+      copyFileSync(process.execPath, join(root, 'bun.exe'))
       const found = identity({ root, searchPath: root })
-      const digest = createHash('sha256').update(readFileSync(process.execPath)).digest('hex')
-      expect(found.node.sha256).toBe(digest)
-      expect(found.bun.sha256).toBe(digest)
+      expect(found.node.sha256).toBe(createHash('sha256').update(readFileSync(node)).digest('hex'))
+      expect(found.bun.sha256).toBe(
+        createHash('sha256').update(readFileSync(process.execPath)).digest('hex')
+      )
       expect(found.platform).toBe(`win32-${process.arch}`)
     } finally {
       rmSync(root, { recursive: true, force: true })

@@ -1,6 +1,7 @@
 // Run cached Bun tasks with the same environment on POSIX and Windows.
 // Keeping the toolchain id in the command text fingerprints it before replay.
 import { spawnSync } from 'node:child_process'
+import { runtimeExecutable } from './orch-toolchain.mjs'
 
 const [expected, ...args] = process.argv.slice(2)
 if (!expected || expected === 'unidentified' || args.length === 0) {
@@ -11,7 +12,14 @@ if (!expected || expected === 'unidentified' || args.length === 0) {
 // tracker observe unrelated CI variables and spoil fresh-runner cache reuse.
 process.env.ORCH_TOOLCHAIN = expected
 delete process.env.FORCE_COLOR
-const result = spawnSync(process.platform === 'win32' ? 'bun.exe' : 'bun', args, {
+let executable
+try {
+  executable = runtimeExecutable('bun')
+} catch (error) {
+  console.error(`orch-command: ${error.message}`)
+  process.exit(1)
+}
+const result = spawnSync(executable, args, {
   stdio: 'inherit',
 })
 if (result.error) console.error(`orch-command: ${result.error.message}`)
