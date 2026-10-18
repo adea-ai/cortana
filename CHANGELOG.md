@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.69.2](https://github.com/adea-ai/cortana/compare/v0.69.1...v0.69.2) (2026-10-18)
+
+
+### Bug Fixes
+
+* **deps:** preserve classic TypeScript compiler API alias ([#2597](https://github.com/adea-ai/cortana/issues/2597)) ([7940c0d](https://github.com/adea-ai/cortana/commit/7940c0d0f479b7cc6f4c6aa88cf627493a5bb6ff))
+* **tooling:** qualify portable Windows task caching ([#2598](https://github.com/adea-ai/cortana/issues/2598)) ([7d3d786](https://github.com/adea-ai/cortana/commit/7d3d786639bb225ccf9723b936ae58415ba65a2e))
+
+
+### CI
+
+* **cache:** reuse Bun downloads in Cortana browser workflows ([#2594](https://github.com/adea-ai/cortana/issues/2594)) ([56b3f20](https://github.com/adea-ai/cortana/commit/56b3f2009145d78e1a508123791c44604689d876))
+
+
+### Maintenance
+
+* **ci:** align Code Foundry runtime and cache support ([#2595](https://github.com/adea-ai/cortana/issues/2595)) ([5f55a2c](https://github.com/adea-ai/cortana/commit/5f55a2c17ed30838c2e282d86a258bbcf0d4c006))
+* **tooling:** align web tasks and cache ownership ([#2596](https://github.com/adea-ai/cortana/issues/2596)) ([534319e](https://github.com/adea-ai/cortana/commit/534319e079f83ce4be73f6083027b305e2623986))
+
 ## [0.69.1](https://github.com/adea-ai/cortana/compare/v0.69.0...v0.69.1) (2026-10-17)
 
 
