@@ -80,7 +80,7 @@ import {
 } from './SettingsWorkflowUtils'
 import { Text } from '@adea-ai/ui/components/ui/typography'
 import { PropertyList, PropertyTerm, PropertyValue } from '@adea-ai/ui/components/composites/stat'
-import { FormField, FieldGroup } from '@adea-ai/ui/components/ui/field'
+import { FormField, FieldGroup, NumberField } from '@adea-ai/ui/components/ui/field'
 import { SettingsSection } from '@adea-ai/ui/components/composites/settings'
 import { ActionButton } from '@adea-ai/ui/components/composites/action-button'
 import { Card, CardContent } from '@adea-ai/ui/components/ui/card'
@@ -141,6 +141,18 @@ const SOURCE_KINDS: Array<{
   },
 ]
 const UNASSIGNED_WORKSPACE = '__unassigned__'
+const FIELD_NAVIGATION_KEYS = new Set(['ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'])
+// The accordion root claims these keys to move between its triggers, even when they come from a
+// field inside a panel, and cancels them. That stops the number fields stepping and the text
+// fields moving their caret, so a key pressed in a field stays with the field.
+function keepNavigationKeysInFields(event: KeyboardEvent) {
+  if (
+    FIELD_NAVIGATION_KEYS.has(event.key) &&
+    (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement)
+  ) {
+    event.stopPropagation()
+  }
+}
 function sourceJobOperationLabel(operation: DesktopSourceJob['operation']): string {
   return {
     'connection-check': 'Connection check',
@@ -1376,7 +1388,7 @@ export function SourcesSection(
                                   </Text>
                                 </span>
                               </AccordionTrigger>
-                              <AccordionContent>
+                              <AccordionContent onKeyDown={keepNavigationKeysInFields}>
                                 <FieldGroup columns={2}>
                                   <FormField label="Source name" hint="stable lowercase identifier">
                                     <Input
@@ -2412,76 +2424,52 @@ export function SourcesSection(
                                   )}
                                   {source().editable && (
                                     <>
-                                      <FormField
+                                      <NumberField
+                                        optional
                                         label="Document limit"
                                         hint="blank uses global budget"
-                                      >
-                                        <Input
-                                          type="number"
-                                          disabled={sourceLocked()}
-                                          min={1}
-                                          max={1000000}
-                                          value={source().max_documents ?? ''}
-                                          onInput={(event) =>
-                                            changeSource(index, {
-                                              max_documents: optionalNumber(event.target.value),
-                                            })
-                                          }
-                                        />
-                                      </FormField>
-                                      <FormField
+                                        disabled={sourceLocked()}
+                                        min={1}
+                                        max={1000000}
+                                        value={source().max_documents}
+                                        onChange={(max_documents) =>
+                                          changeSource(index, { max_documents })
+                                        }
+                                      />
+                                      <NumberField
+                                        optional
                                         label="Content limit (bytes)"
                                         hint="blank uses global budget"
-                                      >
-                                        <Input
-                                          type="number"
-                                          disabled={sourceLocked()}
-                                          min={1024}
-                                          max={1099511627776}
-                                          value={source().max_bytes ?? ''}
-                                          onInput={(event) =>
-                                            changeSource(index, {
-                                              max_bytes: optionalNumber(event.target.value),
-                                            })
-                                          }
-                                        />
-                                      </FormField>
-                                      <FormField
+                                        disabled={sourceLocked()}
+                                        min={1024}
+                                        max={1099511627776}
+                                        value={source().max_bytes}
+                                        onChange={(max_bytes) => changeSource(index, { max_bytes })}
+                                      />
+                                      <NumberField
+                                        optional
                                         label="Content limit (characters)"
                                         hint="blank uses connector defaults"
-                                      >
-                                        <Input
-                                          type="number"
-                                          disabled={sourceLocked()}
-                                          min={1}
-                                          max={10000000}
-                                          value={source().max_content_chars ?? ''}
-                                          onInput={(event) =>
-                                            changeSource(index, {
-                                              max_content_chars: optionalNumber(event.target.value),
-                                            })
-                                          }
-                                        />
-                                      </FormField>
-                                      <FormField
+                                        disabled={sourceLocked()}
+                                        min={1}
+                                        max={10000000}
+                                        value={source().max_content_chars}
+                                        onChange={(max_content_chars) =>
+                                          changeSource(index, { max_content_chars })
+                                        }
+                                      />
+                                      <NumberField
+                                        optional
                                         label="Duration limit (seconds)"
                                         hint="blank uses the global budget"
-                                      >
-                                        <Input
-                                          type="number"
-                                          disabled={sourceLocked()}
-                                          min={1}
-                                          max={86400}
-                                          value={source().max_duration_seconds ?? ''}
-                                          onInput={(event) =>
-                                            changeSource(index, {
-                                              max_duration_seconds: optionalNumber(
-                                                event.target.value
-                                              ),
-                                            })
-                                          }
-                                        />
-                                      </FormField>
+                                        disabled={sourceLocked()}
+                                        min={1}
+                                        max={86400}
+                                        value={source().max_duration_seconds}
+                                        onChange={(max_duration_seconds) =>
+                                          changeSource(index, { max_duration_seconds })
+                                        }
+                                      />
                                       <FormField
                                         label="Document labels"
                                         hint="comma or line separated"
@@ -2887,9 +2875,4 @@ function splitList(value: string) {
     .split(/[,\n]/)
     .map((item) => item.trim())
     .filter(Boolean)
-}
-function optionalNumber(value: string): number | null {
-  if (value === '') return null
-  const number = Number(value)
-  return Number.isFinite(number) ? number : null
 }

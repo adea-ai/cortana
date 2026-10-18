@@ -4,7 +4,7 @@ The provider-neutral connector and reconciliation contract is [Connector contrac
 
 ## Current release boundary
 
-The current protected source and published package are `v0.69.1`. <!-- x-release-please-version --> This release retains the bounded
+The current protected source and published package are `v0.69.2`. <!-- x-release-please-version --> This release retains the bounded
 connector, cursor, cache, retry, cancellation, and deletion-safety contracts described below. It
 does not authorize accounts, enable disabled sources, reconcile the index, or install recurring
 sync; source validation remains an explicit, bounded operator gate.
@@ -40,6 +40,13 @@ without reading file contents; connector preflight validates the completed owner
 the first embedding or index write. A source that exceeds any ceiling fails without reconciliation.
 Set global defaults in `[ingestion]`, tighter source-specific `max_documents`, `max_bytes`, and
 `max_duration_seconds` values on `[[sources]]`, or one-run overrides on the command line.
+In the Desktop source settings the per-source limits (document, byte, character and duration) are
+optional whole-number fields. Blank clears the limit: the document, byte and duration limits then
+fall back to the global budget, and the character limit to the connector defaults. A fractional
+draft (for example `1.5`), a draft outside the field range, and incomplete numeric text are all
+rejected the same way: they are never reported or rounded, and when the field loses focus it
+returns to the latest accepted value, which may be an edit not yet saved (saved `7`, accepted
+`25`, then `2.5` restores `25`).
 Ingestion uses one embedding request at a time by default even when interactive queries allow more
 concurrency.
 
