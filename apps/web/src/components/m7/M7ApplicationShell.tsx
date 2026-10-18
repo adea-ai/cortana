@@ -332,7 +332,9 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
               {props.loading ? (
                 <Spinner size="md" label="Searching" />
               ) : (
-                <Kbd>{shortcutLabel('MOD K')}</Kbd>
+                <Show when={!navigation.isMobile()}>
+                  <Kbd>{shortcutLabel('MOD K')}</Kbd>
+                </Show>
               )}
             </InputGroupAddon>
           </InputGroup>
