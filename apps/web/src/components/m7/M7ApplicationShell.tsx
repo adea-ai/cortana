@@ -196,7 +196,7 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
   const activeWorkspace = () => props.workspaces?.find((item) => item.id === props.workspace)
   return (
     <TopBar
-      class="m7-application-header"
+      centerWidth="wide"
       glass
       draggable={false}
       macosInset={titlebar}
