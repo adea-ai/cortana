@@ -141,6 +141,18 @@ const SOURCE_KINDS: Array<{
   },
 ]
 const UNASSIGNED_WORKSPACE = '__unassigned__'
+const FIELD_NAVIGATION_KEYS = new Set(['ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'])
+// The accordion root claims these keys to move between its triggers, even when they come from a
+// field inside a panel, and cancels them. That stops the number fields stepping and the text
+// fields moving their caret, so a key pressed in a field stays with the field.
+function keepNavigationKeysInFields(event: KeyboardEvent) {
+  if (
+    FIELD_NAVIGATION_KEYS.has(event.key) &&
+    (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement)
+  ) {
+    event.stopPropagation()
+  }
+}
 function sourceJobOperationLabel(operation: DesktopSourceJob['operation']): string {
   return {
     'connection-check': 'Connection check',
@@ -1376,7 +1388,7 @@ export function SourcesSection(
                                   </Text>
                                 </span>
                               </AccordionTrigger>
-                              <AccordionContent>
+                              <AccordionContent onKeyDown={keepNavigationKeysInFields}>
                                 <FieldGroup columns={2}>
                                   <FormField label="Source name" hint="stable lowercase identifier">
                                     <Input

@@ -7040,6 +7040,30 @@ test('source limits lock while a source job runs and unlock when it finishes', a
     state.sourceJob = null
   }
 })
+test('navigation keys in the source limit fields stay with the field', async () => {
+  const originalConfirm = window.confirm
+  window.confirm = () => true
+  const originalSettings = state.settings
+  state.settings = {
+    ...desktopSettings,
+    sources: [{ ...workSource, max_documents: 7 }],
+  }
+  try {
+    await openAdvancedSourceLimits()
+    for (const input of sourceLimitInputs()) {
+      for (const key of ['ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown']) {
+        // fireEvent returns false when the event was cancelled, which would stop the field stepping.
+        expect(fireEvent.keyDown(input, { key }), `${input.id} ${key}`).toBe(true)
+      }
+    }
+    // The accordion still owns the keys on its own trigger.
+    const trigger = screen.getByRole('button', { name: /Advanced source settings/ })
+    expect(fireEvent.keyDown(trigger, { key: 'ArrowDown' })).toBe(false)
+  } finally {
+    window.confirm = originalConfirm
+    state.settings = originalSettings
+  }
+})
 test('running source jobs stay visible in the shell after leaving the settings view', async () => {
   const originalConfirm = window.confirm
   window.confirm = () => true
