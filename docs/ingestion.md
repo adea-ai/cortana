@@ -40,6 +40,11 @@ without reading file contents; connector preflight validates the completed owner
 the first embedding or index write. A source that exceeds any ceiling fails without reconciliation.
 Set global defaults in `[ingestion]`, tighter source-specific `max_documents`, `max_bytes`, and
 `max_duration_seconds` values on `[[sources]]`, or one-run overrides on the command line.
+In the Desktop source settings the per-source limits (document, byte, character and duration) are
+optional whole-number fields: blank means the global budget applies. A fractional draft (for
+example `1.5`), a draft outside the field range, and incomplete numeric text are all rejected the
+same way: they are never saved or rounded, and the field returns to the last saved value when it
+loses focus.
 Ingestion uses one embedding request at a time by default even when interactive queries allow more
 concurrency.
 
