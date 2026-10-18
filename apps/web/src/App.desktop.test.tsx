@@ -6844,6 +6844,226 @@ test('Google authorization accepts a token path supplied through the configured 
     state.settings = originalSettings
   }
 })
+test('source limits keep blank as null and report only accepted numbers', async () => {
+  const originalSettings = state.settings
+  state.settings = {
+    ...desktopSettings,
+    sources: [{ ...workSource, max_bytes: 4096 }],
+  }
+  try {
+    render(() => <App />)
+    await findSystemAction({
+      name: updatesButtonName,
+    })
+    await openSidebarDestination('Settings')
+    await screen.findByRole('heading', {
+      level: 1,
+      name: 'Settings',
+    })
+    fireEvent.click(
+      await screen.findByRole('tab', {
+        name: 'Sources',
+      })
+    )
+    await screen.findByText(/1 enabled · 1 configured/)
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: /Advanced source settings/,
+      })
+    )
+    const documents = (await screen.findByLabelText('Document limit')) as HTMLInputElement
+    const bytes = screen.getByLabelText('Content limit (bytes)') as HTMLInputElement
+    const characters = screen.getByLabelText('Content limit (characters)') as HTMLInputElement
+    const seconds = screen.getByLabelText('Duration limit (seconds)') as HTMLInputElement
+    // A null limit shows a blank field; a set one shows its number.
+    expect([documents.value, bytes.value, characters.value, seconds.value]).toEqual([
+      '',
+      '4096',
+      '',
+      '',
+    ])
+
+    fireEvent.input(documents, { target: { value: '25' } })
+    fireEvent.input(seconds, { target: { value: '3600' } })
+    // Out of range: not reported, and restored to the last accepted value on blur.
+    fireEvent.input(characters, { target: { value: '0' } })
+    fireEvent.blur(characters)
+    expect(characters.value).toBe('')
+    // Clearing a set limit reports null, not 0 or NaN.
+    fireEvent.input(bytes, { target: { value: '' } })
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Save changes',
+      })
+    )
+    await waitFor(() => expect(state.lastSettingsUpdate).not.toBeNull())
+    expect(state.lastSettingsUpdate?.sources).toEqual([
+      expect.objectContaining({
+        name: 'work-code',
+        max_documents: 25,
+        max_bytes: null,
+        max_content_chars: null,
+        max_duration_seconds: 3600,
+      }),
+    ])
+  } finally {
+    state.settings = originalSettings
+    state.lastSettingsUpdate = null
+  }
+})
+function sourceLimitInputs() {
+  return [
+    'Document limit',
+    'Content limit (bytes)',
+    'Content limit (characters)',
+    'Duration limit (seconds)',
+  ].map((name) => screen.getByLabelText(name) as HTMLInputElement)
+}
+
+async function openAdvancedSourceLimits() {
+  render(() => <App />)
+  await findSystemAction({
+    name: updatesButtonName,
+  })
+  await openSidebarDestination('Settings')
+  await screen.findByRole('heading', {
+    level: 1,
+    name: 'Settings',
+  })
+  fireEvent.click(
+    await screen.findByRole('tab', {
+      name: 'Sources',
+    })
+  )
+  await screen.findByText(/1 enabled · 1 configured/)
+  fireEvent.click(
+    await screen.findByRole('button', {
+      name: /Advanced source settings/,
+    })
+  )
+  return (await screen.findByLabelText('Document limit')) as HTMLInputElement
+}
+test('source limits reject fractional, over-range and incomplete drafts and keep the saved value', async () => {
+  const originalSettings = state.settings
+  state.settings = {
+    ...desktopSettings,
+    sources: [{ ...workSource, max_documents: 7 }],
+  }
+  try {
+    const documents = await openAdvancedSourceLimits()
+    expect(documents.value).toBe('7')
+
+    // A fractional draft is rejected with its own message, as a range change is.
+    fireEvent.input(documents, { target: { value: '2.5' } })
+    expect(await screen.findByText('Document limit must be a whole number.')).toBeTruthy()
+    fireEvent.blur(documents)
+    expect(documents.value).toBe('7')
+    expect(screen.queryByText('Document limit must be a whole number.')).toBeNull()
+
+    // The upper bound is inclusive: 1,000,000 is accepted, 1,000,001 is not.
+    fireEvent.input(documents, { target: { value: '1000001' } })
+    expect(await screen.findByText('Document limit must be between 1 and 1000000.')).toBeTruthy()
+    fireEvent.blur(documents)
+    expect(documents.value).toBe('7')
+    fireEvent.input(documents, { target: { value: '1000000' } })
+    expect(screen.queryByText('Document limit must be between 1 and 1000000.')).toBeNull()
+    fireEvent.input(documents, { target: { value: '7' } })
+
+    // Incomplete numeric text ("1e", "-") reads as '' but is not blank: it must
+    // not clear the limit. happy-dom has no number-input parsing, so report the
+    // browser's `validity.badInput` the way Chromium does for such text.
+    Object.defineProperty(documents, 'validity', {
+      configurable: true,
+      value: { badInput: true },
+    })
+    fireEvent.input(documents, { target: { value: '' } })
+    expect(await screen.findByText('Document limit must be a valid number.')).toBeTruthy()
+    fireEvent.blur(documents)
+    expect(documents.value).toBe('7')
+    delete (documents as unknown as { validity?: unknown }).validity
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Save changes',
+      })
+    )
+    await waitFor(() => expect(state.lastSettingsUpdate).not.toBeNull())
+    expect(state.lastSettingsUpdate?.sources).toEqual([
+      expect.objectContaining({ name: 'work-code', max_documents: 7 }),
+    ])
+  } finally {
+    state.settings = originalSettings
+    state.lastSettingsUpdate = null
+  }
+})
+test('source limits lock while a source job runs and unlock when it finishes', async () => {
+  const originalConfirm = window.confirm
+  window.confirm = () => true
+  const originalSettings = state.settings
+  state.settings = {
+    ...desktopSettings,
+    sources: [{ ...workSource, max_documents: 7 }],
+  }
+  try {
+    const documents = await openAdvancedSourceLimits()
+    const limits = sourceLimitInputs
+    expect(limits().map((input) => input.disabled)).toEqual([false, false, false, false])
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Test connection',
+      })
+    )
+    await waitFor(() => expect(state.sourceJob?.status).toBe('running'))
+    await waitFor(() =>
+      expect(limits().map((input) => input.disabled)).toEqual([true, true, true, true])
+    )
+    // Locked fields keep their value.
+    expect(documents.value).toBe('7')
+
+    state.sourceJob = {
+      ...state.sourceJob!,
+      status: 'succeeded',
+      summary: 'Validation succeeded.',
+      completed_at_unix_seconds: state.sourceJob!.started_at_unix_seconds + 1,
+      exit_code: 0,
+    }
+    await waitFor(
+      () => expect(limits().map((input) => input.disabled)).toEqual([false, false, false, false]),
+      { timeout: 6_000 }
+    )
+    expect(documents.value).toBe('7')
+  } finally {
+    window.confirm = originalConfirm
+    state.settings = originalSettings
+    state.sourceJob = null
+  }
+})
+test('navigation keys in the source limit fields stay with the field', async () => {
+  const originalConfirm = window.confirm
+  window.confirm = () => true
+  const originalSettings = state.settings
+  state.settings = {
+    ...desktopSettings,
+    sources: [{ ...workSource, max_documents: 7 }],
+  }
+  try {
+    await openAdvancedSourceLimits()
+    for (const input of sourceLimitInputs()) {
+      for (const key of ['ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown']) {
+        // fireEvent returns false when the event was cancelled, which would stop the field stepping.
+        expect(fireEvent.keyDown(input, { key }), `${input.id} ${key}`).toBe(true)
+      }
+    }
+    // The accordion still owns the keys on its own trigger.
+    const trigger = screen.getByRole('button', { name: /Advanced source settings/ })
+    expect(fireEvent.keyDown(trigger, { key: 'ArrowDown' })).toBe(false)
+  } finally {
+    window.confirm = originalConfirm
+    state.settings = originalSettings
+  }
+})
 test('running source jobs stay visible in the shell after leaving the settings view', async () => {
   const originalConfirm = window.confirm
   window.confirm = () => true
