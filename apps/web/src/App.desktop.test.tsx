@@ -6844,6 +6844,74 @@ test('Google authorization accepts a token path supplied through the configured 
     state.settings = originalSettings
   }
 })
+test('source limits keep blank as null and report only accepted numbers', async () => {
+  const originalSettings = state.settings
+  state.settings = {
+    ...desktopSettings,
+    sources: [{ ...workSource, max_bytes: 4096 }],
+  }
+  try {
+    render(() => <App />)
+    await findSystemAction({
+      name: updatesButtonName,
+    })
+    await openSidebarDestination('Settings')
+    await screen.findByRole('heading', {
+      level: 1,
+      name: 'Settings',
+    })
+    fireEvent.click(
+      await screen.findByRole('tab', {
+        name: 'Sources',
+      })
+    )
+    await screen.findByText(/1 enabled · 1 configured/)
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: /Advanced source settings/,
+      })
+    )
+    const documents = (await screen.findByLabelText('Document limit')) as HTMLInputElement
+    const bytes = screen.getByLabelText('Content limit (bytes)') as HTMLInputElement
+    const characters = screen.getByLabelText('Content limit (characters)') as HTMLInputElement
+    const seconds = screen.getByLabelText('Duration limit (seconds)') as HTMLInputElement
+    // A null limit shows a blank field; a set one shows its number.
+    expect([documents.value, bytes.value, characters.value, seconds.value]).toEqual([
+      '',
+      '4096',
+      '',
+      '',
+    ])
+
+    fireEvent.input(documents, { target: { value: '25' } })
+    fireEvent.input(seconds, { target: { value: '3600' } })
+    // Out of range: not reported, and restored to the last accepted value on blur.
+    fireEvent.input(characters, { target: { value: '0' } })
+    fireEvent.blur(characters)
+    expect(characters.value).toBe('')
+    // Clearing a set limit reports null, not 0 or NaN.
+    fireEvent.input(bytes, { target: { value: '' } })
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Save changes',
+      })
+    )
+    await waitFor(() => expect(state.lastSettingsUpdate).not.toBeNull())
+    expect(state.lastSettingsUpdate?.sources).toEqual([
+      expect.objectContaining({
+        name: 'work-code',
+        max_documents: 25,
+        max_bytes: null,
+        max_content_chars: null,
+        max_duration_seconds: 3600,
+      }),
+    ])
+  } finally {
+    state.settings = originalSettings
+    state.lastSettingsUpdate = null
+  }
+})
 test('running source jobs stay visible in the shell after leaving the settings view', async () => {
   const originalConfirm = window.confirm
   window.confirm = () => true
