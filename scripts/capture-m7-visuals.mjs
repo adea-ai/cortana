@@ -868,6 +868,84 @@ async function auditAccessibility(page, label) {
   await motionContext.close()
 }
 
+// The System status popover follows the header when the bar wraps or unwraps
+// while it is open. A text-size change resizes the bar without resizing the
+// window or moving the trigger, so only an observer on the bar notices it; a
+// popover that waits for floating-ui's one-second layout-shift fallback fails
+// the half-second budget below.
+{
+  const popoverContext = await browser.newContext({
+    viewport: { width: 390, height: 1000 },
+    reducedMotion: 'reduce',
+  })
+  await popoverContext.addInitScript(
+    (value) =>
+      localStorage.setItem(
+        'cortana.workspace-themes.v1',
+        JSON.stringify({ work: value, personal: value })
+      ),
+    primaryTheme
+  )
+  const popoverPage = await popoverContext.newPage()
+  popoverPage.setDefaultTimeout(60_000)
+  await popoverPage.goto(`${baseUrl}/?demo=1&demo-state=configured`, {
+    waitUntil: 'domcontentloaded',
+  })
+  await popoverPage.locator('[data-m7-production-shell-ready]').waitFor({ state: 'attached' })
+  await popoverPage.getByRole('textbox', { name: 'Search your knowledge' }).waitFor()
+  await popoverPage.getByRole('button', { name: 'System status', exact: true }).click()
+  await popoverPage.locator('[aria-label="System status details"]').waitFor()
+
+  const settleBudgetMs = 500
+  const popoverPlacement = (expectWrapped) =>
+    popoverPage
+      .waitForFunction(
+        (wrapped) => {
+          const bar = document.querySelector('[data-slot="top-bar"]')?.getBoundingClientRect()
+          const trigger = document
+            .querySelector('[aria-label="System status"]')
+            ?.getBoundingClientRect()
+          const popover = document
+            .querySelector('[aria-label="System status details"]')
+            ?.getBoundingClientRect()
+          if (!bar || !trigger || !popover) return false
+          const isWrapped = bar.bottom - trigger.bottom >= 24
+          if (isWrapped !== wrapped) return false
+          // Wrapped: below the bar's second row. Single row: just under the trigger.
+          return wrapped
+            ? popover.top >= bar.bottom - 2
+            : popover.top >= trigger.bottom && popover.top - trigger.bottom <= 20
+        },
+        expectWrapped,
+        { timeout: settleBudgetMs, polling: 'raf' }
+      )
+      .catch(() => {
+        throw new Error(
+          `System status popover did not settle ${expectWrapped ? 'below the wrapped bar' : 'under the trigger'} within ${settleBudgetMs}ms`
+        )
+      })
+
+  await popoverPlacement(false)
+  await popoverPage.evaluate(() => {
+    document.documentElement.style.fontSize = '200%'
+  })
+  await popoverPlacement(true)
+  await popoverPage.evaluate(() => {
+    document.documentElement.style.fontSize = ''
+  })
+  await popoverPlacement(false)
+  // Window resizes: wrap at the narrow width, unwrap at the wide one.
+  await popoverPage.evaluate(() => {
+    document.documentElement.style.fontSize = '200%'
+  })
+  await popoverPlacement(true)
+  await popoverPage.setViewportSize({ width: 1100, height: 1000 })
+  await popoverPlacement(false)
+  await popoverPage.setViewportSize({ width: 390, height: 1000 })
+  await popoverPlacement(true)
+  await popoverContext.close()
+}
+
 await browser.close()
 
 if (consoleErrors.length > 0) {
