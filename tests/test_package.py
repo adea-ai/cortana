@@ -13,6 +13,26 @@ def test_runtime_version_matches_package_metadata() -> None:
     assert __version__ == version("cortana-brain")
 
 
+def test_uv_lock_keeps_its_release_marker_on_the_project_entry() -> None:
+    """A lock refresh must not drop the annotation Release Please rewrites.
+
+    `uv lock` and dependency-maintenance PRs regenerate `uv.lock` without
+    comments. The generic updater configured for the file only bumps lines that
+    carry the annotation, so losing it leaves the lock one release behind.
+    """
+    release_config = json.loads((ROOT / "release-please-config.json").read_text())
+    manifest = json.loads((ROOT / ".release-please-manifest.json").read_text())
+    uv_lock_lines = (ROOT / "uv.lock").read_text().splitlines()
+
+    assert {"type": "generic", "path": "uv.lock"} in release_config["extra-files"]
+    marked = [
+        index for index, line in enumerate(uv_lock_lines) if "x-release-please-version" in line
+    ]
+    assert len(marked) == 1, f"expected exactly one release marker in uv.lock, found {len(marked)}"
+    assert uv_lock_lines[marked[0] - 1] == 'name = "cortana-brain"'
+    assert uv_lock_lines[marked[0]] == f'version = "{manifest["."]}" # x-release-please-version'
+
+
 def test_release_manifest_has_one_shared_application_version() -> None:
     manifest = json.loads((ROOT / ".release-please-manifest.json").read_text())
     release_config = json.loads((ROOT / "release-please-config.json").read_text())
