@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.69.3](https://github.com/adea-ai/cortana/compare/v0.69.2...v0.69.3) (2026-10-19)
+
+
+### Bug Fixes
+
+* **web:** re-anchor the System status popover when the header wraps while it is open ([#2602](https://github.com/adea-ai/cortana/issues/2602)) ([6a55e5e](https://github.com/adea-ai/cortana/commit/6a55e5e3f9acae064db2c33011114d941c24a527))
+
+
+### Maintenance
+
+* **deps:** lock file maintenance ([#2603](https://github.com/adea-ai/cortana/issues/2603)) ([4befc40](https://github.com/adea-ai/cortana/commit/4befc40fe19b433257e79cdb47288f403093609c))
+* **web:** pass TopBar centerWidth="wide" in the shell header ([#2599](https://github.com/adea-ai/cortana/issues/2599)) ([6fec0d5](https://github.com/adea-ai/cortana/commit/6fec0d5ea65ff792137e3dacc2d1feb2bed23825))
+* **web:** use the optional NumberField for per-source limits (UI 0.142.0) ([#2600](https://github.com/adea-ai/cortana/issues/2600)) ([57c08c3](https://github.com/adea-ai/cortana/commit/57c08c35358b187a676abd0afc8b109d2bd41c7f))
+
 ## [0.69.2](https://github.com/adea-ai/cortana/compare/v0.69.1...v0.69.2) (2026-10-18)
 
 
