@@ -191,6 +191,7 @@ function startWindowDrag(event: PointerEvent) {
 export function M7ApplicationHeader(props: M7HeaderProps) {
   const actionsRef = { current: null as HTMLButtonElement | null }
   const [systemOpen, setSystemOpen] = createSignal(false)
+  const [statusTrigger, setStatusTrigger] = createSignal<HTMLElement>()
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = createSignal(false)
   const navigation = useCortanaNavigation()
   const titlebar = macTitlebarChrome()
@@ -359,10 +360,14 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
           <Popover
             open={systemOpen()}
             onOpenChange={setSystemOpen}
-            getAnchorRect={systemStatusAnchorRect}
+            anchorRef={() =>
+              statusTrigger()?.closest<HTMLElement>('[data-slot="top-bar"]') ?? undefined
+            }
+            getAnchorRect={(bar) => systemStatusAnchorRect(statusTrigger(), bar)}
           >
             <PopoverTrigger
               as={Button}
+              ref={setStatusTrigger}
               variant="ghost"
               size="icon-sm"
               aria-label="System status"
