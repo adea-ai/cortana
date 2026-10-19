@@ -87,6 +87,7 @@ import {
 import { isDesktopApp } from '@/api'
 import { TooltipProvider } from '@adea-ai/ui/components/ui/tooltip'
 import { shortcutLabel } from '@/shortcuts'
+import { systemStatusAnchorRect } from '@/components/m7/systemStatusAnchor'
 import type { M7ActivityInbox } from '@/components/m7/M7ActivityInbox'
 import type { M7CommandPalette } from '@/components/m7/M7CommandPalette'
 import { WorkspaceLogo } from '@/workspaceLogos'
@@ -196,7 +197,7 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
   const activeWorkspace = () => props.workspaces?.find((item) => item.id === props.workspace)
   return (
     <TopBar
-      class="m7-application-header"
+      centerWidth="wide"
       glass
       draggable={false}
       macosInset={titlebar}
@@ -332,7 +333,9 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
               {props.loading ? (
                 <Spinner size="md" label="Searching" />
               ) : (
-                <Kbd>{shortcutLabel('MOD K')}</Kbd>
+                <Show when={!navigation.isMobile()}>
+                  <Kbd>{shortcutLabel('MOD K')}</Kbd>
+                </Show>
               )}
             </InputGroupAddon>
           </InputGroup>
@@ -353,7 +356,11 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
       </div>
       <TopBarSection align="end" class="min-w-9 justify-self-end">
         <Show when={props.systemActions}>
-          <Popover open={systemOpen()} onOpenChange={setSystemOpen}>
+          <Popover
+            open={systemOpen()}
+            onOpenChange={setSystemOpen}
+            getAnchorRect={systemStatusAnchorRect}
+          >
             <PopoverTrigger
               as={Button}
               variant="ghost"

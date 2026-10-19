@@ -325,6 +325,21 @@ test('mobile knowledge panels stay in Sheet boundaries without desktop splitters
   expect(screen.queryByRole('separator', { name: 'Resize context panel' })).toBeNull()
   expect(document.querySelector('[data-slot="app-shell-content"]')).not.toBeNull()
 })
+const searchInput = () => screen.getByLabelText('Search your knowledge')
+const searchHint = () => searchInput().closest('form')?.querySelector('kbd') ?? null
+test('the search shortcut hint is hidden on a mobile window and shown on a wide one', async () => {
+  window.innerWidth = 1440
+  const wide = render(() => <App />)
+  await waitFor(() => expect(searchInput()).toBeTruthy())
+  await waitFor(() => expect(searchHint()).not.toBeNull())
+  wide.unmount()
+  window.innerWidth = 320
+  render(() => <App />)
+  await waitFor(() => expect(searchInput()).toBeTruthy())
+  await flushAppBootstrap()
+  await waitFor(() => expect(screen.queryByText('Searching')).toBeNull())
+  expect(searchHint()).toBeNull()
+})
 test('source settings focus handoff completes after the mobile sources sheet closes', async () => {
   window.innerWidth = 320
   render(() => <App />)
