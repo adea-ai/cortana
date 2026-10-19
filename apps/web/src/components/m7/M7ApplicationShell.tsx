@@ -87,6 +87,7 @@ import {
 import { isDesktopApp } from '@/api'
 import { TooltipProvider } from '@adea-ai/ui/components/ui/tooltip'
 import { shortcutLabel } from '@/shortcuts'
+import { systemStatusAnchorRect } from '@/components/m7/systemStatusAnchor'
 import type { M7ActivityInbox } from '@/components/m7/M7ActivityInbox'
 import type { M7CommandPalette } from '@/components/m7/M7CommandPalette'
 import { WorkspaceLogo } from '@/workspaceLogos'
@@ -355,7 +356,11 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
       </div>
       <TopBarSection align="end" class="min-w-9 justify-self-end">
         <Show when={props.systemActions}>
-          <Popover open={systemOpen()} onOpenChange={setSystemOpen}>
+          <Popover
+            open={systemOpen()}
+            onOpenChange={setSystemOpen}
+            getAnchorRect={systemStatusAnchorRect}
+          >
             <PopoverTrigger
               as={Button}
               variant="ghost"
