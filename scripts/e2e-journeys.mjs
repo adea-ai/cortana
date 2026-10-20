@@ -171,15 +171,15 @@ async function approveMemoryCandidate(context) {
 
 async function workspaceSelectionSurvivesReload(context) {
   const page = await openDemoApp(context)
-  await page.getByRole('button', { name: 'Switch workspace' }).click()
+  await page.getByRole('button', { name: /^Switch workspace/ }).click()
   await page.getByRole('menuitemradio', { name: 'Work', exact: true }).click()
   await waitForPaint(page)
-  const beforeReload = await page.getByRole('button', { name: 'Switch workspace' }).textContent()
+  const beforeReload = await page.getByRole('button', { name: /^Switch workspace/ }).textContent()
 
   await page.reload({ waitUntil: 'load' })
   await page.locator('[data-m7-production-shell-ready]').waitFor({ state: 'attached' })
   await waitForPaint(page)
-  const afterReload = await page.getByRole('button', { name: 'Switch workspace' }).textContent()
+  const afterReload = await page.getByRole('button', { name: /^Switch workspace/ }).textContent()
   ensure(
     beforeReload?.trim() === afterReload?.trim(),
     `workspace selection did not survive reload: "${beforeReload}" -> "${afterReload}"`

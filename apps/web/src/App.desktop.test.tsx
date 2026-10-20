@@ -1134,7 +1134,7 @@ test('desktop shell restores workspace and source scope and clears stale selecti
   await waitFor(() => {
     expect(
       screen.getByRole('button', {
-        name: 'Switch workspace',
+        name: /^Switch workspace/,
       }).textContent
     ).toContain('Work')
     expect(state.getDocumentsCalls.at(-1)?.source).toBe('work-code')
@@ -1161,7 +1161,7 @@ test('desktop shell restores workspace and source scope and clears stale selecti
     expect(migrated).toBeTruthy()
     expect(
       screen.getByRole('button', {
-        name: 'Switch workspace',
+        name: /^Switch workspace/,
       }).textContent
     ).toContain('Work')
   })
@@ -4175,7 +4175,7 @@ test('workspace theme controls persist and apply per workspace', async () => {
   // Kobalte menus open on pointerdown and select on pointerup.
   fireEvent.pointerDown(
     screen.getByRole('button', {
-      name: 'Switch workspace',
+      name: /^Switch workspace/,
     })
   )
   const personalWorkspace = await screen.findByRole('menuitemradio', {
@@ -4240,12 +4240,12 @@ test('device default theme applies to workspaces without an override and clears 
     JSON.stringify({ personal: 'graphite' })
   )
   // Switching workspace applies its override, else the device default.
-  fireEvent.pointerDown(screen.getByRole('button', { name: 'Switch workspace' }))
+  fireEvent.pointerDown(screen.getByRole('button', { name: /^Switch workspace/ }))
   const personalWorkspace = await screen.findByRole('menuitemradio', { name: 'Personal' })
   fireEvent.pointerUp(personalWorkspace)
   fireEvent.click(personalWorkspace)
   await waitFor(() => expect(document.documentElement.getAttribute('data-theme')).toBe('adea-dark'))
-  fireEvent.pointerDown(screen.getByRole('button', { name: 'Switch workspace' }))
+  fireEvent.pointerDown(screen.getByRole('button', { name: /^Switch workspace/ }))
   const workWorkspace = await screen.findByRole('menuitemradio', { name: 'Work' })
   fireEvent.pointerUp(workWorkspace)
   fireEvent.click(workWorkspace)
@@ -4336,12 +4336,12 @@ test('device default theme still applies when storage rejects the write, and rec
     expect(screen.getByText('Workspaces without their own theme use Nord.')).toBeTruthy()
     expect(window.localStorage.getItem('cortana.device-theme.v1')).toBeNull()
     // Personal keeps its stored override, which the failed device write never touched.
-    fireEvent.pointerDown(screen.getByRole('button', { name: 'Switch workspace' }))
+    fireEvent.pointerDown(screen.getByRole('button', { name: /^Switch workspace/ }))
     const personalWorkspace = await screen.findByRole('menuitemradio', { name: 'Personal' })
     fireEvent.pointerUp(personalWorkspace)
     fireEvent.click(personalWorkspace)
     await waitFor(() => expect(document.documentElement.getAttribute('data-theme')).toBe('dracula'))
-    fireEvent.pointerDown(screen.getByRole('button', { name: 'Switch workspace' }))
+    fireEvent.pointerDown(screen.getByRole('button', { name: /^Switch workspace/ }))
     const workWorkspace = await screen.findByRole('menuitemradio', { name: 'Work' })
     fireEvent.pointerUp(workWorkspace)
     fireEvent.click(workWorkspace)
@@ -4780,13 +4780,19 @@ test('the title bar carries the workspace picker with its own mark', async () =>
   // The workspace picker lives in the title strip now; the rail carries
   // destinations only.
   const picker = screen.getByRole('button', {
-    name: 'Switch workspace',
+    name: /^Switch workspace/,
   })
-  expect(picker.closest('[data-slot="top-bar"]')).not.toBeNull()
+  expect(picker.closest('[data-slot="shell-top-bar"]')).not.toBeNull()
   expect(picker.querySelector('[data-workspace-logo]')).not.toBeNull()
   expect(
-    document.querySelector('#m7-primary-navigation [aria-label="Switch workspace"]')
+    document.querySelector('#m7-primary-navigation [aria-label^="Switch workspace"]')
   ).toBeNull()
+  // The switcher sits beside the sidebar toggle, left of the divider that
+  // separates the window's controls from the view's.
+  const leading = picker.closest('[data-slot="shell-top-bar-leading"]')
+  expect(leading).not.toBeNull()
+  expect(leading!.querySelector('[data-slot="shell-top-bar-toggle"]')).not.toBeNull()
+  expect(leading!.querySelector('[aria-label="Search history"]')).not.toBeNull()
 })
 test('the title bar workspace picker follows the rail breakpoint (800 px)', async () => {
   // The picker used to show from 768 px while the rail became a sheet below
@@ -4815,16 +4821,16 @@ test('the title bar workspace picker follows the rail breakpoint (800 px)', asyn
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    expect(screen.getByRole('button', { name: 'Switch workspace' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /^Switch workspace/ })).toBeTruthy()
     mobile = true
     listeners.forEach((listener) => listener({ matches: true } as MediaQueryListEvent))
     await waitFor(() =>
-      expect(screen.queryByRole('button', { name: 'Switch workspace' })).toBeNull()
+      expect(screen.queryByRole('button', { name: /^Switch workspace/ })).toBeNull()
     )
     mobile = false
     listeners.forEach((listener) => listener({ matches: false } as MediaQueryListEvent))
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Switch workspace' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: /^Switch workspace/ })).toBeTruthy()
     )
   } finally {
     if (originalMatchMedia) Object.defineProperty(window, 'matchMedia', originalMatchMedia)
@@ -4848,7 +4854,7 @@ test('the mac title strip is a drag region clear of the traffic lights', async (
   try {
     render(() => <App />)
     await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-    const bar = document.querySelector('[data-slot="top-bar"]') as HTMLElement | null
+    const bar = document.querySelector('[data-slot="shell-top-bar"]') as HTMLElement | null
     expect(bar).not.toBeNull()
     expect(bar!.hasAttribute('data-tauri-drag-region')).toBe(false)
     expect(bar!.className).not.toContain('window-drag')
@@ -4857,12 +4863,14 @@ test('the mac title strip is a drag region clear of the traffic lights', async (
     // workspace picker is part of the strip itself.
     expect(document.querySelector('[data-slot="side-rail-header"]')).toBeNull()
     expect(
-      screen.getByRole('button', { name: 'Switch workspace' }).closest('[data-slot="top-bar"]')
+      screen
+        .getByRole('button', { name: /^Switch workspace/ })
+        .closest('[data-slot="shell-top-bar"]')
     ).not.toBeNull()
     dragState.startCalls = 0
     fireEvent.pointerDown(bar!, { button: 0, isPrimary: true, pointerType: 'mouse' })
     await waitFor(() => expect(dragState.startCalls).toBe(1))
-    fireEvent.pointerDown(screen.getByRole('button', { name: 'Switch workspace' }), {
+    fireEvent.pointerDown(screen.getByRole('button', { name: /^Switch workspace/ }), {
       button: 0,
       isPrimary: true,
       pointerType: 'mouse',
@@ -4882,7 +4890,7 @@ test('the mac title strip is a drag region clear of the traffic lights', async (
 test('non-mac desktop windows keep their native chrome', async () => {
   render(() => <App />)
   await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
-  const bar = document.querySelector('[data-slot="top-bar"]') as HTMLElement | null
+  const bar = document.querySelector('[data-slot="shell-top-bar"]') as HTMLElement | null
   expect(bar).not.toBeNull()
   expect(bar!.hasAttribute('data-tauri-drag-region')).toBe(false)
   expect(bar!.className).not.toContain('window-inset-macos')
@@ -5064,6 +5072,49 @@ test('closing the shared updater restores focus to the utilities trigger', async
   } finally {
     if (originalRects) Object.defineProperty(trigger, 'getClientRects', originalRects)
     else Reflect.deleteProperty(trigger, 'getClientRects')
+  }
+})
+test('the top bar toggle collapses the Sources sidebar and the rail keeps the app mark and search', async () => {
+  const originalMatchMedia = Object.getOwnPropertyDescriptor(window, 'matchMedia')
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: (query: string) =>
+      ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => true,
+      }) as MediaQueryList,
+  })
+  window.localStorage.removeItem('cortana.sidebar')
+  try {
+    render(() => <App />)
+    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    // The rail stays collapsed: it carries the app mark and the search entry.
+    const rail = screen.getByRole('navigation', { name: 'Primary navigation' })
+    expect(rail.querySelector('img[src="/app-icon.svg"]')).not.toBeNull()
+    expect(within(rail).getByRole('button', { name: 'Search knowledge' })).toBeTruthy()
+    // The toggle controls the sidebar, not the rail.
+    const collapse = screen.getByRole('button', { name: 'Collapse sidebar' })
+    expect(collapse.getAttribute('aria-expanded')).toBe('true')
+    expect(collapse.getAttribute('aria-controls')).toBe('m7-sources-sidebar')
+    expect(document.getElementById('m7-sources-sidebar')).not.toBeNull()
+    fireEvent.click(collapse)
+    const expand = await screen.findByRole('button', { name: 'Expand sidebar' })
+    expect(expand.getAttribute('aria-expanded')).toBe('false')
+    expect(window.localStorage.getItem('cortana.sidebar')).toBe('closed')
+    expect(rail.getAttribute('data-collapsed')).toBe('true')
+    fireEvent.click(expand)
+    await screen.findByRole('button', { name: 'Collapse sidebar' })
+    expect(window.localStorage.getItem('cortana.sidebar')).toBe('open')
+  } finally {
+    window.localStorage.removeItem('cortana.sidebar')
+    if (originalMatchMedia) Object.defineProperty(window, 'matchMedia', originalMatchMedia)
+    else Reflect.deleteProperty(window, 'matchMedia')
   }
 })
 test('mobile About and Updates restore focus to the live navigation trigger', async () => {

@@ -162,7 +162,7 @@ async function chooseWorkspace(id: string) {
   // Kobalte menu triggers open on pointerdown, not click.
   fireEvent.pointerDown(
     screen.getByRole('button', {
-      name: 'Switch workspace',
+      name: /^Switch workspace/,
     })
   )
   const name = id[0].toUpperCase() + id.slice(1)
@@ -433,7 +433,7 @@ test('mobile navigation lists workspaces as rows rather than a hidden menu', asy
   // assertion is scoped to the sheet rather than the screen.
   expect(
     within(sheet).queryByRole('button', {
-      name: 'Switch workspace',
+      name: /^Switch workspace/,
     })
   ).toBeNull()
   fireEvent.click(

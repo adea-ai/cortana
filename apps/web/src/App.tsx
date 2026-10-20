@@ -241,6 +241,16 @@ function cortanaFeedbackUrl(version: string | undefined, platform: 'desktop' | '
   return `https://github.com/adea-ai/cortana/issues/new?${params.toString()}`
 }
 const paneWidthsStorageKey = 'cortana.pane-widths'
+const sidebarOpenStorageKey = 'cortana.sidebar'
+
+/** The Sources sidebar starts open; only an explicit collapse is remembered. */
+function readSidebarOpen() {
+  try {
+    return window.localStorage.getItem(sidebarOpenStorageKey) !== 'closed'
+  } catch {
+    return true
+  }
+}
 
 function readPaneWidths() {
   try {
@@ -379,7 +389,7 @@ function CortanaApplication() {
   const [desktopServices, setDesktopServices] = createSignal<DesktopServiceReport | null>(null)
   const [desktopServicesError, setDesktopServicesError] = createSignal('')
   const [settingsSection, setSettingsSection] = createSignal<
-    'readiness' | 'services' | 'sources' | 'memory'
+    'readiness' | 'services' | 'sources' | 'memory' | 'workspaces'
   >('readiness')
   const [aboutOpen, setAboutOpen] = createSignal(false)
   const [aboutDialogMounted, setAboutDialogMounted] = createSignal(false)
@@ -472,6 +482,17 @@ function CortanaApplication() {
   const [sourceWidth, setSourceWidth] = createSignal(initialPaneWidths.source)
   const [contextWidth, setContextWidth] = createSignal(initialPaneWidths.context)
   const sourcePaneVisible = createMediaQuery(() => '(min-width: 800px)')
+  // The top bar's toggle opens and closes the Sources sidebar at wide widths;
+  // the rail is always the icon column. Narrow windows keep the drawer.
+  const [sidebarOpen, setSidebarOpenState] = createSignal(readSidebarOpen())
+  const setSidebarOpen = (open: boolean) => {
+    setSidebarOpenState(open)
+    try {
+      window.localStorage.setItem(sidebarOpenStorageKey, open ? 'open' : 'closed')
+    } catch {
+      // The sidebar still toggles when browser storage is disabled.
+    }
+  }
   const contextPaneVisible = createMediaQuery(() => '(min-width: 1281px)')
   const [paneGroupElement, setPaneGroupElement] = createSignal<HTMLDivElement>()
   const [paneGroupWidth, setPaneGroupWidth] = createSignal(0)
@@ -1325,7 +1346,7 @@ function CortanaApplication() {
         (candidate.name === sourceName || candidate.source === sourceName)
     )
   }
-  function openSettingsAt(section: 'readiness' | 'services' | 'sources' | 'memory') {
+  function openSettingsAt(section: 'readiness' | 'services' | 'sources' | 'memory' | 'workspaces') {
     leaveSettings(() => {
       setSettingsSection(section)
       setView('settings')
@@ -1957,7 +1978,7 @@ function CortanaApplication() {
               : 236
             : 0)
     )
-  const sourcePaneActive = () => sourcePaneVisible() && !graphFullScreen()
+  const sourcePaneActive = () => sourcePaneVisible() && sidebarOpen() && !graphFullScreen()
   const contextPaneActive = () => contextPaneVisible() && !graphFullScreen()
   const minimumWorkspaceWidth = () =>
     graphFullScreen() || !sourcePaneVisible() ? 0 : contextPaneVisible() ? 520 : 300
@@ -2089,7 +2110,7 @@ function CortanaApplication() {
   // while it is active the source and context panels collapse so the graph
   // spans the whole width between the rail and the status bar.
   return (
-    <M7ShellProvider>
+    <M7ShellProvider sidebarOpen={sidebarOpen} onSidebarOpenChange={setSidebarOpen}>
       <AppShell class="m7-production-shell flex-col" data-m7-production-shell-ready={''}>
         <SkipLink />
 
@@ -2215,9 +2236,9 @@ function CortanaApplication() {
             workspaces={workspaces()}
             workspace={effectiveWorkspace()}
             onWorkspaceChange={chooseWorkspace}
-            workspaceName={
-              workspaces().find((item) => item.id === effectiveWorkspace())?.name ?? 'Workspace'
-            }
+            onManageWorkspaces={() => openSettingsAt('workspaces')}
+            hasSidebar={view() === 'knowledge' && !graphFullScreen()}
+            sidebarWidth={paneWidths().source}
             location={
               view() === 'knowledge'
                 ? workspaceTab() === 'graph'
@@ -2243,6 +2264,7 @@ function CortanaApplication() {
                 onOpenHelp: openHelpDialog,
                 onOpenFeedback: openFeedback,
                 onOpenUpdates: openUpdateDialog,
+                onSearch: focusSearch,
               }}
               workspaces={workspaces()}
               workspace={effectiveWorkspace()}
@@ -2373,6 +2395,7 @@ function CortanaApplication() {
                   class="m7-workspace-split"
                 >
                   <ResizablePanel
+                    id="m7-sources-sidebar"
                     role="region"
                     aria-label="Sources and documents"
                     minSize={sourcePaneActive() ? 220 / paneAreaWidth() : 0}

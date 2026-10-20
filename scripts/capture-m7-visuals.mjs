@@ -490,28 +490,14 @@ async function auditAccessibility(page, label) {
           throw new Error(`Shared rail geometry regressed: ${JSON.stringify(collapsedMetrics)}`)
         }
 
-        await page.getByRole('button', { name: 'Toggle navigation' }).click()
-        await page.locator('#m7-primary-navigation[data-collapsed="false"]').waitFor()
+        // The top bar toggle controls the Sources sidebar; the rail itself stays collapsed.
+        await page.getByRole('button', { name: 'Collapse sidebar' }).click()
+        await page.getByRole('button', { name: 'Expand sidebar' }).waitFor()
         await page.waitForTimeout(300)
-        const expandedGeometry = await page
-          .locator('#m7-primary-navigation')
-          .evaluate((element) => {
-            const rootStyle = getComputedStyle(document.documentElement)
-            return {
-              actual: element.getBoundingClientRect().width,
-              expected:
-                Number.parseFloat(rootStyle.getPropertyValue('--rail-width-expanded')) *
-                Number.parseFloat(rootStyle.fontSize),
-            }
-          })
-        if (Math.abs(expandedGeometry.actual - expandedGeometry.expected) > 1) {
-          throw new Error(
-            `Expanded shared rail geometry regressed: ${JSON.stringify(expandedGeometry)}`
-          )
-        }
-        await auditAccessibility(page, 'expanded desktop navigation')
-        await screenshot(page, `sidebar-expanded-${theme}-1440`)
-        await page.getByRole('button', { name: 'Toggle navigation' }).click()
+        await auditAccessibility(page, 'collapsed sources sidebar')
+        await screenshot(page, `sidebar-collapsed-${theme}-1440`)
+        await page.getByRole('button', { name: 'Expand sidebar' }).click()
+        await page.getByRole('button', { name: 'Collapse sidebar' }).waitFor()
         await page.locator('#m7-primary-navigation[data-collapsed="true"]').waitFor()
 
         const knowledgeSearch = page.getByRole('textbox', { name: 'Search your knowledge' })
@@ -606,7 +592,7 @@ async function auditAccessibility(page, label) {
           () => document.activeElement?.getAttribute('aria-label') === 'Actions'
         )
 
-        await page.getByRole('button', { name: 'Switch workspace' }).click()
+        await page.getByRole('button', { name: /^Switch workspace/ }).click()
         await page.getByRole('menuitemradio', { name: 'Work' }).waitFor()
         await page.waitForTimeout(200)
         await auditAccessibility(page, 'production workspace switcher')
