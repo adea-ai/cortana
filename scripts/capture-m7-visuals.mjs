@@ -52,6 +52,16 @@ const engine = args.get('--browser') ?? 'chromium'
 if (!['chromium', 'webkit'].includes(engine)) throw new Error(`Unsupported browser: ${engine}`)
 const browser = await (engine === 'webkit' ? webkit : chromium).launch({ headless: true })
 
+// The search box lives in the top bar's search menu; open it and return the input.
+async function openSearchMenu(page) {
+  const search = page.getByRole('textbox', { name: 'Search your knowledge' })
+  if (!(await search.isVisible())) {
+    await page.getByRole('button', { name: 'Search and reflect' }).click()
+  }
+  await search.waitFor()
+  return search
+}
+
 async function openPage(theme, width, state = 'configured') {
   // Reduced motion makes enter/exit animations complete instantly so audits
   // never sample a surface mid-fade and screenshots stay deterministic.
@@ -76,7 +86,7 @@ async function openPage(theme, width, state = 'configured') {
   })
   await page.goto(`${baseUrl}/?demo=1&demo-state=${state}`, { waitUntil: 'domcontentloaded' })
   await page.locator('[data-m7-production-shell-ready]').waitFor({ state: 'attached' })
-  await page.getByRole('textbox', { name: 'Search your knowledge' }).waitFor()
+  await page.getByRole('button', { name: 'Search and reflect' }).waitFor()
   await page.waitForFunction(
     ({ expectedTheme }) =>
       document.documentElement.dataset.theme === expectedTheme &&
@@ -305,7 +315,7 @@ async function auditAccessibility(page, label) {
       await page.getByRole('button', { name: 'System status', exact: true }).waitFor()
 
       if (theme === primaryTheme && width === 320) {
-        const mobileSearch = page.getByRole('textbox', { name: 'Search your knowledge' })
+        const mobileSearch = await openSearchMenu(page)
         await mobileSearch.fill('How do releases work?')
         await mobileSearch.press('Enter')
         await page.getByRole('heading', { name: 'How do releases work?', level: 1 }).waitFor()
@@ -500,7 +510,7 @@ async function auditAccessibility(page, label) {
         await page.getByRole('button', { name: 'Collapse sidebar' }).waitFor()
         await page.locator('#m7-primary-navigation[data-collapsed="true"]').waitFor()
 
-        const knowledgeSearch = page.getByRole('textbox', { name: 'Search your knowledge' })
+        const knowledgeSearch = await openSearchMenu(page)
         await knowledgeSearch.fill('How do releases work?')
         await knowledgeSearch.press('Enter')
         await page.getByRole('heading', { name: 'How do releases work?', level: 1 }).waitFor()
@@ -579,7 +589,7 @@ async function auditAccessibility(page, label) {
         await screenshot(page, `command-${theme}-1440`)
         await page.keyboard.press('Escape')
         await page.waitForFunction(
-          () => document.activeElement?.getAttribute('aria-label') === 'Search your knowledge'
+          () => document.activeElement?.getAttribute('aria-label') === 'Search and reflect'
         )
 
         await page.getByRole('button', { name: 'Actions' }).click()
@@ -732,7 +742,7 @@ async function auditAccessibility(page, label) {
 
   for (const width of widths) {
     const { context, page } = await openPage(primaryTheme, width)
-    const search = page.getByRole('textbox', { name: 'Search your knowledge' })
+    const search = await openSearchMenu(page)
     await search.fill('How do releases work?')
     await search.press('Enter')
     await page.getByRole('heading', { name: 'How do releases work?', level: 1 }).waitFor()
@@ -878,7 +888,7 @@ async function auditAccessibility(page, label) {
     waitUntil: 'domcontentloaded',
   })
   await popoverPage.locator('[data-m7-production-shell-ready]').waitFor({ state: 'attached' })
-  await popoverPage.getByRole('textbox', { name: 'Search your knowledge' }).waitFor()
+  await popoverPage.getByRole('button', { name: 'Search and reflect' }).waitFor()
   await popoverPage.getByRole('button', { name: 'System status', exact: true }).click()
   await popoverPage.locator('[aria-label="System status details"]').waitFor()
 

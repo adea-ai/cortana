@@ -73,8 +73,9 @@ async function openRailDestination(page, label) {
 async function searchProducesAnswerWithEvidence(context) {
   const page = await openDemoApp(context)
   const query = 'How do releases work?'
+  // The search box lives in the top bar's search menu.
+  await page.getByRole('button', { name: 'Search and reflect' }).click()
   const searchBox = page.getByRole('textbox', { name: 'Search your knowledge' })
-  await searchBox.click()
   await searchBox.fill(query)
   await searchBox.press('Enter')
 

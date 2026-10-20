@@ -1,5 +1,6 @@
 import { isActionDisabled } from './test/actionState'
 import { act } from './test/act'
+import { searchField, findSearchField } from './test/searchMenu'
 import { afterEach, expect, mock, test } from 'bun:test'
 import { cleanup, fireEvent, render, screen, waitFor, within } from 'solid-testing-library'
 import userEvent from '@testing-library/user-event'
@@ -1113,9 +1114,7 @@ test('cancelling principal removal leaves the access draft unchanged', async () 
 })
 test('global command shortcuts do not hijack editable fields', async () => {
   render(() => <App />)
-  const search = await screen.findByRole('textbox', {
-    name: 'Search your knowledge',
-  })
+  const search = await findSearchField()
   await flushDesktopBootstrap()
   fireEvent.keyDown(search, {
     key: 'p',
@@ -1967,7 +1966,9 @@ test('the shared updater release link uses the native URL bridge', async () => {
   state.openUrlError = new Error('browser unavailable')
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openUpdaterFromMenu()
     fireEvent.click(screen.getByRole('button', { name: 'View releases' }))
     await waitFor(() => expect(state.openUrlCalls).toEqual(['https://github.com/adea-ai/cortana']))
@@ -1982,7 +1983,9 @@ test('updates require confirmation before invoking native installation', async (
   window.confirm = () => false
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openUpdaterFromMenu()
     await installUpdateFromDialog()
     expect(state.installDesktopUpdateCalls).toBe(0)
@@ -2004,7 +2007,9 @@ test('updates confirm in the shared dialog and cancelling keeps the update retry
   state.installDesktopUpdateCalls = 0
   state.lastInstallDesktopUpdate = null
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   await openUpdaterFromMenu()
   await installUpdateFromDialog()
   const confirmation = await screen.findByRole('alertdialog')
@@ -2027,7 +2032,9 @@ test('updates confirm in the shared dialog and cancelling keeps the update retry
 async function changeUpdateOfferWhileConfirming(snapshot: DesktopUpdate) {
   state.installDesktopUpdateCalls = 0
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   await openUpdaterFromMenu()
   await installUpdateFromDialog()
   const confirmation = await screen.findByRole('alertdialog')
@@ -2063,7 +2070,9 @@ test('updates do not start a second install while one began during the confirmat
 test('closing the app while an update confirmation is open never installs', async () => {
   state.installDesktopUpdateCalls = 0
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   await openUpdaterFromMenu()
   await installUpdateFromDialog()
   await screen.findByRole('alertdialog')
@@ -2081,7 +2090,9 @@ test('updates surface native install failures while retaining retryable update s
   state.installDesktopUpdateError = new Error('signed update verification failed')
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openUpdaterFromMenu()
     await installUpdateFromDialog()
     await waitFor(() => expect(state.installDesktopUpdateCalls).toBe(1))
@@ -2103,7 +2114,9 @@ test('updates can cancel native installation and retain a retryable state', asyn
   state.cancelDesktopUpdateCalls = 0
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openUpdaterFromMenu()
     await installUpdateFromDialog()
     await waitFor(() =>
@@ -2279,7 +2292,9 @@ test('a stopped core service that exited non-zero still reports core attention',
 })
 test('query number fields expose deterministic errors and recover to the saved bounds', async () => {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   await openSidebarDestination('Settings')
   await waitFor(() =>
     expect(
@@ -2340,7 +2355,9 @@ test('embedding settings explain local service command ownership', async () => {
   }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -2375,7 +2392,9 @@ test('embedding model field supports preset catalog with custom fallback', async
   }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -2411,7 +2430,9 @@ test('query model field remains a dropdown and preserves the current model until
   }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -2487,7 +2508,7 @@ test('settings add controls avoid reusing removed identifiers', async () => {
   }
   try {
     render(() => <App />)
-    await screen.findByLabelText('Search your knowledge')
+    await screen.findByRole('button', { name: 'Search and reflect' })
     await openSidebarDestination('Settings')
     await screen.findByRole('heading', {
       level: 1,
@@ -2605,7 +2626,9 @@ test('adding files and code opens the native picker before creating a populated 
   state.pickedPath = '/Users/you/Developer/example-repo'
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -2666,7 +2689,9 @@ test('connecting a provider collects its files before persisting and authorizing
   ]
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -2726,7 +2751,9 @@ test('cancelling provider connection creates no source', async () => {
   state.pickedPaths = ['/Users/you/Downloads/google-oauth-client.json']
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -2776,7 +2803,9 @@ test('workspace controls protect scopes assigned to sources', async () => {
   }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -2863,7 +2892,9 @@ test('source cards report authorization and validation state', async () => {
     })
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -2899,7 +2930,9 @@ test('source actions stay visible while the settings form has unsaved changes', 
   }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -2961,7 +2994,9 @@ test('workspace cards show display name and advanced details', async () => {
   }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -3001,7 +3036,9 @@ test('workspace cards show display name and advanced details', async () => {
 })
 test('new workspace display names keep focus while typing', async () => {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   await openSidebarDestination('Settings')
   await waitFor(() =>
     expect(
@@ -3054,7 +3091,9 @@ test('workspace settings keep 25 workspaces searchable and keyboard-operable', a
   }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -3110,7 +3149,9 @@ test('settings warns before discarding dirty changes', async () => {
   window.confirm = () => responses.shift() ?? true
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -3153,14 +3194,18 @@ test('settings warns before discarding dirty changes', async () => {
         name: 'Knowledge',
       })
     )
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
   } finally {
     window.confirm = originalConfirm
   }
 })
 test('leaving settings with edits asks in the shared dialog and cancel keeps the draft', async () => {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   await openSidebarDestination('Settings')
   await screen.findByRole('heading', { level: 1, name: 'Settings' })
   fireEvent.click(screen.getByRole('tab', { name: 'Workspaces' }))
@@ -3177,12 +3222,16 @@ test('leaving settings with edits asks in the shared dialog and cancel keeps the
   fireEvent.click(screen.getByRole('button', { name: 'Knowledge' }))
   const second = await screen.findByRole('alertdialog')
   fireEvent.click(within(second).getByRole('button', { name: 'Continue' }))
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   expect(screen.queryByRole('heading', { level: 1, name: 'Settings' })).toBeNull()
 })
 test('leaving settings proceeds when the draft was saved while the confirmation was open', async () => {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   await openSidebarDestination('Settings')
   await screen.findByRole('heading', { level: 1, name: 'Settings' })
   fireEvent.click(screen.getByRole('tab', { name: 'Workspaces' }))
@@ -3194,13 +3243,17 @@ test('leaving settings proceeds when the draft was saved while the confirmation 
   await saveSettingsBehindConfirmation(state.settings)
   await continueConfirmation()
   // Nothing was left to discard, and the operator still asked to leave.
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   expect(screen.queryByRole('heading', { level: 1, name: 'Settings' })).toBeNull()
   expect(state.saveSettingsCalls).toBe(1)
 })
 test('a second leave request replaces the open discard confirmation', async () => {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   await openSidebarDestination('Settings')
   await screen.findByRole('heading', { level: 1, name: 'Settings' })
   fireEvent.click(screen.getByRole('tab', { name: 'Workspaces' }))
@@ -3217,7 +3270,9 @@ test('a second leave request replaces the open discard confirmation', async () =
   expect(screen.getAllByRole('alertdialog')).toHaveLength(1)
   expect(screen.getByRole('heading', { level: 1, name: 'Settings', hidden: true })).toBeTruthy()
   await continueConfirmation()
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   expect(screen.queryByRole('heading', { level: 1, name: 'Settings' })).toBeNull()
 })
 test('settings can discard a draft without leaving the control plane', async () => {
@@ -3226,7 +3281,9 @@ test('settings can discard a draft without leaving the control plane', async () 
   window.confirm = () => true
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -3292,7 +3349,9 @@ test('settings can discard a draft without leaving the control plane', async () 
         name: 'Knowledge',
       })
     )
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -3418,7 +3477,9 @@ test('the footer updates shortcut respects unsaved settings changes', async () =
   window.confirm = () => false
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -3454,7 +3515,9 @@ test('the footer updates shortcut respects unsaved settings changes', async () =
 })
 test('source settings opens the Sources section directly', async () => {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   fireEvent.click(screen.getByLabelText('Source settings'))
   await waitFor(() =>
     expect(
@@ -3471,7 +3534,9 @@ test('source settings opens the Sources section directly', async () => {
 })
 test('Inbox and Index settings actions open their relevant settings sections', async () => {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   fireEvent.click(
     screen.getByRole('button', {
       name: 'Inbox',
@@ -3550,7 +3615,9 @@ test('source settings use workspace tabs without repeating assigned workspace co
   }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -3625,7 +3692,7 @@ test('Apple Notes sources expose exact include and exclude folder filters', asyn
   }
   try {
     render(() => <App />)
-    await screen.findByLabelText('Search your knowledge')
+    await screen.findByRole('button', { name: 'Search and reflect' })
     await openSidebarDestination('Settings')
     await screen.findByRole('heading', {
       name: 'Settings',
@@ -3675,7 +3742,9 @@ test('source settings quarantine legacy scopes and offer workspace assignment', 
   }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -3740,7 +3809,7 @@ test('GitHub code sources expose an explicit workspace-scoped repository allowli
   }
   try {
     render(() => <App />)
-    await screen.findByLabelText('Search your knowledge')
+    await screen.findByRole('button', { name: 'Search and reflect' })
     await openSidebarDestination('Settings')
     await screen.findByRole('heading', {
       name: 'Settings',
@@ -3781,7 +3850,9 @@ test('source tree toggles a saved connector without touching indexed data', asyn
   }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     const toggle = await screen.findByRole('switch', {
       name: 'Enable work-code',
     })
@@ -3813,7 +3884,9 @@ test('source tree toggle waits for the shared dialog and cancelling saves nothin
   }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     fireEvent.click(await screen.findByRole('switch', { name: 'Enable work-code' }))
     const confirmation = await screen.findByRole('alertdialog')
     expect(within(confirmation).getByText(/Enable work-code in work\?/)).toBeTruthy()
@@ -3838,7 +3911,9 @@ test('source toggle does not save when Settings became dirty while the confirmat
   state.settings = { ...desktopSettings, sources: [{ ...workSource, enabled: false }] }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     fireEvent.click(await screen.findByRole('switch', { name: 'Enable work-code' }))
     await screen.findByRole('alertdialog')
     await editSettingsDraftBehindConfirmation()
@@ -3857,7 +3932,9 @@ test('source toggle does not save when the source reached the requested state du
   state.settings = { ...desktopSettings, sources: [{ ...workSource, enabled: false }] }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     fireEvent.click(await screen.findByRole('switch', { name: 'Enable work-code' }))
     await screen.findByRole('alertdialog')
     await editSettingsDraftBehindConfirmation()
@@ -3874,7 +3951,9 @@ test('source toggle does not save a source that was removed during the confirmat
   state.settings = { ...desktopSettings, sources: [{ ...workSource, enabled: false }] }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     fireEvent.click(await screen.findByRole('switch', { name: 'Enable work-code' }))
     await screen.findByRole('alertdialog')
     await editSettingsDraftBehindConfirmation()
@@ -3893,7 +3972,9 @@ test('source toggle does not enable a different connector that took over the lab
   state.settings = { ...desktopSettings, sources: [{ ...workSource, enabled: false }] }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     fireEvent.click(await screen.findByRole('switch', { name: 'Enable work-code' }))
     await screen.findByRole('alertdialog')
     await editSettingsDraftBehindConfirmation()
@@ -3928,7 +4009,9 @@ test('source toggle does not enable a connector of a different kind under the sa
   state.settings = { ...desktopSettings, sources: [{ ...workSource, enabled: false }] }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     fireEvent.click(await screen.findByRole('switch', { name: 'Enable work-code' }))
     await screen.findByRole('alertdialog')
     await editSettingsDraftBehindConfirmation()
@@ -3952,7 +4035,9 @@ test('source toggle saves against the settings current after the confirmation', 
   state.settings = { ...desktopSettings, sources: [{ ...workSource, enabled: false }] }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     fireEvent.click(await screen.findByRole('switch', { name: 'Enable work-code' }))
     await screen.findByRole('alertdialog')
     await editSettingsDraftBehindConfirmation()
@@ -3992,7 +4077,9 @@ test('settings refuses duplicate canonical source labels in one workspace', asyn
   }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -4382,7 +4469,9 @@ test('settings refuses padded or control-character source labels before save', a
   }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -4452,7 +4541,9 @@ test('source tree actions resolve a configured source by its canonical label', a
   )
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     const toggle = await screen.findByRole('switch', {
       name: 'Enable work-code',
     })
@@ -4480,7 +4571,9 @@ test('source tree actions resolve a configured source by its canonical label', a
 })
 test('Services settings stay a process-health surface with no source enablement controls', async () => {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   await openSidebarDestination('Settings')
   await waitFor(() =>
     expect(
@@ -4531,7 +4624,9 @@ test('services settings offers an explicit safe core-service install', async () 
   state.serviceInstallCalls = 0
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -4579,7 +4674,9 @@ test('services settings enables recurring sync only through its explicit action'
   state.serviceSyncInstallCalls = 0
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -4611,7 +4708,9 @@ test('services settings enables recurring sync only through its explicit action'
 })
 test('services settings saves bounded recurring sync and backup intervals', async () => {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   await openSidebarDestination('Settings')
   await waitFor(() =>
     expect(
@@ -4669,7 +4768,9 @@ test('services settings requires explicit apply after changing an installed sche
   state.serviceSyncInstallCalls = 0
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -4711,7 +4812,9 @@ test('services settings refuses recurring sync while settings changes are unsave
   state.serviceSyncInstallCalls = 0
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -4750,7 +4853,9 @@ test('services settings refuses recurring sync while settings changes are unsave
 })
 test('services settings reuses the shell service snapshot without a duplicate poll', async () => {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   await waitFor(() => expect(state.getDesktopServicesCalls).toBe(1))
   await openSidebarDestination('Settings')
   await waitFor(() =>
@@ -4776,7 +4881,9 @@ test('services settings reuses the shell service snapshot without a duplicate po
 })
 test('the title bar carries the workspace picker with its own mark', async () => {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   // The workspace picker lives in the title strip now; the rail carries
   // destinations only.
   const picker = screen.getByRole('button', {
@@ -4820,7 +4927,9 @@ test('the title bar workspace picker follows the rail breakpoint (800 px)', asyn
   })
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     expect(screen.getByRole('button', { name: /^Switch workspace/ })).toBeTruthy()
     mobile = true
     listeners.forEach((listener) => listener({ matches: true } as MediaQueryListEvent))
@@ -4853,7 +4962,9 @@ test('the mac title strip is a drag region clear of the traffic lights', async (
   })
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     const bar = document.querySelector('[data-slot="shell-top-bar"]') as HTMLElement | null
     expect(bar).not.toBeNull()
     expect(bar!.hasAttribute('data-tauri-drag-region')).toBe(false)
@@ -4875,7 +4986,7 @@ test('the mac title strip is a drag region clear of the traffic lights', async (
       isPrimary: true,
       pointerType: 'mouse',
     })
-    fireEvent.pointerDown(screen.getByLabelText('Search your knowledge'), {
+    fireEvent.pointerDown(searchField(), {
       button: 0,
       isPrimary: true,
       pointerType: 'mouse',
@@ -4889,7 +5000,9 @@ test('the mac title strip is a drag region clear of the traffic lights', async (
 })
 test('non-mac desktop windows keep their native chrome', async () => {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   const bar = document.querySelector('[data-slot="shell-top-bar"]') as HTMLElement | null
   expect(bar).not.toBeNull()
   expect(bar!.hasAttribute('data-tauri-drag-region')).toBe(false)
@@ -4897,7 +5010,9 @@ test('non-mac desktop windows keep their native chrome', async () => {
 })
 test('the utilities menu opens the identity dialog with the packaged version', async () => {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   const trigger = utilitiesTrigger()
   const originalRects = Object.getOwnPropertyDescriptor(trigger, 'getClientRects')
   Object.defineProperty(trigger, 'getClientRects', {
@@ -4944,7 +5059,9 @@ test('the utilities menu opens the identity dialog with the packaged version', a
 })
 test('the desktop utilities menu puts Index first and omits session actions', async () => {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   fireEvent.pointerDown(screen.getByRole('button', { name: 'User settings' }))
   const items = await screen.findAllByRole('menuitem')
   expect(items.map((item) => item.textContent)).toEqual([
@@ -4959,7 +5076,9 @@ test('the desktop utilities menu puts Index first and omits session actions', as
 })
 test('the utilities trigger marks the active destination and clears when it changes', async () => {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   // The menu's own entry tests run against the live view, not the one captured
   // when the shell first rendered.
   expect(utilitiesTrigger().hasAttribute('data-active')).toBe(false)
@@ -4981,7 +5100,9 @@ test('the utilities trigger marks the active destination and clears when it chan
 })
 test('the settings chord advertised by the utilities menu opens settings', async () => {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   fireEvent.keyDown(window, { key: ',', metaKey: true })
   await waitFor(() =>
     expect(
@@ -4993,14 +5114,18 @@ test('the settings chord advertised by the utilities menu opens settings', async
 })
 test('the utilities menu opens the shared updater dialog', async () => {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   await openSidebarDestination('Updates')
   expect(await screen.findByRole('dialog', { name: /Version & updates/i })).toBeTruthy()
 })
 test('changing the update channel saves first and refreshes the shared updater offer', async () => {
   state.deferDesktopUpdateChannelSave = true
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   const dialog = await openUpdaterFromMenu()
   const channel = (await within(dialog).findByRole('combobox', {
     name: 'Update channel',
@@ -5025,7 +5150,9 @@ test('changing the update channel saves first and refreshes the shared updater o
 test('a failed channel save rolls the controlled selection back without checking', async () => {
   state.desktopUpdateChannelSaveError = new Error('channel persistence failed')
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   const dialog = await openUpdaterFromMenu()
   const channel = (await within(dialog).findByRole('combobox', {
     name: 'Update channel',
@@ -5042,7 +5169,9 @@ test('a failed channel save rolls the controlled selection back without checking
 test('a failed new-channel check keeps the channel that persisted successfully', async () => {
   state.desktopUpdateCheckError = new Error('dev release feed unavailable')
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   const dialog = await openUpdaterFromMenu()
   const channel = (await within(dialog).findByRole('combobox', {
     name: 'Update channel',
@@ -5058,7 +5187,9 @@ test('a failed new-channel check keeps the channel that persisted successfully',
 })
 test('closing the shared updater restores focus to the utilities trigger', async () => {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   const trigger = utilitiesTrigger()
   const originalRects = Object.getOwnPropertyDescriptor(trigger, 'getClientRects')
   Object.defineProperty(trigger, 'getClientRects', {
@@ -5093,7 +5224,9 @@ test('the top bar toggle collapses the Sources sidebar and the rail keeps the ap
   window.localStorage.removeItem('cortana.sidebar')
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     // The rail stays collapsed: it carries the app mark and the search entry.
     const rail = screen.getByRole('navigation', { name: 'Primary navigation' })
     expect(rail.querySelector('img[src="/app-icon.svg"]')).not.toBeNull()
@@ -5135,7 +5268,9 @@ test('mobile About and Updates restore focus to the live navigation trigger', as
   })
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     const navigationTrigger = screen.getByRole('button', { name: 'Toggle navigation' })
     const originalRects = Object.getOwnPropertyDescriptor(navigationTrigger, 'getClientRects')
     Object.defineProperty(navigationTrigger, 'getClientRects', {
@@ -5193,7 +5328,9 @@ test('mobile support launch pending after sheet close is cleared when the app un
   })
   try {
     const app = render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     const navigationTrigger = screen.getByRole('button', { name: 'Toggle navigation' })
     fireEvent.click(navigationTrigger)
     await screen.findByRole('dialog', { name: 'Primary navigation' })
@@ -5214,7 +5351,9 @@ test('mobile support launch pending after sheet close is cleared when the app un
 })
 test('services settings name the install path for services that are not installed', async () => {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   await openSidebarDestination('Settings')
   await waitFor(() =>
     expect(
@@ -5243,7 +5382,9 @@ test('services settings exports a verified database backup with explicit confirm
   state.databaseBackupCalls = 0
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -5293,7 +5434,9 @@ test('services settings permits restore with an installed but idle backup job an
   }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -5354,7 +5497,9 @@ test('services settings permits restore with an installed but idle backup job an
 })
 test('settings view reuses the shell settings snapshot without a duplicate read', async () => {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   await waitFor(() => expect(state.getDesktopSettingsCalls).toBe(1))
   await openSidebarDestination('Settings')
   await waitFor(() =>
@@ -5368,7 +5513,9 @@ test('settings view reuses the shell settings snapshot without a duplicate read'
 })
 test('opening the shared updater reads current native updater state', async () => {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   await waitFor(() => expect(state.getDesktopUpdateCalls).toBe(1))
   await openSidebarDestination('Updates')
   expect(await screen.findByRole('dialog', { name: /Version & updates/i })).toBeTruthy()
@@ -5376,7 +5523,9 @@ test('opening the shared updater reads current native updater state', async () =
 })
 test('settings save refreshes shell service metadata immediately', async () => {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   await waitFor(() => expect(state.getDesktopServicesCalls).toBe(1))
   await openSidebarDestination('Settings')
   await waitFor(() =>
@@ -5411,7 +5560,9 @@ test('successful service actions clear a stale shell service error immediately',
   state.serviceRestartCalls = 0
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -5453,7 +5604,9 @@ test('successful service actions clear a stale shell service error immediately',
         name: 'Knowledge',
       })
     )
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     const serviceHealth = await findSystemAction({
       name: 'Open service health',
     })
@@ -5470,7 +5623,9 @@ test('saving settings clears stale local service errors', async () => {
   state.serviceStatusError = new Error('service status transport failed')
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -5550,7 +5705,9 @@ test('service activity survives leaving Settings while a native action is runnin
     })
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -5654,7 +5811,9 @@ test('readiness activity survives leaving Settings while a scan is running', asy
     })
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -5791,7 +5950,9 @@ test('embedding generation mismatch offers a confirmed desktop adoption action',
   window.confirm = () => true
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -5857,7 +6018,9 @@ test('embedding adoption reports a follow-up mismatch instead of claiming readin
   window.confirm = () => true
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -5901,7 +6064,9 @@ test('completed installers trigger one shell-owned post-install readiness scan',
   window.confirm = () => true
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -5970,7 +6135,9 @@ test('readiness labels failed checks in sentence case and explains a block with 
       },
     ])
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -6017,7 +6184,9 @@ test('a cancelled installer job shows the neutral chip instead of Failed', async
   window.confirm = () => true
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -6084,7 +6253,9 @@ test('local embedding readiness explains the approval-gated runtime installer', 
   }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -6142,7 +6313,9 @@ test('connector environment install requires explicit approval from readiness', 
   }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -6207,7 +6380,9 @@ test('missing connector readiness exposes an approval-gated installer', async ()
   }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -6243,7 +6418,9 @@ test('installer progress survives settings section changes', async () => {
   state.installerJob = null
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -6292,7 +6469,9 @@ test('installer progress survives settings section changes', async () => {
         name: 'Knowledge',
       })
     )
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     openSystemStatus()
     expect(screen.getByText('Install: uv · running')).toBeTruthy()
     fireEvent.click(
@@ -6330,7 +6509,9 @@ test('saving settings with restart_required triggers a background restart and cl
   state.serviceRestartCalls = 0
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -6378,7 +6559,9 @@ test('successful aggregate restart clears the saved-settings notice', async () =
   state.serviceRestartCalls = 0
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -6435,7 +6618,9 @@ test('a failed background restart after saving names the failure and offers reco
   state.serviceAction = () => Promise.reject(new Error('embedding service failed to restart'))
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -6522,7 +6707,9 @@ test('a failed source toggle restart is reported with a manual recovery path', a
   state.serviceAction = () => Promise.reject(new Error('sync service failed to restart'))
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     const toggle = await screen.findByRole('switch', {
       name: 'Enable work-code',
     })
@@ -6571,7 +6758,9 @@ test('services settings keeps repair available for a partial core install', asyn
   }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -6608,7 +6797,9 @@ test('services settings surfaces a non-zero last exit as a failed service', asyn
   }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -6634,7 +6825,9 @@ test('services settings disables aggregate actions when the platform backend is 
   serviceReport.supported = false
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -6670,7 +6863,9 @@ test('Google source settings expose env-backed token credentials', async () => {
   }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -6710,7 +6905,9 @@ test('Google source authorization action starts a tracked browser job', async ()
   window.confirm = () => true
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -6771,7 +6968,9 @@ test('source tree Google authorization asks in the shared dialog and cancelling 
   state.authorizationCalls = []
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     fireEvent.click(await screen.findByRole('button', { name: 'Authorize work-code' }))
     const confirmation = await screen.findByRole('alertdialog')
     expect(within(confirmation).getByText(/Authorize work-code in work with Google\?/)).toBeTruthy()
@@ -6811,7 +7010,9 @@ async function renderGoogleSourceNeedingAuthorization() {
     })
   state.authorizationCalls = []
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   fireEvent.click(await screen.findByRole('button', { name: 'Authorize work-code' }))
   await screen.findByRole('alertdialog')
 }
@@ -6873,7 +7074,9 @@ test('Google authorization accepts a token path supplied through the configured 
   }
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     await openSidebarDestination('Settings')
     await waitFor(() =>
       expect(
@@ -7171,7 +7374,7 @@ test('running source jobs stay visible in the shell after leaving the settings v
         name: 'Knowledge',
       })
     )
-    await screen.findByLabelText('Search your knowledge')
+    await screen.findByRole('button', { name: 'Search and reflect' })
     openSystemStatus()
     expect(await screen.findByText('1 active source job')).toBeTruthy()
     const activeJobs = await findSystemAction({
@@ -7211,7 +7414,9 @@ test('completed source jobs refresh source health without waiting for the status
   state.statusCalls = 0
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     const initialStatusCalls = state.statusCalls
     await openSidebarDestination('Settings')
     await waitFor(() =>

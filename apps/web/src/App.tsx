@@ -530,6 +530,12 @@ function CortanaApplication() {
   const searchRef = {
     current: null as HTMLInputElement | null,
   }
+  // The search box lives in the top bar's search menu, so it only exists while
+  // the menu is open; the trigger stands in as the focus origin otherwise.
+  const searchTriggerRef = {
+    current: null as HTMLElement | null,
+  }
+  const [searchOpen, setSearchOpen] = createSignal(false)
   const commandPaletteOriginRef = {
     current: null as HTMLElement | null,
   }
@@ -976,8 +982,8 @@ function CortanaApplication() {
       if (editing && !(modifier && key === 'k')) return
       if (modifier && key === 'k') {
         event.preventDefault()
-        searchRef.current?.focus()
-        searchRef.current?.select()
+        setSearchOpen(true)
+        focusWhenReady(() => searchRef.current, true)
       } else if (modifier && key === 'p') {
         event.preventDefault()
         if (commandPaletteOpen()) {
@@ -1840,6 +1846,7 @@ function CortanaApplication() {
   function focusSearch() {
     leaveSettings(() => {
       setView('knowledge')
+      setSearchOpen(true)
       focusWhenReady(() => searchRef.current, true)
     })
   }
@@ -1914,8 +1921,8 @@ function CortanaApplication() {
       origin ??
       (document.activeElement instanceof HTMLElement && document.activeElement !== document.body
         ? document.activeElement
-        : searchRef.current)
-    // Keep keyboard opens anchored to the search field when the page has no
+        : (searchRef.current ?? searchTriggerRef.current))
+    // Keep keyboard opens anchored to the search trigger when the page has no
     // focused control; the shared dialog restores this explicit origin.
     commandPaletteOriginRef.current?.focus()
     setCommandPaletteMounted(true)
@@ -2205,6 +2212,9 @@ function CortanaApplication() {
             query={query()}
             loading={loading()}
             searchRef={searchRef}
+            searchTriggerRef={searchTriggerRef}
+            searchOpen={searchOpen()}
+            onSearchOpenChange={setSearchOpen}
             canGoBack={queryHistoryIndex() > 0}
             canGoForward={
               queryHistoryIndex() >= 0 && queryHistoryIndex() < queryHistory().length - 1

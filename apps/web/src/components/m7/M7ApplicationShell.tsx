@@ -139,6 +139,11 @@ export type M7HeaderProps = {
   query: string
   loading: boolean
   searchRef: { current: HTMLInputElement | null }
+  /** The menu trigger that holds the search box; the focus fallback while the menu is closed. */
+  searchTriggerRef: { current: HTMLElement | null }
+  /** Whether the top bar's search menu (search box and Reflect) is open. */
+  searchOpen: boolean
+  onSearchOpenChange: (open: boolean) => void
   canGoBack: boolean
   canGoForward: boolean
   onQueryChange: (value: string) => void
@@ -219,7 +224,6 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
         : 'Expand sidebar'
   return (
     <ShellTopBar
-      glass
       draggable={false}
       macosInset={titlebar}
       onPointerDown={titlebar ? startWindowDrag : undefined}
@@ -314,45 +318,69 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
           </Breadcrumb>
         </Show>
       }
-      search={
-        <form class="min-w-0" onSubmit={props.onSubmit}>
-          <InputGroup>
-            <InputGroupAddon>
-              <Search aria-hidden="true" />
-            </InputGroupAddon>
-            <InputGroupInput
-              ref={(el) => (props.searchRef.current = el)}
-              aria-label="Search your knowledge"
-              value={props.query}
-              onInput={(event) => props.onQueryChange(event.target.value)}
-            />
-            <InputGroupAddon align="end">
-              {props.loading ? (
-                <Spinner size="md" label="Searching" />
-              ) : (
-                <Show when={!navigation.isMobile()}>
-                  <Kbd>{shortcutLabel('MOD K')}</Kbd>
-                </Show>
-              )}
-            </InputGroupAddon>
-          </InputGroup>
-        </form>
-      }
       actions={
         <>
-          <Button
-            tooltip="Reflect on this objective"
-            type="button"
-            size="xs"
-            aria-label="Reflect on this objective"
-            onClick={props.onReflect}
-            disabled={props.loading || !props.query.trim()}
+          <Popover
+            open={props.searchOpen}
+            onOpenChange={props.onSearchOpenChange}
+            placement="bottom-end"
           >
-            <Sparkles aria-hidden="true" />
-            <Show when={!navigation.isMobile()}>
-              <span>Reflect</span>
-            </Show>
-          </Button>
+            <PopoverTrigger
+              as={Button}
+              ref={(el: HTMLButtonElement) => (props.searchTriggerRef.current = el)}
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Search and reflect"
+              aria-keyshortcuts="Control+K Meta+K"
+              tooltip={`Search your knowledge or reflect on this objective (${shortcutLabel('MOD K')}).`}
+            >
+              <Show when={props.loading} fallback={<Search aria-hidden="true" />}>
+                <Spinner size="md" label="Searching" />
+              </Show>
+            </PopoverTrigger>
+            <PopoverContent class="w-96 max-w-full" aria-label="Search and reflect">
+              <PopoverTitle>Search</PopoverTitle>
+              <form
+                class="flex min-w-0 flex-col gap-2"
+                onSubmit={(event) => {
+                  props.onSubmit(event)
+                  props.onSearchOpenChange(false)
+                }}
+              >
+                <InputGroup>
+                  <InputGroupAddon>
+                    <Search aria-hidden="true" />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    ref={(el) => (props.searchRef.current = el)}
+                    aria-label="Search your knowledge"
+                    value={props.query}
+                    onInput={(event) => props.onQueryChange(event.target.value)}
+                  />
+                  <InputGroupAddon align="end">
+                    <Show when={!navigation.isMobile()}>
+                      <Kbd>{shortcutLabel('MOD K')}</Kbd>
+                    </Show>
+                  </InputGroupAddon>
+                </InputGroup>
+                <Button
+                  tooltip="Reflect on this objective"
+                  type="button"
+                  size="xs"
+                  class="self-end"
+                  aria-label="Reflect on this objective"
+                  onClick={() => {
+                    props.onReflect()
+                    props.onSearchOpenChange(false)
+                  }}
+                  disabled={props.loading || !props.query.trim()}
+                >
+                  <Sparkles aria-hidden="true" />
+                  <span>Reflect</span>
+                </Button>
+              </form>
+            </PopoverContent>
+          </Popover>
           <Show when={props.systemActions}>
             <Popover
               open={systemOpen()}
