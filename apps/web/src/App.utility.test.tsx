@@ -1213,7 +1213,7 @@ test('Help lists the real keyboard shortcuts and project links', async () => {
   await renderApp()
   await openSidebarDestination('Help Center')
   const dialog = await screen.findByRole('dialog', { name: 'Help Center' })
-  expect(within(dialog).getByText('Focus the search bar')).toBeTruthy()
+  expect(within(dialog).getByText('Open the search menu')).toBeTruthy()
   expect(within(dialog).getByText('Toggle the command palette')).toBeTruthy()
   expect(within(dialog).getByText('Open the document filter')).toBeTruthy()
   expect(within(dialog).getByText('Close panels and the palette')).toBeTruthy()
