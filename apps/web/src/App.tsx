@@ -1921,7 +1921,9 @@ function CortanaApplication() {
       origin ??
       (document.activeElement instanceof HTMLElement && document.activeElement !== document.body
         ? document.activeElement
-        : (searchRef.current ?? searchTriggerRef.current))
+        : searchRef.current?.isConnected
+          ? searchRef.current
+          : searchTriggerRef.current)
     // Keep keyboard opens anchored to the search trigger when the page has no
     // focused control; the shared dialog restores this explicit origin.
     commandPaletteOriginRef.current?.focus()

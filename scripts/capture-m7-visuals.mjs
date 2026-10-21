@@ -380,8 +380,11 @@ async function auditAccessibility(page, label) {
         await page
           .getByRole('dialog', { name: 'Primary navigation' })
           .waitFor({ state: 'detached' })
-        await page.waitForFunction(
-          () => document.activeElement?.getAttribute('aria-label') === 'Toggle navigation'
+        // Focus stays on the toggle, which is the sidebar toggle at desktop width.
+        await page.waitForFunction(() =>
+          /^(Collapse|Expand) sidebar$/.test(
+            document.activeElement?.getAttribute('aria-label') ?? ''
+          )
         )
         await auditAccessibility(page, 'navigation mobile to desktop transition')
         await setViewportAndWaitForLayout(page, { width, height: 1000 })
@@ -710,7 +713,7 @@ async function auditAccessibility(page, label) {
         // and no gutter may open between the strip's bottom edge and the rail.
         await page.waitForFunction(() => {
           const sidebar = document.querySelector('#m7-primary-navigation[data-collapsed="true"]')
-          const header = document.querySelector('.m7-production-shell [data-slot="top-bar"]')
+          const header = document.querySelector('.m7-production-shell [data-slot="shell-top-bar"]')
           if (!sidebar || !header) return false
           const sidebarBox = sidebar.getBoundingClientRect()
           const headerBox = header.getBoundingClientRect()
@@ -722,7 +725,7 @@ async function auditAccessibility(page, label) {
         })
         const [sidebarBox, headerBox] = await Promise.all([
           collapsedSidebar.boundingBox(),
-          page.locator('.m7-production-shell [data-slot="top-bar"]').boundingBox(),
+          page.locator('.m7-production-shell [data-slot="shell-top-bar"]').boundingBox(),
         ])
         if (
           !sidebarBox ||
@@ -893,11 +896,14 @@ async function auditAccessibility(page, label) {
   await popoverPage.locator('[aria-label="System status details"]').waitFor()
 
   const settleBudgetMs = 500
-  const popoverPlacement = (expectWrapped) =>
+  // The shell top bar scales with the root font size instead of wrapping, but
+  // the popover must still re-anchor on every resize or zoom: just under the
+  // trigger on a single row, or below the bar if a layout ever wraps.
+  const popoverPlacement = () =>
     popoverPage
       .waitForFunction(
-        (wrapped) => {
-          const bar = document.querySelector('[data-slot="top-bar"]')?.getBoundingClientRect()
+        () => {
+          const bar = document.querySelector('[data-slot="shell-top-bar"]')?.getBoundingClientRect()
           const trigger = document
             .querySelector('[aria-label="System status"]')
             ?.getBoundingClientRect()
@@ -906,39 +912,37 @@ async function auditAccessibility(page, label) {
             ?.getBoundingClientRect()
           if (!bar || !trigger || !popover) return false
           const isWrapped = bar.bottom - trigger.bottom >= 24
-          if (isWrapped !== wrapped) return false
-          // Wrapped: below the bar's second row. Single row: just under the trigger.
-          return wrapped
+          return isWrapped
             ? popover.top >= bar.bottom - 2
             : popover.top >= trigger.bottom && popover.top - trigger.bottom <= 20
         },
-        expectWrapped,
+        undefined,
         { timeout: settleBudgetMs, polling: 'raf' }
       )
       .catch(() => {
         throw new Error(
-          `System status popover did not settle ${expectWrapped ? 'below the wrapped bar' : 'under the trigger'} within ${settleBudgetMs}ms`
+          `System status popover did not settle against its trigger within ${settleBudgetMs}ms`
         )
       })
 
-  await popoverPlacement(false)
+  await popoverPlacement()
   await popoverPage.evaluate(() => {
     document.documentElement.style.fontSize = '200%'
   })
-  await popoverPlacement(true)
+  await popoverPlacement()
   await popoverPage.evaluate(() => {
     document.documentElement.style.fontSize = ''
   })
-  await popoverPlacement(false)
-  // Window resizes: wrap at the narrow width, unwrap at the wide one.
+  await popoverPlacement()
+  // Window resizes keep the popover anchored at the narrow and the wide width.
   await popoverPage.evaluate(() => {
     document.documentElement.style.fontSize = '200%'
   })
-  await popoverPlacement(true)
+  await popoverPlacement()
   await popoverPage.setViewportSize({ width: 1100, height: 1000 })
-  await popoverPlacement(false)
+  await popoverPlacement()
   await popoverPage.setViewportSize({ width: 390, height: 1000 })
-  await popoverPlacement(true)
+  await popoverPlacement()
   await popoverContext.close()
 }
 
