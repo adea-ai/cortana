@@ -305,9 +305,11 @@ test('wide knowledge layout exposes an accessible context splitter', async () =>
     )
     const contextSplitter = screen.getByRole('separator', { name: 'Resize context panel' })
     const before = Number(contextSplitter.getAttribute('aria-valuenow'))
+    // aria-valuenow is the pane's width, and the handle sits on its left edge:
+    // moving the handle left widens the pane.
     fireEvent.keyDown(contextSplitter, { key: 'ArrowLeft' })
     await waitFor(() =>
-      expect(Number(contextSplitter.getAttribute('aria-valuenow'))).toBeLessThan(before)
+      expect(Number(contextSplitter.getAttribute('aria-valuenow'))).toBeGreaterThan(before)
     )
     const widths = JSON.parse(window.localStorage.getItem('cortana.pane-widths') ?? '{}') as {
       context: number

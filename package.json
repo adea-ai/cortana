@@ -32,7 +32,7 @@
     "typecheck": "vp run orch:typecheck"
   },
   "devDependencies": {
-    "@adea-ai/ui": "0.143.0",
+    "@adea-ai/ui": "0.145.0",
     "@axe-core/playwright": "^4.13.0",
     "@babel/core": "^8.0.6",
     "@babel/preset-typescript": "^8.0.1",
