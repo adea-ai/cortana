@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.70.0](https://github.com/adea-ai/cortana/compare/v0.69.3...v0.70.0) (2026-10-21)
+
+
+### Features
+
+* **web:** adopt the shared shell top bar and rail, with a sidebar toggle ([#2605](https://github.com/adea-ai/cortana/issues/2605)) ([f88f73e](https://github.com/adea-ai/cortana/commit/f88f73e4858a3f223d41b55d49da4d7e7b5c7c95))
+
 ## [0.69.3](https://github.com/adea-ai/cortana/compare/v0.69.2...v0.69.3) (2026-10-19)
 
 
