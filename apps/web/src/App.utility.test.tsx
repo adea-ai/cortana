@@ -1,5 +1,6 @@
 import { isActionDisabled } from './test/actionState'
 import { act } from './test/act'
+import { searchField, submitSearch } from './test/searchMenu'
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test'
 import { cleanup, fireEvent, render, screen, waitFor, within } from 'solid-testing-library'
 import { demoEvidence, demoStatus } from './demo'
@@ -183,7 +184,9 @@ async function selectHeaderAction(label: string) {
 }
 async function renderApp() {
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
 }
 test('every sidebar destination is enabled and the persistent search remains available', async () => {
   await renderApp()
@@ -192,7 +195,7 @@ test('every sidebar destination is enabled and the persistent search remains ava
     expect(isActionDisabled(button)).toBe(false)
     expect(button.tagName).toBe('BUTTON')
   }
-  expect(screen.getByLabelText('Search your knowledge')).toBeTruthy()
+  expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
 })
 test('the rail utilities menu keeps the footer destinations one step away', async () => {
   await renderApp()
@@ -292,7 +295,7 @@ test('Graph is a separate full-screen sidebar view and Timeline remains result-o
     })
   ).toBeNull()
   expect(railButton('Graph').hasAttribute('data-active')).toBe(true)
-  expect(screen.getByLabelText('Search your knowledge')).toBeTruthy()
+  expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
 
   // Without a search result the Timeline rail stays disabled and cannot
   // select the result-only timeline tab.
@@ -305,7 +308,7 @@ test('Graph is a separate full-screen sidebar view and Timeline remains result-o
   // A search result unlocks Timeline, which routes to the workspace Timeline
   // tab and unselects Graph.
   state.answer = () => Promise.resolve(answerResponse)
-  const input = screen.getByLabelText('Search your knowledge')
+  const input = searchField()
   fireEvent.input(input, {
     target: {
       value: 'release cadence',
@@ -352,7 +355,7 @@ test('Graph is a separate full-screen sidebar view and Timeline remains result-o
         .getAttribute('aria-selected')
     ).toBe('true')
   )
-  expect(screen.getByLabelText('Search your knowledge')).toBeTruthy()
+  expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
 })
 test('Graph expands to full width and hides the source and context panels', async () => {
   await renderApp()
@@ -378,7 +381,7 @@ test('Graph expands to full width and hides the source and context panels', asyn
       name: 'Graph',
     })
   ).toBeNull()
-  expect(screen.getByLabelText('Search your knowledge')).toBeTruthy()
+  expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
 
   // The title-bar source action leaves the full-screen graph so the panel
   // becomes reachable again instead of silently doing nothing.
@@ -409,7 +412,7 @@ test('Graph expands to full width and hides the source and context panels', asyn
 test('graph and timeline evidence actions open the selected source', async () => {
   state.answer = () => Promise.resolve(answerResponse)
   await renderApp()
-  const input = screen.getByLabelText('Search your knowledge')
+  const input = searchField()
   fireEvent.input(input, {
     target: {
       value: 'release cadence',
@@ -697,7 +700,7 @@ test('timeline order controls navigate to the selected evidence entry', async ()
       },
     })
   await renderApp()
-  const input = screen.getByLabelText('Search your knowledge')
+  const input = searchField()
   fireEvent.input(input, {
     target: {
       value: 'timeline sort',
@@ -1043,7 +1046,7 @@ test('Conversations shows the session state and offers search focus', async () =
 
   // After a successful search, the current query/answer/evidence state renders.
   state.answer = () => Promise.resolve(answerResponse)
-  const input = screen.getByLabelText('Search your knowledge')
+  const input = searchField()
   fireEvent.input(input, {
     target: {
       value: 'release cadence',
@@ -1157,15 +1160,7 @@ test('search history arrows navigate previous and next queries', async () => {
       answer: `Answer for ${query || answerResponse.query}`,
     })
   render(() => <App />)
-  const input = screen.getByLabelText('Search your knowledge')
-  const submit = (value: string) => {
-    fireEvent.input(input, {
-      target: {
-        value,
-      },
-    })
-    fireEvent.submit(input.closest('form')!)
-  }
+  const submit = submitSearch
   submit('release cadence')
   await waitFor(() =>
     expect(
@@ -1201,7 +1196,7 @@ test('search history arrows navigate previous and next queries', async () => {
       })
     ).toBeTruthy()
   )
-  expect((input as HTMLInputElement).value).toBe('release cadence')
+  expect(searchField().value).toBe('release cadence')
   expect(isActionDisabled(next)).toBe(false)
   fireEvent.click(next)
   await waitFor(() =>
@@ -1218,7 +1213,7 @@ test('Help lists the real keyboard shortcuts and project links', async () => {
   await renderApp()
   await openSidebarDestination('Help Center')
   const dialog = await screen.findByRole('dialog', { name: 'Help Center' })
-  expect(within(dialog).getByText('Focus the search bar')).toBeTruthy()
+  expect(within(dialog).getByText('Open the search menu')).toBeTruthy()
   expect(within(dialog).getByText('Toggle the command palette')).toBeTruthy()
   expect(within(dialog).getByText('Open the document filter')).toBeTruthy()
   expect(within(dialog).getByText('Close panels and the palette')).toBeTruthy()

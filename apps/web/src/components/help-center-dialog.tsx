@@ -24,7 +24,7 @@ export type HelpCenterDialogProps = {
 /** The keyboard shortcuts the workspace shell actually binds. */
 function workspaceShortcuts(): readonly HelpShortcut[] {
   return [
-    { label: 'Focus the search bar', keys: [shortcutLabel('MOD'), 'K'] },
+    { label: 'Open the search menu', keys: [shortcutLabel('MOD'), 'K'] },
     { label: 'Toggle the command palette', keys: [shortcutLabel('MOD'), 'P'] },
     { label: 'Open the document filter', keys: [shortcutLabel('MOD'), '⇧', 'F'] },
     { label: 'Close panels and the palette', keys: ['Esc'] },

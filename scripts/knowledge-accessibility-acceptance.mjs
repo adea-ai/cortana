@@ -257,7 +257,7 @@ async function run() {
     progress.axe.push(knowledgeAxe)
     progress.completed_cases.push('axe-knowledge')
 
-    const workspaceSwitcher = page.getByRole('button', { name: 'Switch workspace' })
+    const workspaceSwitcher = page.getByRole('button', { name: /^Switch workspace/ })
     await workspaceSwitcher.click()
     // Kobalte selects menu items on activation, which closes the menu and can
     // detach the element mid-gesture before a full click/press protocol

@@ -32,7 +32,7 @@ test('demo mode selects the first workspace of its desktop settings even when st
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 50))
   })
-  fireEvent.pointerDown(screen.getByRole('button', { name: 'Switch workspace' }))
+  fireEvent.pointerDown(screen.getByRole('button', { name: /^Switch workspace/ }))
   const work = await screen.findByRole('menuitemradio', { name: /Work/ })
   await waitFor(() => expect(work.getAttribute('aria-checked')).toBe('true'))
   expect(screen.getByRole('menuitemradio', { name: /Personal/ }).getAttribute('aria-checked')).toBe(

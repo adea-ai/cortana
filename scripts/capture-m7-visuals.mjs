@@ -52,6 +52,16 @@ const engine = args.get('--browser') ?? 'chromium'
 if (!['chromium', 'webkit'].includes(engine)) throw new Error(`Unsupported browser: ${engine}`)
 const browser = await (engine === 'webkit' ? webkit : chromium).launch({ headless: true })
 
+// The search box lives in the top bar's search menu; open it and return the input.
+async function openSearchMenu(page) {
+  const search = page.getByRole('textbox', { name: 'Search your knowledge' })
+  if (!(await search.isVisible())) {
+    await page.getByRole('button', { name: 'Search and reflect' }).click()
+  }
+  await search.waitFor()
+  return search
+}
+
 async function openPage(theme, width, state = 'configured') {
   // Reduced motion makes enter/exit animations complete instantly so audits
   // never sample a surface mid-fade and screenshots stay deterministic.
@@ -76,7 +86,7 @@ async function openPage(theme, width, state = 'configured') {
   })
   await page.goto(`${baseUrl}/?demo=1&demo-state=${state}`, { waitUntil: 'domcontentloaded' })
   await page.locator('[data-m7-production-shell-ready]').waitFor({ state: 'attached' })
-  await page.getByRole('textbox', { name: 'Search your knowledge' }).waitFor()
+  await page.getByRole('button', { name: 'Search and reflect' }).waitFor()
   await page.waitForFunction(
     ({ expectedTheme }) =>
       document.documentElement.dataset.theme === expectedTheme &&
@@ -305,7 +315,7 @@ async function auditAccessibility(page, label) {
       await page.getByRole('button', { name: 'System status', exact: true }).waitFor()
 
       if (theme === primaryTheme && width === 320) {
-        const mobileSearch = page.getByRole('textbox', { name: 'Search your knowledge' })
+        const mobileSearch = await openSearchMenu(page)
         await mobileSearch.fill('How do releases work?')
         await mobileSearch.press('Enter')
         await page.getByRole('heading', { name: 'How do releases work?', level: 1 }).waitFor()
@@ -370,8 +380,11 @@ async function auditAccessibility(page, label) {
         await page
           .getByRole('dialog', { name: 'Primary navigation' })
           .waitFor({ state: 'detached' })
-        await page.waitForFunction(
-          () => document.activeElement?.getAttribute('aria-label') === 'Toggle navigation'
+        // Focus stays on the toggle, which is the sidebar toggle at desktop width.
+        await page.waitForFunction(() =>
+          /^(Collapse|Expand) sidebar$/.test(
+            document.activeElement?.getAttribute('aria-label') ?? ''
+          )
         )
         await auditAccessibility(page, 'navigation mobile to desktop transition')
         await setViewportAndWaitForLayout(page, { width, height: 1000 })
@@ -490,31 +503,17 @@ async function auditAccessibility(page, label) {
           throw new Error(`Shared rail geometry regressed: ${JSON.stringify(collapsedMetrics)}`)
         }
 
-        await page.getByRole('button', { name: 'Toggle navigation' }).click()
-        await page.locator('#m7-primary-navigation[data-collapsed="false"]').waitFor()
+        // The top bar toggle controls the Sources sidebar; the rail itself stays collapsed.
+        await page.getByRole('button', { name: 'Collapse sidebar' }).click()
+        await page.getByRole('button', { name: 'Expand sidebar' }).waitFor()
         await page.waitForTimeout(300)
-        const expandedGeometry = await page
-          .locator('#m7-primary-navigation')
-          .evaluate((element) => {
-            const rootStyle = getComputedStyle(document.documentElement)
-            return {
-              actual: element.getBoundingClientRect().width,
-              expected:
-                Number.parseFloat(rootStyle.getPropertyValue('--rail-width-expanded')) *
-                Number.parseFloat(rootStyle.fontSize),
-            }
-          })
-        if (Math.abs(expandedGeometry.actual - expandedGeometry.expected) > 1) {
-          throw new Error(
-            `Expanded shared rail geometry regressed: ${JSON.stringify(expandedGeometry)}`
-          )
-        }
-        await auditAccessibility(page, 'expanded desktop navigation')
-        await screenshot(page, `sidebar-expanded-${theme}-1440`)
-        await page.getByRole('button', { name: 'Toggle navigation' }).click()
+        await auditAccessibility(page, 'collapsed sources sidebar')
+        await screenshot(page, `sidebar-collapsed-${theme}-1440`)
+        await page.getByRole('button', { name: 'Expand sidebar' }).click()
+        await page.getByRole('button', { name: 'Collapse sidebar' }).waitFor()
         await page.locator('#m7-primary-navigation[data-collapsed="true"]').waitFor()
 
-        const knowledgeSearch = page.getByRole('textbox', { name: 'Search your knowledge' })
+        const knowledgeSearch = await openSearchMenu(page)
         await knowledgeSearch.fill('How do releases work?')
         await knowledgeSearch.press('Enter')
         await page.getByRole('heading', { name: 'How do releases work?', level: 1 }).waitFor()
@@ -593,7 +592,7 @@ async function auditAccessibility(page, label) {
         await screenshot(page, `command-${theme}-1440`)
         await page.keyboard.press('Escape')
         await page.waitForFunction(
-          () => document.activeElement?.getAttribute('aria-label') === 'Search your knowledge'
+          () => document.activeElement?.getAttribute('aria-label') === 'Search and reflect'
         )
 
         await page.getByRole('button', { name: 'Actions' }).click()
@@ -606,7 +605,7 @@ async function auditAccessibility(page, label) {
           () => document.activeElement?.getAttribute('aria-label') === 'Actions'
         )
 
-        await page.getByRole('button', { name: 'Switch workspace' }).click()
+        await page.getByRole('button', { name: /^Switch workspace/ }).click()
         await page.getByRole('menuitemradio', { name: 'Work' }).waitFor()
         await page.waitForTimeout(200)
         await auditAccessibility(page, 'production workspace switcher')
@@ -714,7 +713,7 @@ async function auditAccessibility(page, label) {
         // and no gutter may open between the strip's bottom edge and the rail.
         await page.waitForFunction(() => {
           const sidebar = document.querySelector('#m7-primary-navigation[data-collapsed="true"]')
-          const header = document.querySelector('.m7-production-shell [data-slot="top-bar"]')
+          const header = document.querySelector('.m7-production-shell [data-slot="shell-top-bar"]')
           if (!sidebar || !header) return false
           const sidebarBox = sidebar.getBoundingClientRect()
           const headerBox = header.getBoundingClientRect()
@@ -726,7 +725,7 @@ async function auditAccessibility(page, label) {
         })
         const [sidebarBox, headerBox] = await Promise.all([
           collapsedSidebar.boundingBox(),
-          page.locator('.m7-production-shell [data-slot="top-bar"]').boundingBox(),
+          page.locator('.m7-production-shell [data-slot="shell-top-bar"]').boundingBox(),
         ])
         if (
           !sidebarBox ||
@@ -746,7 +745,7 @@ async function auditAccessibility(page, label) {
 
   for (const width of widths) {
     const { context, page } = await openPage(primaryTheme, width)
-    const search = page.getByRole('textbox', { name: 'Search your knowledge' })
+    const search = await openSearchMenu(page)
     await search.fill('How do releases work?')
     await search.press('Enter')
     await page.getByRole('heading', { name: 'How do releases work?', level: 1 }).waitFor()
@@ -892,16 +891,19 @@ async function auditAccessibility(page, label) {
     waitUntil: 'domcontentloaded',
   })
   await popoverPage.locator('[data-m7-production-shell-ready]').waitFor({ state: 'attached' })
-  await popoverPage.getByRole('textbox', { name: 'Search your knowledge' }).waitFor()
+  await popoverPage.getByRole('button', { name: 'Search and reflect' }).waitFor()
   await popoverPage.getByRole('button', { name: 'System status', exact: true }).click()
   await popoverPage.locator('[aria-label="System status details"]').waitFor()
 
   const settleBudgetMs = 500
-  const popoverPlacement = (expectWrapped) =>
+  // The shell top bar scales with the root font size instead of wrapping, but
+  // the popover must still re-anchor on every resize or zoom: just under the
+  // trigger on a single row, or below the bar if a layout ever wraps.
+  const popoverPlacement = () =>
     popoverPage
       .waitForFunction(
-        (wrapped) => {
-          const bar = document.querySelector('[data-slot="top-bar"]')?.getBoundingClientRect()
+        () => {
+          const bar = document.querySelector('[data-slot="shell-top-bar"]')?.getBoundingClientRect()
           const trigger = document
             .querySelector('[aria-label="System status"]')
             ?.getBoundingClientRect()
@@ -910,39 +912,37 @@ async function auditAccessibility(page, label) {
             ?.getBoundingClientRect()
           if (!bar || !trigger || !popover) return false
           const isWrapped = bar.bottom - trigger.bottom >= 24
-          if (isWrapped !== wrapped) return false
-          // Wrapped: below the bar's second row. Single row: just under the trigger.
-          return wrapped
+          return isWrapped
             ? popover.top >= bar.bottom - 2
             : popover.top >= trigger.bottom && popover.top - trigger.bottom <= 20
         },
-        expectWrapped,
+        undefined,
         { timeout: settleBudgetMs, polling: 'raf' }
       )
       .catch(() => {
         throw new Error(
-          `System status popover did not settle ${expectWrapped ? 'below the wrapped bar' : 'under the trigger'} within ${settleBudgetMs}ms`
+          `System status popover did not settle against its trigger within ${settleBudgetMs}ms`
         )
       })
 
-  await popoverPlacement(false)
+  await popoverPlacement()
   await popoverPage.evaluate(() => {
     document.documentElement.style.fontSize = '200%'
   })
-  await popoverPlacement(true)
+  await popoverPlacement()
   await popoverPage.evaluate(() => {
     document.documentElement.style.fontSize = ''
   })
-  await popoverPlacement(false)
-  // Window resizes: wrap at the narrow width, unwrap at the wide one.
+  await popoverPlacement()
+  // Window resizes keep the popover anchored at the narrow and the wide width.
   await popoverPage.evaluate(() => {
     document.documentElement.style.fontSize = '200%'
   })
-  await popoverPlacement(true)
+  await popoverPlacement()
   await popoverPage.setViewportSize({ width: 1100, height: 1000 })
-  await popoverPlacement(false)
+  await popoverPlacement()
   await popoverPage.setViewportSize({ width: 390, height: 1000 })
-  await popoverPlacement(true)
+  await popoverPlacement()
   await popoverContext.close()
 }
 

@@ -1,5 +1,6 @@
 import { isActionDisabled } from './test/actionState'
 import { act } from './test/act'
+import { searchField, submitSearch } from './test/searchMenu'
 import { afterEach, expect, mock, test } from 'bun:test'
 import { cleanup, fireEvent, render, screen, waitFor, within } from 'solid-testing-library'
 import { demoEvidence, demoStatus } from './demo'
@@ -162,7 +163,7 @@ async function chooseWorkspace(id: string) {
   // Kobalte menu triggers open on pointerdown, not click.
   fireEvent.pointerDown(
     screen.getByRole('button', {
-      name: 'Switch workspace',
+      name: /^Switch workspace/,
     })
   )
   const name = id[0].toUpperCase() + id.slice(1)
@@ -218,11 +219,7 @@ test('the shadcn renderer composes the real application shell and state', async 
       })
       .getAttribute('aria-current')
   ).toBe('page')
-  expect(
-    screen.getByRole('textbox', {
-      name: 'Search your knowledge',
-    })
-  ).not.toBeNull()
+  expect(screen.getByRole('button', { name: 'Search and reflect' })).not.toBeNull()
   expect(
     screen.getByRole('contentinfo', {
       name: 'Application status',
@@ -275,7 +272,9 @@ test('knowledge splitters keep their keyboard sizing and persist panel widths', 
   window.innerWidth = 1280
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     const sourceSplitter = screen.getByRole('separator', { name: 'Resize sources panel' })
     expect(screen.queryByRole('separator', { name: 'Resize context panel' })).toBeNull()
     expect(sourceSplitter.getAttribute('aria-orientation')).toBe('vertical')
@@ -301,7 +300,9 @@ test('wide knowledge layout exposes an accessible context splitter', async () =>
   window.innerWidth = 1440
   try {
     render(() => <App />)
-    await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+    )
     const contextSplitter = screen.getByRole('separator', { name: 'Resize context panel' })
     const before = Number(contextSplitter.getAttribute('aria-valuenow'))
     fireEvent.keyDown(contextSplitter, { key: 'ArrowLeft' })
@@ -320,12 +321,14 @@ test('wide knowledge layout exposes an accessible context splitter', async () =>
 test('mobile knowledge panels stay in Sheet boundaries without desktop splitters', async () => {
   window.innerWidth = 320
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
   expect(screen.queryByRole('separator', { name: 'Resize sources panel' })).toBeNull()
   expect(screen.queryByRole('separator', { name: 'Resize context panel' })).toBeNull()
   expect(document.querySelector('[data-slot="app-shell-content"]')).not.toBeNull()
 })
-const searchInput = () => screen.getByLabelText('Search your knowledge')
+const searchInput = () => searchField()
 const searchHint = () => searchInput().closest('form')?.querySelector('kbd') ?? null
 test('the search shortcut hint is hidden on a mobile window and shown on a wide one', async () => {
   window.innerWidth = 1440
@@ -343,7 +346,9 @@ test('the search shortcut hint is hidden on a mobile window and shown on a wide 
 test('source settings focus handoff completes after the mobile sources sheet closes', async () => {
   window.innerWidth = 320
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
 
   fireEvent.pointerDown(screen.getByRole('button', { name: 'Actions' }))
   fireEvent.pointerUp(await screen.findByRole('menuitem', { name: 'Open sources' }))
@@ -361,7 +366,9 @@ test('source settings focus handoff completes after the mobile sources sheet clo
 test('a pending settings focus retry yields to newer keyboard input', async () => {
   window.innerWidth = 1440
   render(() => <App />)
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
 
   fireEvent.pointerDown(screen.getByRole('button', { name: 'Actions' }))
   fireEvent.pointerUp(await screen.findByRole('menuitem', { name: 'Open sources' }))
@@ -433,7 +440,7 @@ test('mobile navigation lists workspaces as rows rather than a hidden menu', asy
   // assertion is scoped to the sheet rather than the screen.
   expect(
     within(sheet).queryByRole('button', {
-      name: 'Switch workspace',
+      name: /^Switch workspace/,
     })
   ).toBeNull()
   fireEvent.click(
@@ -502,7 +509,7 @@ test('Reflect presents grounded reflection separately from ordinary search', asy
   await waitFor(() => expect(screen.getByText('Choose a document')).toBeTruthy())
   await waitFor(() => expect(state.documentsCalls.at(-1)?.project).toBeTruthy())
   await waitFor(() => expect(screen.queryByText('Loading documents…')).toBeNull())
-  const input = screen.getByLabelText('Search your knowledge')
+  const input = searchField()
   fireEvent.input(input, {
     target: {
       value: 'Review launch risk',
@@ -682,7 +689,7 @@ test('changing workspace clears evidence from the previous security scope', asyn
     })
   try {
     render(() => <App />)
-    const input = screen.getByLabelText('Search your knowledge')
+    const input = searchField()
     fireEvent.input(input, {
       target: {
         value: 'private release query',
@@ -861,13 +868,15 @@ test('settings navigation explains the desktop-only view in web mode', async () 
       name: 'Knowledge',
     })
   )
-  await waitFor(() => expect(screen.getByLabelText('Search your knowledge')).toBeTruthy())
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Search and reflect' })).toBeTruthy()
+  )
 })
 test('a failed search surfaces the error state and Try again recovers', async () => {
   state.answer = () => Promise.reject(new Error('Answer request failed (503)'))
   render(() => <App />)
   await waitFor(() => expect(screen.getByText('Choose a document')).toBeTruthy())
-  const input = screen.getByLabelText('Search your knowledge')
+  const input = searchField()
   fireEvent.input(input, {
     target: {
       value: 'release cadence',
@@ -910,19 +919,8 @@ test('stale search responses do not overwrite the latest query', async () => {
     return Promise.resolve(answerResponse)
   }
   render(() => <App />)
-  const input = screen.getByLabelText('Search your knowledge')
-  fireEvent.input(input, {
-    target: {
-      value: 'first query',
-    },
-  })
-  fireEvent.submit(input.closest('form')!)
-  fireEvent.input(input, {
-    target: {
-      value: 'latest query',
-    },
-  })
-  fireEvent.submit(input.closest('form')!)
+  submitSearch('first query')
+  submitSearch('latest query')
   freshSearch.resolve({
     ...answerResponse,
     query: 'latest query',
@@ -961,7 +959,7 @@ test('initial status completion does not hide a search that started first', asyn
   state.answer = () => answer.promise
   try {
     render(() => <App />)
-    const input = screen.getByLabelText('Search your knowledge')
+    const input = searchField()
     fireEvent.input(input, {
       target: {
         value: 'status race query',
@@ -1105,7 +1103,7 @@ test('scope-changed context request does not overwrite newer state', async () =>
     return oldContext.promise
   }
   render(() => <App />)
-  const input = screen.getByLabelText('Search your knowledge')
+  const input = searchField()
   fireEvent.input(input, {
     target: {
       value: 'first context query',

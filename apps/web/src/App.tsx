@@ -241,6 +241,16 @@ function cortanaFeedbackUrl(version: string | undefined, platform: 'desktop' | '
   return `https://github.com/adea-ai/cortana/issues/new?${params.toString()}`
 }
 const paneWidthsStorageKey = 'cortana.pane-widths'
+const sidebarOpenStorageKey = 'cortana.sidebar'
+
+/** The Sources sidebar starts open; only an explicit collapse is remembered. */
+function readSidebarOpen() {
+  try {
+    return window.localStorage.getItem(sidebarOpenStorageKey) !== 'closed'
+  } catch {
+    return true
+  }
+}
 
 function readPaneWidths() {
   try {
@@ -379,7 +389,7 @@ function CortanaApplication() {
   const [desktopServices, setDesktopServices] = createSignal<DesktopServiceReport | null>(null)
   const [desktopServicesError, setDesktopServicesError] = createSignal('')
   const [settingsSection, setSettingsSection] = createSignal<
-    'readiness' | 'services' | 'sources' | 'memory'
+    'readiness' | 'services' | 'sources' | 'memory' | 'workspaces'
   >('readiness')
   const [aboutOpen, setAboutOpen] = createSignal(false)
   const [aboutDialogMounted, setAboutDialogMounted] = createSignal(false)
@@ -472,6 +482,17 @@ function CortanaApplication() {
   const [sourceWidth, setSourceWidth] = createSignal(initialPaneWidths.source)
   const [contextWidth, setContextWidth] = createSignal(initialPaneWidths.context)
   const sourcePaneVisible = createMediaQuery(() => '(min-width: 800px)')
+  // The top bar's toggle opens and closes the Sources sidebar at wide widths;
+  // the rail is always the icon column. Narrow windows keep the drawer.
+  const [sidebarOpen, setSidebarOpenState] = createSignal(readSidebarOpen())
+  const setSidebarOpen = (open: boolean) => {
+    setSidebarOpenState(open)
+    try {
+      window.localStorage.setItem(sidebarOpenStorageKey, open ? 'open' : 'closed')
+    } catch {
+      // The sidebar still toggles when browser storage is disabled.
+    }
+  }
   const contextPaneVisible = createMediaQuery(() => '(min-width: 1281px)')
   const [paneGroupElement, setPaneGroupElement] = createSignal<HTMLDivElement>()
   const [paneGroupWidth, setPaneGroupWidth] = createSignal(0)
@@ -509,6 +530,12 @@ function CortanaApplication() {
   const searchRef = {
     current: null as HTMLInputElement | null,
   }
+  // The search box lives in the top bar's search menu, so it only exists while
+  // the menu is open; the trigger stands in as the focus origin otherwise.
+  const searchTriggerRef = {
+    current: null as HTMLElement | null,
+  }
+  const [searchOpen, setSearchOpen] = createSignal(false)
   const commandPaletteOriginRef = {
     current: null as HTMLElement | null,
   }
@@ -955,8 +982,8 @@ function CortanaApplication() {
       if (editing && !(modifier && key === 'k')) return
       if (modifier && key === 'k') {
         event.preventDefault()
-        searchRef.current?.focus()
-        searchRef.current?.select()
+        setSearchOpen(true)
+        focusWhenReady(() => searchRef.current, true)
       } else if (modifier && key === 'p') {
         event.preventDefault()
         if (commandPaletteOpen()) {
@@ -1325,7 +1352,7 @@ function CortanaApplication() {
         (candidate.name === sourceName || candidate.source === sourceName)
     )
   }
-  function openSettingsAt(section: 'readiness' | 'services' | 'sources' | 'memory') {
+  function openSettingsAt(section: 'readiness' | 'services' | 'sources' | 'memory' | 'workspaces') {
     leaveSettings(() => {
       setSettingsSection(section)
       setView('settings')
@@ -1819,6 +1846,7 @@ function CortanaApplication() {
   function focusSearch() {
     leaveSettings(() => {
       setView('knowledge')
+      setSearchOpen(true)
       focusWhenReady(() => searchRef.current, true)
     })
   }
@@ -1893,8 +1921,10 @@ function CortanaApplication() {
       origin ??
       (document.activeElement instanceof HTMLElement && document.activeElement !== document.body
         ? document.activeElement
-        : searchRef.current)
-    // Keep keyboard opens anchored to the search field when the page has no
+        : searchRef.current?.isConnected
+          ? searchRef.current
+          : searchTriggerRef.current)
+    // Keep keyboard opens anchored to the search trigger when the page has no
     // focused control; the shared dialog restores this explicit origin.
     commandPaletteOriginRef.current?.focus()
     setCommandPaletteMounted(true)
@@ -1957,7 +1987,7 @@ function CortanaApplication() {
               : 236
             : 0)
     )
-  const sourcePaneActive = () => sourcePaneVisible() && !graphFullScreen()
+  const sourcePaneActive = () => sourcePaneVisible() && sidebarOpen() && !graphFullScreen()
   const contextPaneActive = () => contextPaneVisible() && !graphFullScreen()
   const minimumWorkspaceWidth = () =>
     graphFullScreen() || !sourcePaneVisible() ? 0 : contextPaneVisible() ? 520 : 300
@@ -2089,7 +2119,7 @@ function CortanaApplication() {
   // while it is active the source and context panels collapse so the graph
   // spans the whole width between the rail and the status bar.
   return (
-    <M7ShellProvider>
+    <M7ShellProvider sidebarOpen={sidebarOpen} onSidebarOpenChange={setSidebarOpen}>
       <AppShell class="m7-production-shell flex-col" data-m7-production-shell-ready={''}>
         <SkipLink />
 
@@ -2184,6 +2214,9 @@ function CortanaApplication() {
             query={query()}
             loading={loading()}
             searchRef={searchRef}
+            searchTriggerRef={searchTriggerRef}
+            searchOpen={searchOpen()}
+            onSearchOpenChange={setSearchOpen}
             canGoBack={queryHistoryIndex() > 0}
             canGoForward={
               queryHistoryIndex() >= 0 && queryHistoryIndex() < queryHistory().length - 1
@@ -2215,9 +2248,9 @@ function CortanaApplication() {
             workspaces={workspaces()}
             workspace={effectiveWorkspace()}
             onWorkspaceChange={chooseWorkspace}
-            workspaceName={
-              workspaces().find((item) => item.id === effectiveWorkspace())?.name ?? 'Workspace'
-            }
+            onManageWorkspaces={() => openSettingsAt('workspaces')}
+            hasSidebar={view() === 'knowledge' && !graphFullScreen()}
+            sidebarWidth={paneWidths().source}
             location={
               view() === 'knowledge'
                 ? workspaceTab() === 'graph'
@@ -2243,6 +2276,7 @@ function CortanaApplication() {
                 onOpenHelp: openHelpDialog,
                 onOpenFeedback: openFeedback,
                 onOpenUpdates: openUpdateDialog,
+                onSearch: focusSearch,
               }}
               workspaces={workspaces()}
               workspace={effectiveWorkspace()}
@@ -2373,6 +2407,7 @@ function CortanaApplication() {
                   class="m7-workspace-split"
                 >
                   <ResizablePanel
+                    id="m7-sources-sidebar"
                     role="region"
                     aria-label="Sources and documents"
                     minSize={sourcePaneActive() ? 220 / paneAreaWidth() : 0}
@@ -2463,7 +2498,10 @@ function CortanaApplication() {
                     </Show>
                   </ResizablePanel>
                   <Show when={sourcePaneActive()}>
-                    <ResizableHandle label="Resize sources panel" />
+                    <ResizableHandle
+                      label="Resize sources panel"
+                      aria-controls="m7-sources-sidebar"
+                    />
                   </Show>
                   <ResizablePanel
                     role="region"

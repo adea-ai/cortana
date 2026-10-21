@@ -8,14 +8,16 @@ Package versions are declared in the root `package.json` (shared UI lint depende
 
 Use canonical subpaths so lint can identify each component; root-barrel imports are rejected. Keep the root lint dependency and web UI dependency at the same version. Import shared components from `@adea-ai/ui/components/*` and utilities from `@adea-ai/ui/lib/*`. Do not import or re-export the bare `Button` from `ui/button`; use `ActionButton` or an interactive `ListRow` for actions. Pure re-exports of the supported shared API may preserve application terminology. Generic components, control wrappers, variants, class utilities, and accessible control implementations belong in the shared library. Use shared ListGroup/ListRow for utility and evidence lists, Kbd for keyboard keys, Badge for metadata pills, and Table for configuration tables; native anchors, keyboard keys, progress indicators, meters, and tables are rejected. Add missing capabilities there and consume a published version; do not copy implementation files into Cortana or add local package aliases.
 
-| UI need                                       | Shared component                                                                   |
-| --------------------------------------------- | ---------------------------------------------------------------------------------- |
-| An action, including disabled or busy actions | `ActionButton`, with an explicit informative `tooltip`                             |
-| Navigation, application frame, panels         | `AppShell`, `SideRail`, `TopBar`, `Sheet`, `ResizablePanelGroup`                   |
-| Settings sections and labelled controls       | `SettingsSection`, `FormField`, `NumberField`, `ValueCombobox`, `SecretInputGroup` |
-| State and feedback                            | `StatusChip`, `Alert`, `EmptyState`, `Spinner`, `Progress`                         |
-| Expandable information                        | `Accordion`                                                                        |
-| Virtualized rows and graph placement          | `VirtualWindow`, `OrbitLayout`, `OrbitItem`                                        |
+| UI need                                       | Shared component                                                                                        |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| An action, including disabled or busy actions | `ActionButton`, with an explicit informative `tooltip`                                                  |
+| Navigation, application frame, panels         | `AppShell`, `ShellRail`, `ShellTopBar`, `WorkspaceSwitcher`, `SideRail`, `Sheet`, `ResizablePanelGroup` |
+| Settings sections and labelled controls       | `SettingsSection`, `FormField`, `NumberField`, `ValueCombobox`, `SecretInputGroup`                      |
+| State and feedback                            | `StatusChip`, `Alert`, `EmptyState`, `Spinner`, `Progress`                                              |
+| Expandable information                        | `Accordion`                                                                                             |
+| Virtualized rows and graph placement          | `VirtualWindow`, `OrbitLayout`, `OrbitItem`                                                             |
+
+The application frame is the same one Adea uses: `ShellTopBar` carries history, the sidebar toggle and `WorkspaceSwitcher` left of the divider, with the breadcrumb and contextual actions to its right (the search box and Reflect live in a top-bar search menu that the rail's search entry and the search shortcut also open), and `ShellRail` carries the app mark, the search entry, destinations and the footer. On wide windows the toggle collapses the Sources sidebar, not the rail; below 800 px it opens the navigation sheet.
 
 Keep disabled actions discoverable when their help explains a prerequisite. Shared ActionButton owns activation guards and accessibility semantics; consumers must not replace those guards with styling. Interactive ListRow instances (`as="button"`, `as="a"`, or `onClick`) also require helpful tooltip text; punctuation-only placeholders do not count. Labels, hints, validation errors, and the actual focusable control must have real ID relationships. Use shared fields to maintain them. SettingsSection owns its body spacing: choose `bodyLayout="content"` for forms and mixed content, and the default row layout for settings rows. ListRow owns its description height and padding; do not recreate them in application CSS.
 
