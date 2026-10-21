@@ -1898,12 +1898,17 @@ function CortanaApplication() {
       focusWhenReady(() => document.getElementById('document-filter') as HTMLElement | null)
     })
   }
+  // The search field lives in the top bar's search menu, so its ref outlives the
+  // element once the menu closes. Only a connected field is a usable origin.
+  function searchOrigin(): HTMLElement | null {
+    return searchRef.current?.isConnected ? searchRef.current : searchTriggerRef.current
+  }
   function panelOrigin(origin?: HTMLElement | null) {
     return (
       origin ??
       (document.activeElement instanceof HTMLElement && document.activeElement !== document.body
         ? document.activeElement
-        : searchRef.current)
+        : searchOrigin())
     )
   }
   function openSourcePanel(origin?: HTMLElement | null) {
@@ -1921,7 +1926,7 @@ function CortanaApplication() {
       origin ??
       (document.activeElement instanceof HTMLElement && document.activeElement !== document.body
         ? document.activeElement
-        : (searchRef.current ?? searchTriggerRef.current))
+        : searchOrigin())
     // Keep keyboard opens anchored to the search trigger when the page has no
     // focused control; the shared dialog restores this explicit origin.
     commandPaletteOriginRef.current?.focus()

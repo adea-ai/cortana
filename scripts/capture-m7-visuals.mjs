@@ -380,8 +380,11 @@ async function auditAccessibility(page, label) {
         await page
           .getByRole('dialog', { name: 'Primary navigation' })
           .waitFor({ state: 'detached' })
-        await page.waitForFunction(
-          () => document.activeElement?.getAttribute('aria-label') === 'Toggle navigation'
+        // At 1024 the top bar toggle controls the sidebar, so focus returns to it under its sidebar label.
+        await page.waitForFunction(() =>
+          ['Collapse sidebar', 'Expand sidebar'].includes(
+            document.activeElement?.getAttribute('aria-label')
+          )
         )
         await auditAccessibility(page, 'navigation mobile to desktop transition')
         await setViewportAndWaitForLayout(page, { width, height: 1000 })
@@ -710,7 +713,7 @@ async function auditAccessibility(page, label) {
         // and no gutter may open between the strip's bottom edge and the rail.
         await page.waitForFunction(() => {
           const sidebar = document.querySelector('#m7-primary-navigation[data-collapsed="true"]')
-          const header = document.querySelector('.m7-production-shell [data-slot="top-bar"]')
+          const header = document.querySelector('.m7-production-shell [data-slot="shell-top-bar"]')
           if (!sidebar || !header) return false
           const sidebarBox = sidebar.getBoundingClientRect()
           const headerBox = header.getBoundingClientRect()
@@ -722,7 +725,7 @@ async function auditAccessibility(page, label) {
         })
         const [sidebarBox, headerBox] = await Promise.all([
           collapsedSidebar.boundingBox(),
-          page.locator('.m7-production-shell [data-slot="top-bar"]').boundingBox(),
+          page.locator('.m7-production-shell [data-slot="shell-top-bar"]').boundingBox(),
         ])
         if (
           !sidebarBox ||
@@ -897,7 +900,7 @@ async function auditAccessibility(page, label) {
     popoverPage
       .waitForFunction(
         (wrapped) => {
-          const bar = document.querySelector('[data-slot="top-bar"]')?.getBoundingClientRect()
+          const bar = document.querySelector('[data-slot="shell-top-bar"]')?.getBoundingClientRect()
           const trigger = document
             .querySelector('[aria-label="System status"]')
             ?.getBoundingClientRect()
