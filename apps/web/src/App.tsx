@@ -102,11 +102,8 @@ import {
   AppShellContent,
   SkipLink,
 } from '@adea-ai/ui/components/layout/app-shell'
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from '@adea-ai/ui/components/ui/resizable'
+import { PixelPane } from '@adea-ai/ui/components/layout/pixel-pane'
+import { PixelResizeHandle } from '@adea-ai/ui/components/layout/pixel-resize-handle'
 import { createMediaQuery } from './lib/mediaQuery'
 import { resolveWorkspaceTheme, WORKSPACE_THEME_EVENT } from './workspaceThemePreference'
 import type {
@@ -2015,22 +2012,21 @@ function CortanaApplication() {
       workspace: Math.max(0, available - sourcePaneWidth - context),
     }
   }
-  const paneSizes = () => {
-    const sizes = paneWidths()
-    return [
-      sizes.source / sizes.available,
-      sizes.workspace / sizes.available,
-      sizes.context / sizes.available,
-    ]
-  }
-  const updatePaneWidths = (sizes: number[]) => {
-    if (sizes.length < 3 || graphFullScreen() || !sourcePaneVisible()) return
+  const sourceMaximum = () =>
+    Math.max(
+      220,
+      Math.min(520, paneAreaWidth() - minimumWorkspaceWidth() - (contextPaneActive() ? 280 : 0))
+    )
+  const contextMaximum = () =>
+    Math.max(280, Math.min(520, paneAreaWidth() - minimumWorkspaceWidth() - paneWidths().source))
+  const updatePaneWidths = (next: { source?: number; context?: number }) => {
+    if (graphFullScreen() || !sourcePaneVisible()) return
     const available = paneAreaWidth()
     const nextSource = sourcePaneActive()
-      ? Math.max(220, Math.round((sizes[0] ?? 0) * available))
+      ? Math.max(220, Math.round(next.source ?? sourceWidth()))
       : sourceWidth()
     const nextContext = contextPaneActive()
-      ? Math.max(280, Math.round((sizes[2] ?? 0) * available))
+      ? Math.max(280, Math.round(next.context ?? contextWidth()))
       : contextWidth()
     const boundedSource = Math.max(
       220,
@@ -2398,32 +2394,12 @@ function CortanaApplication() {
                   />
                 </Suspense>
               ) : view() === 'knowledge' ? (
-                <ResizablePanelGroup
-                  orientation="horizontal"
-                  sizes={paneSizes()}
-                  onSizesChange={updatePaneWidths}
-                  keyboardDelta={16 / paneAreaWidth()}
-                  ref={setPaneGroupElement}
-                  class="m7-workspace-split"
-                >
-                  <ResizablePanel
+                <div ref={setPaneGroupElement} class="m7-workspace-split relative flex">
+                  <PixelPane
                     id="m7-sources-sidebar"
                     role="region"
                     aria-label="Sources and documents"
-                    minSize={sourcePaneActive() ? 220 / paneAreaWidth() : 0}
-                    maxSize={
-                      sourcePaneActive()
-                        ? Math.max(
-                            220,
-                            Math.min(
-                              520,
-                              paneAreaWidth() -
-                                minimumWorkspaceWidth() -
-                                (contextPaneActive() ? 280 : 0)
-                            )
-                          ) / paneAreaWidth()
-                        : 0
-                    }
+                    width={paneWidths().source}
                   >
                     <Show when={!graphFullScreen()}>
                       <M7PanelBoundary
@@ -2496,18 +2472,8 @@ function CortanaApplication() {
                         />
                       </M7PanelBoundary>
                     </Show>
-                  </ResizablePanel>
-                  <Show when={sourcePaneActive()}>
-                    <ResizableHandle
-                      label="Resize sources panel"
-                      aria-controls="m7-sources-sidebar"
-                    />
-                  </Show>
-                  <ResizablePanel
-                    role="region"
-                    aria-label="Knowledge workspace"
-                    minSize={minimumWorkspaceWidth() / paneAreaWidth()}
-                  >
+                  </PixelPane>
+                  <PixelPane role="region" aria-label="Knowledge workspace">
                     <Workspace
                       query={activeQuery()}
                       answer={answer()}
@@ -2543,26 +2509,8 @@ function CortanaApplication() {
                       onGraphMinConfidenceChange={setGraphMinConfidence}
                       onRetry={() => void runSearch(query())}
                     />
-                  </ResizablePanel>
-                  <Show when={contextPaneActive()}>
-                    <ResizableHandle label="Resize context panel" />
-                  </Show>
-                  <ResizablePanel
-                    role="region"
-                    aria-label="Agent context"
-                    minSize={contextPaneActive() ? 280 / paneAreaWidth() : 0}
-                    maxSize={
-                      contextPaneActive()
-                        ? Math.max(
-                            280,
-                            Math.min(
-                              520,
-                              paneAreaWidth() - minimumWorkspaceWidth() - paneWidths().source
-                            )
-                          ) / paneAreaWidth()
-                        : 0
-                    }
-                  >
+                  </PixelPane>
+                  <PixelPane role="region" aria-label="Agent context" width={paneWidths().context}>
                     <Show when={!graphFullScreen()}>
                       <M7PanelBoundary
                         side="end"
@@ -2590,8 +2538,29 @@ function CortanaApplication() {
                         />
                       </M7PanelBoundary>
                     </Show>
-                  </ResizablePanel>
-                </ResizablePanelGroup>
+                  </PixelPane>
+                  <Show when={sourcePaneActive()}>
+                    <PixelResizeHandle
+                      side="left"
+                      label="Resize sources panel"
+                      controls="m7-sources-sidebar"
+                      value={paneWidths().source}
+                      minimum={220}
+                      maximum={sourceMaximum()}
+                      onChange={(width) => updatePaneWidths({ source: width })}
+                    />
+                  </Show>
+                  <Show when={contextPaneActive()}>
+                    <PixelResizeHandle
+                      side="right"
+                      label="Resize context panel"
+                      value={paneWidths().context}
+                      minimum={280}
+                      maximum={contextMaximum()}
+                      onChange={(width) => updatePaneWidths({ context: width })}
+                    />
+                  </Show>
+                </div>
               ) : view() === 'inbox' ? (
                 <Suspense
                   fallback={
