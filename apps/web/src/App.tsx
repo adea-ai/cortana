@@ -2496,7 +2496,10 @@ function CortanaApplication() {
                     </Show>
                   </ResizablePanel>
                   <Show when={sourcePaneActive()}>
-                    <ResizableHandle label="Resize sources panel" />
+                    <ResizableHandle
+                      label="Resize sources panel"
+                      aria-controls="m7-sources-sidebar"
+                    />
                   </Show>
                   <ResizablePanel
                     role="region"
