@@ -2,7 +2,7 @@
 
 # The static web bundle is target-independent. Both build tools must match the
 # build host, including when the benchmark emulates an ARM64 runtime image.
-FROM --platform=$BUILDPLATFORM oven/bun:1.4.3-slim AS bun-runtime
+FROM --platform=$BUILDPLATFORM oven/bun:1.4.4-slim AS bun-runtime
 
 FROM --platform=$BUILDPLATFORM node:24-bookworm-slim AS web-builder
 COPY --from=bun-runtime /usr/local/bin/bun /usr/local/bin/bun
@@ -16,7 +16,7 @@ COPY apps/web apps/web
 COPY scripts/check-web-ui-contract.mjs scripts/check-web-ui-contract.mjs
 COPY scripts/check-web-bundle-budget.mjs scripts/check-web-bundle-budget.mjs
 RUN cd apps/web \
-    && ../../node_modules/.bin/tsc -b \
+    && bun run typecheck \
     && bun ../../scripts/check-web-ui-contract.mjs \
     && node ../../node_modules/vite/bin/vite.js build \
     && bun ../../scripts/check-web-bundle-budget.mjs

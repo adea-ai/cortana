@@ -137,7 +137,7 @@ Cortana is licensed under [Apache License 2.0](LICENSE).
 
 ## Web task toolchain and caches
 
-Bun 1.4.3, Node 24.21.0 and Vite+ 1.3.0 own the root web build/check/dev
+Bun 1.4.4, Node 24.21.0 and Vite+ 1.3.0 own the root web build/check/dev
 commands. Code Foundry is aligned to 1.48.2. The existing Solid/Vite build,
 UI contract checks and bundle budgets stay in the web package script. Root
 `type-check` still runs Python mypy and Rust all-target checking before the

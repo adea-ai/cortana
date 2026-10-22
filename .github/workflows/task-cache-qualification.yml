@@ -48,7 +48,7 @@ jobs:
           persist-credentials: false
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          bun-version: 1.4.3
+          bun-version: 1.4.4
           no-cache: true
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -62,9 +62,9 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: node_modules/.vite/task-cache
-          key: production-tasks-v2-${{ runner.os }}-${{ runner.arch }}-node24.21.0-bun1.4.3-vp1.3.0-${{ hashFiles('bun.lock', 'vite.config.ts') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: production-tasks-v2-${{ runner.os }}-${{ runner.arch }}-node24.21.0-bun1.4.4-vp1.3.0-${{ hashFiles('bun.lock', 'vite.config.ts') }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            production-tasks-v2-${{ runner.os }}-${{ runner.arch }}-node24.21.0-bun1.4.3-vp1.3.0-${{ hashFiles('bun.lock', 'vite.config.ts') }}-
+            production-tasks-v2-${{ runner.os }}-${{ runner.arch }}-node24.21.0-bun1.4.4-vp1.3.0-${{ hashFiles('bun.lock', 'vite.config.ts') }}-
       - name: Qualify real build replay
         env:
           RESTORED_KEY: ${{ steps.cache.outputs.cache-matched-key }}

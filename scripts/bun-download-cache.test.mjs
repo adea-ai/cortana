@@ -19,7 +19,7 @@ for (const name of ['m7-visual-evidence', 'knowledge-accessibility', 'desktop-ac
     assert.match(cache, /actions\/cache\/save@[a-f0-9]{40}/)
     assert.equal((cache.match(/path: ~\/\.bun\/install\/cache/g) ?? []).length, 2)
     assert.doesNotMatch(cache, /node_modules/)
-    assert.match(cache, /runner\.os.*runner\.arch.*1\.4\.3.*hashFiles\('bun\.lock'\)/)
+    assert.match(cache, /runner\.os.*runner\.arch.*1\.4\.4.*hashFiles\('bun\.lock'\)/)
     const event = name === 'desktop-acceptance' ? 'workflow_dispatch' : 'push'
     assert.ok(source.slice(0, source.indexOf('\njobs:')).includes(`${event}:`))
     assert.ok(cache.includes(`github.event_name == '${event}'`))
