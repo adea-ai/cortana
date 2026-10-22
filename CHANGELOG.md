@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.70.1](https://github.com/adea-ai/cortana/compare/v0.70.0...v0.70.1) (2026-10-22)
+
+
+### Maintenance
+
+* **deps:** update taiki-e/install-action digest to a4d3f3f ([#2608](https://github.com/adea-ai/cortana/issues/2608)) ([fd20df8](https://github.com/adea-ai/cortana/commit/fd20df8a5a4ddcdf3f3237ab1bd96f5d15257f62))
+* **web:** size the knowledge panes with PixelPane, plus certifi bump ([#2606](https://github.com/adea-ai/cortana/issues/2606)) ([19a4031](https://github.com/adea-ai/cortana/commit/19a4031f8aaf41da33c2defa4f6fc3c2aa12da39))
+
 ## [0.70.0](https://github.com/adea-ai/cortana/compare/v0.69.3...v0.70.0) (2026-10-21)
 
 
