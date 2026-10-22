@@ -18,9 +18,9 @@ rust_nextest: true
 # any source change; docs-only or metadata-only diffs are the cases these
 # filters skip. `.github/**` is deliberately included: workflow changes can
 # alter what the lanes run.
-filter_integration: '.github/**,src/**,crates/**,tests/**,scripts/**,skills/**,apps/**,eval/**,pyproject.toml,uv.lock,Cargo.toml,Cargo.lock,bun.lock,package.json,release-please-config.json,.release-please-manifest.json'
-filter_e2e: '.github/**,src/**,crates/**,tests/**,scripts/**,skills/**,apps/**,eval/**,pyproject.toml,uv.lock,Cargo.toml,Cargo.lock,bun.lock,package.json'
-filter_performance: '.github/**,src/**,crates/**,tests/**,scripts/**,skills/**,apps/**,eval/**,pyproject.toml,uv.lock,Cargo.toml,Cargo.lock,bun.lock,package.json,performance-package-budgets.json'
+filter_integration: '.github/**,.cargo/**,.mise.toml,rust-toolchain.toml,vite.config.ts,tsconfig*.json,.npmrc,third_party/**,src/**,crates/**,tests/**,scripts/**,skills/**,apps/**,eval/**,pyproject.toml,uv.lock,Cargo.toml,Cargo.lock,bun.lock,package.json,release-please-config.json,.release-please-manifest.json'
+filter_e2e: '.github/**,.cargo/**,.mise.toml,rust-toolchain.toml,vite.config.ts,tsconfig*.json,.npmrc,third_party/**,src/**,crates/**,tests/**,scripts/**,skills/**,apps/**,eval/**,pyproject.toml,uv.lock,Cargo.toml,Cargo.lock,bun.lock,package.json'
+filter_performance: '.github/**,.cargo/**,.mise.toml,rust-toolchain.toml,vite.config.ts,tsconfig*.json,.npmrc,third_party/**,src/**,crates/**,tests/**,scripts/**,skills/**,apps/**,eval/**,pyproject.toml,uv.lock,Cargo.toml,Cargo.lock,bun.lock,package.json,performance-package-budgets.json'
 runner: ubuntu-latest
 unit_runner: ubuntu-latest
 ci_runner: ubuntu-latest
