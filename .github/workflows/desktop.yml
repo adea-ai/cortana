@@ -51,8 +51,13 @@ jobs:
             exit 0
           fi
           is_desktop_path() {
+            # Only renderer test modules are excluded. Native tests and shared
+            # API/ABI sources still require the complete desktop audit.
             case "$1" in
-              .github/workflows/desktop.yml|.github/workflows/desktop-acceptance.yml|.github/workflows/release-assets.yml|.github/workflows/dev-build.yml|bun.lock|package.json|Cargo.toml|Cargo.lock|rust-toolchain.toml|CHANGELOG.md|pyproject.toml|uv.lock|README.md|LICENSE|scripts/prepare-desktop-resources.mjs|scripts/prepare-desktop-sidecar.mjs|scripts/acceptance-provenance.mjs|scripts/acceptance-provenance.test.mjs|scripts/backup-restore-drill.sh|scripts/desktop-package-acceptance.mjs|scripts/desktop-package-acceptance.test.mjs|scripts/desktop-install-acceptance.mjs|scripts/desktop-install-acceptance.test.mjs|scripts/desktop-host-launch.mjs|scripts/desktop-host-launch.test.mjs|scripts/desktop-control-plane-acceptance.mjs|scripts/desktop-control-plane-acceptance.test.mjs|scripts/desktop-service-status-acceptance.mjs|scripts/desktop-service-status-acceptance.test.mjs|scripts/desktop-source-authorization-acceptance.mjs|scripts/desktop-source-authorization-acceptance.test.mjs|scripts/desktop-macos-lifecycle-acceptance.mjs|scripts/desktop-macos-lifecycle-acceptance.test.mjs|scripts/desktop-acceptance-matrix.mjs|scripts/desktop-acceptance-matrix.test.mjs|scripts/desktop-cache.test.mjs|scripts/release-workflow.test.mjs|scripts/knowledge-accessibility-acceptance.mjs|scripts/knowledge-accessibility-browser.mjs|scripts/knowledge-accessibility-browser.test.mjs|scripts/knowledge-accessibility-matrix.mjs|scripts/knowledge-accessibility-matrix.test.mjs|scripts/static-web-server.mjs|scripts/static-web-server.test.mjs|scripts/verify-desktop-acceptance-evidence.py|scripts/verify-vendored-glib.mjs|scripts/verify-vendored-updater.mjs|scripts/verify-macos-package.sh|scripts/verify-macos-trust.sh)
+              apps/web/src/*.test.ts|apps/web/src/*.test.tsx) return 1 ;;
+            esac
+            case "$1" in
+              .github/workflows/desktop.yml|.github/workflows/desktop-acceptance.yml|.github/workflows/release-assets.yml|.github/workflows/dev-build.yml|bun.lock|package.json|Cargo.toml|Cargo.lock|rust-toolchain.toml|.mise.toml|.github/code-foundry.yml|scripts/desktop-lockfile.mjs|scripts/run-desktop-command.mjs|CHANGELOG.md|pyproject.toml|uv.lock|vite.config.ts|vite.config.mts|tsconfig.json|.npmrc|README.md|LICENSE|scripts/prepare-desktop-resources.mjs|scripts/prepare-desktop-sidecar.mjs|scripts/acceptance-provenance.mjs|scripts/acceptance-provenance.test.mjs|scripts/backup-restore-drill.sh|scripts/desktop-package-acceptance.mjs|scripts/desktop-package-acceptance.test.mjs|scripts/desktop-install-acceptance.mjs|scripts/desktop-install-acceptance.test.mjs|scripts/desktop-host-launch.mjs|scripts/desktop-host-launch.test.mjs|scripts/desktop-control-plane-acceptance.mjs|scripts/desktop-control-plane-acceptance.test.mjs|scripts/desktop-service-status-acceptance.mjs|scripts/desktop-service-status-acceptance.test.mjs|scripts/desktop-source-authorization-acceptance.mjs|scripts/desktop-source-authorization-acceptance.test.mjs|scripts/desktop-macos-lifecycle-acceptance.mjs|scripts/desktop-macos-lifecycle-acceptance.test.mjs|scripts/desktop-acceptance-matrix.mjs|scripts/desktop-acceptance-matrix.test.mjs|scripts/desktop-cache.test.mjs|scripts/release-workflow.test.mjs|scripts/knowledge-accessibility-acceptance.mjs|scripts/knowledge-accessibility-browser.mjs|scripts/knowledge-accessibility-browser.test.mjs|scripts/knowledge-accessibility-matrix.mjs|scripts/knowledge-accessibility-matrix.test.mjs|scripts/static-web-server.mjs|scripts/static-web-server.test.mjs|scripts/verify-desktop-acceptance-evidence.py|scripts/verify-vendored-glib.mjs|scripts/verify-vendored-updater.mjs|scripts/verify-macos-package.sh|scripts/verify-macos-trust.sh)
                 return 0
                 ;;
             esac
@@ -61,7 +66,7 @@ jobs:
             # covers nested Rust/Python/UI files (for example src/cortana/main.rs)
             # while keeping unrelated repository paths out of the final audit.
             local prefix
-            for prefix in apps/desktop/ apps/web/ src/ crates/ eval/ third_party/glib-0.18.5/ third_party/tauri-plugin-updater-2.10.1/ .github/actions/desktop-sccache/; do
+            for prefix in .cargo/ apps/desktop/ apps/web/ src/ crates/ eval/ third_party/glib-0.18.5/ third_party/tauri-plugin-updater-2.10.1/ .github/actions/desktop-sccache/; do
               if [[ "$1" == "$prefix"* ]]; then
                 return 0
               fi
@@ -69,13 +74,19 @@ jobs:
             return 1
           }
 
+          # Materialize the diff first: an invalid base/head must fail the job,
+          # not turn a failed process substitution into an empty passing diff.
+          # Disable rename detection so both sides of a move are classified.
+          changed_paths=$(mktemp)
+          git diff --no-renames --name-only -z "$BASE_SHA" "$HEAD_SHA" > "$changed_paths"
           changed=false
-          while IFS= read -r path; do
+          while IFS= read -r -d '' path; do
             if is_desktop_path "$path"; then
               changed=true
               break
             fi
-          done < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          done < "$changed_paths"
+          rm -f "$changed_paths"
           echo "desktop=$changed" >> "$GITHUB_OUTPUT"
 
   # Compiler caches have one owner per job. An immutable shared key could be
@@ -85,7 +96,11 @@ jobs:
   # The root target directory belongs to the sidecar, not the Tauri workspace.
   # No per-commit keys or extra warming builds: existing manual main audits can
   # warm the default-branch cache; PR caches retain GitHub's merge-ref isolation.
-  # The v2 namespace intentionally starts cold. Compare a cold and a warm run,
+  # Source fingerprints let immutable entries refresh after a source edit;
+  # fallback stays within the full workload/toolchain/manifest/lock identity.
+  # Cargo always runs and validates restored fingerprints; no binary is trusted
+  # merely because a cache was restored. The v3 namespace starts cold.
+  # Compare a cold and a warm run,
   # including cache transfer/save time, before claiming a wall-clock reduction.
   # GTK provenance checks are independent from the iterator test, so run
   # them in parallel to avoid one expensive Rust test blocking the other.
@@ -188,9 +203,9 @@ jobs:
             ~/.cargo/git
             third_party/glib-0.18.5/target
           key: >-
-            ${{ runner.os }}-${{ runner.arch }}-ubuntu-24.04-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}
+            ${{ runner.os }}-${{ runner.arch }}-ubuntu-24.04-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v3-debug-release-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.mise.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'crates/*/Cargo.toml', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock', 'third_party/tauri-plugin-updater-2.10.1/Cargo.toml') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}-${{ hashFiles('src/**/*.rs', 'src/cortana/**', 'eval/**', 'pyproject.toml', 'uv.lock', 'README.md', 'LICENSE', 'crates/**/*.rs', 'third_party/glib-0.18.5/src/**', 'third_party/glib-0.18.5/build.rs', 'third_party/tauri-plugin-updater-2.10.1/src/**', 'third_party/tauri-plugin-updater-2.10.1/build.rs', 'apps/desktop/src-tauri/src/**', 'apps/desktop/src-tauri/build.rs', 'apps/desktop/src-tauri/tauri.conf.json', 'apps/desktop/src-tauri/capabilities/**', 'apps/desktop/src-tauri/icons/**', 'apps/web/src/**', 'apps/web/public/**', 'apps/web/tooling/**', 'apps/web/*.ts', 'apps/web/*.json', 'bun.lock', 'package.json', 'scripts/prepare-desktop-*.mjs', 'scripts/desktop-lockfile.mjs', 'scripts/run-desktop-command.mjs') }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-ubuntu-24.04-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-
+            ${{ runner.os }}-${{ runner.arch }}-ubuntu-24.04-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v3-debug-release-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.mise.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'crates/*/Cargo.toml', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock', 'third_party/tauri-plugin-updater-2.10.1/Cargo.toml') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}-
       - name: Wrap rustc with sccache
         uses: ./.github/actions/desktop-sccache
       - name: Test patched GTK iterator in release mode
@@ -222,9 +237,9 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
           key: >-
-            ${{ runner.os }}-${{ runner.arch }}-ubuntu-24.04-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}
+            ${{ runner.os }}-${{ runner.arch }}-ubuntu-24.04-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v3-debug-release-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.mise.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'crates/*/Cargo.toml', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock', 'third_party/tauri-plugin-updater-2.10.1/Cargo.toml') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}-${{ hashFiles('src/**/*.rs', 'src/cortana/**', 'eval/**', 'pyproject.toml', 'uv.lock', 'README.md', 'LICENSE', 'crates/**/*.rs', 'third_party/glib-0.18.5/src/**', 'third_party/glib-0.18.5/build.rs', 'third_party/tauri-plugin-updater-2.10.1/src/**', 'third_party/tauri-plugin-updater-2.10.1/build.rs', 'apps/desktop/src-tauri/src/**', 'apps/desktop/src-tauri/build.rs', 'apps/desktop/src-tauri/tauri.conf.json', 'apps/desktop/src-tauri/capabilities/**', 'apps/desktop/src-tauri/icons/**', 'apps/web/src/**', 'apps/web/public/**', 'apps/web/tooling/**', 'apps/web/*.ts', 'apps/web/*.json', 'bun.lock', 'package.json', 'scripts/prepare-desktop-*.mjs', 'scripts/desktop-lockfile.mjs', 'scripts/run-desktop-command.mjs') }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-ubuntu-24.04-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-
+            ${{ runner.os }}-${{ runner.arch }}-ubuntu-24.04-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v3-debug-release-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.mise.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'crates/*/Cargo.toml', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock', 'third_party/tauri-plugin-updater-2.10.1/Cargo.toml') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}-
       # Warm the exact pinned binary under a stable per-OS/arch key so
       # repeated final audits restore cargo-audit without recompiling it.
       - name: Cache cargo-audit binary
@@ -292,9 +307,9 @@ jobs:
             target
             apps/desktop/src-tauri/target
           key: >-
-            ${{ runner.os }}-${{ runner.arch }}-ubuntu-24.04-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}
+            ${{ runner.os }}-${{ runner.arch }}-ubuntu-24.04-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v3-debug-release-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.mise.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'crates/*/Cargo.toml', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock', 'third_party/tauri-plugin-updater-2.10.1/Cargo.toml') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}-${{ hashFiles('src/**/*.rs', 'src/cortana/**', 'eval/**', 'pyproject.toml', 'uv.lock', 'README.md', 'LICENSE', 'crates/**/*.rs', 'third_party/glib-0.18.5/src/**', 'third_party/glib-0.18.5/build.rs', 'third_party/tauri-plugin-updater-2.10.1/src/**', 'third_party/tauri-plugin-updater-2.10.1/build.rs', 'apps/desktop/src-tauri/src/**', 'apps/desktop/src-tauri/build.rs', 'apps/desktop/src-tauri/tauri.conf.json', 'apps/desktop/src-tauri/capabilities/**', 'apps/desktop/src-tauri/icons/**', 'apps/web/src/**', 'apps/web/public/**', 'apps/web/tooling/**', 'apps/web/*.ts', 'apps/web/*.json', 'bun.lock', 'package.json', 'scripts/prepare-desktop-*.mjs', 'scripts/desktop-lockfile.mjs', 'scripts/run-desktop-command.mjs') }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-ubuntu-24.04-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-
+            ${{ runner.os }}-${{ runner.arch }}-ubuntu-24.04-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v3-debug-release-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.mise.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'crates/*/Cargo.toml', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock', 'third_party/tauri-plugin-updater-2.10.1/Cargo.toml') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}-
       # Repository type-check/build is owned by Code Foundry Validation / CI,
       # which already runs the root Python, Rust, and web checks on the same
       # main-targeting PR SHA. This job keeps only desktop tests.
@@ -354,9 +369,9 @@ jobs:
             target
             apps/desktop/src-tauri/target
           key: >-
-            ${{ runner.os }}-${{ runner.arch }}-ubuntu-24.04-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}
+            ${{ runner.os }}-${{ runner.arch }}-ubuntu-24.04-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v3-debug-release-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.mise.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'crates/*/Cargo.toml', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock', 'third_party/tauri-plugin-updater-2.10.1/Cargo.toml') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}-${{ hashFiles('src/**/*.rs', 'src/cortana/**', 'eval/**', 'pyproject.toml', 'uv.lock', 'README.md', 'LICENSE', 'crates/**/*.rs', 'third_party/glib-0.18.5/src/**', 'third_party/glib-0.18.5/build.rs', 'third_party/tauri-plugin-updater-2.10.1/src/**', 'third_party/tauri-plugin-updater-2.10.1/build.rs', 'apps/desktop/src-tauri/src/**', 'apps/desktop/src-tauri/build.rs', 'apps/desktop/src-tauri/tauri.conf.json', 'apps/desktop/src-tauri/capabilities/**', 'apps/desktop/src-tauri/icons/**', 'apps/web/src/**', 'apps/web/public/**', 'apps/web/tooling/**', 'apps/web/*.ts', 'apps/web/*.json', 'bun.lock', 'package.json', 'scripts/prepare-desktop-*.mjs', 'scripts/desktop-lockfile.mjs', 'scripts/run-desktop-command.mjs') }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-ubuntu-24.04-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-
+            ${{ runner.os }}-${{ runner.arch }}-ubuntu-24.04-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v3-debug-release-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.mise.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'crates/*/Cargo.toml', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock', 'third_party/tauri-plugin-updater-2.10.1/Cargo.toml') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}-
       # Repository type-check/build is owned by Code Foundry Validation / CI,
       # which already runs the root Python, Rust, and web checks on the same
       # main-targeting PR SHA. This job keeps only desktop clippy.
@@ -416,9 +431,9 @@ jobs:
             target
             apps/desktop/src-tauri/target
           key: >-
-            ${{ runner.os }}-${{ runner.arch }}-ubuntu-24.04-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}
+            ${{ runner.os }}-${{ runner.arch }}-ubuntu-24.04-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v3-debug-release-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.mise.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'crates/*/Cargo.toml', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock', 'third_party/tauri-plugin-updater-2.10.1/Cargo.toml') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}-${{ hashFiles('src/**/*.rs', 'src/cortana/**', 'eval/**', 'pyproject.toml', 'uv.lock', 'README.md', 'LICENSE', 'crates/**/*.rs', 'third_party/glib-0.18.5/src/**', 'third_party/glib-0.18.5/build.rs', 'third_party/tauri-plugin-updater-2.10.1/src/**', 'third_party/tauri-plugin-updater-2.10.1/build.rs', 'apps/desktop/src-tauri/src/**', 'apps/desktop/src-tauri/build.rs', 'apps/desktop/src-tauri/tauri.conf.json', 'apps/desktop/src-tauri/capabilities/**', 'apps/desktop/src-tauri/icons/**', 'apps/web/src/**', 'apps/web/public/**', 'apps/web/tooling/**', 'apps/web/*.ts', 'apps/web/*.json', 'bun.lock', 'package.json', 'scripts/prepare-desktop-*.mjs', 'scripts/desktop-lockfile.mjs', 'scripts/run-desktop-command.mjs') }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-ubuntu-24.04-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v2-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-
+            ${{ runner.os }}-${{ runner.arch }}-ubuntu-24.04-${{ env.CORTANA_DESKTOP_TARGET }}-desktop-rust-v3-debug-release-${{ github.job }}-${{ hashFiles('rust-toolchain.toml', '.mise.toml', '.cargo/config*', 'apps/desktop/src-tauri/.cargo/config*') }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'crates/*/Cargo.toml', 'apps/desktop/src-tauri/Cargo.toml', 'third_party/glib-0.18.5/Cargo.lock', 'third_party/tauri-plugin-updater-2.10.1/Cargo.toml') }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}-${{ hashFiles('third_party/glib-0.18.5/Cargo.toml') }}-
       # Linux release compilation is reserved for ordinary main code PRs and
       # explicit manual final audits. It is skipped for Release Please
       # version-only PRs.
@@ -456,5 +471,16 @@ jobs:
           needs.desktop_clippy.result == 'failure' || needs.desktop_clippy.result == 'cancelled' ||
           needs.release.result == 'failure' || needs.release.result == 'cancelled'
         run: exit 1
+      - name: Require all selected desktop jobs to succeed
+        if: >-
+          needs.changes.outputs.desktop == 'true' &&
+          (github.event_name == 'workflow_dispatch' ||
+           !startsWith(github.event.pull_request.head.ref, 'release-please--branches--main'))
+        env:
+          JOB_RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          for result in $JOB_RESULTS; do
+            [ "$result" = success ] || exit 1
+          done
       - name: All desktop jobs passed or were skipped
         run: echo "security audit, GTK provenance, GTK iterator, desktop tests, clippy, and release compilation passed or were skipped"

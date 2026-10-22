@@ -188,3 +188,40 @@ not the three-target private Desktop acceptance record; renderer controls, nativ
 services, autostart, updater installation, recovery UI, screen readers, and operating-system trust
 remain separate gates. Close other Cortana Desktop processes first so the single-instance plugin
 cannot redirect the probe to an existing user session.
+
+## CI inputs and compiler cache reuse
+
+The custom Desktop workflow runs all six desktop audits for production renderer,
+Rust, connector resources, vendored dependencies, manifests, lockfiles and build
+configuration changes. Renderer `apps/web/src/*.test.ts` and `*.test.tsx` modules
+are test-only inputs: they retain Code Foundry validation without selecting native
+compilation. Mixed changes still select all desktop checks. Manual desktop audits
+always select the full suite. The required `Tauri 2 / Linux` aggregate rejects
+failures, cancellations and unexpected skips when desktop validation is selected.
+Release asset qualification is unchanged.
+
+Rust target caches use a workload/platform/target/toolchain/profile/manifest/lock
+identity and a source fingerprint. A source edit restores the compatible identity
+prefix, runs Cargo normally, and saves a fresh immutable entry. The prefix does
+not cross Rust lockfile or toolchain changes. No generated sidecar binary is
+accepted instead of running Cargo. The separate sccache store is content-addressed
+and can restore across jobs; its source suffix lets immutable entries grow with
+new compiler results. These v3 target/v2 sccache namespaces start cold. GitHub's
+PR merge-ref cache isolation still applies; reuse across independent PRs depends
+on an existing default-branch cache. This change adds no cache-warming build.
+
+Baseline: [PR2609 Desktop release job](https://github.com/adea-ai/cortana/actions/runs/39852238758/job/120081344149)
+completed successfully in 10m12s; the API reports 9m23s in the combined release
+compile step. The investigation supplied a target-cache miss and approximately
+4m05 root Rust, 7.39s Vite and 4m54 Tauri within that step. Those finer timings
+were not independently retrieved because the log download was denied. Regression
+tests replay PR2609's paths and verify they no longer select native compilation.
+No hosted after-run or wall-clock saving is claimed: compare cold/warm runs,
+including cache transfer/save time, after normal qualification.
+
+Code Foundry's consumer configuration retains its existing broad validation
+lanes and adds missing vendored/toolchain inputs. Further splitting a mixed Rust,
+Python and web task into independently affected ecosystem tasks requires an
+upstream generator/runtime design with complete transitive input tracking and
+aggregate tests. Report and review that upstream change separately before editing
+the shared Code Foundry repository; no shared generator change is included here.
