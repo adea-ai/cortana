@@ -357,8 +357,10 @@ class ConfigurationTests(unittest.TestCase):
     def test_web_platform_and_late_version_metadata(self):
         dockerfile = (ROOT / "Dockerfile").read_text()
         self.assertIn(
-            "FROM --platform=$BUILDPLATFORM oven/bun:1.4.3-slim AS bun-runtime", dockerfile
+            "FROM --platform=$BUILDPLATFORM oven/bun:1.4.4-slim AS bun-runtime", dockerfile
         )
+        self.assertIn("&& bun run typecheck", dockerfile)
+        self.assertNotIn("node_modules/.bin/tsc -b", dockerfile)
         self.assertIn(
             "FROM --platform=$BUILDPLATFORM node:24-bookworm-slim AS web-builder", dockerfile
         )

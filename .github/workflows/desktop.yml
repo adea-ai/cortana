@@ -116,13 +116,13 @@ jobs:
       - name: Install Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          bun-version: 1.4.3
+          bun-version: 1.4.4
       - name: Restore Bun package downloads
         id: bun-downloads
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache
-          key: bun-downloads-v1-${{ runner.os }}-${{ runner.arch }}-1.4.3-${{ hashFiles('bun.lock') }}
+          key: bun-downloads-v1-${{ runner.os }}-${{ runner.arch }}-1.4.4-${{ hashFiles('bun.lock') }}
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Save Bun package downloads
@@ -130,7 +130,7 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache
-          key: bun-downloads-v1-${{ runner.os }}-${{ runner.arch }}-1.4.3-${{ hashFiles('bun.lock') }}
+          key: bun-downloads-v1-${{ runner.os }}-${{ runner.arch }}-1.4.4-${{ hashFiles('bun.lock') }}
       - name: Verify patched GTK dependency provenance
         run: bun scripts/verify-vendored-glib.mjs
       - name: Verify patched updater dependency provenance
@@ -165,13 +165,13 @@ jobs:
       - name: Install Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          bun-version: 1.4.3
+          bun-version: 1.4.4
       - name: Restore Bun package downloads
         id: bun-downloads
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache
-          key: bun-downloads-v1-${{ runner.os }}-${{ runner.arch }}-1.4.3-${{ hashFiles('bun.lock') }}
+          key: bun-downloads-v1-${{ runner.os }}-${{ runner.arch }}-1.4.4-${{ hashFiles('bun.lock') }}
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Save Bun package downloads
@@ -179,7 +179,7 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache
-          key: bun-downloads-v1-${{ runner.os }}-${{ runner.arch }}-1.4.3-${{ hashFiles('bun.lock') }}
+          key: bun-downloads-v1-${{ runner.os }}-${{ runner.arch }}-1.4.4-${{ hashFiles('bun.lock') }}
       - name: Cache Rust build artifacts
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
@@ -268,13 +268,13 @@ jobs:
       - name: Install Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          bun-version: 1.4.3
+          bun-version: 1.4.4
       - name: Restore Bun package downloads
         id: bun-downloads
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache
-          key: bun-downloads-v1-${{ runner.os }}-${{ runner.arch }}-1.4.3-${{ hashFiles('bun.lock') }}
+          key: bun-downloads-v1-${{ runner.os }}-${{ runner.arch }}-1.4.4-${{ hashFiles('bun.lock') }}
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Save Bun package downloads
@@ -282,7 +282,7 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache
-          key: bun-downloads-v1-${{ runner.os }}-${{ runner.arch }}-1.4.3-${{ hashFiles('bun.lock') }}
+          key: bun-downloads-v1-${{ runner.os }}-${{ runner.arch }}-1.4.4-${{ hashFiles('bun.lock') }}
       - name: Cache Rust build artifacts
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
@@ -330,13 +330,13 @@ jobs:
       - name: Install Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          bun-version: 1.4.3
+          bun-version: 1.4.4
       - name: Restore Bun package downloads
         id: bun-downloads
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache
-          key: bun-downloads-v1-${{ runner.os }}-${{ runner.arch }}-1.4.3-${{ hashFiles('bun.lock') }}
+          key: bun-downloads-v1-${{ runner.os }}-${{ runner.arch }}-1.4.4-${{ hashFiles('bun.lock') }}
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Save Bun package downloads
@@ -344,7 +344,7 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache
-          key: bun-downloads-v1-${{ runner.os }}-${{ runner.arch }}-1.4.3-${{ hashFiles('bun.lock') }}
+          key: bun-downloads-v1-${{ runner.os }}-${{ runner.arch }}-1.4.4-${{ hashFiles('bun.lock') }}
       - name: Cache Rust build artifacts
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
@@ -392,13 +392,13 @@ jobs:
       - name: Install Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          bun-version: 1.4.3
+          bun-version: 1.4.4
       - name: Restore Bun package downloads
         id: bun-downloads
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache
-          key: bun-downloads-v1-${{ runner.os }}-${{ runner.arch }}-1.4.3-${{ hashFiles('bun.lock') }}
+          key: bun-downloads-v1-${{ runner.os }}-${{ runner.arch }}-1.4.4-${{ hashFiles('bun.lock') }}
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Save Bun package downloads
@@ -406,7 +406,7 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache
-          key: bun-downloads-v1-${{ runner.os }}-${{ runner.arch }}-1.4.3-${{ hashFiles('bun.lock') }}
+          key: bun-downloads-v1-${{ runner.os }}-${{ runner.arch }}-1.4.4-${{ hashFiles('bun.lock') }}
       - name: Cache Rust build artifacts
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
