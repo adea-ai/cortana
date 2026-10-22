@@ -283,6 +283,106 @@ async function auditAccessibility(page, label) {
     throw new Error(`Layout violations in ${label}:\n${layoutFailures.join('\n')}`)
 }
 
+/**
+ * Wait until the header's layout stops moving.
+ *
+ * A root text-size change reflows the bar, and the shell re-reads its own
+ * measurements after it, so two frames are not enough to read a settled bar:
+ * the controls move again and the bar grows a second row a moment later.
+ */
+async function waitForHeaderLayoutToSettle(page, timeoutMs = 3_000) {
+  await page.evaluate(async (timeout) => {
+    const deadline = performance.now() + timeout
+    let previous = ''
+    let settledFrames = 0
+    while (performance.now() < deadline) {
+      await new Promise((resolveFrame) => requestAnimationFrame(resolveFrame))
+      const bar = document.querySelector('[data-slot="shell-top-bar"]')
+      if (!bar) continue
+      const signature = [
+        Math.round(bar.getBoundingClientRect().height),
+        ...[...bar.querySelectorAll('button')].map((node) => {
+          const rect = node.getBoundingClientRect()
+          return `${Math.round(rect.x)},${Math.round(rect.y)}`
+        }),
+      ].join('|')
+      if (signature === previous) {
+        if (++settledFrames >= 3) return
+      } else {
+        settledFrames = 0
+        previous = signature
+      }
+    }
+    throw new Error(`The header layout did not settle within ${timeout}ms`)
+  }, timeoutMs)
+}
+
+/**
+ * The header's controls in the order the eye reads them, and in the order the
+ * keyboard reaches them.
+ *
+ * The bar's DOM order is the leading group and then the trailing group, and
+ * wrapping the bar does not change it. A control placed in the shared centre
+ * slot would be drawn on the second row and still be tabbed before the
+ * trailing group, so the two orders would disagree and the focus would drop to
+ * the second row and return to the first. That is the finding #2599 recorded
+ * for the top bar's two-row layout.
+ */
+async function headerControlOrders(page) {
+  const controls = await page.evaluate(() => {
+    const bar = document.querySelector('[data-slot="shell-top-bar"]')
+    if (!bar) return []
+    return [...bar.querySelectorAll('button, a[href], input, select, textarea, [tabindex]')]
+      .filter((node) => {
+        if (node.getAttribute('tabindex') === '-1') return false
+        if (node.hasAttribute('disabled')) return false
+        const style = getComputedStyle(node)
+        if (style.display === 'none' || style.visibility === 'hidden') return false
+        const rect = node.getBoundingClientRect()
+        return rect.width > 0 && rect.height > 0
+      })
+      .map((node) => {
+        const rect = node.getBoundingClientRect()
+        return {
+          name: node.getAttribute('aria-label') ?? node.textContent?.trim() ?? node.tagName,
+          // The bar is the offset parent, so a control's offsetTop is its row
+          // within the bar.
+          row: node.offsetTop,
+          x: rect.x,
+        }
+      })
+  })
+  // The order the eye reads them: row by row, then left to right.
+  const visual = controls.toSorted((a, b) => a.row - b.row || a.x - b.x)
+
+  // The order the keyboard walks the same controls in, starting at the bar's
+  // first focusable control and stopping when the focus leaves the bar.
+  await page.evaluate(() => {
+    const bar = document.querySelector('[data-slot="shell-top-bar"]')
+    const first = bar?.querySelector(
+      'button:not([disabled]), a[href], input:not([disabled]), select, textarea'
+    )
+    if (first instanceof HTMLElement) first.focus()
+  })
+  const keyboard = []
+  for (let index = 0; index < 20; index += 1) {
+    const stop = await page.evaluate(() => {
+      const active = document.activeElement
+      const bar = document.querySelector('[data-slot="shell-top-bar"]')
+      if (!active || !bar || !bar.contains(active)) return null
+      const rect = active.getBoundingClientRect()
+      return {
+        name: active.getAttribute('aria-label') ?? active.textContent?.trim() ?? active.tagName,
+        insideViewport: rect.top >= 0 && rect.left >= 0 && rect.right <= window.innerWidth,
+      }
+    })
+    if (!stop) break
+    keyboard.push(stop)
+    await page.keyboard.press('Tab')
+  }
+  return { visual, keyboard }
+}
+
 {
   for (const theme of themes) {
     for (const width of widths) {
@@ -944,6 +1044,78 @@ async function auditAccessibility(page, label) {
   await popoverPage.setViewportSize({ width: 390, height: 1000 })
   await popoverPlacement()
   await popoverContext.close()
+}
+
+// The header's keyboard order follows its visual order, including in the
+// two-row bar that a narrow window or enlarged text produces. The finding
+// #2599 recorded is the bar's centre slot: its control was drawn on the
+// second row and still tabbed before the trailing group, so the focus dropped
+// to the second row and returned to the first.
+{
+  const keyboardContext = await browser.newContext({
+    viewport: { width: 320, height: 1000 },
+    reducedMotion: 'reduce',
+  })
+  await keyboardContext.addInitScript(
+    (value) =>
+      localStorage.setItem(
+        'cortana.workspace-themes.v1',
+        JSON.stringify({ work: value, personal: value })
+      ),
+    primaryTheme
+  )
+  const keyboardPage = await keyboardContext.newPage()
+  keyboardPage.setDefaultTimeout(60_000)
+  await keyboardPage.goto(`${baseUrl}/?demo=1&demo-state=configured`, {
+    waitUntil: 'domcontentloaded',
+  })
+  await keyboardPage.locator('[data-m7-production-shell-ready]').waitFor({ state: 'attached' })
+  await keyboardPage.getByRole('button', { name: 'Search and reflect' }).waitFor()
+
+  const checkHeaderOrder = async (label) => {
+    const { visual, keyboard } = await headerControlOrders(keyboardPage)
+    const visualNames = visual.map((control) => control.name)
+    const keyboardNames = keyboard.map((control) => control.name)
+    if (keyboardNames.join(' → ') !== visualNames.join(' → ')) {
+      throw new Error(
+        `The header's keyboard order does not follow its visual order (${label}):\n` +
+          `  keyboard: ${keyboardNames.join(' → ')}\n` +
+          `  visual:   ${visualNames.join(' → ')}`
+      )
+    }
+    const outside = keyboard.filter((control) => !control.insideViewport)
+    if (outside.length > 0) {
+      throw new Error(
+        `The header's keyboard order reaches controls outside the viewport (${label}): ${outside
+          .map((control) => control.name)
+          .join(', ')}`
+      )
+    }
+    return visual
+  }
+
+  // 200% text at 320px wraps the bar: the navigation toggle on the first row
+  // and the trailing group on the second. The check only means something while
+  // the bar is wrapped, so the rows are counted too.
+  await keyboardPage.evaluate(() => {
+    document.documentElement.style.fontSize = '200%'
+  })
+  await waitForHeaderLayoutToSettle(keyboardPage)
+  const wrapped = await checkHeaderOrder('320px at 200% text')
+  const rows = new Set(wrapped.map((control) => control.row)).size
+  if (rows < 2) {
+    throw new Error(
+      'The header did not wrap at 320px with 200% text, so the keyboard order was not checked against a two-row bar'
+    )
+  }
+  await screenshot(keyboardPage, 'header-keyboard-order-320-200')
+  await keyboardPage.evaluate(() => {
+    document.documentElement.style.fontSize = ''
+  })
+  await waitForHeaderLayoutToSettle(keyboardPage)
+  await checkHeaderOrder('320px at 100% text')
+  await screenshot(keyboardPage, 'header-keyboard-order-320-100')
+  await keyboardContext.close()
 }
 
 await browser.close()
