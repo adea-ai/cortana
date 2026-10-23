@@ -1,5 +1,7 @@
 # B1 board matrix (#2624, head 90d2547 plus the change in this commit)
 
+> **HISTORICAL:** the "50 listed / 51 with NavExpanded" changed set and every "Changed" value in the first table describe the pre-Header49 candidate (commits up to c5e6f2e). They are superseded by "Current changed set" below.
+
 One row per board in `project/canvas.json` (178), plus the unlisted `NavExpanded` file.
 
 ## Reference status
@@ -42,10 +44,10 @@ One row per board in `project/canvas.json` (178), plus the unlisted `NavExpanded
 | KnowledgeTimeline | Knowledge | yes | 2.831 | none |  |
 | KnowledgeEmpty | Knowledge | yes | 2.156 | stale only |  |
 | SidebarCollapsed | Knowledge | yes | 1.645 | `kn-collapsed-main6fc6d59-2026-10-23T21-46-25-868Z.png` | 5.492 (was 6.405) |
-| Graph | Graph, conversations, tools, inbox, index | no |  | none |  |
+| Graph | Graph, conversations, tools, inbox, index | no |  | `real/v2/graph-main6fc6d59-2026-10-23T22-02-01-898Z.png` (current, main 6fc6d59) | 0.800 raw (post e42ba90); pre 2.333. State: Graph nav aria-current=page, Work chip |
 | Conversations | Graph, conversations, tools, inbox, index | no |  | none |  |
-| AgentTools | Graph, conversations, tools, inbox, index | no |  | none |  |
-| Inbox | Graph, conversations, tools, inbox, index | no |  | none |  |
+| AgentTools | Graph, conversations, tools, inbox, index | no |  | `real/v2/agenttools-main6fc6d59-2026-10-23T22-02-06-269Z.png` (current, main 6fc6d59) | 2.049 raw (post e42ba90); pre 3.130. State: Agent tools nav aria-current=page, Work chip |
+| Inbox | Graph, conversations, tools, inbox, index | no |  | `real/v2/inbox-main6fc6d59-2026-10-23T22-01-57-669Z.png` (current, main 6fc6d59) | 0.688 raw (post e42ba90); pre 1.580. State: Inbox nav aria-current=page, Work chip |
 | Index | Graph, conversations, tools, inbox, index | no |  | none |  |
 | SetServices | Settings | no |  | none |  |
 | SetWorkspaces | Settings | no |  | none |  |
@@ -259,3 +261,148 @@ One row per board in `project/canvas.json` (178), plus the unlisted `NavExpanded
 - UserMenu, trigger "User settings", menu open. Saved, 2.136 raw.
 - All four are above the 1% bar. Not accepted. The live MoreMenu capture has a focus outline around the menu that the board does not; this is probably a capture-state difference and is not yet verified.
 - Not attempted in this batch (unverified): the other changed boards without a reference, including the Knowledge family states, the Sources states, the Context states, the Update dialogs, HelpCenter, About, and the Tooltip and Confirm states. Several need states that the demo build does not show.
+
+## Current changed set (post-Header49, against the e8f6 baseline)
+
+- Baseline: `composed/before/` (178 renders of the e8f6 sources, the composed-route baseline in the 2026-10-23 receipt). Candidate: `composed/r-post/` (renders of e42ba90 sources, 178 renders, 0 page errors).
+- Commands: `node harness/render-all.mjs <project dir> <out dir> <part> 4` for parts 0 to 3, run in parallel; then `python3 harness/compare-renders.py <before dir> <r-post dir>`. Output saved as `harness/changed-set-post-header49.txt`.
+- Compared: 175. Changed: 128. Unchanged: 47. Unverified: 3, with no baseline render: HeaderEnlarged, SearchMenu, SystemStatusWrapped.
+- Not in the 178 declared set: NavExpanded, ProposedThemeDefault, ProposedThemeOverride. They have baseline renders but are not counted.
+- Changed boards are listed with their share of pixels above the 24 channel threshold. Unchanged boards show exactly 0.
+
+Changed (128):
+- About 0.072%
+- AgentTools 2.366%
+- AgentToolsCopied 2.337%
+- AgentToolsCopyError 2.665%
+- AgentToolsEmpty 1.737%
+- AgentToolsError 2.017%
+- AgentToolsRetrieving 1.528%
+- AgentToolsWarning 2.722%
+- CommandPalette 3.042%
+- CommandPaletteEmpty 3.215%
+- CommandPaletteFiltered 3.215%
+- ConfirmAuthorize 0.072%
+- ConfirmToggle 0.072%
+- ContextSheet 1.186%
+- Conversations 2.348%
+- ConversationsEmpty 1.044%
+- ConversationsFallback 2.659%
+- Graph 2.770%
+- GraphFocused 2.834%
+- GraphLoadMore 3.109%
+- GraphLoading 0.496%
+- GraphLoadingMore 2.750%
+- GraphNoData 0.466%
+- GraphNoMatch 1.939%
+- GraphPinned 3.295%
+- GraphRetry 2.848%
+- GraphShowMore 3.123%
+- Header 0.222%
+- HeaderNarrow 0.062%
+- HeaderSearching 0.111%
+- HeaderTablet 0.079%
+- HeaderWrapped 0.049%
+- HelpCenter 0.072%
+- Inbox 1.468%
+- InboxAlerts 2.668%
+- InboxBusy 3.368%
+- InboxEmpty 1.079%
+- InboxJobLog 3.149%
+- InboxJobStates 3.503%
+- Index 2.450%
+- IndexStale 3.044%
+- KnowledgeAnswer 6.165%
+- KnowledgeAnswerDegraded 5.994%
+- KnowledgeAnswerExtractive 6.196%
+- KnowledgeAnswerMemories 5.716%
+- KnowledgeDocument 4.957%
+- KnowledgeDocumentMetadata 5.216%
+- KnowledgeDocumentOpening 3.442%
+- KnowledgeDocumentRelations 4.842%
+- KnowledgeDocumentSourceError 5.384%
+- KnowledgeDocumentTruncated 5.370%
+- KnowledgeEmpty 3.215%
+- KnowledgeEvidence 5.780%
+- KnowledgeEvidenceSourceError 5.812%
+- KnowledgeReflection 4.699%
+- KnowledgeSearching 1.186%
+- KnowledgeTimeline 4.245%
+- MobileSources 1.430%
+- MoreMenu 2.913%
+- Narrow800Answer 1.191%
+- SetAccess 3.271%
+- SetAdvanced 4.355%
+- SetAdvancedErrors 4.559%
+- SetAdvancedImport 4.546%
+- SetAdvancedResults 4.641%
+- SetAdvancedVaultRunning 4.408%
+- SetAdvancedVaultSelect 4.347%
+- SetAudit 2.273%
+- SetDirty 3.179%
+- SetEmbedding 4.272%
+- SetEmbeddingModels 4.396%
+- SetEmbeddingModelsError 4.567%
+- SetIngestion 3.457%
+- SetMemory 5.062%
+- SetMemoryBulk 5.065%
+- SetMemoryEdit 5.060%
+- SetMemoryEmpty 4.800%
+- SetMemoryError 5.064%
+- SetMemoryLoading 4.753%
+- SetMemoryNotice 5.081%
+- SetMemoryProvenance 5.060%
+- SetQuery 4.357%
+- SetQueryKey 4.533%
+- SetQueryRefreshing 4.344%
+- SetReadiness 3.544%
+- SetReadinessCancelled 3.700%
+- SetReadinessFailed 3.784%
+- SetReadinessScanning 3.551%
+- SetReadinessWarning 3.820%
+- SetRestarting 3.312%
+- SetSaveError 3.414%
+- SetSaved 3.207%
+- SetServices 4.243%
+- SetServicesNotInstalled 4.347%
+- SetServicesRecovery 4.412%
+- SetServicesRestarted 4.310%
+- SetServicesRestarting 4.300%
+- SetSetup 3.859%
+- SetSources 2.644%
+- SetSourcesAdvanced 3.836%
+- SetSourcesDiscord 3.234%
+- SetSourcesEmpty 2.277%
+- SetSourcesExternal 3.241%
+- SetSourcesJobRunning 3.683%
+- SetSourcesLegacy 3.429%
+- SetSourcesWorkspaceEmpty 2.285%
+- SetWorkspaces 3.655%
+- SetWorkspacesOverride 3.707%
+- SidebarCollapsed 4.999%
+- SourcesDocsFailed 1.208%
+- SourcesLoadMore 2.859%
+- SourcesLoadingMore 3.018%
+- SourcesPanel 1.186%
+- SourcesStatusStale 1.186%
+- SystemStatus 2.888%
+- SystemStatusAttention 2.499%
+- SystemStatusBusy 2.499%
+- SystemStatusDesktop 2.822%
+- SystemStatusSuccess 2.599%
+- Tooltips 3.074%
+- UpdateAvailable 0.072%
+- UpdateDialog 0.072%
+- UpdateDownloading 0.072%
+- UpdateFailed 0.072%
+- UpdateRestart 0.072%
+- UserMenu 3.214%
+- UserMenuDesktop 3.214%
+- WorkspaceMenu 3.037%
+
+Unchanged (47):
+AddSource, AddSourceBuzz, AddSourceConnect, ConfirmAction, ConfirmDiscard, ConfirmUpdate, ContextError, ContextLoading, ContextPanel, ConversationsSearching, ConversationsUnreachable, CrashApp, CrashRenderer, GraphUnavailable, InboxLoading, InboxUnavailable, IndexLoading, IndexUnavailable, InitialSync, InitialSyncPlan, InitialSyncReady, KnowledgeOffline, Main, MobileNav, PhoneAgentTools, PhoneAgentToolsEmpty, PhoneAnswer, PhoneConversations, PhoneDocument, PhoneGraph, PhoneGraphSelected, PhoneInbox, PhoneIndex, Rail, SetInstallDesktop, SetLoadError, SetLoading, SetSourcesAddProvider, SettingsNav, SettingsPhone, SourcesEmpty, SourcesLoading, SourcesStatusFailed, StatusBar, StatusBarOffline, SystemStatusOffline, Tablet768Answer
+
+Unverified (no baseline): HeaderEnlarged, SearchMenu, SystemStatusWrapped.
+
+Changed boards with a valid current capture: KnowledgeAnswer (3.851%), SidebarCollapsed (5.492%), SystemStatus (2.133%), MoreMenu (2.082%), WorkspaceMenu (2.366%), UserMenu (2.136%), AgentTools (2.049%), Inbox (0.688%), Graph (0.800%). Nine boards in total. Only Inbox and Graph are under 1% raw, on one capture each, and neither is accepted yet.

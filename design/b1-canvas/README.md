@@ -24,9 +24,11 @@ Lost or unverified (do not use):
 - The earlier KnowledgeAnswer figure of 4.8% and the SidebarCollapsed figures came from those lost files. They are historical and not reproducible.
 - Rail has no valid live reference. Its only measurement used `kn-answer-1440.png`, which is lost.
 
-Changed boards without a valid current capture: 49 of 51 (51 includes the unlisted NavExpanded). Visual acceptance for these is not claimed.
+Changed-board set (historical): "49 of 51 without a valid current capture" describes the pre-Header49 candidate and is superseded. The current changed set is in `BOARD-MATRIX.md`, under "Current changed set": 128 changed, 47 unchanged of 175 compared against the e8f6 baseline, and 3 unverified (HeaderEnlarged, SearchMenu, SystemStatusWrapped, which have no baseline render). Visual acceptance is not claimed for any board.
 
-Chrome finding (measured 2026-10-23, applied in the commit "design: apply the 49px header chrome to the B1 sources"):
+Current valid captures beyond the two above (main 6fc6d59, state-checked, unique names under `real/v2/`): SystemStatus 2.133%, MoreMenu 2.082% (live shows a focus outline the board lacks), WorkspaceMenu 2.366%, UserMenu 2.136%, AgentTools 2.049%, Inbox 0.688%, Graph 0.800%. All figures are raw full-frame on the committed sources at e42ba90 and are not accepted.
+
+Chrome finding (measured 2026-10-23, applied in e42ba90 "design: apply the 49px header chrome to the B1 sources"):
 - Against main 6fc6d59 the composed Header is 1px short. Main's header border sits at y=48 and the composed border at y=47. The 10-19 build also had the border at 47, so this is a real change on main, not a capture artifact.
 - Scratch test with Header height 49 (border at 48), rail and panel arithmetic moved to h-49 and h-77 (literal 851 and 823 in SidebarCollapsed), and ContextPanel header back to 48: KnowledgeAnswer 5.109% → 3.851% full frame, header 4.174% → 0.181%, context 6.228% → 6.197%. SidebarCollapsed 6.405% → 5.492% full frame, header 4.172% → 0.178%.
 - Patch: applied from `candidates/header-49-chrome.patch` (removed from the tree in the same commit). It touched four files: Header (height 49, preview 49), KnowledgeAnswer and SidebarCollapsed (rail and panel arithmetic), and ContextPanel (header 48). Decision: coordinator, under the design authority delegated by Andrew on 2026-10-23. The app is the source of truth: main measures the header at 49px.
