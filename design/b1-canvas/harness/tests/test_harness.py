@@ -484,6 +484,53 @@ class CompareTests(unittest.TestCase):
         self.assertIn('incomplete: 1', res.stdout)
         self.assertNotIn('Alpha\t', res.stdout.split('CHANGED\n')[1].split('UNCHANGED')[0])
 
+    @staticmethod
+    def edit_manifest(run_dir, change):
+        path = os.path.join(run_dir, 'manifest.json')
+        with open(path) as f:
+            m = json.load(f)
+        change(m)
+        with open(path, 'w') as f:
+            json.dump(m, f)
+
+    def test_v1_candidate_manifest_is_refused_even_with_legacy_flag(self):
+        base, cand = self.two_runs()
+        self.edit_manifest(cand, lambda m: m.update(tool='render_run/1'))
+        res = run_compare(base, cand)
+        self.assertEqual(res.returncode, 2, res.stdout)
+        self.assertIn("manifest tool is 'render_run/1'", res.stdout)
+        self.assertEqual(run_compare(base, cand, '--legacy-baseline').returncode, 2)
+
+    def test_candidate_manifest_without_version_is_refused(self):
+        base, cand = self.two_runs()
+        self.edit_manifest(cand, lambda m: m.pop('tool'))
+        res = run_compare(base, cand)
+        self.assertEqual(res.returncode, 2, res.stdout)
+        self.assertIn('manifest tool is None', res.stdout)
+
+    def test_current_manifest_without_incomplete_metadata_is_refused(self):
+        base, cand = self.two_runs()
+        self.edit_manifest(cand, lambda m: m.pop('incomplete'))
+        res = run_compare(base, cand)
+        self.assertEqual(res.returncode, 2, res.stdout)
+        self.assertIn('no incomplete-board metadata', res.stdout)
+
+    def test_v1_baseline_is_refused_unless_legacy_and_then_marked_unverified(self):
+        base, cand = self.two_runs()
+        self.edit_manifest(base, lambda m: (m.update(tool='render_run/1'), m.pop('incomplete')))
+        self.assertEqual(run_compare(base, cand).returncode, 2)
+        res = run_compare(base, cand, '--legacy-baseline')
+        self.assertEqual(res.returncode, 0, res.stdout + res.stderr)
+        self.assertIn("LEGACY manifest, tool 'render_run/1', inputs and completeness UNVERIFIED", res.stdout)
+
+    def test_baseline_manifest_without_version_is_refused_unless_legacy(self):
+        base, cand = self.two_runs()
+        self.edit_manifest(base, lambda m: m.pop('tool'))
+        self.assertEqual(run_compare(base, cand).returncode, 2)
+        res = run_compare(base, cand, '--legacy-baseline')
+        self.assertEqual(res.returncode, 0, res.stdout + res.stderr)
+        self.assertIn('completeness UNVERIFIED', res.stdout)
+
 
 if __name__ == '__main__':
     unittest.main()

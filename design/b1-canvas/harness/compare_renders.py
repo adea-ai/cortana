@@ -1,5 +1,8 @@
 # Strict comparison of two render runs of the same declared board set. Fail-closed:
 #   - a run without manifest.json is refused, unless it is the legacy baseline and --legacy-baseline is given
+#   - a manifest must be the current tool (render_run/2) and record its incomplete boards. An old or unversioned
+#     manifest is refused, unless it is the baseline and --legacy-baseline is given; then the baseline is marked
+#     LEGACY with completeness UNVERIFIED. A candidate is never legacy
 #   - any error report (_part-*.json with errors, _errors-*.json, _FAILED.json) fails the comparison
 #   - every declared board must exist on both sides; the only exception is an explicit --unverified-baseline list
 #     that names declared boards with no baseline render, and each named board must really be missing
@@ -29,6 +32,25 @@ THRESHOLD = 24
 
 class Refused(Exception):
     pass
+
+
+CURRENT_TOOL = 'render_run/2'
+
+
+def check_manifest(m, label, legacy_ok):
+    """Return 'current' or 'legacy'. Refuses any manifest that is not the current tool, unless legacy_ok.
+
+    A current manifest must record its incomplete boards. A legacy manifest (old tool version or none) can be
+    compared only with legacy_ok, and then its completeness is unverified.
+    """
+    tool = m.get('tool')
+    if tool != CURRENT_TOOL:
+        if legacy_ok:
+            return 'legacy'
+        raise Refused(f'{label}: manifest tool is {tool!r}, expected {CURRENT_TOOL!r}; old or unversioned manifests need --legacy-baseline and are not verified (candidates are never legacy)')
+    if not isinstance(m.get('incomplete'), dict):
+        raise Refused(f'{label}: manifest records no incomplete-board metadata; completeness cannot be verified')
+    return 'current'
 
 
 def sha256_file(path):
@@ -107,6 +129,8 @@ def main():
     try:
         cand_m = load_manifest(args.candidate, 'candidate', legacy_ok=False)
         base_m = load_manifest(args.baseline, 'baseline', legacy_ok=args.legacy_baseline)
+        check_manifest(cand_m, 'candidate', legacy_ok=False)
+        base_status = check_manifest(base_m, 'baseline', legacy_ok=args.legacy_baseline) if base_m is not None else 'none'
         check_no_error_reports(args.candidate, 'candidate')
         check_no_error_reports(args.baseline, 'baseline')
 
@@ -128,8 +152,9 @@ def main():
         if base_inputs_known and input_key(base_m) != input_key(cand_m) and not args.allow_input_mismatch:
             raise Refused(f'render inputs differ: baseline {input_key(base_m)} vs candidate {input_key(cand_m)}')
 
-        cand_inc = cand_m.get('incomplete', {})
-        base_inc = base_m.get('incomplete', {}) if base_m is not None else {}
+        cand_inc = cand_m['incomplete']
+        # A legacy baseline has no completeness record, so its boards are not known to be complete.
+        base_inc = base_m['incomplete'] if base_status == 'current' else {}
         incomplete_any = sorted(set(cand_inc) | set(base_inc))
         if incomplete_any and not args.allow_incomplete:
             raise Refused(f'incomplete boards (refused without --allow-incomplete): {incomplete_any}')
@@ -164,7 +189,13 @@ def main():
         print(f'compare_renders: REFUSED: {e}')
         return 2
 
-    print(f'baseline: {args.baseline}  ({"manifest " + base_m["runId"] + " @ " + base_m["source"]["commit"][:12] if base_m else "LEGACY, unmanifested, inputs unverified"})')
+    if base_m is None:
+        base_desc = 'LEGACY, unmanifested, inputs and completeness UNVERIFIED'
+    elif base_status == 'legacy':
+        base_desc = f'LEGACY manifest, tool {base_m.get("tool")!r}, inputs and completeness UNVERIFIED'
+    else:
+        base_desc = f'manifest {base_m["runId"]} @ {base_m["source"]["commit"][:12]}'
+    print(f'baseline: {args.baseline}  ({base_desc})')
     print(f'candidate: {args.candidate}  (manifest {cand_m["runId"]} @ {cand_m["source"]["commit"][:12]})')
     print(f'declared: {len(declared)}  compared: {len(changed) + len(unchanged)}  changed: {len(changed)}  unchanged: {len(unchanged)}  incomplete: {len(incomplete_rows)}  unverified (no baseline): {sorted(allow_missing)}')
     if extra_base:
