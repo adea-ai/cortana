@@ -223,6 +223,15 @@ test('sourceJobAttention keeps duplicate source names isolated by workspace', ()
     'personal-failure',
   ])
 })
+test('sourceJobAttention ignores cancelled runs, which are a user action rather than a failure', () => {
+  expect(sourceJobAttention([jobOf('cancelled', 'cancelled', { source: 'notes' })])).toEqual([])
+  expect(
+    sourceJobAttention([
+      jobOf('latest-cancel', 'cancelled', { source: 'notes' }),
+      jobOf('older-failure', 'failed', { source: 'notes' }),
+    ])
+  ).toEqual([])
+})
 test('sourceJobAttention suppresses an older failure while a newer retry is active', () => {
   const activeRetry = jobOf('new-retry', 'running', {
     source: 'notes',

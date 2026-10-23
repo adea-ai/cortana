@@ -90,14 +90,17 @@ export function recentCompletedJobs(jobs: DesktopSourceJob[]): DesktopSourceJob[
   return jobs.filter((job) => !isActiveJob(job))
 }
 
-/** Terminal source failures whose latest result for that workspace/source needs attention. */
+/**
+ * Terminal source failures whose latest result for that workspace/source needs attention.
+ * A cancelled run is a user action, not a failure, so it never needs attention.
+ */
 export function sourceJobAttention(jobs: DesktopSourceJob[]): DesktopSourceJob[] {
   const seenSources = new Set<string>()
   return jobs.filter((job) => {
     const scope = `${job.project}\u0000${job.source}`
     if (seenSources.has(scope)) return false
     seenSources.add(scope)
-    return !isActiveJob(job) && (job.status === 'failed' || job.status === 'cancelled')
+    return !isActiveJob(job) && job.status === 'failed'
   })
 }
 
