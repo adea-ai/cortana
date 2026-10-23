@@ -80,7 +80,7 @@ body{margin:0}
   </div>
 </header>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"workspace":{"editor":"enum","options":["Work","Personal"],"default":"Work"},"location":{"editor":null,"default":"Knowledge"},"searching":{"editor":"boolean","default":false},"sidebar":{"editor":"enum","options":["open","closed"],"default":"open"},"width":{"editor":null,"default":1440},"$preview":{"width":1440,"height":48}}'>
+<script type="text/x-dc" data-dc-script data-props='{"workspace":{"editor":"enum","options":["Work","Personal"],"default":"Work"},"location":{"editor":null,"default":"Knowledge"},"searching":{"editor":"boolean","default":false},"sidebar":{"editor":"enum","options":["open","closed"],"default":"open"},"width":{"editor":null,"default":1440},"$preview":{"width":1440,"height":49}}'>
 class Component extends DCLogic {
   renderVals() {
     const workspace = this.props.workspace ?? 'Work';
@@ -105,7 +105,7 @@ class Component extends DCLogic {
     const closed = desktop && hasSidebar && sidebarProp === 'closed';
     return {
       width,
-      height: 48,
+      height: 49,
       leadWidth: open ? '314px' : 'auto',
       showHistory: desktop,
       showToggle: !desktop || hasSidebar,

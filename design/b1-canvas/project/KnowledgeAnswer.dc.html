@@ -107,7 +107,7 @@ class Component extends DCLogic {
     const planOpen = this.state.planOpen;
     const h = Number(this.props.height ?? 900);
     return {
-      planOpen, h, railH: h - 48, panelH: h - 76,
+      planOpen, h, railH: h - 49, panelH: h - 77,
       planOpenAttr: planOpen ? 'true' : 'false',
       // The app's chevron does not rotate when expanded (group/accordion class missing), so it stays down.
       chevron: 'none',

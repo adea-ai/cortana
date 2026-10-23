@@ -26,10 +26,11 @@ Lost or unverified (do not use):
 
 Changed boards without a valid current capture: 49 of 51 (51 includes the unlisted NavExpanded). Visual acceptance for these is not claimed.
 
-Chrome finding (measured 2026-10-23, not applied):
+Chrome finding (measured 2026-10-23, applied in the commit "design: apply the 49px header chrome to the B1 sources"):
 - Against main 6fc6d59 the composed Header is 1px short. Main's header border sits at y=48 and the composed border at y=47. The 10-19 build also had the border at 47, so this is a real change on main, not a capture artifact.
 - Scratch test with Header height 49 (border at 48), rail and panel arithmetic moved to h-49 and h-77 (literal 851 and 823 in SidebarCollapsed), and ContextPanel header back to 48: KnowledgeAnswer 5.109% → 3.851% full frame, header 4.174% → 0.181%, context 6.228% → 6.197%. SidebarCollapsed 6.405% → 5.492% full frame, header 4.172% → 0.178%.
-- Patch: `candidates/header-49-chrome.patch`. It applies cleanly to the committed `project/` (checked on a copy). It is not applied, because it changes the Header for 98 boards and the layout arithmetic in 79 sites (74 literal 852/824 heights, 5 `h - 48`/`h - 76` expressions), and most of those boards have no current capture.
+- Patch: applied from `candidates/header-49-chrome.patch` (removed from the tree in the same commit). It touched four files: Header (height 49, preview 49), KnowledgeAnswer and SidebarCollapsed (rail and panel arithmetic), and ContextPanel (header 48). Decision: coordinator, under the design authority delegated by Andrew on 2026-10-23. The app is the source of truth: main measures the header at 49px.
+- Scope of the change: Header is shared by 98 boards, and 79 layout sites assume a 48px header (74 literal 852/824 heights, 5 `h - 48`/`h - 76` expressions). Only KnowledgeAnswer and SidebarCollapsed were given the arithmetic in this commit, so the other boards need the same check. Most of them have no current capture, so they stay unverified. Applying the change does not accept them.
 - Remaining sidebar difference (KnowledgeAnswer 6.8%, SidebarCollapsed 7.3%) looks like text rasterization. A detail-row margin test moved it by 0.04% and was not adopted. The Slack source block sits 2px low in the composed board; not fixed.
 - Harness masks: the sidebar hint shows "Ctrl K" in the live capture and "⌘ K" in the board. The workspace chip shows a text avatar in the live capture and an icon in the board.
 
