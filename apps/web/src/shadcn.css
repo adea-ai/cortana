@@ -175,7 +175,7 @@ body,
   margin: 0 0 26px;
 }
 
-.answer-plan li {
+.answer-plan-query {
   margin: 6px 0;
 }
 
@@ -200,7 +200,7 @@ body,
   pointer-events: none;
 }
 
-.graph-links line {
+.graph-link {
   stroke: var(--border);
   stroke-linecap: round;
   stroke-width: 0.7;
@@ -235,7 +235,7 @@ body,
   flex-wrap: wrap;
 }
 
-.document-copy-actions [role='status'] {
+.document-copy-status {
   flex-basis: 100%;
 }
 
@@ -480,6 +480,16 @@ body,
 .source-enable {
   min-width: 0;
   gap: 10px;
+}
+
+/* The source subtitle is one line; the full value is in its title attribute. */
+.source-settings-subtitle {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .source-enable > span:not([role='img']) {
