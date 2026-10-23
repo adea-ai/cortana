@@ -2144,7 +2144,7 @@ function ReadinessSection(incoming: {
               )}
               <span class="installer-job-text">
                 <strong>{props.job.summary}</strong>
-                <small>Status: {props.job.status}</small>
+                <small class="installer-job-status">Status: {props.job.status}</small>
               </span>
               {props.job!.status === 'running' && (
                 <ActionButton
