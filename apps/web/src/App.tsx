@@ -2717,7 +2717,7 @@ function IngestionIndicator(incoming: { status: BrainStatus | null }) {
     running()
       ? `${running()} running`
       : failed()
-        ? `${failed()} need attention`
+        ? `${failed()} ${failed() === 1 ? 'needs' : 'need'} attention`
         : props.status?.ingestion.scheduled
           ? 'scheduled'
           : 'paused · manual'
