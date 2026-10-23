@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Knowledge · Answer (extractive)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); --primary: oklch(0.7323 0.1668 301.69); width: 1440px; height: {{h}}px; display: flex; flex-direction: column; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 1.55; text-rendering: optimizeLegibility; overflow: hidden;">
+  <dc-import name="Header" location="Knowledge" workspace="Work" hint-size="1440px,48px"></dc-import>
+  <div style="flex-grow: 1; min-height: 0; display: flex;">
+    <dc-import name="Rail" active="knowledge" height="{{railH}}" hint-size="56px,1185px"></dc-import>
+    <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column;">
+      <div style="flex-grow: 1; min-height: 0; display: flex;">
+        <dc-import name="SourcesPanel" workspace="Work" selected="-1" height="{{panelH}}" hint-size="270px,1157px"></dc-import>
+
+        <main id="main-content" style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; background: var(--background); color: var(--foreground); overflow: hidden;">
+          <div role="tablist" aria-label="Result views" style="margin-top: 16px; height: 32px; box-sizing: border-box; padding: 0; flex-shrink: 0; display: flex; align-items: center; justify-content: flex-start; gap: 4px; border-bottom: 1px solid var(--border);">
+            <a role="tab" aria-selected="true" href="KnowledgeAnswer.dc.html" style="height: 32px; box-sizing: border-box; padding: 0 8px 8px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid var(--primary); color: var(--foreground); font-size: 14px; font-weight: 500; line-height: 21.7px; white-space: nowrap; text-decoration: none;">
+              <img src="/_blob/a12ad60e44575d56970c6b8a31e281b4" alt="" style="width: 16px; height: 16px;">
+              Answer
+              
+            </a>
+            <a role="tab" aria-selected="false" href="KnowledgeDocument.dc.html" style="height: 32px; box-sizing: border-box; padding: 0 8px 8px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; color: var(--foreground); font-size: 14px; font-weight: 500; line-height: 21.7px; white-space: nowrap; text-decoration: none;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v16"></path><path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"></path></svg>
+              Document
+              
+            </a>
+            <a role="tab" aria-selected="false" href="KnowledgeEvidence.dc.html" style="height: 32px; box-sizing: border-box; padding: 0 8px 8px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; color: var(--foreground); font-size: 14px; font-weight: 500; line-height: 21.7px; white-space: nowrap; text-decoration: none;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+              Evidence
+              <span style="height: 20px; box-sizing: border-box; padding: 0 8px; border: 1px solid transparent; border-radius: 8px; background: var(--card); color: var(--foreground); font-size: 12px; font-weight: 500; line-height: 18px; display: inline-flex; align-items: center; justify-content: center;">4</span>
+            </a>
+            <a role="tab" aria-selected="false" href="KnowledgeTimeline.dc.html" style="height: 32px; box-sizing: border-box; padding: 0 8px 8px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; color: var(--foreground); font-size: 14px; font-weight: 500; line-height: 21.7px; white-space: nowrap; text-decoration: none;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l4 2"></path></svg>
+              Timeline
+              
+            </a>
+          </div>
+          <article style="max-width: 820px; box-sizing: border-box; padding: 56px 55px 80px 54px; display: flex; flex-direction: column;">
+            <span style="display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 500; line-height: 15.95px; letter-spacing: 0.275px; text-transform: uppercase; color: var(--muted-foreground);">
+              <img src="/_blob/a12ad60e44575d56970c6b8a31e281b4" alt="" style="width: 14px; height: 14px;">
+              Evidence brief
+            </span>
+            <h1 style="margin: 17px 0 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.6px;">How do releases work?</h1>
+            <div style="margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px;">
+              <span style="height: 20px; box-sizing: border-box; padding: 0 8px; border: 1px solid transparent; border-radius: 8px; background: var(--card); color: var(--foreground); font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center;">extractive</span>
+              <span style="height: 20px; box-sizing: border-box; padding: 0 8px; border: 1px solid transparent; border-radius: 8px; background: var(--card); color: var(--foreground); font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center;">hybrid retrieval</span>
+              <span style="height: 20px; box-sizing: border-box; padding: 0 8px; border: 1px solid transparent; border-radius: 8px; background: var(--card); color: var(--foreground); font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center;">184 ms</span>
+              <span style="height: 20px; box-sizing: border-box; padding: 0 8px; border: 1px solid transparent; border-radius: 8px; background: var(--card); color: var(--foreground); font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center;">1 retrieval</span>
+            </div>
+            <div style="margin-top: 24px; padding: 22px 24px; border-left: 3px solid var(--primary); background: var(--card); display: flex; flex-direction: column; gap: 15px;">
+              <p style="margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 21.7px;">Our releases follow trunk-based development with short-lived feature branches and automated delivery from main. Plan against the roadmap, build behind feature flags, validate the pull request, then cut and monitor the release. Roll back to the previous stable tag if health checks regress. [1]</p>
+            </div>
+            <p style="margin: 30px 0 0; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; color: var(--muted-foreground); font-size: 14px; line-height: 21.7px;">4 cited passages</p>
+            <div style="margin-top: 30px; display: flex; flex-direction: column; gap: 16px;">
+              <sc-for list="{{passages}}" as="p" hint-placeholder-count="4">
+                <div style="padding: 16px 0; border: 1px solid var(--border); border-radius: 14px; background: var(--card);">
+                  <div style="padding: 0 16px;">
+                    <h2 style="margin: 0 0 12px; display: flex;">
+                      <a href="KnowledgeEvidence.dc.html" title="Inspect cited passage {{p.n}}: {{p.title}}" style="width: 100%; min-width: 0; height: 32px; box-sizing: border-box; padding: 0 8px; border-radius: 8px; display: flex; align-items: center; gap: 10px; color: var(--foreground); font-size: 14px; font-weight: 400; line-height: 21.7px; text-align: left; text-decoration: none;"><span style="flex-shrink: 0; display: flex; align-items: center; justify-content: center;">[{{p.n}}]</span><span style="flex: 1 1 0%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{p.title}}</span></a>
+                    </h2>
+                    <p style="margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 21.7px;">{{p.body}}</p>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <p style="margin: 16px 0 0; padding: 12px 14px; border-left: 2px solid var(--primary); background: var(--card); color: var(--muted-foreground); font-size: 12px; line-height: 18px;">Extractive mode keeps citations stable when no synthesis model is configured.</p>
+          </article>
+        </main>
+
+        <div role="region" aria-label="Agent context" style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); --primary: oklch(0.7323 0.1668 301.69); --primary-foreground: oklch(0.1756 0.0063 300.91); width: 350px; height: 1157px; box-sizing: border-box; flex-shrink: 0; display: flex; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 1.55; overflow: hidden;">
+        
+          <div role="separator" aria-label="Resize context panel" style="width: 1px; flex-shrink: 0; align-self: stretch; background: var(--border);"></div>
+        
+          <section data-slot="panel" style="flex-grow: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--background); overflow: hidden;">
+        
+            <header style="height: 48px; box-sizing: border-box; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-bottom: 1px solid var(--border);">
+              <h2 style="margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 21.7px; font-weight: 600; letter-spacing: -0.35px;">Agent context</h2>
+              
+            </header>
+        
+            <div data-slot="panel-body" style="flex-grow: 1; min-height: 0; box-sizing: border-box; padding: 12px; display: flex; flex-direction: column; gap: 16px; overflow: hidden;">
+        
+              <div style="flex-shrink: 0; box-sizing: border-box; border: 1px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: 0 1px 2px 0 oklch(0 0 0 / 0.2); padding: 12px 0; display: flex; flex-direction: column;">
+                <div style="padding: 0 12px; display: flex; flex-direction: column; gap: 4px;">
+                  <span style="font-size: 11px; font-weight: 500; line-height: 15.95px; letter-spacing: 0.275px; text-transform: uppercase; color: var(--muted-foreground);">Query</span>
+                  <p style="margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 21.7px;">How do releases work?</p>
+                </div>
+              </div>
+        
+              <section aria-label="Retrieval diagnostics" style="flex-shrink: 0; display: flex; flex-direction: column; gap: 8px;">
+                  <h3 style="margin: 0; font-size: 14px; font-weight: 600; line-height: 21.7px;">Retrieval diagnostics</h3>
+                  <dl style="margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; align-items: baseline;">
+                    <dt style="color: var(--muted-foreground); white-space: nowrap;">Mode</dt><dd style="margin: 0;">extractive</dd>
+                    <dt style="color: var(--muted-foreground); white-space: nowrap;">Latency</dt><dd style="margin: 0;">184 ms</dd>
+                    <dt style="color: var(--muted-foreground); white-space: nowrap;">Planned queries</dt><dd style="margin: 0;">1</dd>
+                    <dt style="color: var(--muted-foreground); white-space: nowrap;">Evidence</dt><dd style="margin: 0;">4</dd>
+                  </dl>
+                  <ol style="margin: 0; padding: 0 0 0 20px; list-style: decimal; color: var(--muted-foreground);">
+                    <li><span style="font-size: 12px; line-height: 18px;">How do releases work?</span></li>
+                  </ol>
+                </section>
+        
+              <div role="separator" style="height: 1px; flex-shrink: 0; background: var(--border);"></div>
+        
+              <section aria-label="Retrieved evidence" style="flex-shrink: 0; display: flex; flex-direction: column; gap: 4px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                  <h3 style="margin: 0; font-size: 14px; font-weight: 600; line-height: 21.7px;">Retrieved evidence</h3>
+                  <span style="height: 20px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--border); border-radius: 8px; font-size: 12px; font-weight: 500; line-height: 18px; display: flex; align-items: center; justify-content: center; white-space: nowrap;">4</span>
+                </div>
+                <a href="KnowledgeEvidence.dc.html" aria-current="true" title="Inspect evidence: How do releases work?" style="height: 32px; flex-shrink: 0; box-sizing: border-box; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 8px; background: oklch(0.7323 0.1668 301.69 / 0.16); color: var(--foreground); text-decoration: none;">
+                      <span style="flex-shrink: 0;">1</span>
+                      <span style="flex: 1 1 0%; min-width: 0; display: flex; align-items: center; gap: 10px;">
+                        <span style="flex: 1 1 0%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">How do releases work?</span>
+                        <time style="flex-shrink: 0; color: oklch(0.942 0.0054 297.72);">7/28/2026</time>
+                      </span>
+                    </a>
+                <a href="KnowledgeEvidence.dc.html" aria-current="false" title="Inspect evidence: Deployment playbook" style="height: 32px; flex-shrink: 0; box-sizing: border-box; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 8px; background: transparent; color: var(--foreground); text-decoration: none;">
+                      <span style="flex-shrink: 0;">2</span>
+                      <span style="flex: 1 1 0%; min-width: 0; display: flex; align-items: center; gap: 10px;">
+                        <span style="flex: 1 1 0%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Deployment playbook</span>
+                        <time style="flex-shrink: 0; color: oklch(0.6967 0.0057 298.74);">7/24/2026</time>
+                      </span>
+                    </a>
+                <a href="KnowledgeEvidence.dc.html" aria-current="false" title="Inspect evidence: Slack: #releases — cadence" style="height: 32px; flex-shrink: 0; box-sizing: border-box; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 8px; background: transparent; color: var(--foreground); text-decoration: none;">
+                      <span style="flex-shrink: 0;">3</span>
+                      <span style="flex: 1 1 0%; min-width: 0; display: flex; align-items: center; gap: 10px;">
+                        <span style="flex: 1 1 0%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Slack: #releases — cadence</span>
+                        <time style="flex-shrink: 0; color: oklch(0.6967 0.0057 298.74);">7/21/2026</time>
+                      </span>
+                    </a>
+                <a href="KnowledgeEvidence.dc.html" aria-current="false" title="Inspect evidence: Incident response playbook" style="height: 32px; flex-shrink: 0; box-sizing: border-box; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 8px; background: transparent; color: var(--foreground); text-decoration: none;">
+                      <span style="flex-shrink: 0;">4</span>
+                      <span style="flex: 1 1 0%; min-width: 0; display: flex; align-items: center; gap: 10px;">
+                        <span style="flex: 1 1 0%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Incident response playbook</span>
+                        <time style="flex-shrink: 0; color: oklch(0.6967 0.0057 298.74);">7/13/2026</time>
+                      </span>
+                    </a>
+              </section>
+        
+              <div role="separator" style="height: 1px; flex-shrink: 0; background: var(--border);"></div>
+        
+              <section aria-label="Embedding" style="flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; word-break: break-all;">
+                <h3 style="margin: 0; font-size: 14px; font-weight: 600; line-height: 21.7px;">Embedding</h3>
+                <p style="margin: 0; font-size: 12px; line-height: 18px; color: var(--muted-foreground);">openai-compatible:Qwen/Qwen3-Embedding-0.6B:1024</p>
+                <p style="margin: 0; font-size: 12px; line-height: 18px; color: var(--muted-foreground);">311 context tokens · 10,642 cache hits</p>
+              </section>
+        
+              <div role="separator" style="height: 1px; flex-shrink: 0; background: var(--border);"></div>
+        
+              <section aria-label="Agent integration bundle" style="flex-shrink: 0; display: flex; flex-direction: column; gap: 8px;">
+                <h3 style="margin: 0; font-size: 14px; font-weight: 600; line-height: 21.7px;">Agent integration bundle</h3>
+                <p style="margin: 0; font-size: 12px; line-height: 18px; color: var(--muted-foreground);">Build the exact bounded context returned by the HTTP and MCP query layer for this workspace scope.</p>
+                <button type="button" title="Retrieve a bounded workspace context bundle for agent integrations." style="width: 100%; height: 28px; flex-shrink: 0; box-sizing: border-box; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 6px; background: transparent; color: var(--foreground); font: inherit; font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap; cursor: pointer;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg>
+                  Build MCP-equivalent context
+                </button>
+                
+              </section>
+            </div>
+        
+            <footer style="flex-shrink: 0; box-sizing: border-box; display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--border);">
+              <button type="button" aria-label="Copy agent context" title="Copy agent context" style="width: 100%; height: 28px; box-sizing: border-box; padding: 0 10px; border: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap; cursor: pointer;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+                Copy preview context
+              </button>
+            </footer>
+          </section>
+        </div>
+      </div>
+      <dc-import name="StatusBar" hint-size="1384px,28px"></dc-import>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"height":{"editor":null,"default":1233},"$preview":{"width":1440,"height":1233}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const h = Number(this.props.height ?? 1233);
+    return {
+      h, railH: h - 48, panelH: h - 76,
+      passages: [
+        { n: 1, title: 'How do releases work?', body: 'Our releases follow trunk-based development with short-lived feature branches and automated delivery from main. Plan against the roadmap, build behind feature flags, validate the pull request, then cut and monitor the release. Roll back to the previous stable tag if health checks regress.' },
+        { n: 2, title: 'Deployment playbook', body: 'Merge into main only after unit, integration, end-to-end, and security checks pass. Observe the release before closing it.' },
+        { n: 3, title: 'Slack: #releases — cadence', body: 'Ada: Minor releases ship weekly. Major releases remain monthly unless the roadmap marks an exception. Sam: Keep the rollback owner in the release checklist.' },
+        { n: 4, title: 'Incident response playbook', body: 'When a release causes an incident, halt promotion, assign an incident lead, roll back, and preserve the evidence needed for the postmortem.' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

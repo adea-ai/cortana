@@ -1,0 +1,1769 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-06T18:40:00Z"
+  },
+  "title": "Cortana App",
+  "launch": {
+    "view": "canvas",
+    "page": "map"
+  },
+  "pages": [
+    {
+      "id": "map",
+      "name": "App map"
+    },
+    {
+      "id": "shell",
+      "name": "Shell parts"
+    },
+    {
+      "id": "knowledge",
+      "name": "Knowledge"
+    },
+    {
+      "id": "views",
+      "name": "Graph, conversations, tools, inbox, index"
+    },
+    {
+      "id": "settings",
+      "name": "Settings"
+    },
+    {
+      "id": "overlays",
+      "name": "Menus and dialogs"
+    },
+    {
+      "id": "responsive",
+      "name": "Narrow windows"
+    }
+  ],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 3796,
+      "title": "Cortana app map: every surface and its board",
+      "page": "map",
+      "is_interactive": true
+    },
+    "Header.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 48,
+      "title": "Top bar",
+      "page": "shell",
+      "is_interactive": true
+    },
+    "StatusBar.dc.html": {
+      "x": 0,
+      "y": 168,
+      "w": 1384,
+      "h": 28,
+      "title": "Status bar",
+      "page": "shell"
+    },
+    "Rail.dc.html": {
+      "x": 0,
+      "y": 316,
+      "w": 56,
+      "h": 852,
+      "title": "Rail",
+      "page": "shell",
+      "is_interactive": true
+    },
+    "SourcesPanel.dc.html": {
+      "x": 136,
+      "y": 316,
+      "w": 270,
+      "h": 824,
+      "title": "Sources panel",
+      "page": "shell",
+      "is_interactive": true
+    },
+    "ContextPanel.dc.html": {
+      "x": 486,
+      "y": 316,
+      "w": 350,
+      "h": 824,
+      "title": "Agent context panel",
+      "page": "shell"
+    },
+    "SettingsNav.dc.html": {
+      "x": 916,
+      "y": 316,
+      "w": 256,
+      "h": 783,
+      "title": "Settings section nav",
+      "page": "shell",
+      "is_interactive": true
+    },
+    "KnowledgeAnswer.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Knowledge · Answer (evidence brief)",
+      "page": "knowledge",
+      "is_interactive": true
+    },
+    "KnowledgeDocument.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Knowledge · Document",
+      "page": "knowledge",
+      "is_interactive": true
+    },
+    "KnowledgeEvidence.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Knowledge · Evidence",
+      "page": "knowledge",
+      "is_interactive": true
+    },
+    "KnowledgeTimeline.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Knowledge · Timeline",
+      "page": "knowledge",
+      "is_interactive": true
+    },
+    "KnowledgeEmpty.dc.html": {
+      "x": 1520,
+      "y": 1020,
+      "w": 1440,
+      "h": 900,
+      "title": "Knowledge · Choose a document (no search yet)",
+      "page": "knowledge",
+      "is_interactive": true
+    },
+    "SidebarCollapsed.dc.html": {
+      "x": 3040,
+      "y": 1020,
+      "w": 1440,
+      "h": 900,
+      "title": "Knowledge · Sources sidebar collapsed",
+      "page": "knowledge",
+      "is_interactive": true
+    },
+    "Graph.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Graph",
+      "page": "views",
+      "is_interactive": true
+    },
+    "Conversations.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Conversations",
+      "page": "views",
+      "is_interactive": true
+    },
+    "AgentTools.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Agent tools · Context retrieved",
+      "page": "views",
+      "is_interactive": true
+    },
+    "Inbox.dc.html": {
+      "x": 0,
+      "y": 1020,
+      "w": 1440,
+      "h": 900,
+      "title": "Inbox",
+      "page": "views",
+      "is_interactive": true
+    },
+    "Index.dc.html": {
+      "x": 1520,
+      "y": 1020,
+      "w": 1440,
+      "h": 900,
+      "title": "Index",
+      "page": "views",
+      "is_interactive": true
+    },
+    "SetServices.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1426,
+      "title": "Settings · Services",
+      "page": "settings",
+      "is_interactive": true
+    },
+    "SetWorkspaces.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Settings · Workspaces",
+      "page": "settings",
+      "is_interactive": true
+    },
+    "SetSources.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Settings · Sources",
+      "page": "settings",
+      "is_interactive": true
+    },
+    "SetReadiness.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 990,
+      "title": "Settings · Readiness",
+      "page": "settings",
+      "is_interactive": true
+    },
+    "SetAccess.dc.html": {
+      "x": 0,
+      "y": 1640,
+      "w": 1440,
+      "h": 900,
+      "title": "Settings · Access",
+      "page": "settings",
+      "is_interactive": true
+    },
+    "SetAudit.dc.html": {
+      "x": 1520,
+      "y": 1640,
+      "w": 1440,
+      "h": 1067,
+      "title": "Settings · Audit",
+      "page": "settings",
+      "is_interactive": true
+    },
+    "SetEmbedding.dc.html": {
+      "x": 3040,
+      "y": 1640,
+      "w": 1440,
+      "h": 930,
+      "title": "Settings · Embedding",
+      "page": "settings"
+    },
+    "SetQuery.dc.html": {
+      "x": 4560,
+      "y": 1640,
+      "w": 1440,
+      "h": 1149,
+      "title": "Settings · Query",
+      "page": "settings"
+    },
+    "SetIngestion.dc.html": {
+      "x": 0,
+      "y": 3034,
+      "w": 1440,
+      "h": 900,
+      "title": "Settings · Ingestion",
+      "page": "settings"
+    },
+    "SetAdvanced.dc.html": {
+      "x": 1520,
+      "y": 3034,
+      "w": 1440,
+      "h": 1021,
+      "title": "Settings · Advanced",
+      "page": "settings"
+    },
+    "SetMemory.dc.html": {
+      "x": 3040,
+      "y": 3034,
+      "w": 1440,
+      "h": 1692,
+      "title": "Settings · Memory",
+      "page": "settings"
+    },
+    "WorkspaceMenu.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Workspace switcher",
+      "page": "overlays",
+      "is_interactive": true
+    },
+    "MoreMenu.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Workspace actions menu",
+      "page": "overlays",
+      "is_interactive": true
+    },
+    "SystemStatus.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "System status popover",
+      "page": "overlays",
+      "is_interactive": true
+    },
+    "UserMenu.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "User settings menu",
+      "page": "overlays",
+      "is_interactive": true
+    },
+    "CommandPalette.dc.html": {
+      "x": 0,
+      "y": 1020,
+      "w": 1440,
+      "h": 900,
+      "title": "Command palette (Ctrl P)",
+      "page": "overlays",
+      "is_interactive": true
+    },
+    "HelpCenter.dc.html": {
+      "x": 1520,
+      "y": 1020,
+      "w": 1440,
+      "h": 900,
+      "title": "Help Center",
+      "page": "overlays",
+      "is_interactive": true
+    },
+    "About.dc.html": {
+      "x": 3040,
+      "y": 1020,
+      "w": 1440,
+      "h": 900,
+      "title": "About Cortana",
+      "page": "overlays",
+      "is_interactive": true
+    },
+    "AddSource.dc.html": {
+      "x": 4560,
+      "y": 1020,
+      "w": 1440,
+      "h": 900,
+      "title": "Add source · Choose a source type",
+      "page": "overlays"
+    },
+    "KnowledgeOffline.dc.html": {
+      "x": 4560,
+      "y": 1020,
+      "w": 1440,
+      "h": 900,
+      "title": "Knowledge · API offline",
+      "page": "knowledge",
+      "is_interactive": true
+    },
+    "AgentToolsEmpty.dc.html": {
+      "x": 3040,
+      "y": 1020,
+      "w": 1440,
+      "h": 900,
+      "title": "Agent tools · No context yet",
+      "page": "views",
+      "is_interactive": true
+    },
+    "SetSetup.dc.html": {
+      "x": 4560,
+      "y": 3034,
+      "w": 1440,
+      "h": 1043,
+      "title": "Settings · Guided setup",
+      "page": "settings",
+      "is_interactive": true
+    },
+    "SetInstallDesktop.dc.html": {
+      "x": 0,
+      "y": 4997,
+      "w": 1440,
+      "h": 900,
+      "title": "Settings · Web build (install desktop)",
+      "page": "settings",
+      "is_interactive": true
+    },
+    "InitialSync.dc.html": {
+      "x": 0,
+      "y": 2040,
+      "w": 1440,
+      "h": 900,
+      "title": "Initial sync",
+      "page": "overlays"
+    },
+    "ConfirmAction.dc.html": {
+      "x": 1520,
+      "y": 2040,
+      "w": 1440,
+      "h": 900,
+      "title": "Confirm this action",
+      "page": "overlays",
+      "is_interactive": true
+    },
+    "UpdateDialog.dc.html": {
+      "x": 3040,
+      "y": 2040,
+      "w": 1440,
+      "h": 900,
+      "title": "Update dialog (desktop)",
+      "page": "overlays",
+      "is_interactive": true
+    },
+    "ContextSheet.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 800,
+      "title": "Agent context as a sheet (1280 wide)",
+      "page": "responsive",
+      "is_interactive": true
+    },
+    "MobileNav.dc.html": {
+      "x": 1360,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Phone · navigation sheet",
+      "page": "responsive",
+      "is_interactive": true
+    },
+    "MobileSources.dc.html": {
+      "x": 1830,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Phone · sources sheet",
+      "page": "responsive",
+      "is_interactive": true
+    },
+    "SettingsPhone.dc.html": {
+      "x": 2300,
+      "y": 0,
+      "w": 390,
+      "h": 1185,
+      "title": "Phone · Settings with section tab strip",
+      "page": "responsive"
+    },
+    "KnowledgeReflection.dc.html": {
+      "x": 0,
+      "y": 2040,
+      "w": 1440,
+      "h": 1010,
+      "title": "Knowledge · Reflection",
+      "page": "knowledge",
+      "is_interactive": true
+    },
+    "SourcesStatusFailed.dc.html": {
+      "x": 0,
+      "y": 1288,
+      "w": 270,
+      "h": 824,
+      "title": "Sources panel · status request failed",
+      "page": "shell"
+    },
+    "SourcesStatusStale.dc.html": {
+      "x": 350,
+      "y": 1288,
+      "w": 270,
+      "h": 824,
+      "title": "Sources panel · status failed, last known index",
+      "page": "shell"
+    },
+    "SourcesDocsFailed.dc.html": {
+      "x": 700,
+      "y": 1288,
+      "w": 270,
+      "h": 824,
+      "title": "Sources panel · document list failed",
+      "page": "shell"
+    },
+    "SourcesEmpty.dc.html": {
+      "x": 1050,
+      "y": 1288,
+      "w": 270,
+      "h": 824,
+      "title": "Sources panel · no indexed sources",
+      "page": "shell"
+    },
+    "SourcesLoading.dc.html": {
+      "x": 1400,
+      "y": 1288,
+      "w": 270,
+      "h": 824,
+      "title": "Sources panel · loading",
+      "page": "shell"
+    },
+    "SourcesLoadMore.dc.html": {
+      "x": 1750,
+      "y": 1288,
+      "w": 270,
+      "h": 824,
+      "title": "Sources panel · load next page",
+      "page": "shell"
+    },
+    "SourcesLoadingMore.dc.html": {
+      "x": 2100,
+      "y": 1288,
+      "w": 270,
+      "h": 824,
+      "title": "Sources panel · loading more documents",
+      "page": "shell"
+    },
+    "ContextLoading.dc.html": {
+      "x": 2450,
+      "y": 1288,
+      "w": 350,
+      "h": 824,
+      "title": "Agent context panel · building context",
+      "page": "shell"
+    },
+    "ContextError.dc.html": {
+      "x": 2880,
+      "y": 1288,
+      "w": 350,
+      "h": 824,
+      "title": "Agent context panel · context retrieval failed",
+      "page": "shell"
+    },
+    "HeaderSearching.dc.html": {
+      "x": 3310,
+      "y": 1288,
+      "w": 1440,
+      "h": 48,
+      "title": "Top bar · search in flight",
+      "page": "shell"
+    },
+    "HeaderTablet.dc.html": {
+      "x": 4830,
+      "y": 1288,
+      "w": 1024,
+      "h": 48,
+      "title": "Top bar · 1024 wide",
+      "page": "shell"
+    },
+    "HeaderNarrow.dc.html": {
+      "x": 0,
+      "y": 2232,
+      "w": 800,
+      "h": 48,
+      "title": "Top bar · 800 wide",
+      "page": "shell"
+    },
+    "StatusBarOffline.dc.html": {
+      "x": 880,
+      "y": 2232,
+      "w": 1384,
+      "h": 28,
+      "title": "Status bar · API offline",
+      "page": "shell"
+    },
+    "KnowledgeDocumentMetadata.dc.html": {
+      "x": 0,
+      "y": 3170,
+      "w": 1440,
+      "h": 900,
+      "title": "Knowledge · Document with metadata open",
+      "page": "knowledge",
+      "is_interactive": true
+    },
+    "KnowledgeDocumentRelations.dc.html": {
+      "x": 1520,
+      "y": 3170,
+      "w": 1440,
+      "h": 900,
+      "title": "Knowledge · Document with backlinks and surrounding documents",
+      "page": "knowledge",
+      "is_interactive": true
+    },
+    "KnowledgeDocumentSourceError.dc.html": {
+      "x": 3040,
+      "y": 3170,
+      "w": 1440,
+      "h": 900,
+      "title": "Knowledge · Document source link error",
+      "page": "knowledge",
+      "is_interactive": true
+    },
+    "KnowledgeDocumentTruncated.dc.html": {
+      "x": 4560,
+      "y": 3170,
+      "w": 1440,
+      "h": 900,
+      "title": "Knowledge · Document truncated",
+      "page": "knowledge",
+      "is_interactive": true
+    },
+    "KnowledgeDocumentOpening.dc.html": {
+      "x": 0,
+      "y": 4190,
+      "w": 1440,
+      "h": 900,
+      "title": "Knowledge · Opening document (loading)",
+      "page": "knowledge",
+      "is_interactive": true
+    },
+    "KnowledgeSearching.dc.html": {
+      "x": 1520,
+      "y": 4190,
+      "w": 1440,
+      "h": 900,
+      "title": "Knowledge · Searching your brain (loading)",
+      "page": "knowledge",
+      "is_interactive": true
+    },
+    "KnowledgeAnswerExtractive.dc.html": {
+      "x": 3040,
+      "y": 4190,
+      "w": 1440,
+      "h": 1233,
+      "title": "Knowledge · Answer (extractive)",
+      "page": "knowledge",
+      "is_interactive": true
+    },
+    "KnowledgeAnswerDegraded.dc.html": {
+      "x": 4560,
+      "y": 4190,
+      "w": 1440,
+      "h": 1420,
+      "title": "Knowledge · Answer (lexical fallback, retrieval warnings)",
+      "page": "knowledge",
+      "is_interactive": true
+    },
+    "KnowledgeAnswerMemories.dc.html": {
+      "x": 0,
+      "y": 5730,
+      "w": 1440,
+      "h": 1458,
+      "title": "Knowledge · Answer with native memories",
+      "page": "knowledge",
+      "is_interactive": true
+    },
+    "KnowledgeEvidenceSourceError.dc.html": {
+      "x": 1520,
+      "y": 5730,
+      "w": 1440,
+      "h": 900,
+      "title": "Knowledge · Evidence source link error",
+      "page": "knowledge",
+      "is_interactive": true
+    },
+    "AgentToolsCopied.dc.html": {
+      "x": 0,
+      "y": 2040,
+      "w": 1440,
+      "h": 900,
+      "title": "Agent tools · Context copied",
+      "page": "views"
+    },
+    "AgentToolsCopyError.dc.html": {
+      "x": 1520,
+      "y": 2040,
+      "w": 1440,
+      "h": 900,
+      "title": "Agent tools · Copy failed",
+      "page": "views"
+    },
+    "AgentToolsError.dc.html": {
+      "x": 3040,
+      "y": 2040,
+      "w": 1440,
+      "h": 900,
+      "title": "Agent tools · Context error",
+      "page": "views"
+    },
+    "AgentToolsRetrieving.dc.html": {
+      "x": 4560,
+      "y": 2040,
+      "w": 1440,
+      "h": 900,
+      "title": "Agent tools · Retrieving context",
+      "page": "views"
+    },
+    "AgentToolsWarning.dc.html": {
+      "x": 0,
+      "y": 3060,
+      "w": 1440,
+      "h": 900,
+      "title": "Agent tools · Retrieval warning",
+      "page": "views"
+    },
+    "ConversationsEmpty.dc.html": {
+      "x": 1520,
+      "y": 3060,
+      "w": 1440,
+      "h": 900,
+      "title": "Conversations · No conversation yet",
+      "page": "views"
+    },
+    "ConversationsFallback.dc.html": {
+      "x": 3040,
+      "y": 3060,
+      "w": 1440,
+      "h": 900,
+      "title": "Conversations · Answer with warning",
+      "page": "views"
+    },
+    "ConversationsSearching.dc.html": {
+      "x": 4560,
+      "y": 3060,
+      "w": 1440,
+      "h": 900,
+      "title": "Conversations · Searching the brain",
+      "page": "views"
+    },
+    "ConversationsUnreachable.dc.html": {
+      "x": 0,
+      "y": 4080,
+      "w": 1440,
+      "h": 900,
+      "title": "Conversations · The brain is unreachable",
+      "page": "views"
+    },
+    "GraphFocused.dc.html": {
+      "x": 1520,
+      "y": 4080,
+      "w": 1440,
+      "h": 900,
+      "title": "Graph · Focused view",
+      "page": "views"
+    },
+    "GraphLoadMore.dc.html": {
+      "x": 3040,
+      "y": 4080,
+      "w": 1440,
+      "h": 900,
+      "title": "Graph · Load more nodes",
+      "page": "views"
+    },
+    "GraphLoading.dc.html": {
+      "x": 4560,
+      "y": 4080,
+      "w": 1440,
+      "h": 900,
+      "title": "Graph · Loading knowledge graph",
+      "page": "views"
+    },
+    "GraphLoadingMore.dc.html": {
+      "x": 0,
+      "y": 5100,
+      "w": 1440,
+      "h": 900,
+      "title": "Graph · Loading more nodes",
+      "page": "views"
+    },
+    "GraphNoData.dc.html": {
+      "x": 1520,
+      "y": 5100,
+      "w": 1440,
+      "h": 900,
+      "title": "Graph · No graph data",
+      "page": "views"
+    },
+    "GraphNoMatch.dc.html": {
+      "x": 3040,
+      "y": 5100,
+      "w": 1440,
+      "h": 900,
+      "title": "Graph · No matching graph nodes",
+      "page": "views"
+    },
+    "GraphPinned.dc.html": {
+      "x": 4560,
+      "y": 5100,
+      "w": 1440,
+      "h": 900,
+      "title": "Graph · Pinned node",
+      "page": "views"
+    },
+    "GraphRetry.dc.html": {
+      "x": 0,
+      "y": 6120,
+      "w": 1440,
+      "h": 900,
+      "title": "Graph · Graph data failed",
+      "page": "views"
+    },
+    "GraphShowMore.dc.html": {
+      "x": 1520,
+      "y": 6120,
+      "w": 1440,
+      "h": 900,
+      "title": "Graph · Show more nodes",
+      "page": "views"
+    },
+    "GraphUnavailable.dc.html": {
+      "x": 3040,
+      "y": 6120,
+      "w": 1440,
+      "h": 900,
+      "title": "Graph · Graph unavailable",
+      "page": "views"
+    },
+    "InboxAlerts.dc.html": {
+      "x": 4560,
+      "y": 6120,
+      "w": 1440,
+      "h": 900,
+      "title": "Inbox · Status and source job errors",
+      "page": "views"
+    },
+    "InboxBusy.dc.html": {
+      "x": 0,
+      "y": 7140,
+      "w": 1440,
+      "h": 900,
+      "title": "Inbox · Sync and source jobs running",
+      "page": "views"
+    },
+    "InboxEmpty.dc.html": {
+      "x": 1520,
+      "y": 7140,
+      "w": 1440,
+      "h": 900,
+      "title": "Inbox · No sync attention",
+      "page": "views"
+    },
+    "InboxJobLog.dc.html": {
+      "x": 3040,
+      "y": 7140,
+      "w": 1440,
+      "h": 900,
+      "title": "Inbox · Job log open",
+      "page": "views"
+    },
+    "InboxJobStates.dc.html": {
+      "x": 4560,
+      "y": 7140,
+      "w": 1440,
+      "h": 900,
+      "title": "Inbox · Cancelling, succeeded and cancelled jobs",
+      "page": "views"
+    },
+    "InboxLoading.dc.html": {
+      "x": 0,
+      "y": 8160,
+      "w": 1440,
+      "h": 900,
+      "title": "Inbox · Loading sync health",
+      "page": "views"
+    },
+    "InboxUnavailable.dc.html": {
+      "x": 1520,
+      "y": 8160,
+      "w": 1440,
+      "h": 900,
+      "title": "Inbox · Sync health unavailable",
+      "page": "views"
+    },
+    "IndexLoading.dc.html": {
+      "x": 3040,
+      "y": 8160,
+      "w": 1440,
+      "h": 900,
+      "title": "Index · Loading index",
+      "page": "views"
+    },
+    "IndexStale.dc.html": {
+      "x": 4560,
+      "y": 8160,
+      "w": 1440,
+      "h": 900,
+      "title": "Index · Stale statistics",
+      "page": "views"
+    },
+    "IndexUnavailable.dc.html": {
+      "x": 0,
+      "y": 9180,
+      "w": 1440,
+      "h": 900,
+      "title": "Index · Index unavailable",
+      "page": "views"
+    },
+    "SetDirty.dc.html": {
+      "x": 0,
+      "y": 6017,
+      "w": 1440,
+      "h": 900,
+      "title": "Settings changes pending",
+      "page": "settings"
+    },
+    "SetSaved.dc.html": {
+      "x": 1520,
+      "y": 6017,
+      "w": 1440,
+      "h": 900,
+      "title": "Settings saved",
+      "page": "settings"
+    },
+    "SetRestarting.dc.html": {
+      "x": 3040,
+      "y": 6017,
+      "w": 1440,
+      "h": 900,
+      "title": "Settings saved, restarting",
+      "page": "settings"
+    },
+    "SetSaveError.dc.html": {
+      "x": 4560,
+      "y": 6017,
+      "w": 1440,
+      "h": 900,
+      "title": "Settings save error",
+      "page": "settings"
+    },
+    "SetLoading.dc.html": {
+      "x": 0,
+      "y": 7037,
+      "w": 1440,
+      "h": 900,
+      "title": "Settings loading",
+      "page": "settings"
+    },
+    "SetLoadError.dc.html": {
+      "x": 1520,
+      "y": 7037,
+      "w": 1440,
+      "h": 900,
+      "title": "Settings load error",
+      "page": "settings"
+    },
+    "SetServicesRestarting.dc.html": {
+      "x": 3040,
+      "y": 7037,
+      "w": 1440,
+      "h": 1509,
+      "title": "Services restarting",
+      "page": "settings"
+    },
+    "SetServicesRestarted.dc.html": {
+      "x": 4560,
+      "y": 7037,
+      "w": 1440,
+      "h": 1509,
+      "title": "Services restart completed",
+      "page": "settings"
+    },
+    "SetServicesRecovery.dc.html": {
+      "x": 0,
+      "y": 8666,
+      "w": 1440,
+      "h": 1509,
+      "title": "Services restart failed",
+      "page": "settings"
+    },
+    "SetSourcesEmpty.dc.html": {
+      "x": 1520,
+      "y": 8666,
+      "w": 1440,
+      "h": 900,
+      "title": "Sources empty",
+      "page": "settings"
+    },
+    "SetSourcesWorkspaceEmpty.dc.html": {
+      "x": 3040,
+      "y": 8666,
+      "w": 1440,
+      "h": 900,
+      "title": "Sources empty workspace",
+      "page": "settings"
+    },
+    "SetSourcesAdvanced.dc.html": {
+      "x": 4560,
+      "y": 8666,
+      "w": 1440,
+      "h": 1487,
+      "title": "Sources advanced settings",
+      "page": "settings"
+    },
+    "SetSourcesDiscord.dc.html": {
+      "x": 0,
+      "y": 10295,
+      "w": 1440,
+      "h": 2229,
+      "title": "Sources Discord channels",
+      "page": "settings"
+    },
+    "SetSourcesJobRunning.dc.html": {
+      "x": 1520,
+      "y": 10295,
+      "w": 1440,
+      "h": 1010,
+      "title": "Sources job running",
+      "page": "settings"
+    },
+    "SetSourcesLegacy.dc.html": {
+      "x": 3040,
+      "y": 10295,
+      "w": 1440,
+      "h": 900,
+      "title": "Sources legacy and external",
+      "page": "settings"
+    },
+    "SetSourcesAddProvider.dc.html": {
+      "x": 4560,
+      "y": 10295,
+      "w": 1440,
+      "h": 900,
+      "title": "Add source provider",
+      "page": "settings"
+    },
+    "SetReadinessScanning.dc.html": {
+      "x": 0,
+      "y": 12644,
+      "w": 1440,
+      "h": 990,
+      "title": "Readiness scanning",
+      "page": "settings"
+    },
+    "SetReadinessFailed.dc.html": {
+      "x": 1520,
+      "y": 12644,
+      "w": 1440,
+      "h": 1073,
+      "title": "Readiness failed",
+      "page": "settings"
+    },
+    "SetReadinessWarning.dc.html": {
+      "x": 3040,
+      "y": 12644,
+      "w": 1440,
+      "h": 1133,
+      "title": "Readiness core error",
+      "page": "settings"
+    },
+    "SetReadinessCancelled.dc.html": {
+      "x": 4560,
+      "y": 12644,
+      "w": 1440,
+      "h": 1165,
+      "title": "Readiness installer cancelled",
+      "page": "settings"
+    },
+    "SetServicesNotInstalled.dc.html": {
+      "x": 0,
+      "y": 13929,
+      "w": 1440,
+      "h": 1457,
+      "title": "Services not installed",
+      "page": "settings"
+    },
+    "SetSourcesExternal.dc.html": {
+      "x": 1520,
+      "y": 13929,
+      "w": 1440,
+      "h": 900,
+      "title": "Sources external command",
+      "page": "settings"
+    },
+    "SetMemoryProvenance.dc.html": {
+      "x": 3040,
+      "y": 13929,
+      "w": 1440,
+      "h": 1839,
+      "title": "Settings · Memory · Provenance open",
+      "page": "settings"
+    },
+    "SetQueryRefreshing.dc.html": {
+      "x": 4560,
+      "y": 13929,
+      "w": 1440,
+      "h": 1149,
+      "title": "Settings · Query · Refreshing models",
+      "page": "settings"
+    },
+    "SetQueryKey.dc.html": {
+      "x": 0,
+      "y": 15908,
+      "w": 1440,
+      "h": 1149,
+      "title": "Settings · Query · API key variable set",
+      "page": "settings"
+    },
+    "SetAdvancedResults.dc.html": {
+      "x": 1520,
+      "y": 15908,
+      "w": 1440,
+      "h": 1148,
+      "title": "Settings · Advanced · Export results",
+      "page": "settings"
+    },
+    "SetAdvancedImport.dc.html": {
+      "x": 3040,
+      "y": 15908,
+      "w": 1440,
+      "h": 1084,
+      "title": "Settings · Advanced · Imported settings ready for review",
+      "page": "settings"
+    },
+    "SetAdvancedErrors.dc.html": {
+      "x": 4560,
+      "y": 15908,
+      "w": 1440,
+      "h": 1148,
+      "title": "Settings · Advanced · Export errors",
+      "page": "settings"
+    },
+    "SetAdvancedVaultRunning.dc.html": {
+      "x": 0,
+      "y": 17216,
+      "w": 1440,
+      "h": 1084,
+      "title": "Settings · Advanced · Vault export running",
+      "page": "settings"
+    },
+    "SetAdvancedVaultSelect.dc.html": {
+      "x": 1520,
+      "y": 17216,
+      "w": 1440,
+      "h": 1084,
+      "title": "Settings · Advanced · No workspace selected",
+      "page": "settings"
+    },
+    "SetMemoryBulk.dc.html": {
+      "x": 3040,
+      "y": 17216,
+      "w": 1440,
+      "h": 1692,
+      "title": "Settings · Memory · Bulk selection",
+      "page": "settings"
+    },
+    "SetMemoryEdit.dc.html": {
+      "x": 4560,
+      "y": 17216,
+      "w": 1440,
+      "h": 1822,
+      "title": "Settings · Memory · Edit and approve",
+      "page": "settings"
+    },
+    "SetMemoryNotice.dc.html": {
+      "x": 0,
+      "y": 19178,
+      "w": 1440,
+      "h": 1756,
+      "title": "Settings · Memory · Review outcome notice",
+      "page": "settings"
+    },
+    "SetMemoryEmpty.dc.html": {
+      "x": 1520,
+      "y": 19178,
+      "w": 1440,
+      "h": 1551,
+      "title": "Settings · Memory · No candidates match this view",
+      "page": "settings"
+    },
+    "SetMemoryLoading.dc.html": {
+      "x": 3040,
+      "y": 19178,
+      "w": 1440,
+      "h": 1457,
+      "title": "Settings · Memory · Loading review queue",
+      "page": "settings"
+    },
+    "SetMemoryError.dc.html": {
+      "x": 4560,
+      "y": 19178,
+      "w": 1440,
+      "h": 1521,
+      "title": "Settings · Memory · Review error",
+      "page": "settings"
+    },
+    "SetEmbeddingModels.dc.html": {
+      "x": 0,
+      "y": 21074,
+      "w": 1440,
+      "h": 970,
+      "title": "Settings · Embedding · Models advertised",
+      "page": "settings"
+    },
+    "SetEmbeddingModelsError.dc.html": {
+      "x": 1520,
+      "y": 21074,
+      "w": 1440,
+      "h": 1001,
+      "title": "Settings · Embedding · Refresh error",
+      "page": "settings"
+    },
+    "CommandPaletteFiltered.dc.html": {
+      "x": 0,
+      "y": 3060,
+      "w": 1440,
+      "h": 900,
+      "title": "Command palette, filtered",
+      "page": "overlays"
+    },
+    "CommandPaletteEmpty.dc.html": {
+      "x": 1520,
+      "y": 3060,
+      "w": 1440,
+      "h": 900,
+      "title": "Command palette, no results",
+      "page": "overlays"
+    },
+    "SystemStatusDesktop.dc.html": {
+      "x": 3040,
+      "y": 3060,
+      "w": 1440,
+      "h": 900,
+      "title": "System status, desktop (online)",
+      "page": "overlays"
+    },
+    "SystemStatusBusy.dc.html": {
+      "x": 4560,
+      "y": 3060,
+      "w": 1440,
+      "h": 900,
+      "title": "System status, busy",
+      "page": "overlays"
+    },
+    "SystemStatusSuccess.dc.html": {
+      "x": 0,
+      "y": 4080,
+      "w": 1440,
+      "h": 900,
+      "title": "System status, success",
+      "page": "overlays"
+    },
+    "SystemStatusAttention.dc.html": {
+      "x": 1520,
+      "y": 4080,
+      "w": 1440,
+      "h": 900,
+      "title": "System status, attention and failure",
+      "page": "overlays"
+    },
+    "SystemStatusOffline.dc.html": {
+      "x": 3040,
+      "y": 4080,
+      "w": 1440,
+      "h": 900,
+      "title": "System status, API offline",
+      "page": "overlays"
+    },
+    "AddSourceConnect.dc.html": {
+      "x": 4560,
+      "y": 4080,
+      "w": 1440,
+      "h": 900,
+      "title": "Add source, provider connect",
+      "page": "overlays"
+    },
+    "AddSourceBuzz.dc.html": {
+      "x": 0,
+      "y": 5100,
+      "w": 1440,
+      "h": 900,
+      "title": "Add source, Buzz",
+      "page": "overlays"
+    },
+    "InitialSyncPlan.dc.html": {
+      "x": 1520,
+      "y": 5100,
+      "w": 1440,
+      "h": 900,
+      "title": "Initial sync, plan",
+      "page": "overlays"
+    },
+    "InitialSyncReady.dc.html": {
+      "x": 3040,
+      "y": 5100,
+      "w": 1440,
+      "h": 900,
+      "title": "Initial sync, ready",
+      "page": "overlays"
+    },
+    "UpdateAvailable.dc.html": {
+      "x": 4560,
+      "y": 5100,
+      "w": 1440,
+      "h": 900,
+      "title": "Update dialog, available",
+      "page": "overlays"
+    },
+    "UpdateDownloading.dc.html": {
+      "x": 0,
+      "y": 6120,
+      "w": 1440,
+      "h": 900,
+      "title": "Update dialog, downloading",
+      "page": "overlays"
+    },
+    "UpdateFailed.dc.html": {
+      "x": 1520,
+      "y": 6120,
+      "w": 1440,
+      "h": 900,
+      "title": "Update dialog, failed",
+      "page": "overlays"
+    },
+    "UpdateRestart.dc.html": {
+      "x": 3040,
+      "y": 6120,
+      "w": 1440,
+      "h": 900,
+      "title": "Update dialog, restart to finish",
+      "page": "overlays"
+    },
+    "UserMenuDesktop.dc.html": {
+      "x": 4560,
+      "y": 6120,
+      "w": 1440,
+      "h": 900,
+      "title": "User menu, desktop",
+      "page": "overlays"
+    },
+    "Tooltips.dc.html": {
+      "x": 0,
+      "y": 7140,
+      "w": 1440,
+      "h": 900,
+      "title": "Tooltips reference",
+      "page": "overlays"
+    },
+    "CrashApp.dc.html": {
+      "x": 1520,
+      "y": 7140,
+      "w": 1440,
+      "h": 900,
+      "title": "Crash · Cortana needs a reload (workspace error)",
+      "page": "overlays"
+    },
+    "CrashRenderer.dc.html": {
+      "x": 3040,
+      "y": 7140,
+      "w": 1440,
+      "h": 900,
+      "title": "Crash · Cortana needs a reload (renderer error)",
+      "page": "overlays"
+    },
+    "PhoneAnswer.dc.html": {
+      "x": 0,
+      "y": 1305,
+      "w": 390,
+      "h": 1514,
+      "title": "Phone · Knowledge answer",
+      "page": "responsive",
+      "is_interactive": true
+    },
+    "PhoneDocument.dc.html": {
+      "x": 470,
+      "y": 1305,
+      "w": 390,
+      "h": 844,
+      "title": "Phone · Knowledge document",
+      "page": "responsive",
+      "is_interactive": true
+    },
+    "PhoneGraph.dc.html": {
+      "x": 940,
+      "y": 1305,
+      "w": 390,
+      "h": 844,
+      "title": "Phone · Graph (node list)",
+      "page": "responsive",
+      "is_interactive": true
+    },
+    "PhoneGraphSelected.dc.html": {
+      "x": 1410,
+      "y": 1305,
+      "w": 390,
+      "h": 1110,
+      "title": "Phone · Graph with a node selected",
+      "page": "responsive",
+      "is_interactive": true
+    },
+    "PhoneConversations.dc.html": {
+      "x": 1880,
+      "y": 1305,
+      "w": 390,
+      "h": 915,
+      "title": "Phone · Conversations",
+      "page": "responsive",
+      "is_interactive": true
+    },
+    "PhoneAgentToolsEmpty.dc.html": {
+      "x": 2350,
+      "y": 1305,
+      "w": 390,
+      "h": 844,
+      "title": "Phone · Agent tools (no context yet)",
+      "page": "responsive",
+      "is_interactive": true
+    },
+    "PhoneAgentTools.dc.html": {
+      "x": 2820,
+      "y": 1305,
+      "w": 390,
+      "h": 1300,
+      "title": "Phone · Agent tools (context retrieved)",
+      "page": "responsive",
+      "is_interactive": true
+    },
+    "PhoneInbox.dc.html": {
+      "x": 3290,
+      "y": 1305,
+      "w": 390,
+      "h": 844,
+      "title": "Phone · Inbox",
+      "page": "responsive",
+      "is_interactive": true
+    },
+    "PhoneIndex.dc.html": {
+      "x": 3760,
+      "y": 1305,
+      "w": 390,
+      "h": 1360,
+      "title": "Phone · Index",
+      "page": "responsive",
+      "is_interactive": true
+    },
+    "Tablet768Answer.dc.html": {
+      "x": 4230,
+      "y": 1305,
+      "w": 768,
+      "h": 1024,
+      "title": "Tablet · 768 wide answer",
+      "page": "responsive",
+      "is_interactive": true
+    },
+    "Narrow800Answer.dc.html": {
+      "x": 5078,
+      "y": 1305,
+      "w": 800,
+      "h": 900,
+      "title": "Narrow desktop · 800 wide answer",
+      "page": "responsive",
+      "is_interactive": true
+    },
+    "ConfirmUpdate.dc.html": {
+      "x": 4560,
+      "y": 7140,
+      "w": 1440,
+      "h": 900,
+      "title": "Confirm · Install and restart",
+      "page": "overlays"
+    },
+    "ConfirmDiscard.dc.html": {
+      "x": 0,
+      "y": 8160,
+      "w": 1440,
+      "h": 900,
+      "title": "Confirm · Discard unsaved changes",
+      "page": "overlays"
+    },
+    "ConfirmToggle.dc.html": {
+      "x": 1520,
+      "y": 8160,
+      "w": 1440,
+      "h": 900,
+      "title": "Confirm · Enable or disable a source",
+      "page": "overlays"
+    },
+    "ConfirmAuthorize.dc.html": {
+      "x": 3040,
+      "y": 8160,
+      "w": 1440,
+      "h": 900,
+      "title": "Confirm · Authorize with Google",
+      "page": "overlays"
+    },
+    "SetWorkspacesOverride.dc.html": {
+      "x": 3040,
+      "y": 21074,
+      "w": 1440,
+      "h": 900,
+      "title": "Settings · Workspaces with a theme override",
+      "page": "settings"
+    },
+    "HeaderWrapped.dc.html": {
+      "x": 2344,
+      "y": 2232,
+      "w": 320,
+      "h": 48,
+      "title": "Top bar · 320 wide",
+      "page": "shell"
+    },
+    "SystemStatusWrapped.dc.html": {
+      "x": 5958,
+      "y": 1305,
+      "w": 320,
+      "h": 700,
+      "title": "System status under a wrapped top bar (320 wide)",
+      "page": "responsive",
+      "is_interactive": true
+    },
+    "HeaderEnlarged.dc.html": {
+      "x": 2704,
+      "y": 2232,
+      "w": 390,
+      "h": 96,
+      "title": "Top bar · 390 wide at 200% text",
+      "page": "shell"
+    },
+    "SearchMenu.dc.html": {
+      "x": 6080,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Search menu (search box and Reflect)",
+      "page": "overlays",
+      "is_interactive": true
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Header.dc.html",
+    "StatusBar.dc.html",
+    "Rail.dc.html",
+    "SourcesPanel.dc.html",
+    "ContextPanel.dc.html",
+    "SettingsNav.dc.html",
+    "KnowledgeAnswer.dc.html",
+    "KnowledgeDocument.dc.html",
+    "KnowledgeEvidence.dc.html",
+    "KnowledgeTimeline.dc.html",
+    "KnowledgeEmpty.dc.html",
+    "SidebarCollapsed.dc.html",
+    "Graph.dc.html",
+    "Conversations.dc.html",
+    "AgentTools.dc.html",
+    "Inbox.dc.html",
+    "Index.dc.html",
+    "SetServices.dc.html",
+    "SetWorkspaces.dc.html",
+    "SetSources.dc.html",
+    "SetReadiness.dc.html",
+    "SetAccess.dc.html",
+    "SetAudit.dc.html",
+    "SetEmbedding.dc.html",
+    "SetQuery.dc.html",
+    "SetIngestion.dc.html",
+    "SetAdvanced.dc.html",
+    "SetMemory.dc.html",
+    "WorkspaceMenu.dc.html",
+    "MoreMenu.dc.html",
+    "SystemStatus.dc.html",
+    "UserMenu.dc.html",
+    "CommandPalette.dc.html",
+    "HelpCenter.dc.html",
+    "About.dc.html",
+    "AddSource.dc.html",
+    "KnowledgeOffline.dc.html",
+    "KnowledgeReflection.dc.html",
+    "AgentToolsEmpty.dc.html",
+    "SetSetup.dc.html",
+    "SetInstallDesktop.dc.html",
+    "InitialSync.dc.html",
+    "ConfirmAction.dc.html",
+    "UpdateDialog.dc.html",
+    "ContextSheet.dc.html",
+    "MobileNav.dc.html",
+    "MobileSources.dc.html",
+    "SettingsPhone.dc.html",
+    "SourcesStatusFailed.dc.html",
+    "SourcesStatusStale.dc.html",
+    "SourcesDocsFailed.dc.html",
+    "SourcesEmpty.dc.html",
+    "SourcesLoading.dc.html",
+    "SourcesLoadMore.dc.html",
+    "SourcesLoadingMore.dc.html",
+    "ContextLoading.dc.html",
+    "ContextError.dc.html",
+    "HeaderSearching.dc.html",
+    "HeaderTablet.dc.html",
+    "HeaderNarrow.dc.html",
+    "StatusBarOffline.dc.html",
+    "KnowledgeDocumentMetadata.dc.html",
+    "KnowledgeDocumentRelations.dc.html",
+    "KnowledgeDocumentSourceError.dc.html",
+    "KnowledgeDocumentTruncated.dc.html",
+    "KnowledgeDocumentOpening.dc.html",
+    "KnowledgeSearching.dc.html",
+    "KnowledgeAnswerExtractive.dc.html",
+    "KnowledgeAnswerDegraded.dc.html",
+    "KnowledgeAnswerMemories.dc.html",
+    "KnowledgeEvidenceSourceError.dc.html",
+    "AgentToolsCopied.dc.html",
+    "AgentToolsCopyError.dc.html",
+    "AgentToolsError.dc.html",
+    "AgentToolsRetrieving.dc.html",
+    "AgentToolsWarning.dc.html",
+    "ConversationsEmpty.dc.html",
+    "ConversationsFallback.dc.html",
+    "ConversationsSearching.dc.html",
+    "ConversationsUnreachable.dc.html",
+    "GraphFocused.dc.html",
+    "GraphLoadMore.dc.html",
+    "GraphLoading.dc.html",
+    "GraphLoadingMore.dc.html",
+    "GraphNoData.dc.html",
+    "GraphNoMatch.dc.html",
+    "GraphPinned.dc.html",
+    "GraphRetry.dc.html",
+    "GraphShowMore.dc.html",
+    "GraphUnavailable.dc.html",
+    "InboxAlerts.dc.html",
+    "InboxBusy.dc.html",
+    "InboxEmpty.dc.html",
+    "InboxJobLog.dc.html",
+    "InboxJobStates.dc.html",
+    "InboxLoading.dc.html",
+    "InboxUnavailable.dc.html",
+    "IndexLoading.dc.html",
+    "IndexStale.dc.html",
+    "IndexUnavailable.dc.html",
+    "SetDirty.dc.html",
+    "SetSaved.dc.html",
+    "SetRestarting.dc.html",
+    "SetSaveError.dc.html",
+    "SetLoading.dc.html",
+    "SetLoadError.dc.html",
+    "SetServicesRestarting.dc.html",
+    "SetServicesRestarted.dc.html",
+    "SetServicesRecovery.dc.html",
+    "SetSourcesEmpty.dc.html",
+    "SetSourcesWorkspaceEmpty.dc.html",
+    "SetSourcesAdvanced.dc.html",
+    "SetSourcesDiscord.dc.html",
+    "SetSourcesJobRunning.dc.html",
+    "SetSourcesLegacy.dc.html",
+    "SetSourcesAddProvider.dc.html",
+    "SetReadinessScanning.dc.html",
+    "SetReadinessFailed.dc.html",
+    "SetReadinessWarning.dc.html",
+    "SetReadinessCancelled.dc.html",
+    "SetServicesNotInstalled.dc.html",
+    "SetSourcesExternal.dc.html",
+    "SetMemoryProvenance.dc.html",
+    "SetQueryRefreshing.dc.html",
+    "SetQueryKey.dc.html",
+    "SetAdvancedResults.dc.html",
+    "SetAdvancedImport.dc.html",
+    "SetAdvancedErrors.dc.html",
+    "SetAdvancedVaultRunning.dc.html",
+    "SetAdvancedVaultSelect.dc.html",
+    "SetMemoryBulk.dc.html",
+    "SetMemoryEdit.dc.html",
+    "SetMemoryNotice.dc.html",
+    "SetMemoryEmpty.dc.html",
+    "SetMemoryLoading.dc.html",
+    "SetMemoryError.dc.html",
+    "SetEmbeddingModels.dc.html",
+    "SetEmbeddingModelsError.dc.html",
+    "SetWorkspacesOverride.dc.html",
+    "CommandPaletteFiltered.dc.html",
+    "CommandPaletteEmpty.dc.html",
+    "SystemStatusDesktop.dc.html",
+    "SystemStatusBusy.dc.html",
+    "SystemStatusSuccess.dc.html",
+    "SystemStatusAttention.dc.html",
+    "SystemStatusOffline.dc.html",
+    "AddSourceConnect.dc.html",
+    "AddSourceBuzz.dc.html",
+    "InitialSyncPlan.dc.html",
+    "InitialSyncReady.dc.html",
+    "UpdateAvailable.dc.html",
+    "UpdateDownloading.dc.html",
+    "UpdateFailed.dc.html",
+    "UpdateRestart.dc.html",
+    "UserMenuDesktop.dc.html",
+    "Tooltips.dc.html",
+    "CrashApp.dc.html",
+    "CrashRenderer.dc.html",
+    "ConfirmUpdate.dc.html",
+    "ConfirmDiscard.dc.html",
+    "ConfirmToggle.dc.html",
+    "ConfirmAuthorize.dc.html",
+    "PhoneAnswer.dc.html",
+    "PhoneDocument.dc.html",
+    "PhoneGraph.dc.html",
+    "PhoneGraphSelected.dc.html",
+    "PhoneConversations.dc.html",
+    "PhoneAgentToolsEmpty.dc.html",
+    "PhoneAgentTools.dc.html",
+    "PhoneInbox.dc.html",
+    "PhoneIndex.dc.html",
+    "Tablet768Answer.dc.html",
+    "Narrow800Answer.dc.html",
+    "HeaderWrapped.dc.html",
+    "SystemStatusWrapped.dc.html",
+    "HeaderEnlarged.dc.html",
+    "SearchMenu.dc.html"
+  ],
+  "notes": {
+    "shell-t1": {
+      "kind": "title1",
+      "page": "shell",
+      "x": 0,
+      "y": -300,
+      "maxW": 1440,
+      "text": "Shell parts shared by every screen"
+    },
+    "knowledge-t1": {
+      "kind": "title1",
+      "page": "knowledge",
+      "x": 0,
+      "y": -300,
+      "maxW": 6000,
+      "text": "Knowledge: sources, document tabs, agent context"
+    },
+    "views-t1": {
+      "kind": "title1",
+      "page": "views",
+      "x": 0,
+      "y": -300,
+      "maxW": 4480,
+      "text": "Graph, Conversations, Agent tools, Inbox, Index"
+    },
+    "settings-t1": {
+      "kind": "title1",
+      "page": "settings",
+      "x": 0,
+      "y": -300,
+      "maxW": 6000,
+      "text": "Settings: eleven sections behind one nav"
+    },
+    "overlays-t1": {
+      "kind": "title1",
+      "page": "overlays",
+      "x": 0,
+      "y": -300,
+      "maxW": 7520,
+      "text": "Menus, palette and dialogs"
+    },
+    "responsive-t1": {
+      "kind": "title1",
+      "page": "responsive",
+      "x": 0,
+      "y": -300,
+      "maxW": 2690,
+      "text": "Narrow windows: sheets and phone"
+    }
+  },
+  "designSystems": [
+    {
+      "title": "Adea UI",
+      "namespace": "adea-ui",
+      "artifact": "https://claude.ai/artifact/8JSPcs3nNJA66Qv49yT7HA",
+      "version": "1791309052-d56d",
+      "copiedAt": "2026-10-06T18:40:00Z"
+    }
+  ]
+}

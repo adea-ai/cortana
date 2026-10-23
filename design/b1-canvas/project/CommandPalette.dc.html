@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Command palette</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+input::placeholder{color:oklch(0.6967 0.0057 298.74);opacity:1}
+</style>
+</helmet>
+<div style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --popover: oklch(0.2406 0.0088 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); position: relative; width: 1440px; height: 900px; overflow: hidden; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 1.55;">
+  <dc-import name="KnowledgeEmpty" hint-size="1440px,900px"></dc-import>
+
+  <!-- CommandDialog: max-w-lg, top-1/3 + translate(-50%,-50%), no scrim -->
+  <div role="dialog" aria-label="Cortana command palette" style="position: absolute; left: 464px; top: 152.8px; width: 512px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 14px; background: var(--popover); box-shadow: 0 20px 44px oklch(0 0 0 / 0.45); overflow: hidden;">
+    <div style="height: 44px; box-sizing: border-box; padding: 0 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border);">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg>
+      <input type="text" role="combobox" placeholder="Search commands…" aria-label="Cortana command palette" style="flex-grow: 1; min-width: 0; height: 43px; padding: 0; border: 0; background: transparent; color: var(--foreground); font: inherit; font-size: 14px; outline: none;">
+    </div>
+    <div role="listbox" aria-label="Suggestions" style="padding: 4px;">
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+        <div style="padding: 4px;">
+          <div style="padding: 6px 8px; font-size: 11px; line-height: 15.95px; font-weight: 500; letter-spacing: 0.275px; text-transform: uppercase; color: var(--muted-foreground);">{{g.title}}</div>
+          <div role="group">
+            <sc-for list="{{g.items}}" as="i" hint-placeholder-count="3">
+              <a role="option" aria-selected="{{i.selected}}" href="{{i.href}}" style="height: 33.7px; box-sizing: border-box; padding: 6px 8px; border-radius: 6px; display: flex; align-items: center; gap: 8px; background: {{i.bg}}; color: var(--foreground); text-decoration: none;">
+                <span>{{i.label}}</span>
+                <sc-if value="{{i.hasKbd}}" hint-placeholder-val="{{ false }}"><span style="margin-left: auto; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; line-height: 18px; letter-spacing: 1.2px; color: var(--foreground);">{{i.kbd}}</span></sc-if>
+              </a>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const I = (label, href, kbd, selected) => ({ label, href, kbd: kbd || '', hasKbd: !!kbd, selected: selected ? 'true' : 'false', bg: selected ? 'oklch(0.7323 0.1668 301.69 / 0.16)' : 'transparent' });
+    return {
+      groups: [
+        { title: 'Actions', items: [
+          I('Search the brain', 'KnowledgeAnswer.dc.html', 'Ctrl K', true),
+          I('Filter documents', 'KnowledgeEmpty.dc.html', 'Ctrl ⇧ F'),
+          I('Open settings', 'SetServices.dc.html')
+        ] },
+        { title: 'Workspaces', items: [
+          I('Switch to Work', 'KnowledgeEmpty.dc.html'),
+          I('Switch to Personal', 'KnowledgeEmpty.dc.html')
+        ] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

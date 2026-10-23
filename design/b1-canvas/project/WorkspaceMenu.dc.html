@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Workspace menu</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --popover: oklch(0.2406 0.0088 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); --primary: oklch(0.7323 0.1668 301.69); position: relative; width: 1440px; height: 900px; overflow: hidden; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 1.55;">
+  <dc-import name="KnowledgeEmpty" hint-size="1440px,900px"></dc-import>
+
+  <!-- DropdownMenuContent under the "Switch workspace" trigger (48,10 95x28): 224 wide, p-1, rounded-xl, shadow-lg -->
+  <div role="menu" aria-label="Workspaces" style="position: absolute; left: 48px; top: 38px; width: 224px; box-sizing: border-box; padding: 4px; border: 1px solid var(--border); border-radius: 14px; background: var(--popover); box-shadow: 0 12px 28px oklch(0 0 0 / 0.35);">
+    <div role="group">
+      <div style="height: 21.7px; padding: 0 8px; font-size: 11px; line-height: 21.7px; font-weight: 500; letter-spacing: 0.275px; text-transform: uppercase; color: var(--muted-foreground);">Workspaces</div>
+      <a role="menuitemradio" aria-checked="true" href="KnowledgeEmpty.dc.html" style="position: relative; height: 33.7px; box-sizing: border-box; padding: 6px 32px 6px 8px; border-radius: 6px; display: flex; align-items: center; gap: 8px; color: var(--foreground); text-decoration: none;">
+        <span role="img" aria-label="Work" style="width: 20px; height: 20px; box-sizing: border-box; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--muted-foreground); font-size: 11px; line-height: 15.95px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">Wo</span>
+        <span>Work</span>
+        <svg style="position: absolute; right: 12px; top: 12.85px;" width="8" height="8" viewBox="0 0 24 24" fill="var(--primary)" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle></svg>
+      </a>
+      <a role="menuitemradio" aria-checked="false" href="KnowledgeEmpty.dc.html" style="position: relative; height: 33.7px; box-sizing: border-box; padding: 6px 32px 6px 8px; border-radius: 6px; display: flex; align-items: center; gap: 8px; color: var(--foreground); text-decoration: none;">
+        <span role="img" aria-label="Personal" style="width: 20px; height: 20px; box-sizing: border-box; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--muted-foreground); font-size: 11px; line-height: 15.95px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">Pe</span>
+        <span>Personal</span>
+      </a>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

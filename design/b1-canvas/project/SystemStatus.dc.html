@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>System status</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --popover: oklch(0.2406 0.0088 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); --success: oklch(0.6951 0.1809 145.62); position: relative; width: 1440px; height: 900px; overflow: hidden; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 1.55;">
+  <dc-import name="KnowledgeEmpty" hint-size="1440px,900px"></dc-import>
+
+  <!-- PopoverContent w-80 under the "System status" trigger (1364,10 28x28), with the popover arrow -->
+  <div role="dialog" aria-label="System status details" style="position: absolute; left: 1112px; top: 53px; width: 320px; box-sizing: border-box; padding: 4px; border: 1px solid var(--border); border-radius: 14px; background: var(--popover); box-shadow: 0 12px 28px oklch(0 0 0 / 0.35);">
+    <svg style="position: absolute; left: 250px; top: -30px; overflow: visible;" width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><g transform="translate(0 2)"><path fill="none" stroke="var(--border)" d="M23,27.8c1.1,1.2,3.4,2.2,5,2.2h2H0h2c1.7,0,3.9-1,5-2.2l6.6-7.2c0.7-0.8,2-0.8,2.7,0L23,27.8L23,27.8z"></path><path fill="var(--popover)" stroke="none" d="M23,27.8c1.1,1.2,3.4,2.2,5,2.2h2H0h2c1.7,0,3.9-1,5-2.2l6.6-7.2c0.7-0.8,2-0.8,2.7,0L23,27.8L23,27.8z"></path></g></svg>
+    <h2 style="margin: 0; font-size: 14px; line-height: 21.7px; font-weight: 600;">System status</h2>
+    <div style="margin-top: 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px;">
+      <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 18px; font-weight: 500; white-space: nowrap;"><span style="width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex-shrink: 0;"></span>Index: online</span>
+      <a href="Index.dc.html" style="height: 28px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: var(--foreground); font-size: 12px; line-height: 18px; font-weight: 500; white-space: nowrap; text-decoration: none;">View index metrics</a>
+      <a href="SetSources.dc.html" style="height: 28px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: var(--foreground); font-size: 12px; line-height: 18px; font-weight: 500; white-space: nowrap; text-decoration: none;">Configure sources</a>
+      <a href="SetServices.dc.html" aria-label="Open service health" style="height: 28px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: var(--foreground); text-decoration: none;">
+        <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 18px; font-weight: 500; white-space: nowrap;"><span style="width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex-shrink: 0;"></span>Services: core 2/2 online</span>
+      </a>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

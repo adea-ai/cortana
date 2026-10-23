@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Inbox · No sync attention</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); --primary: oklch(0.7323 0.1668 301.69); --primary-foreground: oklch(0.1756 0.0063 300.91); --warning: oklch(0.7196 0.1401 79.91); --destructive: oklch(0.7345 0.1626 25.78); --info: oklch(0.7555 0.1155 202.14); --success: oklch(0.6951 0.1809 145.62); width: 1440px; height: 900px; display: flex; flex-direction: column; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 1.55; text-rendering: optimizeLegibility; overflow: hidden;">
+  <dc-import name="Header" location="Inbox" workspace="Work" hint-size="1440px,48px"></dc-import>
+  <div style="flex-grow: 1; min-height: 0; display: flex;">
+    <dc-import name="Rail" active="inbox" height="852" hint-size="56px,852px"></dc-import>
+    <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column;">
+      <main id="main-content" style="flex-grow: 1; min-height: 0; overflow: hidden; background: var(--background); display: flex; flex-direction: column;">
+        <header style="flex-shrink: 0; padding: 20px 20px 16px; display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px 16px;">
+          <div style="min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+            <span style="display: block; font-size: 11px; font-weight: 500; line-height: 1.45; letter-spacing: 0.275px; text-transform: uppercase; color: var(--muted-foreground);">Attention</span>
+            <h1 style="margin: 0; font-size: 20px; font-weight: 600; line-height: 1.35; letter-spacing: -0.5px;">Inbox</h1>
+            <p style="margin: 0; color: var(--muted-foreground); line-height: 1.55;">Current sync health and source-job activity. Nothing here is fabricated history.</p>
+          </div>
+        </header>
+        <div role="separator" style="flex-shrink: 0; height: 1px; background: var(--border);"></div>
+        <div style="box-sizing: border-box; padding: 20px 20px 56px; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 28px;">
+            <div data-slot="empty" style="box-sizing: border-box; width: 100%; min-height: 288px; padding: 40px 24px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; text-wrap: balance;">
+              <div style="max-width: 384px; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                <div style="width: 36px; height: 36px; border-radius: 10px; background: var(--card); color: var(--muted-foreground); display: flex; align-items: center; justify-content: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg></div>
+                <div role="heading" aria-level="3" style="font-size: 14px; font-weight: 500; line-height: 1.55; letter-spacing: -0.025em;">No sync attention</div>
+                <div style="color: var(--muted-foreground); font-size: 14px; line-height: 1.55;">Every configured source is idle and the latest syncs finished cleanly. New activity appears here as it happens.</div>
+              </div>
+              <div style="max-width: 384px; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;"><button type="button" style="height: 28px; box-sizing: border-box; padding: 0 10px; border: 0; border-radius: 8px; background: var(--card); color: var(--foreground); font: inherit; font-size: 12px; font-weight: 500; line-height: 1.5; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; text-decoration: none; cursor: pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"></path><circle cx="12" cy="12" r="3"></circle></svg>Open settings</button></div>
+              </div>
+            </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <button type="button" style="height: 28px; box-sizing: border-box; padding: 0 10px; border: 0; border-radius: 8px; background: var(--card); color: var(--foreground); font: inherit; font-size: 12px; font-weight: 500; line-height: 1.5; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; text-decoration: none; cursor: pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"></path><circle cx="12" cy="12" r="3"></circle></svg>Manage ingestion in settings</button>
+          </div>
+        </div>
+      </main>
+      <footer aria-label="Application status" style="width: 1384px; height: 28px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-top: 1px solid var(--border); background: var(--background); color: var(--muted-foreground); font-size: 11px; line-height: 1.45; white-space: nowrap; flex-shrink: 0; overflow: hidden;">
+    <span style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">Index online</span>
+    <span title="openai-compatible:Qwen/Qwen3-Embedding-0.6B:1024" style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">Embedding: Qwen/Qwen3-Embedding-0.6B · 1024d</span>
+    <span style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">Query: synthesized</span>
+    <span style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-right: 4px;"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+      <span>Docs: 9,834</span>
+    </span>
+    <span style="display: flex; align-items: center; gap: 6px; color: var(--foreground); font-size: 12px; font-weight: 500; line-height: 1.5; flex-shrink: 0;">
+      <span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 999px; background: var(--muted-foreground); flex-shrink: 0;"></span>
+      <span>Ingestion: paused · manual</span>
+    </span>
+    <span aria-hidden="true" style="flex-grow: 1;"></span>
+  </footer>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

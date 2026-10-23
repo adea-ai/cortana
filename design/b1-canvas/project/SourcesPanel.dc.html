@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cortana sources panel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div role="{{regionRole}}" aria-label="{{regionLabel}}" style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); --primary: oklch(0.7323 0.1668 301.69); --warning: oklch(0.7196 0.1401 79.91); --destructive: oklch(0.7345 0.1626 25.78); --secondary: oklch(0.2106 0.0076 300.91); --muted: oklch(0.2106 0.0076 300.91); --input: oklch(0.3256 0.0057 300.91); width: {{width}}px; height: {{height}}px; box-sizing: border-box; flex-shrink: 0; display: flex; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 1.55; overflow: hidden;">
+
+  <section data-slot="panel" style="flex-grow: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--background); overflow: hidden;">
+
+    <header style="height: 48px; box-sizing: border-box; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-bottom: 1px solid var(--border);">
+      <h2 style="margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 21.7px; font-weight: 600; letter-spacing: -0.35px;">Sources</h2>
+      <div style="margin-left: auto; flex-shrink: 0; display: flex; align-items: center; gap: 4px;">
+        <sc-if value="{{sheet}}" hint-placeholder-val="{{ false }}">
+          <a href="{{closeHref}}" aria-label="Close sources" title="Close sources" style="width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--foreground); text-decoration: none;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+          </a>
+        </sc-if>
+        <a href="AddSource.dc.html" aria-label="Add source" title="Add source" style="width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--foreground); text-decoration: none; font-size: 14px; font-weight: 500; line-height: 21.7px;">+</a>
+        <a href="SetSources.dc.html" aria-label="Source settings" title="Source settings" style="width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--foreground); text-decoration: none;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"></path><circle cx="12" cy="12" r="3"></circle></svg>
+        </a>
+      </div>
+    </header>
+
+    <div data-slot="panel-toolbar" style="height: 36px; box-sizing: border-box; flex-shrink: 0; display: flex; align-items: center; gap: 6px; padding: 0 8px; border-bottom: 1px solid var(--border);">
+      <span style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap;">
+        <span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 999px; background: {{modeDot}}; flex-shrink: 0;"></span>
+        <span>{{modeLabel}}</span>
+      </span>
+    </div>
+
+    <sc-for list="{{statusAlerts}}" as="a" hint-placeholder-count="1">
+      <div role="status" style="flex-shrink: 0; box-sizing: border-box; width: 100%; margin: 8px 0; display: grid; grid-template-columns: auto 1fr; align-items: start; column-gap: 12px; row-gap: 4px; padding: 10px 12px; border: 1px solid oklab(0.7196 0.0245448 0.137933 / 0.3); border-radius: 10px; background: oklch(0.2518 0.025 320.37); color: var(--foreground); font-size: 14px; line-height: 21.7px;">
+        <span style="grid-row: span 2; padding-top: 2px; color: var(--warning); display: flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></span>
+        <div style="grid-column-start: 2;">{{a.text}}</div>
+        <div style="grid-column-start: 2; margin-top: 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+          <button type="button" title="Retry status" style="height: 24px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 4px; cursor: pointer;">Retry status</button>
+        </div>
+      </div>
+    </sc-for>
+
+    <sc-if value="{{showSkeleton}}" hint-placeholder-val="{{ false }}">
+      <div role="status" aria-label="Loading source index and health" style="flex-shrink: 0; box-sizing: border-box; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+        <div aria-hidden="true" style="height: 32px; width: 100%; border-radius: 8px; background: var(--muted);"></div>
+        <div aria-hidden="true" style="height: 32px; width: 83.3333%; border-radius: 8px; background: var(--muted);"></div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{showEmpty}}" hint-placeholder-val="{{ false }}">
+      <div style="flex-shrink: 0; box-sizing: border-box; min-height: 160px; padding: 40px 24px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; text-wrap: balance;">
+        <div style="max-width: 384px; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: var(--muted); color: var(--muted-foreground); display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5V19A9 3 0 0 0 21 19V5"></path><path d="M3 12A9 3 0 0 0 21 12"></path></svg></div>
+          <div role="heading" aria-level="2" style="font-size: 14px; font-weight: 500; line-height: 21.7px; letter-spacing: -0.025em;">No indexed sources yet.</div>
+          <div style="color: var(--muted-foreground); font-size: 14px; line-height: 21.7px;">Configure a source, then run cortana sync.</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{showTree}}" hint-placeholder-val="{{ true }}">
+    <div style="flex-shrink: 0; padding: 10px 8px 21px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px;">
+      <sc-for list="{{sources}}" as="s" hint-placeholder-count="2">
+        <div style="display: flex; flex-direction: column;">
+          <div style="display: flex; align-items: center; height: 32px;">
+            <button type="button" aria-label="Collapse {{s.id}}" title="Collapse {{s.id}}" aria-expanded="true" style="width: 28px; height: 28px; border: 0; border-radius: 8px; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; color: var(--foreground); flex-shrink: 0;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+            </button>
+            <button type="button" aria-label="{{s.id}} {{s.count}}" aria-pressed="false" title="{{s.status}}" style="flex-grow: 1; min-width: 0; height: 32px; border: 0; border-radius: 8px; padding: 0 6px 0 0; margin-left: -1px; background: transparent; color: var(--foreground); font: inherit; font-weight: 500; text-align: left; display: flex; align-items: center;">
+              <span style="flex-grow: 1; min-width: 0; display: grid; grid-template-columns: 16px minmax(0, 1fr) 8px auto; column-gap: 5px; align-items: center; white-space: nowrap;">
+                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="{{s.fill}}" stroke="{{s.stroke}}" stroke-width="{{s.strokeWidth}}" stroke-linecap="round" stroke-linejoin="round"><path d="{{s.path}}"></path><path d="{{s.path2}}"></path><path d="{{s.path3}}"></path></svg>
+                <span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{s.name}}</span>
+                <span style="width: 8px; height: 8px; border-radius: 999px; background: {{s.dot}}; position: relative;"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;">{{s.status}}</span></span>
+                <small style="font-size: 11.2px; font-weight: 500; line-height: 17.36px;">{{s.count}}</small>
+              </span>
+            </button>
+          </div>
+          <span style="margin: 4px 6px -3px 38px; font-size: 11px; line-height: 17.05px; color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{s.detail}}</span>
+        </div>
+      </sc-for>
+    </div>
+    </sc-if>
+
+    <section aria-label="Document explorer" style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; padding: 10px 8px 8px;">
+      <div style="display: flex; align-items: center; gap: 8px; padding: 0 8px 8px; min-width: 0;">
+        <nav aria-label="Documents in {{crumbRoot}} / All sources" style="flex-grow: 1; min-width: 0; color: var(--muted-foreground);">
+          <ol style="margin: 0; padding: 0; list-style: none; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+            <li style="min-width: 0; display: flex; align-items: center;"><span style="overflow: hidden; text-overflow: ellipsis;">{{crumbRoot}}</span></li>
+            <li role="presentation" aria-hidden="true" style="display: flex; align-items: center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></li>
+            <li style="min-width: 0; display: flex; align-items: center;"><span aria-current="page" style="min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 500; color: var(--foreground);">All sources</span></li>
+          </ol>
+        </nav>
+        <span style="flex-shrink: 0; font-size: 12px; line-height: 18px; color: var(--muted-foreground);">{{loaded}} loaded</span>
+      </div>
+      <label style="height: 32px; flex-shrink: 0; box-sizing: border-box; border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; gap: 6px; padding: 0 10px; margin-bottom: 8px; position: relative;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg>
+        <span aria-label="Filter documents" style="flex-grow: 1; min-width: 0; position: relative; top: 1px; color: var(--muted-foreground); overflow: hidden; white-space: nowrap;">Filter documents</span>
+      </label>
+      <sc-if value="{{docsFailed}}" hint-placeholder-val="{{ false }}">
+        <div role="alert" style="flex-shrink: 0; box-sizing: border-box; width: 100%; margin: 8px 0; display: grid; grid-template-columns: auto 1fr; align-items: start; column-gap: 12px; row-gap: 4px; padding: 10px 12px; border: 1px solid oklab(0.7345 0.146417 0.0707175 / 0.3); border-radius: 10px; background: oklch(0.2538 0.0282 312.79); color: var(--foreground); font-size: 14px; line-height: 21.7px;">
+          <span style="grid-row: span 2; padding-top: 2px; color: var(--destructive); display: flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line></svg></span>
+          <div style="grid-column-start: 2;">Document list failed (502)</div>
+          <div style="grid-column-start: 2; margin-top: 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+            <button type="button" title="Retry documents" style="height: 24px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 4px; cursor: pointer;">Retry documents</button>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{docNote}}" hint-placeholder-val="{{ false }}">
+        <p style="flex-shrink: 0; margin: 0; padding: 7px 10px; font-size: 11px; line-height: 17.05px; color: var(--muted-foreground);">{{docNote}}</p>
+      </sc-if>
+      <sc-if value="{{hasDocs}}" hint-placeholder-val="{{ true }}">
+      <div role="listbox" aria-label="Documents" style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden;">
+          <sc-for list="{{docs}}" as="d" hint-placeholder-count="4">
+            <a href="KnowledgeDocument.dc.html" role="option" aria-selected="{{d.current}}" style="height: 28px; flex-shrink: 0; box-sizing: border-box; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 8px; background: {{d.bg}}; color: var(--foreground); text-decoration: none;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+              <span style="flex: 1 1 0%; min-width: 0; display: flex; align-items: center; gap: 10px;">
+                <span style="flex: 1 1 0%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{d.title}}</span>
+                <span style="flex-shrink: 0; max-width: 64px; font-size: 12px; line-height: 18px; color: {{d.sourceColor}}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{d.source}}</span>
+              </span>
+            </a>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{loadingMore}}" hint-placeholder-val="{{ false }}">
+        <div role="progressbar" aria-label="Loading more documents" style="flex-shrink: 0; width: 100%; display: flex; flex-direction: column; gap: 6px;">
+          <div style="position: relative; height: 6px; width: 100%; overflow: hidden; border-radius: 999px; background: var(--input);"><div style="height: 100%; width: 25%; border-radius: 999px; background: var(--primary);"></div></div>
+        </div>
+      </sc-if>
+      <sc-if value="{{loadMore}}" hint-placeholder-val="{{ false }}">
+        <button type="button" title="Load next page" style="flex-shrink: 0; width: calc(100% - 20px); height: 28px; box-sizing: border-box; margin: 10px; padding: 0 10px; border: 0; border-radius: 8px; background: var(--secondary); color: var(--foreground); font: inherit; font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer;">Load next page</button>
+      </sc-if>
+    </section>
+  </section>
+
+  <sc-if value="{{docked}}" hint-placeholder-val="{{ true }}">
+    <div role="separator" aria-label="Resize sources panel" style="width: 1px; flex-shrink: 0; align-self: stretch; background: var(--border);"></div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"workspace":{"editor":"enum","options":["Work","Personal"],"default":"Work"},"selected":{"editor":"int","default":-1,"min":-1,"max":3},"sheet":{"editor":"boolean","default":false},"state":{"editor":"enum","options":["default","status-failed","status-stale","docs-failed","empty","loading","load-more","loading-more"],"default":"default"},"width":{"editor":null,"default":270},"height":{"editor":null,"default":824},"closeHref":{"editor":null,"default":"KnowledgeEmpty.dc.html"},"$preview":{"width":270,"height":824}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const workspace = this.props.workspace ?? 'Work';
+    const selected = Number(this.props.selected ?? -1);
+    // sheet: the panel inside the phone/tablet "Sources and documents" sheet.
+    // Adds the Close sources button and drops the docked resize hairline.
+    const sheet = this.props.sheet === true || this.props.sheet === 'true';
+    // state: the request states SourcePanel.tsx can mount (all other props unchanged).
+    const state = this.props.state ?? 'default';
+    const is = (...names) => names.indexOf(state) >= 0;
+    const warn = 'oklch(0.7196 0.1401 79.91)';
+    const grey = 'oklch(0.6967 0.0057 298.74)';
+    const revalidate = 'Validation not yet completed; re-validate before recurring sync';
+    const brand = (id, name, path, count, chunks, status) => ({ id, name, fill: 'currentColor', stroke: 'none', strokeWidth: 0, path, path2: '', path3: '', count, status, detail: chunks + ' chunks · ' + status, dot: warn });
+    const work = [
+      { id: 'work-code', name: 'Files & code', fill: 'none', stroke: 'currentColor', strokeWidth: 2, path: 'm18 16 4-4-4-4', path2: 'm6 8-4 4 4 4', path3: 'm14.5 4-5 16', count: '1,105', status: 'Disabled; existing index remains queryable', detail: '33,150 chunks · Disabled; existing index remains queryable', dot: grey },
+      brand('team-slack', 'Slack', 'M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.527 2.527 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z', '623', '8,850', revalidate)
+    ];
+    const personal = [
+      brand('personal-gmail', 'Gmail', 'M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z', '2,763', '19,234', 'Last sync succeeded 7/29/2026, 2:38:00 PM; stale after 48h (age 1672h 19m); run sync'),
+      brand('personal-drive', 'Google Drive', 'M12.01 1.485c-2.082 0-3.754.02-3.743.047.01.02 1.708 3.001 3.774 6.62l3.76 6.574h3.76c2.081 0 3.753-.02 3.742-.047-.005-.02-1.708-3.001-3.775-6.62l-3.76-6.574zm-4.76 1.73a789.828 789.861 0 0 0-3.63 6.319L0 15.868l1.89 3.298 1.885 3.297 3.62-6.335 3.618-6.33-1.88-3.287C8.1 4.704 7.255 3.22 7.25 3.214zm2.259 12.653-.203.348c-.114.198-.96 1.672-1.88 3.287a423.93 423.948 0 0 1-1.698 2.97c-.01.026 3.24.042 7.222.042h7.244l1.796-3.157c.992-1.734 1.85-3.23 1.906-3.323l.104-.167h-7.249z', '1,982', '30,210', revalidate),
+      brand('personal-notes', 'Apple Notes', 'M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701', '312', '4,130', revalidate)
+    ];
+    // The demo lists the same four documents in both workspaces; ?demo=large lists 50 per two pages.
+    const large = is('load-more', 'loading-more');
+    const names = [['How do releases work?', 'work-drive'], ['Deployment playbook', 'work-code'], ['Slack: #releases — cadence', 'team-slack'], ['Incident response playbook', 'personal-notes']];
+    const cycle = ['work-drive', 'work-code', 'team-slack', 'personal-notes'];
+    const rows = large
+      ? Array.from({ length: 50 }, (_, i) => ['Large corpus document ' + String(i + 1).padStart(4, '0'), cycle[i % 4]])
+      : (is('status-failed', 'status-stale', 'default') ? names : []);
+    const docs = rows.map(([title, source], i) => ({
+      title, source,
+      current: i === selected ? 'true' : 'false',
+      bg: i === selected ? 'oklch(0.7323 0.1668 301.69 / 0.16)' : 'transparent',
+      sourceColor: i === selected ? 'oklch(0.942 0.0054 297.72)' : 'oklch(0.6967 0.0057 298.74)'
+    }));
+    const statusText = state === 'status-failed' ? 'Status request failed (502)' : 'Status request failed (502) Showing the last known source index.';
+    return {
+      workspace,
+      sheet,
+      docked: !sheet,
+      regionRole: sheet ? 'none' : 'region',
+      regionLabel: sheet ? 'Sources' : 'Sources and documents',
+      closeHref: this.props.closeHref ?? 'KnowledgeEmpty.dc.html',
+      width: Number(this.props.width ?? 270),
+      height: Number(this.props.height ?? 824),
+      sources: workspace === 'Personal' ? personal : work,
+      docs,
+      modeLabel: state === 'status-failed' ? 'Ingestion status unavailable' : state === 'loading' ? 'Ingestion loading status…' : 'Ingestion paused · manual only',
+      modeDot: is('status-failed', 'status-stale') ? warn : grey,
+      statusAlerts: is('status-failed', 'status-stale') ? [{ text: statusText }] : [],
+      showSkeleton: state === 'loading',
+      showEmpty: state === 'empty',
+      showTree: !is('status-failed', 'loading', 'empty'),
+      crumbRoot: is('status-failed', 'loading') ? 'Documents' : workspace,
+      loaded: large ? 50 : (is('default', 'status-failed', 'status-stale') ? docs.length : 0),
+      docsFailed: state === 'docs-failed',
+      docNote: state === 'empty' ? 'No documents match this scope.' : state === 'loading' ? 'Loading documents…' : '',
+      hasDocs: docs.length > 0,
+      loadingMore: state === 'loading-more',
+      loadMore: state === 'load-more'
+    };
+  }
+}
+</script>
+</body>
+</html>

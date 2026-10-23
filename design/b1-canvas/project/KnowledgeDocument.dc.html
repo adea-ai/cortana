@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Knowledge · Document</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); --primary: oklch(0.7323 0.1668 301.69); width: 1440px; height: 900px; display: flex; flex-direction: column; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 1.55; text-rendering: optimizeLegibility; overflow: hidden;">
+  <dc-import name="Header" location="Knowledge" workspace="Work" hint-size="1440px,48px"></dc-import>
+  <div style="flex-grow: 1; min-height: 0; display: flex;">
+    <dc-import name="Rail" active="knowledge" height="852" hint-size="56px,852px"></dc-import>
+    <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column;">
+      <div style="flex-grow: 1; min-height: 0; display: flex;">
+        <dc-import name="SourcesPanel" workspace="Work" selected="0" height="824" hint-size="270px,824px"></dc-import>
+
+        <main id="main-content" style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; background: var(--background); color: var(--foreground); overflow: hidden;">
+          <div role="tablist" aria-label="Result views" style="margin-top: 16px; height: 32px; box-sizing: border-box; padding: 0; flex-shrink: 0; display: flex; align-items: center; justify-content: flex-start; gap: 4px; border-bottom: 1px solid var(--border);">
+            <a role="tab" aria-selected="true" href="KnowledgeDocument.dc.html" style="height: 32px; box-sizing: border-box; padding: 0 8px 8px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid var(--primary); color: var(--foreground); font-size: 14px; font-weight: 500; line-height: 21.7px; white-space: nowrap; text-decoration: none;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v16"></path><path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"></path></svg>
+              Document
+              <span style="height: 20px; box-sizing: border-box; padding: 0 8px; border: 1px solid transparent; border-radius: 8px; background: var(--card); color: var(--foreground); font-size: 12px; font-weight: 500; line-height: 18px; display: inline-flex; align-items: center; justify-content: center;">1</span>
+            </a>
+          </div>
+          <article style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column;">
+            <header style="height: 48px; box-sizing: border-box; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-bottom: 1px solid var(--border);">
+              <nav aria-label="Document path" style="flex-grow: 1; min-width: 0;">
+                <ol style="margin: 0; padding: 0; list-style: none; display: flex; align-items: center; gap: 6px; white-space: nowrap; color: var(--muted-foreground); font-size: 14px; line-height: 21.7px;">
+                  <li>Brain</li>
+                  <li role="presentation" aria-hidden="true" style="display: flex;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></li>
+                  <li>demo</li>
+                  <li role="presentation" aria-hidden="true" style="display: flex;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></li>
+                  <li>work-drive</li>
+                  <li role="presentation" aria-hidden="true" style="display: flex;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></li>
+                  <li style="min-width: 0;"><span aria-current="page" style="display: block; overflow: hidden; text-overflow: ellipsis; color: var(--foreground); font-weight: 500;">How do releases work?</span></li>
+                </ol>
+              </nav>
+              <div style="flex-shrink: 0; display: flex; align-items: center; gap: 4px;">
+                <button type="button" aria-label="Add favorite" title="Add favorite" aria-pressed="false" style="width: 28px; height: 28px; box-sizing: border-box; padding: 0; border: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: transparent; color: var(--foreground); cursor: pointer;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"></path></svg>
+                </button>
+                <a href="#" aria-label="Open original source" title="Open original source" style="width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--foreground);">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 17H7A5 5 0 0 1 7 7h2"></path><path d="M15 7h2a5 5 0 1 1 0 10h-2"></path><line x1="8" x2="16" y1="12" y2="12"></line></svg>
+                </a>
+              </div>
+            </header>
+            <div style="width: 100%; max-width: 940px; box-sizing: border-box; margin: 0 auto; padding: 32px 34px 70px; display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 30px;">
+              <div style="min-width: 0; display: flex; flex-direction: column;">
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.6px;">How do releases work?</h1>
+                  <p style="margin: 0; color: var(--muted-foreground); font-size: 12px; line-height: 18px;">demo · work-drive · 7/28/2026, 2:42:00 PM · 1 indexed chunks</p>
+                </div>
+                <div aria-label="Document security and provenance" style="margin-top: 12px; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px;">
+                  <span style="height: 20px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--foreground); font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 4px;">Workspace: demo</span>
+                  <span style="height: 20px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--foreground); font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 4px;">Source ID: release-process</span>
+                  <span style="height: 20px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--foreground); font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 4px;">ACL: public</span>
+                </div>
+                <div role="group" aria-label="Document copy actions" style="height: 36px; display: flex; align-items: flex-start; gap: 8px;">
+                  <button type="button" title="Copy content" style="height: 28px; box-sizing: border-box; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap; cursor: pointer;">Copy content</button>
+                  <button type="button" title="Copy citation" style="height: 28px; box-sizing: border-box; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap; cursor: pointer;">Copy citation</button>
+                </div>
+                <div aria-hidden="true" style="height: 1px; margin-top: 24px; background: var(--border);"></div>
+                <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 20px; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;">
+                  <p style="margin: 0; font-size: 14px; line-height: 21.7px;">Our releases follow trunk-based development with short-lived feature branches and automated delivery from main.</p>
+                  <p style="margin: 0; font-size: 14px; line-height: 21.7px;">Plan against the roadmap, build behind feature flags, validate the pull request, then cut and monitor the release. Roll back to the previous stable tag if health checks regress.</p>
+                </div>
+              </div>
+              <aside style="min-width: 0; padding: 8px 0 0 20px; border-left: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
+                <p style="margin: 0; font-size: 14px; font-weight: 500; line-height: 21.7px;">Indexed document</p>
+                <p style="margin: 0; color: var(--muted-foreground); font-size: 12px; line-height: 18px;">290 characters</p>
+                <p style="margin: 0; color: var(--muted-foreground); font-size: 12px; line-height: 18px;">1 retrieval chunks</p>
+                <p style="margin: 0; color: var(--muted-foreground); font-size: 12px; line-height: 18px;">work-drive</p>
+                <p title="release-process" style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted-foreground); font-size: 12px; line-height: 18px;">release-process</p>
+                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex-shrink: 0; margin: 34px auto 6px;"><path d="M12 5v16"></path><path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"></path></svg>
+                <p style="margin: 0; color: var(--muted-foreground); font-size: 12px; line-height: 18px; text-align: center;">Canonical content protected by workspace ACLs</p>
+              </aside>
+            </div>
+          </article>
+        </main>
+
+        <dc-import name="ContextPanel" mode="idle" height="824" hint-size="350px,824px"></dc-import>
+      </div>
+      <dc-import name="StatusBar" hint-size="1384px,28px"></dc-import>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

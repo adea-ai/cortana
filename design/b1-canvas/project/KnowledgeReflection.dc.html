@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Knowledge · Reflection</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); --primary: oklch(0.7323 0.1668 301.69); width: 1440px; height: {{h}}px; display: flex; flex-direction: column; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 1.55; text-rendering: optimizeLegibility; overflow: hidden;">
+  <dc-import name="Header" location="Knowledge" workspace="Work" hint-size="1440px,48px"></dc-import>
+  <div style="flex-grow: 1; min-height: 0; display: flex;">
+    <dc-import name="Rail" active="knowledge" height="{{railH}}" hint-size="56px,962px"></dc-import>
+    <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column;">
+      <div style="flex-grow: 1; min-height: 0; display: flex;">
+        <dc-import name="SourcesPanel" workspace="Work" selected="-1" height="{{panelH}}" hint-size="270px,934px"></dc-import>
+
+        <main id="main-content" style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; background: var(--background); color: var(--foreground); overflow: hidden;">
+          <div role="tablist" aria-label="Result views" style="margin-top: 16px; height: 32px; box-sizing: border-box; padding: 0; flex-shrink: 0; display: flex; align-items: center; justify-content: flex-start; gap: 4px; border-bottom: 1px solid var(--border);">
+            <a role="tab" aria-selected="true" href="KnowledgeAnswer.dc.html" style="height: 32px; box-sizing: border-box; padding: 0 8px 8px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid var(--primary); color: var(--foreground); font-size: 14px; font-weight: 500; line-height: 21.7px; white-space: nowrap; text-decoration: none;">
+              <img src="/_blob/a12ad60e44575d56970c6b8a31e281b4" alt="" style="width: 16px; height: 16px;">
+              Answer
+              
+            </a>
+            <a role="tab" aria-selected="false" href="KnowledgeDocument.dc.html" style="height: 32px; box-sizing: border-box; padding: 0 8px 8px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; color: var(--foreground); font-size: 14px; font-weight: 500; line-height: 21.7px; white-space: nowrap; text-decoration: none;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v16"></path><path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"></path></svg>
+              Document
+              
+            </a>
+            <a role="tab" aria-selected="false" href="KnowledgeEvidence.dc.html" style="height: 32px; box-sizing: border-box; padding: 0 8px 8px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; color: var(--foreground); font-size: 14px; font-weight: 500; line-height: 21.7px; white-space: nowrap; text-decoration: none;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+              Evidence
+            </a>
+            <a role="tab" aria-selected="false" href="KnowledgeTimeline.dc.html" style="height: 32px; box-sizing: border-box; padding: 0 8px 8px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; color: var(--foreground); font-size: 14px; font-weight: 500; line-height: 21.7px; white-space: nowrap; text-decoration: none;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l4 2"></path></svg>
+              Timeline
+              
+            </a>
+          </div>
+          <article aria-label="Derived memory reflection" style="max-width: 820px; box-sizing: border-box; padding: 56px 54px 80px; display: flow-root;">
+            <span style="display: flex; align-items: center; gap: 7px; color: var(--muted-foreground); font-size: 11px; font-weight: 500; line-height: 15.95px; letter-spacing: 0.275px; text-transform: uppercase;">Derived reflection · not canonical memory</span>
+            <h1 style="margin: 17px 0 8px; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.6px;">How do releases work?</h1>
+            <div role="alert" style="box-sizing: border-box; padding: 10px 12px 14px; border: 1px solid oklch(0.7196 0.1401 79.91 / 0.3); border-radius: 10px; background: oklch(0.2518 0.025 320.37); display: flex; align-items: flex-start; gap: 12px;">
+              <span style="padding-top: 2px; display: flex; flex-shrink: 0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="oklch(0.7196 0.1401 79.91)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></span>
+              <div style="min-width: 0; flex-grow: 1;">completed· deterministic· memory revision 1</div>
+            </div>
+            <div style="margin: 22px 0 30px; padding: 22px 24px; border-left: 3px solid var(--primary); background: var(--card); display: flex; flex-direction: column; gap: 15px;">
+              <section style="padding: 12px 0; display: flex; flex-direction: column; gap: 6px;">
+                <p style="margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 21.7px;">Use exact checks and current release evidence before declaring readiness.</p>
+                <span style="color: var(--muted-foreground); font-size: 12px; line-height: 18px;">Supporting memory: demo-canonical-memory</span>
+              </section>
+              <section style="padding: 12px 0; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px;">
+                <p style="margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 21.7px;">Release decisions prioritize reproducible evidence.</p>
+                <span style="color: var(--muted-foreground); font-size: 12px; line-height: 18px;">Supporting memory: demo-canonical-memory</span>
+              </section>
+            </div>
+            <section aria-label="Reflection chronology" style="margin: 28px 0 8px; padding: 18px 20px; border-left: 3px solid var(--primary); background: var(--card);">
+              <h2 style="margin: 0 0 12px; font-size: 14px; font-weight: 600; line-height: 21.7px;">Chronology</h2>
+              <p style="margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 21.7px;">2026-08-28T12:00:00Z · Evidence-backed release decisions · supporting memory demo-canonical-memory</p>
+            </section>
+            <section aria-label="Review-only proposed memories" style="margin: 28px 0 8px; padding: 18px 20px; border-left: 3px solid var(--primary); background: var(--card);">
+              <h2 style="margin: 0 0 12px; font-size: 14px; font-weight: 600; line-height: 21.7px;">Proposed memories requiring approval</h2>
+              <article style="padding: 12px 0; display: flex; flex-direction: column; gap: 6px;">
+                <h3 style="margin: 0; font-size: 14px; font-weight: 600; line-height: 21.7px;">Release validation preference</h3>
+                <p style="margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 21.7px;">Require the complete validation gate before merging release changes.</p>
+                <span style="color: var(--muted-foreground); font-size: 12px; line-height: 18px;">preference · durable · workspace · support demo-canonical-memory</span>
+              </article>
+            </section>
+            <p style="margin: 20px 0 30px; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; color: var(--muted-foreground); font-size: 14px; line-height: 21.7px;">1 memories included · canonical memory unchanged</p>
+          </article>
+        </main>
+
+        <dc-import name="ContextPanel" mode="idle" height="{{panelH}}" hint-size="350px,934px"></dc-import>
+      </div>
+      <dc-import name="StatusBar" hint-size="1384px,28px"></dc-import>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"height":{"editor":null,"default":1010},"$preview":{"width":1440,"height":1010}}'>
+// Reflection result for "How do releases work?". The app's demo mode has no /v1/memory/reflect data
+// ("Reflection failed"), so the copy is the app's own demo memory (demo-canonical-memory) served through the
+// ReflectResponse contract (memory-reflection.v1) as ReflectionView renders it.
+class Component extends DCLogic {
+  renderVals() {
+    const h = Number(this.props.height ?? 1010);
+    return { h, railH: h - 48, panelH: h - 76 };
+  }
+}
+</script>
+</body>
+</html>

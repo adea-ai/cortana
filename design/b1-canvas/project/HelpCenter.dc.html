@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Help Center</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --muted: oklch(0.2106 0.0076 300.91); --popover: oklch(0.2406 0.0088 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); --scrim: oklch(0.1919 0.025 264.7); position: relative; width: 1440px; height: 900px; overflow: hidden; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 1.55;">
+  <dc-import name="KnowledgeEmpty" hint-size="1440px,900px"></dc-import>
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: oklch(0.1919 0.025 264.7 / 0.5); backdrop-filter: blur(4px);"></div>
+
+  <!-- Dialog max-w-md (448), centered; opened from User settings › Help Center over the current view -->
+  <div role="dialog" aria-labelledby="help-title" style="position: absolute; left: 496px; top: 158.3px; width: 448px; box-sizing: border-box; padding: 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--background); box-shadow: 0 12px 28px oklch(0 0 0 / 0.35); display: flex; flex-direction: column; gap: 16px;">
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <h2 id="help-title" style="margin: 0; font-size: 16px; line-height: 16px; font-weight: 600; letter-spacing: -0.4px;">Help Center</h2>
+      <p style="margin: 0; color: var(--muted-foreground);">Keyboard shortcuts and resources for Cortana.</p>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 20px; min-width: 0;">
+      <section style="display: flex; flex-direction: column; gap: 16px; padding: 16px 0; border: 1px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: 0 1px 2px oklch(0 0 0 / 0.2);">
+        <div style="padding: 0 16px;"><h2 style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 600;">Keyboard shortcuts</h2></div>
+        <ul style="margin: 0; padding: 0 16px; list-style: none; display: flex; flex-direction: column; gap: 12px;">
+          <sc-for list="{{shortcuts}}" as="s" hint-placeholder-count="4">
+            <li style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;">
+              <span>{{s.label}}</span>
+              <span style="display: inline-flex; align-items: center; gap: 4px;">
+                <sc-for list="{{s.keys}}" as="k" hint-placeholder-count="2">
+                  <kbd style="min-width: 20px; height: 20px; box-sizing: border-box; padding: 0 4px; border: 1px solid var(--border); border-radius: 6px; background: var(--muted); color: var(--foreground); font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; line-height: 18px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center;">{{k}}</kbd>
+                </sc-for>
+              </span>
+            </li>
+          </sc-for>
+        </ul>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: 16px; padding: 16px 0; border: 1px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: 0 1px 2px oklch(0 0 0 / 0.2);">
+        <div style="padding: 0 16px;"><h2 style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 600;">Project links</h2></div>
+        <ul style="margin: 0; padding: 0 16px; list-style: none; display: flex; flex-direction: column; gap: 16px;">
+          <sc-for list="{{links}}" as="l" hint-placeholder-count="3">
+            <li style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0;">
+              <a href="{{l.href}}" style="height: 28px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: var(--foreground); font-size: 12px; line-height: 18px; font-weight: 500; white-space: nowrap; text-decoration: none;">
+                {{l.label}}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>
+              </a>
+              <p style="margin: 0; color: var(--muted-foreground);">{{l.desc}}</p>
+            </li>
+          </sc-for>
+        </ul>
+      </section>
+    </div>
+
+    <a href="KnowledgeEmpty.dc.html" aria-label="Close" style="position: absolute; right: 14px; top: 14px; width: 24px; height: 24px; box-sizing: border-box; padding: 4px; border-radius: 8px; color: var(--muted-foreground); display: flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      shortcuts: [
+        { label: 'Focus the search bar', keys: ['Ctrl', 'K'] },
+        { label: 'Toggle the command palette', keys: ['Ctrl', 'P'] },
+        { label: 'Open the document filter', keys: ['Ctrl', '⇧', 'F'] },
+        { label: 'Close panels and the palette', keys: ['Esc'] }
+      ],
+      links: [
+        { label: 'GitHub project', href: 'https://github.com/adea-ai/cortana', desc: 'Source, releases, and issues.' },
+        { label: 'Documentation', href: 'https://github.com/adea-ai/cortana/tree/main/docs', desc: 'Architecture, ingestion, query, and operations guides.' },
+        { label: 'Release notes', href: 'https://github.com/adea-ai/cortana/releases', desc: 'What changed in every shipped version.' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

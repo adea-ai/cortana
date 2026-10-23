@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Agent tools · Context copied</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); --primary: oklch(0.7323 0.1668 301.69); --primary-foreground: oklch(0.1756 0.0063 300.91); --warning: oklch(0.7196 0.1401 79.91); --destructive: oklch(0.7345 0.1626 25.78); --info: oklch(0.7555 0.1155 202.14); --success: oklch(0.6951 0.1809 145.62); width: 1440px; height: 900px; display: flex; flex-direction: column; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 1.55; text-rendering: optimizeLegibility; overflow: hidden;">
+  <dc-import name="Header" location="Agent tools" workspace="Work" hint-size="1440px,48px"></dc-import>
+  <div style="flex-grow: 1; min-height: 0; display: flex;">
+    <dc-import name="Rail" active="agent-tools" height="852" hint-size="56px,852px"></dc-import>
+    <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column;">
+      <main id="main-content" style="flex-grow: 1; min-height: 0; overflow: hidden; background: var(--background); display: flex; flex-direction: column;">
+        <header style="flex-shrink: 0; padding: 20px 20px 16px; display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px 16px;">
+          <div style="min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+            <span style="display: block; font-size: 11px; font-weight: 500; line-height: 1.45; letter-spacing: 0.275px; text-transform: uppercase; color: var(--muted-foreground);">Retrieval</span>
+            <h1 style="margin: 0; font-size: 20px; font-weight: 600; line-height: 1.35; letter-spacing: -0.5px;">Agent tools</h1>
+            <p style="margin: 0; color: var(--muted-foreground); line-height: 1.55;">The token-bounded context bundle generated for the current conversation.</p>
+          </div>
+        </header>
+        <div role="separator" style="flex-shrink: 0; height: 1px; background: var(--border);"></div>
+        <div style="box-sizing: border-box; padding: 20px 20px 56px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 28px;">
+          <section aria-labelledby="gen-ctx" style="display: flex; flex-direction: column; gap: 12px;">
+            <h2 id="gen-ctx" style="margin: 0; font-size: 18px; font-weight: 600; line-height: 1.4; letter-spacing: -0.45px;">Generated context</h2>
+            <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;">
+              <div style="min-width: 0; box-sizing: border-box; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); display: flex; flex-direction: column; gap: 4px;">
+                <div style="font-size: 12px; font-weight: 500; line-height: 1.5; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Retrieval</div>
+                <div style="display: flex; align-items: baseline; gap: 4px;"><span style="font-size: 20px; font-weight: 600; line-height: 1.35; letter-spacing: -0.5px; font-variant-numeric: tabular-nums;">hybrid</span></div>
+              </div>
+              <div style="min-width: 0; box-sizing: border-box; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); display: flex; flex-direction: column; gap: 4px;">
+                <div style="font-size: 12px; font-weight: 500; line-height: 1.5; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Retrieved</div>
+                <div style="display: flex; align-items: baseline; gap: 4px;"><span style="font-size: 20px; font-weight: 600; line-height: 1.35; letter-spacing: -0.5px; font-variant-numeric: tabular-nums;">4</span></div>
+              </div>
+              <div style="min-width: 0; box-sizing: border-box; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); display: flex; flex-direction: column; gap: 4px;">
+                <div style="font-size: 12px; font-weight: 500; line-height: 1.5; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Included</div>
+                <div style="display: flex; align-items: baseline; gap: 4px;"><span style="font-size: 20px; font-weight: 600; line-height: 1.35; letter-spacing: -0.5px; font-variant-numeric: tabular-nums;">4</span></div>
+              </div>
+              <div style="min-width: 0; box-sizing: border-box; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); display: flex; flex-direction: column; gap: 4px;">
+                <div style="font-size: 12px; font-weight: 500; line-height: 1.5; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Omitted</div>
+                <div style="display: flex; align-items: baseline; gap: 4px;"><span style="font-size: 20px; font-weight: 600; line-height: 1.35; letter-spacing: -0.5px; font-variant-numeric: tabular-nums;">0</span></div>
+              </div>
+              <div style="min-width: 0; box-sizing: border-box; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); display: flex; flex-direction: column; gap: 4px;">
+                <div style="font-size: 12px; font-weight: 500; line-height: 1.5; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Native memory</div>
+                <div style="display: flex; align-items: baseline; gap: 4px;"><span style="font-size: 20px; font-weight: 600; line-height: 1.35; letter-spacing: -0.5px; font-variant-numeric: tabular-nums;">0</span></div>
+              </div>
+              <div style="min-width: 0; box-sizing: border-box; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); display: flex; flex-direction: column; gap: 4px;">
+                <div style="font-size: 12px; font-weight: 500; line-height: 1.5; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Estimated tokens</div>
+                <div style="display: flex; align-items: baseline; gap: 4px;"><span style="font-size: 20px; font-weight: 600; line-height: 1.35; letter-spacing: -0.5px; font-variant-numeric: tabular-nums;">311</span></div>
+              </div>
+              <div style="min-width: 0; box-sizing: border-box; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); display: flex; flex-direction: column; gap: 4px;">
+                <div style="font-size: 12px; font-weight: 500; line-height: 1.5; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Max tokens</div>
+                <div style="display: flex; align-items: baseline; gap: 4px;"><span style="font-size: 20px; font-weight: 600; line-height: 1.35; letter-spacing: -0.5px; font-variant-numeric: tabular-nums;">8,000</span></div>
+              </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div style="display: flex; align-items: flex-start; gap: 10px; padding: 6px 8px; border-radius: 8px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+                <span style="min-width: 0; flex-grow: 1; display: flex; flex-direction: column;">
+                  <span style="display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.55;">How do releases work?</span>
+                  <span style="display: block; font-size: 12px; line-height: 1.5; color: var(--muted-foreground);">work-drive · score 0.98</span>
+                </span>
+              </div>
+              <div style="display: flex; align-items: flex-start; gap: 10px; padding: 6px 8px; border-radius: 8px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+                <span style="min-width: 0; flex-grow: 1; display: flex; flex-direction: column;">
+                  <span style="display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.55;">Deployment playbook</span>
+                  <span style="display: block; font-size: 12px; line-height: 1.5; color: var(--muted-foreground);">work-code · score 0.91</span>
+                </span>
+              </div>
+              <div style="display: flex; align-items: flex-start; gap: 10px; padding: 6px 8px; border-radius: 8px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+                <span style="min-width: 0; flex-grow: 1; display: flex; flex-direction: column;">
+                  <span style="display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.55;">Slack: #releases — cadence</span>
+                  <span style="display: block; font-size: 12px; line-height: 1.5; color: var(--muted-foreground);">team-slack · score 0.84</span>
+                </span>
+              </div>
+              <div style="display: flex; align-items: flex-start; gap: 10px; padding: 6px 8px; border-radius: 8px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+                <span style="min-width: 0; flex-grow: 1; display: flex; flex-direction: column;">
+                  <span style="display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.55;">Incident response playbook</span>
+                  <span style="display: block; font-size: 12px; line-height: 1.5; color: var(--muted-foreground);">personal-notes · score 0.78</span>
+                </span>
+              </div>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <button type="button" aria-label="Copy MCP-equivalent context" style="height: 28px; box-sizing: border-box; padding: 0 10px; border: 0; border-radius: 8px; background: var(--card); color: var(--foreground); font: inherit; font-size: 12px; font-weight: 500; line-height: 1.5; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; text-decoration: none; cursor: pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M20 6 9 17l-5-5"></path></svg>Context copied</button>
+            </div>
+          </section>
+          <section aria-labelledby="ctx-win" style="display: flex; flex-direction: column; gap: 12px;">
+            <h2 id="ctx-win" style="margin: 0; font-size: 18px; font-weight: 600; line-height: 1.4; letter-spacing: -0.45px;">Agent context window</h2>
+            <div style="box-sizing: border-box; padding: 12px 0; border: 1px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: 0 1px 2px oklch(0 0 0 / 0.2); display: flex; flex-direction: column; gap: 12px;">
+              <div style="padding: 0 12px; display: flex; flex-direction: column; gap: 12px;">
+                <p style="margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.55; white-space: pre-wrap;">~311 tokens assembled from the active query and 4 cited passages.</p>
+                <p style="margin: 0; font-size: 12px; line-height: 1.5; color: var(--muted-foreground);">The window is rebuilt locally from the current session state and never leaves this machine.</p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+      <dc-import name="StatusBar" hint-size="1384px,28px"></dc-import>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

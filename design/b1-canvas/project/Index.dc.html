@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Index</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); --primary: oklch(0.7323 0.1668 301.69); width: 1440px; height: 900px; display: flex; flex-direction: column; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 1.55; overflow: hidden;">
+  <dc-import name="Header" location="Index" workspace="Work" hint-size="1440px,48px"></dc-import>
+  <div style="flex-grow: 1; min-height: 0; display: flex;">
+    <dc-import name="Rail" active="none" height="852" hint-size="56px,852px"></dc-import>
+    <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column;">
+      <main id="main-content" style="flex-grow: 1; min-height: 0; overflow: hidden; background: var(--background); display: flex; flex-direction: column;">
+        <header style="flex-shrink: 0; padding: 20px 20px 16px; display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px 16px;">
+          <div style="min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+            <span style="display: block; font-size: 11px; font-weight: 500; line-height: 15.95px; letter-spacing: 0.275px; text-transform: uppercase; color: var(--muted-foreground);">Brain</span>
+            <h1 style="margin: 0; font-size: 20px; font-weight: 600; line-height: 27px; letter-spacing: -0.5px;">Index</h1>
+            <p style="margin: 0; color: var(--muted-foreground); line-height: 21.7px;">Live document, chunk, source, and cache metrics reported by the brain.</p>
+          </div>
+        </header>
+        <div role="separator" style="flex-shrink: 0; height: 1px; background: var(--border);"></div>
+        <div style="box-sizing: border-box; padding: 20px 20px 56px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 28px;">
+          <section aria-labelledby="live-metrics" style="display: flex; flex-direction: column; gap: 12px;">
+            <h2 id="live-metrics" style="margin: 0; font-size: 18px; font-weight: 600; line-height: 25.2px; letter-spacing: -0.45px;">Live metrics</h2>
+            <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;">
+              <sc-for list="{{metrics}}" as="m" hint-placeholder-count="11">
+                <div style="min-width: 0; box-sizing: border-box; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); display: flex; flex-direction: column; gap: 4px;">
+                  <div style="font-size: 12px; font-weight: 500; line-height: 18px; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{m.label}}</div>
+                  <div style="display: flex; align-items: baseline; gap: 4px;"><span style="font-size: 20px; font-weight: 600; line-height: 27px; letter-spacing: -0.5px; font-variant-numeric: tabular-nums;">{{m.value}}</span></div>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+
+          <section aria-labelledby="config" style="display: flex; flex-direction: column; gap: 12px;">
+            <h2 id="config" style="margin: 0; font-size: 18px; font-weight: 600; line-height: 25.2px; letter-spacing: -0.45px;">Configuration</h2>
+            <table aria-label="Index configuration" style="width: 100%; border-collapse: collapse; font-family: inherit; font-size: 14px; line-height: 21.7px; color: var(--foreground);">
+              <tbody>
+                <tr style="border-bottom: 1px solid var(--border);">
+                  <th scope="row" style="height: 36px; padding: 0 12px; text-align: start; vertical-align: middle; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--muted-foreground); white-space: nowrap;">Embedding</th>
+                  <td style="padding: 8px 12px; vertical-align: middle; overflow-wrap: anywhere;">openai-compatible:Qwen/Qwen3-Embedding-0.6B:1024</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border);">
+                  <th scope="row" style="height: 36px; padding: 0 12px; text-align: start; vertical-align: middle; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--muted-foreground); white-space: nowrap;">Query mode</th>
+                  <td style="padding: 8px 12px; vertical-align: middle; overflow-wrap: anywhere;">synthesized</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border);">
+                  <th scope="row" style="height: 36px; padding: 0 12px; text-align: start; vertical-align: middle; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--muted-foreground); white-space: nowrap;">Ingestion</th>
+                  <td style="padding: 8px 12px; vertical-align: middle; overflow-wrap: anywhere;">manual · manual</td>
+                </tr>
+                <tr style="">
+                  <th scope="row" style="height: 36px; padding: 0 12px; text-align: start; vertical-align: middle; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--muted-foreground); white-space: nowrap;">Workspaces</th>
+                  <td style="padding: 8px 12px; vertical-align: middle; overflow-wrap: anywhere;">3</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <div style="grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px;">
+            <a href="SetSources.dc.html" title="Review configuration and resolve setup requirements." style="height: 28px; box-sizing: border-box; padding: 0 10px; border: 0; border-radius: 8px; background: var(--card); color: var(--foreground); font: inherit; font-size: 12px; font-weight: 500; line-height: 18px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; text-decoration: none; cursor: pointer;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              Open settings
+            </a>
+          </div>
+        </div>
+      </main>
+      <dc-import name="StatusBar" hint-size="1384px,28px"></dc-import>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      metrics: [
+        { label: 'Documents', value: '9,834' },
+        { label: 'Chunks', value: '128,412' },
+        { label: 'Sources', value: '7' },
+        { label: 'Embedding cache', value: '42,891 entries' },
+        { label: 'Embedding cache hits', value: '10,642' },
+        { label: 'Query cache', value: '328 entries' },
+        { label: 'Query cache hits', value: '971' },
+        { label: 'Retrieval fallbacks', value: '0' },
+        { label: 'Answers total', value: '1,324' },
+        { label: 'Native memory', value: '42 active · 50 total' },
+        { label: 'Expired memory', value: '0' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

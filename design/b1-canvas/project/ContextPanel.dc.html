@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cortana agent context panel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div role="{{regionRole}}" aria-label="Agent context" style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); --primary: oklch(0.7323 0.1668 301.69); --primary-foreground: oklch(0.1756 0.0063 300.91); --destructive: oklch(0.7345 0.1626 25.78); width: {{width}}px; height: {{height}}px; box-sizing: border-box; flex-shrink: 0; display: flex; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 1.55; overflow: hidden;">
+
+  <sc-if value="{{docked}}" hint-placeholder-val="{{ true }}">
+    <div role="separator" aria-label="Resize context panel" style="width: 1px; flex-shrink: 0; align-self: stretch; background: var(--border);"></div>
+  </sc-if>
+
+  <section data-slot="panel" style="flex-grow: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--background); overflow: hidden;">
+
+    <header style="height: 49px; box-sizing: border-box; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-bottom: 1px solid var(--border);">
+      <h2 style="margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 21.7px; font-weight: 600; letter-spacing: -0.35px;">Agent context</h2>
+      <sc-if value="{{sheet}}" hint-placeholder-val="{{ false }}">
+        <div style="margin-left: auto; flex-shrink: 0; display: flex; align-items: center; gap: 4px;">
+          <a href="{{closeHref}}" aria-label="Close agent context" title="Close agent context" style="width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--foreground); text-decoration: none;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+          </a>
+        </div>
+      </sc-if>
+    </header>
+
+    <div data-slot="panel-body" style="flex-grow: 1; min-height: 0; box-sizing: border-box; padding: 12px; display: flex; flex-direction: column; gap: 16px; overflow: hidden;">
+
+      <div style="flex-shrink: 0; box-sizing: border-box; border: 1px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: 0 1px 2px 0 oklch(0 0 0 / 0.2); padding: 12px 0; display: flex; flex-direction: column;">
+        <div style="padding: 0 12px; display: flex; flex-direction: column; gap: 4px;">
+          <span style="font-size: 11px; font-weight: 500; line-height: 15.95px; letter-spacing: 0.275px; text-transform: uppercase; color: var(--muted-foreground);">Query</span>
+          <p style="margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 21.7px;">How do releases work?</p>
+        </div>
+      </div>
+
+      <sc-if value="{{answered}}" hint-placeholder-val="{{ true }}">
+        <section aria-label="Retrieval diagnostics" style="flex-shrink: 0; display: flex; flex-direction: column; gap: 8px;">
+          <h3 style="margin: 0; font-size: 14px; font-weight: 600; line-height: 21.7px;">Retrieval diagnostics</h3>
+          <dl style="margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; align-items: baseline;">
+            <dt style="color: var(--muted-foreground); white-space: nowrap;">Mode</dt><dd style="margin: 0;">synthesized</dd>
+            <dt style="color: var(--muted-foreground); white-space: nowrap;">Latency</dt><dd style="margin: 0;">184 ms</dd>
+            <dt style="color: var(--muted-foreground); white-space: nowrap;">Planned queries</dt><dd style="margin: 0;">3</dd>
+            <dt style="color: var(--muted-foreground); white-space: nowrap;">Evidence</dt><dd style="margin: 0;">4</dd>
+          </dl>
+          <ol style="margin: 0; padding: 0 0 0 20px; list-style: decimal; color: var(--muted-foreground);">
+            <li><span style="font-size: 12px; line-height: 18px;">How do releases work?</span></li>
+            <li><span style="font-size: 12px; line-height: 18px;">release promotion main checks</span></li>
+            <li><span style="font-size: 12px; line-height: 18px;">rollback owner health regression</span></li>
+          </ol>
+        </section>
+      </sc-if>
+
+      <div role="separator" style="height: 1px; flex-shrink: 0; background: var(--border);"></div>
+
+      <section aria-label="Retrieved evidence" style="flex-shrink: 0; display: flex; flex-direction: column; gap: 4px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <h3 style="margin: 0; font-size: 14px; font-weight: 600; line-height: 21.7px;">Retrieved evidence</h3>
+          <span style="height: 20px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--border); border-radius: 8px; font-size: 12px; font-weight: 500; line-height: 18px; display: flex; align-items: center; justify-content: center; white-space: nowrap;">{{evidenceCount}}</span>
+        </div>
+        <sc-if value="{{answered}}" hint-placeholder-val="{{ true }}">
+          <sc-for list="{{evidence}}" as="e" hint-placeholder-count="4">
+            <a href="KnowledgeEvidence.dc.html" aria-current="{{e.current}}" title="Inspect evidence: {{e.title}}" style="height: 32px; flex-shrink: 0; box-sizing: border-box; border-radius: 8px; display: flex; align-items: center; gap: 10px; padding: 0 8px; background: {{e.bg}}; color: var(--foreground); text-decoration: none;">
+              <span style="flex-shrink: 0;">{{e.n}}</span>
+              <span style="flex: 1 1 0%; min-width: 0; display: flex; align-items: center; gap: 10px;">
+                <span style="flex: 1 1 0%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{e.title}}</span>
+                <time style="flex-shrink: 0; color: {{e.dateColor}};">{{e.date}}</time>
+              </span>
+            </a>
+          </sc-for>
+        </sc-if>
+      </section>
+
+      <div role="separator" style="height: 1px; flex-shrink: 0; background: var(--border);"></div>
+
+      <section aria-label="Embedding" style="flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; word-break: break-all;">
+        <h3 style="margin: 0; font-size: 14px; font-weight: 600; line-height: 21.7px;">Embedding</h3>
+        <p style="margin: 0; font-size: 12px; line-height: 18px; color: var(--muted-foreground);">openai-compatible:Qwen/Qwen3-Embedding-0.6B:1024</p>
+        <p style="margin: 0; font-size: 12px; line-height: 18px; color: var(--muted-foreground);">{{tokens}} context tokens · 10,642 cache hits</p>
+      </section>
+
+      <div role="separator" style="height: 1px; flex-shrink: 0; background: var(--border);"></div>
+
+      <section aria-label="Agent integration bundle" style="flex-shrink: 0; display: flex; flex-direction: column; gap: 8px;">
+        <h3 style="margin: 0; font-size: 14px; font-weight: 600; line-height: 21.7px;">Agent integration bundle</h3>
+        <p style="margin: 0; font-size: 12px; line-height: 18px; color: var(--muted-foreground);">Build the exact bounded context returned by the HTTP and MCP query layer for this workspace scope.</p>
+        <button type="button" title="Retrieve a bounded workspace context bundle for agent integrations." aria-disabled="{{loading}}" style="width: 100%; height: 28px; flex-shrink: 0; box-sizing: border-box; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 6px; background: transparent; color: var(--foreground); font: inherit; font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap; cursor: pointer; opacity: {{buildOpacity}};">
+          <sc-if value="{{loading}}" hint-placeholder-val="{{ false }}">
+            <svg role="status" aria-label="Loading" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
+          </sc-if>
+          <sc-if value="{{notLoading}}" hint-placeholder-val="{{ true }}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg>
+          </sc-if>
+          {{buildLabel}}
+        </button>
+        <sc-if value="{{failed}}" hint-placeholder-val="{{ false }}">
+          <div role="alert" style="box-sizing: border-box; width: 100%; display: grid; grid-template-columns: auto 1fr; align-items: start; column-gap: 12px; row-gap: 4px; padding: 10px 12px; border: 1px solid oklab(0.7345 0.146417 0.0707175 / 0.3); border-radius: 10px; background: oklch(0.2538 0.0282 312.79); color: var(--foreground); font-size: 14px; line-height: 21.7px;">
+            <span style="grid-row: span 2; padding-top: 2px; color: var(--destructive); display: flex;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line></svg></span>
+            <div style="grid-column-start: 2;">{{contextError}}</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{bundle}}" hint-placeholder-val="{{ false }}">
+          <dl style="margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; align-items: baseline;">
+            <dt style="color: var(--muted-foreground); white-space: nowrap;">Included</dt><dd style="margin: 0;">4</dd>
+            <dt style="color: var(--muted-foreground); white-space: nowrap;">Omitted</dt><dd style="margin: 0;">0</dd>
+            <dt style="color: var(--muted-foreground); white-space: nowrap;">Tokens</dt><dd style="margin: 0;">311 / 8,000</dd>
+          </dl>
+        </sc-if>
+      </section>
+    </div>
+
+    <footer style="flex-shrink: 0; box-sizing: border-box; display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--border);">
+      <button type="button" aria-label="Copy agent context" title="Copy agent context" style="width: 100%; height: 28px; box-sizing: border-box; padding: 0 10px; border: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap; cursor: pointer;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+        {{copyLabel}}
+      </button>
+    </footer>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["answer","idle"],"default":"answer"},"selected":{"editor":"int","default":0,"min":0,"max":3},"bundle":{"editor":"boolean","default":false},"buildState":{"editor":"enum","options":["idle","loading","error"],"default":"idle"},"sheet":{"editor":"boolean","default":false},"width":{"editor":null,"default":350},"height":{"editor":null,"default":824},"closeHref":{"editor":null,"default":"KnowledgeEmpty.dc.html"},"$preview":{"width":350,"height":824}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const answered = (this.props.mode ?? 'answer') === 'answer';
+    const bundle = this.props.bundle === true || this.props.bundle === 'true';
+    // sheet: the panel inside the "Agent context" sheet (<=1280 wide).
+    // Adds the Close agent context button and drops the docked resize hairline.
+    const sheet = this.props.sheet === true || this.props.sheet === 'true';
+    // buildState: the Build MCP-equivalent context request (ContextPanel.tsx contextLoading /
+    // contextError). loading: the button is disabled (aria-disabled, 50%) with the spinner in
+    // place of the refresh icon; error: a destructive Alert under the button.
+    const buildState = this.props.buildState ?? 'idle';
+    const loading = buildState === 'loading';
+    const failed = buildState === 'error';
+    const sel = Number(this.props.selected ?? 0);
+    const evidence = [
+      ['How do releases work?', '7/28/2026'],
+      ['Deployment playbook', '7/24/2026'],
+      ['Slack: #releases — cadence', '7/21/2026'],
+      ['Incident response playbook', '7/13/2026']
+    ].map(([title, date], i) => ({
+      n: i + 1, title, date,
+      current: i === sel ? 'true' : 'false',
+      bg: i === sel ? 'oklch(0.7323 0.1668 301.69 / 0.16)' : 'transparent',
+      dateColor: i === sel ? 'oklch(0.942 0.0054 297.72)' : 'oklch(0.6967 0.0057 298.74)'
+    }));
+    return {
+      answered,
+      bundle,
+      loading,
+      notLoading: !loading,
+      failed,
+      buildOpacity: loading ? 0.5 : 1,
+      contextError: 'Context retrieval failed (502)',
+      sheet,
+      docked: !sheet,
+      regionRole: sheet ? 'none' : 'region',
+      closeHref: this.props.closeHref ?? 'KnowledgeEmpty.dc.html',
+      width: Number(this.props.width ?? 350),
+      height: Number(this.props.height ?? 824),
+      evidence,
+      evidenceCount: answered ? 4 : 0,
+      tokens: answered ? '311' : '33',
+      buildLabel: bundle ? 'Refresh MCP-equivalent context' : 'Build MCP-equivalent context',
+      copyLabel: bundle ? 'Copy MCP-equivalent context' : 'Copy preview context'
+    };
+  }
+}
+</script>
+</body>
+</html>
