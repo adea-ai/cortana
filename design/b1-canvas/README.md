@@ -13,20 +13,25 @@ Source of the composed Cortana canvas boards for the B1 repair. The live canvas 
 
 Captures live in `/mnt/project-files/cortana/canvas-redraw-2026-10-23/` (previous) and in the scratchpad `b1-v31/real/` and `b1-v31/real/v2/` (new). Only captures verified by state are listed here.
 
-Valid current references (each compared against the composed board):
-- KnowledgeEvidence: `real/kn-evidence-1440.png` (17:38Z).
-- KnowledgeDocument: `real/kn-document-1440.png` (17:38Z).
-- KnowledgeEmpty: `real/knowledge-1440.png` (14:42Z).
-- SetSources: `real/sources-1440.png` (16:33Z).
-- KnowledgeAnswer: `real/v2/kn-answer-2026-10-23T21-30-08-504Z.png` (21:30Z). Captured by `kn-answer-v2.mjs`, which checks that the Answer tab is selected and the Evidence brief is present before saving. Measured 6.71% raw and 6.59% with the platform hint, workspace chip and Answer icon masked. Whole board, still above the 1% goal.
+Valid current references (origin/main 6fc6d59 build on 127.0.0.1:4181, captured by `harness/kn-main-capture.mjs`, which checks the Answer tab, the Evidence brief, the Work chip and the sidebar state before saving; compared against the composed board at 1440x900):
+- KnowledgeAnswer: `real/v2/kn-answer-main6fc6d59-2026-10-23T21-46-15-267Z.png`. 5.109% raw on the committed sources.
+- SidebarCollapsed: `real/v2/kn-collapsed-main6fc6d59-2026-10-23T21-46-25-868Z.png`. 6.405% raw on the committed sources.
+
+Stale (taken from the 2026-10-19 build, which lacks the current main chrome; not used for acceptance): KnowledgeEvidence, KnowledgeDocument, KnowledgeEmpty, SetSources and its variants, and the `real/v2/kn-answer-2026-10-23T21-*` runs, which were on the stale build. The 6.71% and 4.8% figures are historical.
 
 Lost or unverified (do not use):
 - `real/kn-answer-1440.png`, `real/kn-collapsed-1440.png` and `real/kn-doc-1440.png` were overwritten at 21:24–21:26Z by `kn-states.mjs`, which landed on the Document tab. They are gone, with no backup.
 - The earlier KnowledgeAnswer figure of 4.8% and the SidebarCollapsed figures came from those lost files. They are historical and not reproducible.
-- Rail has no valid live reference. Its only measurement used `kn-answer-1440.png`, which is lost. Rail is not one of the 51 changed boards, so it does not change the count below.
-- SidebarCollapsed has no valid reference.
+- Rail has no valid live reference. Its only measurement used `kn-answer-1440.png`, which is lost.
 
-Changed boards without a valid current capture: 47 of 51. Visual acceptance for these is not claimed.
+Changed boards without a valid current capture: 49 of 51 (51 includes the unlisted NavExpanded). Visual acceptance for these is not claimed.
+
+Chrome finding (measured 2026-10-23, not applied):
+- Against main 6fc6d59 the composed Header is 1px short. Main's header border sits at y=48 and the composed border at y=47. The 10-19 build also had the border at 47, so this is a real change on main, not a capture artifact.
+- Scratch test with Header height 49 (border at 48), rail and panel arithmetic moved to h-49 and h-77 (literal 851 and 823 in SidebarCollapsed), and ContextPanel header back to 48: KnowledgeAnswer 5.109% → 3.851% full frame, header 4.174% → 0.181%, context 6.228% → 6.197%. SidebarCollapsed 6.405% → 5.492% full frame, header 4.172% → 0.178%.
+- Patch: `candidates/header-49-chrome.patch`. It applies cleanly to the committed `project/` (checked on a copy). It is not applied, because it changes the Header for 98 boards and the layout arithmetic in 79 sites (74 literal 852/824 heights, 5 `h - 48`/`h - 76` expressions), and most of those boards have no current capture.
+- Remaining sidebar difference (KnowledgeAnswer 6.8%, SidebarCollapsed 7.3%) looks like text rasterization. A detail-row margin test moved it by 0.04% and was not adopted. The Slack source block sits 2px low in the composed board; not fixed.
+- Harness masks: the sidebar hint shows "Ctrl K" in the live capture and "⌘ K" in the board. The workspace chip shows a text avatar in the live capture and an icon in the board.
 
 Harness notes:
 - `kn-states.mjs` is retired. It clicked a document result first, and it overwrites `real/`. Do not run it.
