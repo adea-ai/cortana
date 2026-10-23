@@ -55,7 +55,10 @@ describe('header visual order', () => {
   })
 
   test('(c) a control on the second row is never read before one on the first, even when further left', () => {
-    const controls = [control('Second row, far left', 60, 28, 0), control('First row, far right', 10, 28, 400)]
+    const controls = [
+      control('Second row, far left', 60, 28, 0),
+      control('First row, far right', 10, 28, 400),
+    ]
     expect(names(controls)).toEqual(['First row, far right', 'Second row, far left'])
   })
 })
