@@ -58,10 +58,10 @@ One row per board in `project/canvas.json` (178), plus the unlisted `NavExpanded
 | SetIngestion | Settings | no |  | none |  |
 | SetAdvanced | Settings | no |  | none |  |
 | SetMemory | Settings | no |  | none |  |
-| WorkspaceMenu | Menus and dialogs | yes | 2.156 | none |  |
-| MoreMenu | Menus and dialogs | yes | 1.886 | none |  |
-| SystemStatus | Menus and dialogs | yes | 1.863 | none |  |
-| UserMenu | Menus and dialogs | yes | 2.156 | none |  |
+| WorkspaceMenu | Menus and dialogs | yes | 2.156 | `real/v2/workspacemenu-main6fc6d59-2026-10-23T21-58-53-502Z.png` (current, main 6fc6d59, Work chip, menu open) | 2.366 raw (post e42ba90); pre 2.755 |
+| MoreMenu | Menus and dialogs | yes | 1.886 | `real/v2/moremenu-main6fc6d59-2026-10-23T21-58-44-554Z.png` (current, main 6fc6d59, Work chip, Actions menu open) | 2.082 raw (post e42ba90); pre 2.641. Live capture has a focus outline around the menu that the board lacks |
+| SystemStatus | Menus and dialogs | yes | 1.863 | `real/v2/systemstatus-main6fc6d59-2026-10-23T21-58-40-691Z.png` (current, main 6fc6d59, Work chip, system status dialog open) | 2.133 raw (post e42ba90); pre 2.716 |
+| UserMenu | Menus and dialogs | yes | 2.156 | `real/v2/usermenu-main6fc6d59-2026-10-23T21-58-57-292Z.png` (current, main 6fc6d59, Work chip, user menu open) | 2.136 raw (post e42ba90); pre 2.728 |
 | CommandPalette | Menus and dialogs | yes | 2.156 | none |  |
 | HelpCenter | Menus and dialogs | yes | 0.053 | none |  |
 | About | Menus and dialogs | yes | 0.053 | none |  |
@@ -249,3 +249,13 @@ One row per board in `project/canvas.json` (178), plus the unlisted `NavExpanded
 - Largest residual after the best shift: KnowledgeAnswer 2.0%, SidebarCollapsed 2.0%, KnowledgeAnswerDegraded 1.9%. These are text-rasterization residuals. Nothing in this check shows a layout break.
 - Changed boards: none is accepted by this check. Visual acceptance is not claimed for any board. Boards without a current capture stay unverified.
 - Header residual on the two current references: 4.174 to 0.181 (KnowledgeAnswer) and 4.172 to 0.178 (SidebarCollapsed).
+
+## Batch of reachable main-build captures (c5e6f2e)
+
+- Command: `node main-state-capture.mjs <Board> <trigger> <menu|dialog>` against 127.0.0.1:4181, `?demo`. Before saving it checks that a `[role=menu]` or `[role=dialog]` is open and that the workspace chip reads Work. It writes one unique file per run under `real/v2/` and never overwrites.
+- SystemStatus, trigger "System status", dialog open. Saved, 2.133 raw.
+- MoreMenu, trigger "Actions", menu open. Saved, 2.082 raw.
+- WorkspaceMenu, trigger "Switch workspace, current: Work", menu open. Saved, 2.366 raw.
+- UserMenu, trigger "User settings", menu open. Saved, 2.136 raw.
+- All four are above the 1% bar. Not accepted. The live MoreMenu capture has a focus outline around the menu that the board does not; this is probably a capture-state difference and is not yet verified.
+- Not attempted in this batch (unverified): the other changed boards without a reference, including the Knowledge family states, the Sources states, the Context states, the Update dialogs, HelpCenter, About, and the Tooltip and Confirm states. Several need states that the demo build does not show.
