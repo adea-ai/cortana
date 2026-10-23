@@ -2704,7 +2704,7 @@ function IngestionIndicator(incoming: { status: BrainStatus | null }) {
   const runs = () => props.status?.sync_runs ?? []
   const running = () => runs().filter((run) => run.status === 'running').length
   const failed = () =>
-    runs().filter((run) => ['failed', 'cancelled', 'budget_exceeded'].includes(run.status)).length
+    runs().filter((run) => ['failed', 'budget_exceeded'].includes(run.status)).length
   const state = () =>
     running()
       ? 'running'
