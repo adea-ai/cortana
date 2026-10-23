@@ -45,7 +45,7 @@ body,
   font-size: var(--text-2xs);
 }
 
-.source-job-item span {
+.source-job-item-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
