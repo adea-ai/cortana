@@ -10,8 +10,8 @@ One row per board in `project/canvas.json` (178), plus the unlisted `NavExpanded
 
 | Reference | Board | Build | File | Diff vs composed (raw %) | Status |
 |---|---|---|---|---|---|
-| current | KnowledgeAnswer | 6fc6d59 | `real/v2/kn-answer-main6fc6d59-2026-10-23T21-46-15-267Z.png` | 5.109 | state verified before save (Answer selected, Work chip) |
-| current | SidebarCollapsed | 6fc6d59 | `real/v2/kn-collapsed-main6fc6d59-2026-10-23T21-46-25-868Z.png` | 6.405 | state verified before save (Answer selected, Work chip, sidebar collapsed) |
+| current | KnowledgeAnswer | 6fc6d59 | `real/v2/kn-answer-main6fc6d59-2026-10-23T21-46-15-267Z.png` | 3.851 (was 5.109 before e42ba90) | state verified before save (Answer selected, Work chip) |
+| current | SidebarCollapsed | 6fc6d59 | `real/v2/kn-collapsed-main6fc6d59-2026-10-23T21-46-25-868Z.png` | 5.492 (was 6.405 before e42ba90) | state verified before save (Answer selected, Work chip, sidebar collapsed) |
 | stale | KnowledgeEvidence | 2026-10-19 | `real/kn-evidence-1440.png` | not re-measured | do not use |
 | stale | KnowledgeDocument | 2026-10-19 | `real/kn-document-1440.png` | not re-measured | do not use |
 | stale | KnowledgeEmpty | 2026-10-19 | `real/knowledge-1440.png` | not re-measured | do not use |
@@ -36,12 +36,12 @@ One row per board in `project/canvas.json` (178), plus the unlisted `NavExpanded
 | SourcesPanel | Shell parts | yes | 1.186 | none |  |
 | ContextPanel | Shell parts | yes | 1.645 | none |  |
 | SettingsNav | Shell parts | no |  | none |  |
-| KnowledgeAnswer | Knowledge | yes | 3.226 | `kn-answer-main6fc6d59-2026-10-23T21-46-15-267Z.png` | 5.109 |
+| KnowledgeAnswer | Knowledge | yes | 3.226 | `kn-answer-main6fc6d59-2026-10-23T21-46-15-267Z.png` | 3.851 (was 5.109) |
 | KnowledgeDocument | Knowledge | yes | 2.464 | stale only |  |
 | KnowledgeEvidence | Knowledge | yes | 3.226 | stale only |  |
 | KnowledgeTimeline | Knowledge | yes | 2.831 | none |  |
 | KnowledgeEmpty | Knowledge | yes | 2.156 | stale only |  |
-| SidebarCollapsed | Knowledge | yes | 1.645 | `kn-collapsed-main6fc6d59-2026-10-23T21-46-25-868Z.png` | 6.405 |
+| SidebarCollapsed | Knowledge | yes | 1.645 | `kn-collapsed-main6fc6d59-2026-10-23T21-46-25-868Z.png` | 5.492 (was 6.405) |
 | Graph | Graph, conversations, tools, inbox, index | no |  | none |  |
 | Conversations | Graph, conversations, tools, inbox, index | no |  | none |  |
 | AgentTools | Graph, conversations, tools, inbox, index | no |  | none |  |
@@ -239,3 +239,13 @@ One row per board in `project/canvas.json` (178), plus the unlisted `NavExpanded
 
 - The workspace chip is checked in each run. The Personal race did not occur in these runs (3 of 3 Work).
 - Harness artifacts still present in the composed render: `/_blob/` icons (not loaded under file://) and platform hint text. These are masked in the masked numbers only.
+
+## Render check after the 49px header commit (e42ba90)
+
+- Command: `node render-all.mjs <project dir> <out dir> <part> 4`, four parts in parallel, 1440x900 clip, 900 ms settle. Run once on the 85ea124 sources (`r-pre`) and once on e42ba90 (`r-post`).
+- Result: 178 of 178 boards rendered, 0 page errors in either run.
+- Any-pixel change between runs (threshold 24): 117 boards; 109 are above 0.5%.
+- Shift analysis (body rows 60-860, best vertical offset of post against pre): 105 boards match at +1px (content moved down with the 1px taller header), 63 at 0px, 7 at +2px. No board needs a larger shift.
+- Largest residual after the best shift: KnowledgeAnswer 2.0%, SidebarCollapsed 2.0%, KnowledgeAnswerDegraded 1.9%. These are text-rasterization residuals. Nothing in this check shows a layout break.
+- Changed boards: none is accepted by this check. Visual acceptance is not claimed for any board. Boards without a current capture stay unverified.
+- Header residual on the two current references: 4.174 to 0.181 (KnowledgeAnswer) and 4.172 to 0.178 (SidebarCollapsed).
