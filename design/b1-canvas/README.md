@@ -7,8 +7,9 @@ Source of the composed Cortana canvas boards for the B1 repair. The live canvas 
 - Not published to the canvas. Publish is held until every changed board is under 1% against live captures.
 - 178 boards are declared in `project/canvas.json`, and the 178 `.dc.html` files on disk match them exactly (checked by `inventory.test.mjs`).
 - 51 boards differ from the e8f6 baseline in a render comparison.
-- Live-verified (7): KnowledgeAnswer, KnowledgeEvidence, KnowledgeEmpty, KnowledgeDocument, SidebarCollapsed, SetSources, Rail.
-- Unverified (44): no live capture yet. Their changes are not accepted visually.
+- Live reference status: KnowledgeEvidence, KnowledgeDocument, KnowledgeEmpty, SetSources and Rail have references from earlier captures.
+  KnowledgeAnswer and SidebarCollapsed references were overwritten on 2026-10-23 at 21:24–21:26 by a harness run that landed on the Document tab, so they are not valid. Their earlier measurements (4.8% and the sidebar figures) cannot be reproduced yet and are withdrawn until re-captured.
+- Unverified (44 changed boards, plus the two above): no valid live capture yet. Their changes are not accepted visually.
 - Remaining gap: KnowledgeAnswer is about 4.8% whole-board against live, above the 1% goal.
 
 ## Board inventory
