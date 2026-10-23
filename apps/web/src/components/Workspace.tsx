@@ -432,7 +432,7 @@ function BrainDocumentView(props: {
             >
               Copy citation
             </WorkspaceButton>
-            <span role="status" aria-live="polite">
+            <span role="status" aria-live="polite" class="document-copy-status">
               {copyStatus()}
             </span>
           </div>
@@ -859,7 +859,7 @@ function AnswerView(props: {
             <AccordionContent>
               <ol>
                 <For each={props.response!.plan.queries}>
-                  {(plannedQuery) => <li>{plannedQuery}</li>}
+                  {(plannedQuery) => <li class="answer-plan-query">{plannedQuery}</li>}
                 </For>
               </ol>
             </AccordionContent>
