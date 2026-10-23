@@ -671,7 +671,7 @@ body,
   flex-direction: column;
 }
 
-.installer-job small {
+.installer-job-status {
   color: var(--muted-foreground);
 }
 
