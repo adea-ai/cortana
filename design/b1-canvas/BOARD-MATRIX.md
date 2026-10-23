@@ -61,7 +61,7 @@ One row per board in `project/canvas.json` (178), plus the unlisted `NavExpanded
 | SetAdvanced | Settings | no |  | none |  |
 | SetMemory | Settings | no |  | none |  |
 | WorkspaceMenu | Menus and dialogs | yes | 2.156 | `real/v2/workspacemenu-main6fc6d59-2026-10-23T21-58-53-502Z.png` (current, main 6fc6d59, Work chip, menu open) | 2.366 raw (post e42ba90); pre 2.755 |
-| MoreMenu | Menus and dialogs | yes | 1.886 | `real/v2/moremenu-main6fc6d59-2026-10-23T21-58-44-554Z.png` (current, main 6fc6d59, Work chip, Actions menu open) | 2.082 raw (post e42ba90); pre 2.641. Live capture has a focus outline around the menu that the board lacks |
+| MoreMenu | Menus and dialogs | yes | 1.886 | `real/v2/moremenu-main6fc6d59-2026-10-23T22-19-14-134Z.png` (current, main 6fc6d59, Work chip, Actions menu open, focus blurred before save) | 1.899 raw (post bd4da55); superseded capture `moremenu-main6fc6d59-2026-10-23T21-58-44-554Z.png` (focus outline in frame, 2.055 at bd4da55) kept as evidence |
 | SystemStatus | Menus and dialogs | yes | 1.863 | `real/v2/systemstatus-main6fc6d59-2026-10-23T21-58-40-691Z.png` (current, main 6fc6d59, Work chip, system status dialog open) | 2.133 raw (post e42ba90); pre 2.716 |
 | UserMenu | Menus and dialogs | yes | 2.156 | `real/v2/usermenu-main6fc6d59-2026-10-23T21-58-57-292Z.png` (current, main 6fc6d59, Work chip, user menu open) | 2.136 raw (post e42ba90); pre 2.728 |
 | CommandPalette | Menus and dialogs | yes | 2.156 | none |  |
@@ -408,3 +408,10 @@ AddSource, AddSourceBuzz, AddSourceConnect, ConfirmAction, ConfirmDiscard, Confi
 Unverified (no baseline): HeaderEnlarged, SearchMenu, SystemStatusWrapped.
 
 Changed boards with a valid current capture: KnowledgeAnswer (3.851%), SidebarCollapsed (5.492%), SystemStatus (2.133%), MoreMenu (2.082%), WorkspaceMenu (2.366%), UserMenu (2.136%), AgentTools (2.049%), Inbox (0.688%), Graph (0.800%). Nine boards in total. Only Inbox and Graph are under 1% raw, on one capture each, and neither is accepted yet.
+
+## Capture correction: MoreMenu focus outline (22:19Z)
+
+- Command: `node main-state-capture.mjs MoreMenu "Actions" menu` with a `document.activeElement.blur()` added before the save. The check is the same: a `[role=menu]` is open and the workspace chip reads Work.
+- Result: `real/v2/moremenu-main6fc6d59-2026-10-23T22-19-14-134Z.png`. 1.899 raw full frame at bd4da55. Header 0.233, body 2.051, status 0.397.
+- The earlier capture (`...T21-58-44-554Z.png`) is kept. Its focus outline accounts for the gap from 2.055 to 1.899. The rest of the menu residual is not explained yet.
+- Still above the 1% bar. Not accepted.
