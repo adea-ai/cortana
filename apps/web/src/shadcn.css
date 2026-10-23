@@ -482,6 +482,16 @@ body,
   gap: 10px;
 }
 
+/* The source subtitle is one line; the full value is in its title attribute. */
+.source-settings-subtitle {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .source-enable > span:not([role='img']) {
   display: flex;
   min-width: 0;
