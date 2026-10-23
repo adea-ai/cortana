@@ -264,6 +264,8 @@ One row per board in `project/canvas.json` (178), plus the unlisted `NavExpanded
 
 ## Current changed set (post-Header49, against the e8f6 baseline)
 
+Recorded at 02ad20d (before the StatusBar label fix). At bd4da55, from the manifested run, the counts are 129 changed and 46 unchanged; StatusBar is the only board that moved (unchanged to changed). The 3 unverified boards are unchanged. See `README.md`, "Changed-board accounting".
+
 - Baseline: `composed/before/` (178 renders of the e8f6 sources, the composed-route baseline in the 2026-10-23 receipt). Candidate: `composed/r-post/` (renders of e42ba90 sources, 178 renders, 0 page errors).
 - Commands: `node harness/render-all.mjs <project dir> <out dir> <part> 4` for parts 0 to 3, run in parallel; then `python3 harness/compare-renders.py <before dir> <r-post dir>`. Output saved as `harness/changed-set-post-header49.txt`.
 - Compared: 175. Changed: 128. Unchanged: 47. Unverified: 3, with no baseline render: HeaderEnlarged, SearchMenu, SystemStatusWrapped.
