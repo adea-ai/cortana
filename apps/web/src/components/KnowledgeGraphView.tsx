@@ -211,6 +211,7 @@ export default function KnowledgeGraphView(props: {
                     const angle = (index() / Math.max(nodes().length, 1)) * Math.PI * 2
                     return (
                       <line
+                        class="graph-link"
                         x1="50"
                         y1="50"
                         x2={50 + 31 * Math.cos(angle)}
