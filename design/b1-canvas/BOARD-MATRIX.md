@@ -1,13 +1,33 @@
-# B1 board matrix (head of claude/b1-canvas-sources)
+# B1 board matrix (#2624, head 90d2547 plus the change in this commit)
 
 One row per board in `project/canvas.json` (178), plus the unlisted `NavExpanded` file.
 
-- **Changed**: `yes` if the composed render changed against the saved baseline render (any pixel differs by more than 24 in a channel).
-- **Valid reference**: a live capture that exists, was not overwritten, and is mapped to this board by name. Only `real/v2/kn-answer-…` was re-checked for state in this step (Answer tab selected). The other references come from earlier runs and their state is taken from their filenames and earlier measurements, not re-verified. Lost captures are listed separately as retired.
-- **Diff vs reference**: raw percent of pixels differing by more than 24, whole 1440x900 board. Only boards with a valid reference have one. Goal is under 1%.
-- **Changed % vs baseline**: how much of the composed board changed from the saved baseline render.
+## Reference status
 
-| Board | Page | Changed | Changed % vs baseline | Valid reference | Diff vs reference % |
+- **Current** references come from the origin/main build at commit 6fc6d59 (`apps/web` built in a worktree and served on port 4181). Harness: `harness/kn-main-capture.mjs`.
+- **Stale** references come from the app build dated 2026-10-19 07:39, which has no "Collapse sidebar" control. They are kept only as history. Do not use them for acceptance. The 10-19 build differs from main, so their diffs are not comparable to the current build.
+- **Lost** references were overwritten on 2026-10-23 at 21:24–21:26Z by a harness run that landed on the Document tab. They are gone.
+
+| Reference | Board | Build | File | Diff vs composed (raw %) | Status |
+|---|---|---|---|---|---|
+| current | KnowledgeAnswer | 6fc6d59 | `real/v2/kn-answer-main6fc6d59-2026-10-23T21-46-15-267Z.png` | 5.109 | state verified before save (Answer selected, Work chip) |
+| current | SidebarCollapsed | 6fc6d59 | `real/v2/kn-collapsed-main6fc6d59-2026-10-23T21-46-25-868Z.png` | 6.405 | state verified before save (Answer selected, Work chip, sidebar collapsed) |
+| stale | KnowledgeEvidence | 2026-10-19 | `real/kn-evidence-1440.png` | not re-measured | do not use |
+| stale | KnowledgeDocument | 2026-10-19 | `real/kn-document-1440.png` | not re-measured | do not use |
+| stale | KnowledgeEmpty | 2026-10-19 | `real/knowledge-1440.png` | not re-measured | do not use |
+| stale | SetSources | 2026-10-19 | `real/sources-1440.png` | not re-measured | do not use |
+| stale | SetSourcesEmpty | 2026-10-19 | `real/mock-empty-root-1440.png` | not re-measured | do not use |
+| stale | SetSourcesWorkspaceEmpty | 2026-10-19 | `real/mock-workspace-empty-1440.png` | not re-measured | do not use |
+| stale | SetSourcesJobRunning | 2026-10-19 | `real/mock-job-running-1440.png` | not re-measured | do not use |
+| stale | KnowledgeAnswer | 2026-10-19 | `real/v2/kn-answer-2026-10-23T21-37-50-607Z.png` | 6.706 (old build) | do not use |
+| lost | KnowledgeAnswer | 2026-10-19 | `real/kn-answer-1440.png` | 4.8 (historical, unreproducible) | overwritten 21:26Z |
+| lost | SidebarCollapsed | 2026-10-19 | `real/kn-collapsed-1440.png` | n/a | overwritten 21:25Z |
+| lost | (Rail) | 2026-10-19 | `real/kn-answer-1440.png` | 2.59 (historical) | no valid reference |
+| lost | (kn-doc) | 2026-10-19 | `real/kn-doc-1440.png` | n/a | overwritten 21:24Z |
+
+## Board rows
+
+| Board | Page | Changed | Changed % vs baseline | Current reference | Diff vs current reference % |
 |---|---|---|---|---|---|
 | Main | App map | no |  | none |  |
 | Header | Shell parts | no |  | none |  |
@@ -16,12 +36,12 @@ One row per board in `project/canvas.json` (178), plus the unlisted `NavExpanded
 | SourcesPanel | Shell parts | yes | 1.186 | none |  |
 | ContextPanel | Shell parts | yes | 1.645 | none |  |
 | SettingsNav | Shell parts | no |  | none |  |
-| KnowledgeAnswer | Knowledge | yes | 3.226 | `kn-answer-2026-10-23T21-30-08-504Z.png` | 6.706 |
-| KnowledgeDocument | Knowledge | yes | 2.464 | `kn-document-1440.png` | 4.116 |
-| KnowledgeEvidence | Knowledge | yes | 3.226 | `kn-evidence-1440.png` | 4.768 |
+| KnowledgeAnswer | Knowledge | yes | 3.226 | `kn-answer-main6fc6d59-2026-10-23T21-46-15-267Z.png` | 5.109 |
+| KnowledgeDocument | Knowledge | yes | 2.464 | stale only |  |
+| KnowledgeEvidence | Knowledge | yes | 3.226 | stale only |  |
 | KnowledgeTimeline | Knowledge | yes | 2.831 | none |  |
-| KnowledgeEmpty | Knowledge | yes | 2.156 | `knowledge-1440.png` | 2.664 |
-| SidebarCollapsed | Knowledge | yes | 1.645 | none |  |
+| KnowledgeEmpty | Knowledge | yes | 2.156 | stale only |  |
+| SidebarCollapsed | Knowledge | yes | 1.645 | `kn-collapsed-main6fc6d59-2026-10-23T21-46-25-868Z.png` | 6.405 |
 | Graph | Graph, conversations, tools, inbox, index | no |  | none |  |
 | Conversations | Graph, conversations, tools, inbox, index | no |  | none |  |
 | AgentTools | Graph, conversations, tools, inbox, index | no |  | none |  |
@@ -29,7 +49,7 @@ One row per board in `project/canvas.json` (178), plus the unlisted `NavExpanded
 | Index | Graph, conversations, tools, inbox, index | no |  | none |  |
 | SetServices | Settings | no |  | none |  |
 | SetWorkspaces | Settings | no |  | none |  |
-| SetSources | Settings | no |  | `sources-1440.png` | 2.838 |
+| SetSources | Settings | no |  | stale only |  |
 | SetReadiness | Settings | no |  | none |  |
 | SetAccess | Settings | no |  | none |  |
 | SetAudit | Settings | no |  | none |  |
@@ -119,11 +139,11 @@ One row per board in `project/canvas.json` (178), plus the unlisted `NavExpanded
 | SetServicesRestarting | Settings | no |  | none |  |
 | SetServicesRestarted | Settings | no |  | none |  |
 | SetServicesRecovery | Settings | no |  | none |  |
-| SetSourcesEmpty | Settings | no |  | `mock-empty-root-1440.png` | 3.788 |
-| SetSourcesWorkspaceEmpty | Settings | no |  | `mock-workspace-empty-1440.png` | 2.702 |
+| SetSourcesEmpty | Settings | no |  | stale only |  |
+| SetSourcesWorkspaceEmpty | Settings | no |  | stale only |  |
 | SetSourcesAdvanced | Settings | no |  | none |  |
 | SetSourcesDiscord | Settings | no |  | none |  |
-| SetSourcesJobRunning | Settings | no |  | `mock-job-running-1440.png` | 3.803 |
+| SetSourcesJobRunning | Settings | no |  | stale only |  |
 | SetSourcesLegacy | Settings | no |  | none |  |
 | SetSourcesAddProvider | Settings | no |  | none |  |
 | SetReadinessScanning | Settings | no |  | none |  |
@@ -194,32 +214,28 @@ One row per board in `project/canvas.json` (178), plus the unlisted `NavExpanded
 |---|---|---|---|
 | `unlisted/NavExpanded.dc.html` | no | yes (in the 51-set) | Not a canvas board. Moved out of `project/` in 7d8f7bb. |
 
-## Sets
+## Sets (current build)
 
-- Changed listed boards: 50 (of 175 with a baseline render).
-- Changed set including NavExpanded: 51 (the 51 earlier reported).
-- References that exist and are not overwritten: 8 (state re-verified only for KnowledgeAnswer): KnowledgeAnswer, KnowledgeDocument, KnowledgeEmpty, KnowledgeEvidence, SetSources, SetSourcesEmpty, SetSourcesJobRunning, SetSourcesWorkspaceEmpty.
-- Intersection of changed and referenced: 4: KnowledgeAnswer, KnowledgeDocument, KnowledgeEmpty, KnowledgeEvidence.
-- Changed without a valid reference: 46 listed, plus NavExpanded = 47 of 51.
-- Referenced but unchanged: SetSources, SetSourcesEmpty, SetSourcesJobRunning, SetSourcesWorkspaceEmpty.
+- Changed listed boards: 50 (of 175 with a baseline render). Including NavExpanded: 51 of 51.
+- Current references: 2: KnowledgeAnswer, SidebarCollapsed.
+- Intersection of changed and current references: 2: KnowledgeAnswer, SidebarCollapsed.
+- Changed listed boards without a current reference: 48. Including NavExpanded: 49 of 51.
+- Stale references (not usable): KnowledgeDocument, KnowledgeEmpty, KnowledgeEvidence, SetSources, SetSourcesEmpty, SetSourcesJobRunning, SetSourcesWorkspaceEmpty, KnowledgeAnswer (10-19 build).
 - Listed boards with no baseline render (new in 7d8f7bb): SystemStatusWrapped, HeaderEnlarged, SearchMenu. These are not in the 51.
-- Rail: no valid reference (its only measurement used the lost kn-answer-1440.png). Rail is not in the changed set.
-- SidebarCollapsed: changed, no valid reference (its only reference, kn-collapsed-1440.png, is lost).
 
 ## Reconciling earlier counts
 
-- 51: changed set including NavExpanded (the first render comparison).
-- 47: 51 minus the 4 intersecting boards. That is 46 listed boards plus NavExpanded.
-- 46: listed boards without a valid reference, after the 4-board intersection. It excludes NavExpanded.
-- 44: the earlier list. It was 51 minus 7 "covered" boards, two of which (KnowledgeAnswer and SidebarCollapsed) were later found invalid. The 44 list did include NavExpanded and excluded the SetSources group, which is not changed.
+- 51: changed set including NavExpanded (first render comparison).
+- 44, 46, 47: earlier counts. They were built on references that were later found to be stale or lost, so they do not describe the current build.
 
-## Retired (lost, do not use)
+## Captures and runs
 
-- `real/kn-answer-1440.png`: overwritten 21:26Z by `kn-states.mjs`, which landed on the Document tab. Earlier 4.8% figure is historical.
-- `real/kn-collapsed-1440.png`: overwritten 21:25Z. Its SidebarCollapsed reference is gone.
-- `real/kn-doc-1440.png`: overwritten 21:24Z. Not a board reference.
-- `kn-states.mjs`: retired. Do not run it.
+- 10-19 build, Answer state (old harness, `kn-answer-v2.mjs`, port 4180): `real/v2/kn-answer-2026-10-23T21-30-08-504Z.png`, `…21-37-13-151Z.png`, `…21-37-50-607Z.png`. Each checked Answer selected and the Work chip. All stale.
+- main 6fc6d59, Answer state (`kn-main-capture.mjs answer`): `real/v2/kn-answer-main6fc6d59-2026-10-23T21-46-15-267Z.png`. Checked Answer selected, Document not selected, Evidence brief present, Work chip, sidebar expanded. Diff 5.109 raw.
+- main 6fc6d59, sidebar collapsed (`kn-main-capture.mjs collapsed`): `real/v2/kn-collapsed-main6fc6d59-2026-10-23T21-46-25-868Z.png`. Checked Answer selected, Document not selected, Evidence brief present, Work chip, Expand sidebar visible. Diff 6.405 raw.
+- Retired: `kn-states.mjs` (landed on Document and overwrote files), and the old port-4180 Answer and collapsed attempts.
 
-## Captures created in this step
+## Notes
 
-- `real/v2/kn-answer-2026-10-23T21-30-08-504Z.png`: script `kn-answer-v2.mjs`. Checked before save: Answer tab `aria-selected=true`, Document not selected, Evidence brief present. Unique name, `real/v2/` only.
+- The workspace chip is checked in each run. The Personal race did not occur in these runs (3 of 3 Work).
+- Harness artifacts still present in the composed render: `/_blob/` icons (not loaded under file://) and platform hint text. These are masked in the masked numbers only.
