@@ -1,6 +1,6 @@
 # B1 composed canvas sources (working copy, not published)
 
-Source of the composed Cortana canvas boards for the B1 repair. The live canvas artifact 3fe3d3a4 (url 8taxEWNmorL69bc58MpS79) is still at version 1792723423-e8f6 and is not changed by this branch.
+Source of the composed Cortana canvas boards for the B1 repair. The live canvas artifact (identified in the private project record, not here) is still at version 1792723423-e8f6 and is not changed by this branch.
 
 ## Status
 

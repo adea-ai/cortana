@@ -34,7 +34,7 @@ class Refused(Exception):
     pass
 
 
-CURRENT_TOOL = 'render_run/2'
+CURRENT_TOOL = 'render_run/3'
 
 
 def check_manifest(m, label, legacy_ok):
@@ -113,6 +113,8 @@ def input_key(manifest):
         'fontSha256': font.get('sha256'),
         'settleMs': inp.get('settleMs'),
         'viewport': inp.get('viewport'),
+        'serving': inp.get('serving'),
+        'assetsTreeSha256': (inp.get('assets') or {}).get('treeSha256'),
     }
 
 

@@ -214,6 +214,33 @@ class RenderRunTests(unittest.TestCase):
         with open(os.path.join(out, '_FAILED.json')) as f:
             self.assertIn('source drift during render (snapshot changed)', f.read())
 
+    def test_asset_map_changed_during_render_fails_run(self):
+        project = make_project(self.path('repo'), NAMES)
+        assets = self.path('assets')
+        os.makedirs(assets)
+        blob = os.path.join(assets, 'blob.bin')
+        with open(blob, 'wb') as f:
+            f.write(b'asset-bytes')
+        with open(os.path.join(assets, 'manifest.json'), 'w') as f:
+            json.dump({'schema': 'b1-harness-assets/1', 'entries': []}, f)
+        out = self.path('runs', 'drift-assets')
+        res = run_render(project, out, mode='mutate_assets', extra=['--assets', assets],
+                         env_extra={'FAKE_MUTATE_PATH': blob})
+        self.assertNotEqual(res.returncode, 0, res.stdout)
+        self.assertFalse(os.path.exists(os.path.join(out, 'manifest.json')))
+        with open(os.path.join(out, '_FAILED.json')) as f:
+            self.assertIn('asset map changed during render', f.read())
+
+    def test_manifest_records_serving_mode_and_asset_map(self):
+        project = make_project(self.path('repo'), NAMES)
+        out = self.path('runs', 'inputs')
+        self.assertEqual(run_render(project, out).returncode, 0)
+        with open(os.path.join(out, 'manifest.json')) as f:
+            inputs = json.load(f)['inputs']
+        self.assertEqual(inputs['serving'], 'http-local')
+        self.assertEqual(len(inputs['assets']['treeSha256']), 64)
+        self.assertGreater(inputs['assets']['files'], 0)
+
     def test_failed_rerun_cannot_reuse_a_previous_run(self):
         """A failed rerun writes a fresh directory with no manifest. Comparing it against the good run is refused."""
         project = make_project(self.path('repo'), NAMES)
@@ -286,8 +313,17 @@ FIXTURES = {
     # Port 9 is closed here, so the request fails at once. The board is incomplete either way: network
     # resources are not reproducible from the manifest, whether or not they load.
     'ExternalCss': '<!doctype html><html><head><link rel="stylesheet" href="http://127.0.0.1:9/external.css"></head><body><p>external board</p></body></html>',
+    # The exact Google Fonts URL the B1 boards request. The asset map answers it, so the board is clean.
+    'MappedFonts': ('<!doctype html><html><head><link rel="stylesheet" href="https://fonts.googleapis.com/css2?'
+                    'family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">'
+                    '</head><body><p style="font-family:Space Grotesk">mapped font board</p></body></html>'),
+    # A Google Fonts URL that is not in the asset map is aborted, so the board is incomplete.
+    'UnmappedFont': '<!doctype html><html><head><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unmapped+Family"></head><body><p>unmapped font board</p></body></html>',
+    # /_blob/ with no entry in the asset map is a 404, so the board is incomplete. The public map has no blob.
+    'UnmappedBlob': '<!doctype html><html><body><img src="/_blob/0123456789abcdef0123456789abcdef" alt=""><p>unmapped blob board</p></body></html>',
 }
-INCOMPLETE_FIXTURES = ['ExternalCss', 'MissingCss', 'MissingFont', 'MissingImage']
+INCOMPLETE_FIXTURES = ['ExternalCss', 'MissingCss', 'MissingFont', 'MissingImage', 'UnmappedBlob', 'UnmappedFont']
+CLEAN_FIXTURES = ['Clean', 'MappedFonts']
 
 
 @unittest.skipUnless(os.path.exists(CHROME) and os.path.exists(PLAYWRIGHT),
@@ -317,8 +353,11 @@ class RealBrowserTests(unittest.TestCase):
         self.assertTrue(any('image' in r for r in incomplete['MissingImage']), incomplete['MissingImage'])
         self.assertTrue(any('font' in r for r in incomplete['MissingFont']), incomplete['MissingFont'])
         self.assertTrue(any('stylesheet' in r for r in incomplete['MissingCss']), incomplete['MissingCss'])
-        self.assertTrue(any('from the network' in r for r in incomplete['ExternalCss']), incomplete['ExternalCss'])
-        self.assertNotIn('Clean', incomplete)
+        self.assertTrue(any('not in the asset map' in r for r in incomplete['ExternalCss']), incomplete['ExternalCss'])
+        self.assertTrue(any('not in the asset map' in r for r in incomplete['UnmappedFont']), incomplete['UnmappedFont'])
+        self.assertTrue(any('image HTTP 404' in r for r in incomplete['UnmappedBlob']), incomplete['UnmappedBlob'])
+        for name in CLEAN_FIXTURES:
+            self.assertNotIn(name, incomplete)
         for name in FIXTURES:
             self.assertTrue(os.path.exists(os.path.join(out, f'{name}.png')), f'evidence PNG kept for {name}')
 
@@ -342,7 +381,7 @@ class RealBrowserTests(unittest.TestCase):
         self.assertEqual(res.returncode, 0, res.stdout + res.stderr)
         with open(os.path.join(out, '_part-0.json')) as f:
             rep = json.load(f)
-        self.assertEqual(rep['rendered'], ['Clean'])
+        self.assertEqual(sorted(rep['rendered']), CLEAN_FIXTURES)
         self.assertEqual(sorted(e['board'] for e in rep['incomplete']), INCOMPLETE_FIXTURES)
         self.assertEqual(rep['errors'], [])
 
@@ -530,6 +569,86 @@ class CompareTests(unittest.TestCase):
         res = run_compare(base, cand, '--legacy-baseline')
         self.assertEqual(res.returncode, 0, res.stdout + res.stderr)
         self.assertIn('completeness UNVERIFIED', res.stdout)
+
+
+ASSETS_DIR = os.path.join(HARNESS, 'assets')
+
+
+class PublicAssetTests(unittest.TestCase):
+    """The public asset map holds only the Google Fonts the boards use. Each file is pinned by sha256."""
+
+    def manifest(self):
+        with open(os.path.join(ASSETS_DIR, 'manifest.json')) as f:
+            return json.load(f)
+
+    def test_public_manifest_files_match_their_sha256(self):
+        import hashlib
+        m = self.manifest()
+        self.assertEqual(m['schema'], 'b1-harness-assets/1')
+        self.assertEqual(len(m['entries']), 10)
+        for e in m['entries']:
+            with open(os.path.join(ASSETS_DIR, e['file']), 'rb') as f:
+                self.assertEqual(hashlib.sha256(f.read()).hexdigest(), e['sha256'], e['file'])
+
+    def test_normalized_css_references_only_pinned_files(self):
+        import re
+        with open(os.path.join(ASSETS_DIR, 'google-fonts', 'css2-space-grotesk-jetbrains-mono.css')) as f:
+            css = f.read()
+        refs = set(re.findall(r'https://b1-harness\.invalid/fonts/([^)\s\']+)', css))
+        pinned = {os.path.basename(e['file']) for e in self.manifest()['entries'] if e['file'].endswith('.woff2')}
+        self.assertEqual(len(pinned), 9)
+        self.assertEqual(refs, pinned)
+        self.assertNotIn('gstatic', css)
+
+    def test_each_font_family_has_its_ofl_notice_with_copyright_line(self):
+        for name, line in [('OFL-SpaceGrotesk.txt', 'Copyright 2020 The Space Grotesk Project Authors'),
+                           ('OFL-JetBrainsMono.txt', 'Copyright 2020 The JetBrains Mono Project Authors')]:
+            with open(os.path.join(ASSETS_DIR, 'google-fonts', name)) as f:
+                text = f.read()
+            self.assertIn(line, text)
+            self.assertIn('SIL Open Font License, Version 1.1', text)
+
+    def test_no_private_identifiers_in_public_harness(self):
+        # The banned tokens are stored as SHA-256 digests so this public file does not name them.
+        # A token is found when some window of the file of the same length hashes to its digest.
+        banned = {
+            ('e905a31423b1edc1ae25fc44902b61e670c29dc03ea175d8928194671a011fd8', 8),
+            ('67d58103573fa3fce5760f702ff8161bc72db4831dd316aceb129c928d9a2ae2', 8),
+            ('0628cf5a22f0c5ca7833b5c41dcaf3e316374fcf6f4aa84d3ad8422169b091de', 8),
+            ('4d7628f4e6150d36d1355bdabf8c9f3a9f2098b4c9995283d3d01e7768f046f8', 25),
+        }
+        import hashlib
+        me = os.path.abspath(__file__)
+        for dirpath, _, files in os.walk(HARNESS):
+            for name in files:
+                path = os.path.join(dirpath, name)
+                if os.path.abspath(path) == me or path.endswith(('.woff2', '.pyc')):
+                    continue
+                with open(path, 'rb') as f:
+                    data = f.read()
+                for digest, size in banned:
+                    for i in range(len(data) - size + 1):
+                        self.assertNotEqual(hashlib.sha256(data[i:i + size]).hexdigest(), digest,
+                                            f'{path} contains a private identifier')
+
+    def test_renderer_refuses_an_asset_whose_sha256_does_not_match(self):
+        root = tempfile.mkdtemp(prefix='harness-asset-')
+        try:
+            os.makedirs(os.path.join(root, 'assets'))
+            with open(os.path.join(root, 'assets', 'x.css'), 'w') as f:
+                f.write('body{}')
+            entry = {'url': 'https://example.invalid/x.css', 'file': 'x.css', 'sha256': '0' * 64, 'contentType': 'text/css'}
+            with open(os.path.join(root, 'assets', 'manifest.json'), 'w') as f:
+                json.dump({'schema': 'b1-harness-assets/1', 'entries': [entry]}, f)
+            project = make_project(os.path.join(root, 'repo'), ['Alpha'])
+            out = os.path.join(root, 'runs', 'bad-asset')
+            res = subprocess.run(['node', RENDER_ALL, '--project', project, '--out', out, '--part', '0', '--parts', '1',
+                                  '--run-id', 'run-D', '--chrome', '/bin/true', '--playwright', '/bin/true',
+                                  '--assets', os.path.join(root, 'assets')], capture_output=True, text=True)
+            self.assertNotEqual(res.returncode, 0)
+            self.assertIn('asset sha256 mismatch', res.stderr)
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
 
 
 if __name__ == '__main__':

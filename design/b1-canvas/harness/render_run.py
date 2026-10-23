@@ -33,7 +33,8 @@ from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__))
 RENDERER = os.path.join(HERE, 'render-all.mjs')
 WIDTH, HEIGHT = 1440, 900
-TOOL = 'render_run/2'
+TOOL = 'render_run/3'
+ASSETS = os.path.join(HERE, 'assets')
 SNAPSHOT = '_source'
 
 
@@ -114,6 +115,7 @@ def main():
     ap.add_argument('--allow-dirty', action='store_true')
     ap.add_argument('--allow-incomplete', action='store_true',
                     help='write a manifest that lists incomplete boards instead of failing the run')
+    ap.add_argument('--assets', default=ASSETS, help='committed asset map (network resources the boards load)')
     args = ap.parse_args()
 
     project = os.path.abspath(args.project)
@@ -135,6 +137,11 @@ def main():
     # re-checked afterwards, and any change is drift.
     identity = source_identity(project, args.allow_dirty)
     fonts = font_identity(args.font)
+    assets_dir = os.path.abspath(args.assets)
+    if not os.path.exists(os.path.join(assets_dir, 'manifest.json')):
+        raise SystemExit(f'render_run: no asset map at {assets_dir}')
+    assets_before = tree_sha256(assets_dir)
+    assets_manifest_sha = sha256_file(os.path.join(assets_dir, 'manifest.json'))
     snapshot = os.path.join(out, SNAPSHOT)
     shutil.copytree(project, snapshot)
     snap_tree, _ = tree_sha256(snapshot)
@@ -148,7 +155,7 @@ def main():
             argv = renderer_argv() + [
                 '--project', snapshot, '--out', out, '--part', str(part), '--parts', str(args.parts),
                 '--run-id', run_id, '--chrome', args.chrome, '--playwright', args.playwright,
-                '--settle-ms', str(args.settle_ms),
+                '--settle-ms', str(args.settle_ms), '--assets', assets_dir,
             ]
             if args.font:
                 argv += ['--font', args.font]
@@ -167,6 +174,9 @@ def main():
         failures.append({'error': 'source drift during render (snapshot changed)', 'before': identity['projectTreeSha256'], 'after': after_snapshot})
     if font_identity(args.font) != fonts:
         failures.append({'error': 'font changed during render', 'before': fonts, 'after': font_identity(args.font)})
+    assets_after = tree_sha256(assets_dir)
+    if assets_after != assets_before:
+        failures.append({'error': 'asset map changed during render', 'before': assets_before[0], 'after': assets_after[0]})
 
     reports = {}
     incomplete = {}
@@ -182,6 +192,8 @@ def main():
             failures.append({'part': part, 'errors': rep['errors']})
         if rep.get('runId') != run_id:
             failures.append({'part': part, 'error': 'run id mismatch in part report'})
+        if rep.get('assetsSha256') != assets_manifest_sha or rep.get('serving') != 'http-local':
+            failures.append({'part': part, 'error': 'part report used a different asset map or serving mode'})
         accounted = set(rep.get('rendered', [])) | {e['board'] for e in rep.get('incomplete', [])}
         unaccounted = sorted(set(rep.get('declaredInPart', [])) - accounted)
         if unaccounted:
@@ -230,6 +242,8 @@ def main():
             'browserVersion': browser_version,
             'playwright': os.path.abspath(args.playwright),
             'font': fonts,
+            'serving': 'http-local',
+            'assets': {'dir': assets_dir, 'manifestSha256': assets_manifest_sha, 'treeSha256': assets_before[0], 'files': assets_before[1]},
             'settleMs': args.settle_ms,
             'viewport': [WIDTH, HEIGHT],
             'parts': args.parts,

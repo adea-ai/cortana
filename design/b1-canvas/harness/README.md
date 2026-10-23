@@ -57,7 +57,20 @@ Every input that changes the pixels is recorded in `manifest.json` and checked b
 - font: the path (`--font`) and its sha256. The font is not in the repository. It is the Space Grotesk woff2 from the app build. Without `--font`, no font is injected and the manifest records `font: null`;
 - settle time (`--settle-ms`, default 900), viewport 1440x900, part count;
 - node and python versions;
-- incomplete boards, with their reasons (`incomplete`).
+- incomplete boards, with their reasons (`incomplete`);
+- serving mode (`serving`: `http-local`, the boards are served from the project snapshot by a local server) and the asset map (`assets`: its directory, its manifest sha256 and a sha256 over the whole directory). The asset map is checked before the render and again after it. A change during the run is drift.
+
+## Asset map
+
+`assets/manifest.json` lists the network resources the boards load: the Google Fonts CSS and nine woff2 files. Each entry has a `url`, a committed `file`, its `sha256`, and its `contentType`. The renderer:
+
+- fulfils a request whose URL is listed, from its committed file;
+- answers `/_blob/<id>` only when it is listed, and otherwise returns 404, so the board is incomplete;
+- aborts every other network request, so its board is incomplete ("not in the asset map").
+
+Licence and provenance for the fonts are in `assets/google-fonts/README.md`. The licence of the fonts is separate from the repository licence.
+
+The public map holds no private asset. A board that needs a `/_blob` image therefore stays incomplete in a public checkout, and the harness reports it as such.
 
 The default paths are local to this environment. Pass the flags to run elsewhere. Changing any of them
 makes the compare refuse until `--allow-input-mismatch` is given.
@@ -76,5 +89,5 @@ Manifests from before this repair (`tool: render_run/1`) use the older identity,
 - Visual acceptance. The harness reports raw diffs against a reference. Acceptance needs the visual criteria in the board matrix, and no board is accepted by this harness.
 - Live canvas publishing. The canvas stays unpublished.
 - Images and fonts inside shadow roots are not read directly. Their requests are still tracked, so a failing one still makes its board incomplete.
-- Google Fonts and other network resources cannot be reproduced by this harness. A board that uses them is incomplete. Until the project vendors those files, no board can be verified.
+- Network resources are answered only from the committed asset map. Any other request makes its board incomplete. The map covers the Google Fonts the boards use. It does not cover the `/_blob` image, so the boards that use it stay incomplete in this public checkout.
 - At 170884c every declared board is incomplete. Nothing in this environment is verified, see `../README.md` ("Harness status at 170884c").

@@ -20,7 +20,7 @@ from PIL import Image
 
 def main():
     ap = argparse.ArgumentParser()
-    for flag in ['--project', '--out', '--part', '--parts', '--run-id', '--chrome', '--playwright', '--font', '--settle-ms']:
+    for flag in ['--project', '--out', '--part', '--parts', '--run-id', '--chrome', '--playwright', '--font', '--settle-ms', '--assets']:
         ap.add_argument(flag, default=None)
     a = ap.parse_args()
     mode = os.environ.get('FAKE_MODE', 'ok')
@@ -46,14 +46,17 @@ def main():
             incomplete.append({'board': n, 'reasons': ['image HTTP 404: missing.png']})
         else:
             rendered.append(n)
-    if mode in ('mutate_live', 'mutate_snapshot') and part == 0:
-        target = os.environ['FAKE_MUTATE_PATH'] if mode == 'mutate_live' else os.path.join(a.project, f'{declared[0]}.dc.html')
+    if mode in ('mutate_live', 'mutate_snapshot', 'mutate_assets') and part == 0:
+        target = os.environ['FAKE_MUTATE_PATH'] if mode in ('mutate_live', 'mutate_assets') else os.path.join(a.project, f'{declared[0]}.dc.html')
         with open(target, 'ab') as f:
             f.write(b'\n<!-- changed during render -->\n')
     if mode in ('errors', 'errors_exit0'):
         errors.append({'board': names[0], 'pageErrors': ['boom']})
+    with open(os.path.join(a.assets, 'manifest.json'), 'rb') as f:
+        assets_sha = hashlib.sha256(f.read()).hexdigest()
     with open(os.path.join(a.out, f'_part-{part}.json'), 'w') as f:
         json.dump({'runId': a.run_id, 'part': part, 'parts': parts, 'browserVersion': 'fake-1',
+                   'serving': 'http-local', 'assetsSha256': assets_sha,
                    'declaredInPart': names, 'rendered': rendered, 'incomplete': incomplete, 'errors': errors}, f)
     return 1 if mode == 'errors' else 0
 
