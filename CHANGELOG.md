@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.70.2](https://github.com/adea-ai/cortana/compare/v0.70.1...v0.70.2) (2026-10-23)
+
+
+### Bug Fixes
+
+* **web:** keep palette focus return on a connected search origin ([#2620](https://github.com/adea-ai/cortana/issues/2620)) ([28e86a5](https://github.com/adea-ai/cortana/commit/28e86a5e6ddd52e0465684adc2e55a8846834e54))
+* **web:** name the missing folder on source cards and keep their subtitle to one line ([#2619](https://github.com/adea-ai/cortana/issues/2619)) ([a42553e](https://github.com/adea-ai/cortana/commit/a42553ef463704f514094f17a33390e5b87d55aa))
+* **web:** pluralise the failed source job count in the status chip ([#2616](https://github.com/adea-ai/cortana/issues/2616)) ([32133fe](https://github.com/adea-ai/cortana/commit/32133fe8109db395c24071a9b32945fc26908c29)), closes [#2568](https://github.com/adea-ai/cortana/issues/2568)
+* **web:** stop counting cancelled runs as needing attention ([#2621](https://github.com/adea-ai/cortana/issues/2621)) ([f30a5a7](https://github.com/adea-ai/cortana/commit/f30a5a76fb396b73a67709fd8450d32a41c73c9e))
+
+
+### Tests
+
+* pin cancelled sync tone to the neutral Settings tone ([#2618](https://github.com/adea-ai/cortana/issues/2618)) ([0eae746](https://github.com/adea-ai/cortana/commit/0eae746481d08373ab0c1c972d7dae89826afe71))
+* **web:** pin the header's keyboard order to its visual order ([#2568](https://github.com/adea-ai/cortana/issues/2568)) ([#2609](https://github.com/adea-ai/cortana/issues/2609)) ([a182ade](https://github.com/adea-ai/cortana/commit/a182ade3a6d86c37129488d9e4997c88cca35da1))
+
+
+### Maintenance
+
+* **ci:** classify desktop inputs and refresh compiler caches ([#2612](https://github.com/adea-ai/cortana/issues/2612)) ([e912d56](https://github.com/adea-ai/cortana/commit/e912d562ac10d9d900ae7d263039b8e7e172bf53))
+* pin Bun 1.4.4 and use native container type checks ([#2610](https://github.com/adea-ai/cortana/issues/2610)) ([b93166e](https://github.com/adea-ai/cortana/commit/b93166e291d515864cdba4976bd5b14b319a830f))
+* **web:** move knowledge descendant selectors onto classes ([#2614](https://github.com/adea-ai/cortana/issues/2614)) ([369fc57](https://github.com/adea-ai/cortana/commit/369fc577fdfd51a4f8e313208ac9e2eebe9c3c16))
+* **web:** move the installer job status colour onto a class ([#2613](https://github.com/adea-ai/cortana/issues/2613)) ([1764677](https://github.com/adea-ai/cortana/commit/1764677589a33cc0b63579750c8b76c423012227)), closes [#2568](https://github.com/adea-ai/cortana/issues/2568)
+* **web:** move the source job text onto a class ([#2615](https://github.com/adea-ai/cortana/issues/2615)) ([68f0cea](https://github.com/adea-ai/cortana/commit/68f0cea73eb7ede41fde541c01ac68abe048e7f0))
+
 ## [0.70.1](https://github.com/adea-ai/cortana/compare/v0.70.0...v0.70.1) (2026-10-22)
 
 
