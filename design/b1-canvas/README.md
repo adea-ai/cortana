@@ -4,13 +4,34 @@ Source of the composed Cortana canvas boards for the B1 repair. The live canvas 
 
 ## Status
 
-- Not published to the canvas. Publish is held until every changed board is under 1% against live captures.
-- 178 boards are declared in `project/canvas.json`, and the 178 `.dc.html` files on disk match them exactly (checked by `inventory.test.mjs`).
-- 51 boards differ from the e8f6 baseline in a render comparison.
-- Live reference status: KnowledgeEvidence, KnowledgeDocument, KnowledgeEmpty, SetSources and Rail have references from earlier captures.
-  KnowledgeAnswer and SidebarCollapsed references were overwritten on 2026-10-23 at 21:24–21:26 by a harness run that landed on the Document tab, so they are not valid. Their earlier measurements (4.8% and the sidebar figures) cannot be reproduced yet and are withdrawn until re-captured.
-- Unverified (44 changed boards, plus the two above): no valid live capture yet. Their changes are not accepted visually.
-- Remaining gap: KnowledgeAnswer is about 4.8% whole-board against live, above the 1% goal.
+- Not published to the canvas. Publish is held until every changed board is under 1% against live captures, and until the 178-board regression is rerun.
+- 178 boards are declared in `project/canvas.json`. The 178 `.dc.html` files on disk match them exactly (checked by `inventory.test.mjs`).
+- 51 boards differ from the e8f6 baseline in a render comparison (the composed render, not the live app).
+- Visual acceptance: none. No board is accepted on the basis of a capture alone.
+
+## Live evidence
+
+Captures live in `/mnt/project-files/cortana/canvas-redraw-2026-10-23/` (previous) and in the scratchpad `b1-v31/real/` and `b1-v31/real/v2/` (new). Only captures verified by state are listed here.
+
+Valid current references (each compared against the composed board):
+- KnowledgeEvidence: `real/kn-evidence-1440.png` (17:38Z).
+- KnowledgeDocument: `real/kn-document-1440.png` (17:38Z).
+- KnowledgeEmpty: `real/knowledge-1440.png` (14:42Z).
+- SetSources: `real/sources-1440.png` (16:33Z).
+- KnowledgeAnswer: `real/v2/kn-answer-2026-10-23T21-30-08-504Z.png` (21:30Z). Captured by `kn-answer-v2.mjs`, which checks that the Answer tab is selected and the Evidence brief is present before saving. Measured 6.71% raw and 6.59% with the platform hint, workspace chip and Answer icon masked. Whole board, still above the 1% goal.
+
+Lost or unverified (do not use):
+- `real/kn-answer-1440.png`, `real/kn-collapsed-1440.png` and `real/kn-doc-1440.png` were overwritten at 21:24–21:26Z by `kn-states.mjs`, which landed on the Document tab. They are gone, with no backup.
+- The earlier KnowledgeAnswer figure of 4.8% and the SidebarCollapsed figures came from those lost files. They are historical and not reproducible.
+- Rail has no valid live reference. Its only measurement used `kn-answer-1440.png`, which is lost. Rail is not one of the 51 changed boards, so it does not change the count below.
+- SidebarCollapsed has no valid reference.
+
+Changed boards without a valid current capture: 47 of 51. Visual acceptance for these is not claimed.
+
+Harness notes:
+- `kn-states.mjs` is retired. It clicked a document result first, and it overwrites `real/`. Do not run it.
+- `kn-answer-v2.mjs` uses the page's "Search your knowledge" input, not a search button, and it writes only to `real/v2/` with a unique name.
+- The live app runs from a static server on 127.0.0.1:4180, serving the scratchpad `dist/` build.
 
 ## Board inventory
 
