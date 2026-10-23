@@ -1,7 +1,8 @@
 # Regression tests for the fail-closed render and compare harness.
-# They run render_run.py with a fake renderer (no browser), so they check the harness logic itself:
-# a failed or partial run must never leave a manifest that a later compare would accept, and stale PNGs
-# must never be reused.
+# Most tests run render_run.py with a fake renderer (no browser), so they check the harness logic itself:
+# a failed, partial, incomplete or drifted run must never leave a manifest that a later compare would accept,
+# and stale PNGs must never be reused. The RealBrowserTests run the real render-all.mjs in Chromium against
+# fixture boards with a missing image, font and stylesheet; they are skipped when no browser is installed.
 #
 # Run: python3 -m unittest discover -s design/b1-canvas/harness/tests -v
 import json
@@ -16,6 +17,8 @@ HARNESS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RENDER_RUN = os.path.join(HARNESS, 'render_run.py')
 COMPARE = os.path.join(HARNESS, 'compare_renders.py')
 FAKE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fake_renderer.py')
+CHROME = os.environ.get('HARNESS_CHROME', '/opt/pw-browsers/chromium-1194/chrome-linux/chrome')
+PLAYWRIGHT = os.environ.get('HARNESS_PLAYWRIGHT', '/home/user/cortana/node_modules/playwright/index.mjs')
 
 
 def git(cwd, *args):
@@ -23,10 +26,11 @@ def git(cwd, *args):
                    check=True, capture_output=True, text=True)
 
 
-def make_project(root, names, missing=(), content='v1', file_names=False):
+def make_project(root, names, missing=(), content='v1', file_names=False, bodies=None):
     """A git repo at root holding a project/ with canvas.json declaring `names`.
 
     file_names=True writes canvas.json entries as file names (Main.dc.html), as the real canvas.json does.
+    bodies maps a board name to its exact HTML; other boards get a one-line marker.
     """
     os.makedirs(os.path.join(root, 'project'), exist_ok=True)
     project = os.path.join(root, 'project')
@@ -40,7 +44,7 @@ def make_project(root, names, missing=(), content='v1', file_names=False):
         if n in missing:
             continue
         with open(os.path.join(project, f'{n}.dc.html'), 'w') as f:
-            f.write(f'<board {n} {content}>\n')
+            f.write(bodies[n] if bodies and n in bodies else f'<board {n} {content}>\n')
     if not os.path.exists(os.path.join(root, '.git')):
         git(root, 'init', '-q')
     git(root, 'add', '-A')
@@ -48,13 +52,22 @@ def make_project(root, names, missing=(), content='v1', file_names=False):
     return project
 
 
-def run_render(project, out, mode='ok', settle='900', parts='2'):
+def run_render(project, out, mode='ok', settle='900', parts='2', extra=(), env_extra=None):
     env = dict(os.environ)
     env['RENDER_RUN_RENDERER'] = json.dumps([sys.executable, FAKE])
     env['FAKE_MODE'] = mode
+    env.update(env_extra or {})
     return subprocess.run([sys.executable, RENDER_RUN, '--project', project, '--out', out,
                            '--parts', parts, '--settle-ms', settle, '--chrome', '/bin/true',
-                           '--playwright', '/bin/true'],
+                           '--playwright', '/bin/true', *extra],
+                          capture_output=True, text=True, env=env)
+
+
+def run_real(project, out, extra=()):
+    env = dict(os.environ)
+    env.pop('RENDER_RUN_RENDERER', None)
+    return subprocess.run([sys.executable, RENDER_RUN, '--project', project, '--out', out, '--parts', '1',
+                           '--settle-ms', '300', '--chrome', CHROME, '--playwright', PLAYWRIGHT, *extra],
                           capture_output=True, text=True, env=env)
 
 
@@ -83,6 +96,8 @@ class RenderRunTests(unittest.TestCase):
             m = json.load(f)
         self.assertEqual(sorted(m['boards']), sorted(NAMES))
         self.assertEqual(m['declared'], NAMES)
+        self.assertEqual(m['incomplete'], {})
+        self.assertEqual(m['snapshot'], '_source')
         self.assertEqual(len(m['source']['commit']), 40)
         self.assertFalse(m['source']['dirty'])
 
@@ -138,6 +153,7 @@ class RenderRunTests(unittest.TestCase):
         res = run_render(project, out, mode='skip')
         self.assertNotEqual(res.returncode, 0)
         self.assertIn('no PNG', res.stdout)
+        self.assertIn('neither rendered nor reported incomplete', res.stdout)
         self.assertFalse(os.path.exists(os.path.join(out, 'manifest.json')))
 
     def test_wrong_dimensions_fail_run(self):
@@ -155,6 +171,48 @@ class RenderRunTests(unittest.TestCase):
         self.assertNotEqual(res.returncode, 0)
         self.assertFalse(os.path.exists(os.path.join(out, 'manifest.json')))
         self.assertFalse(any(f.endswith('.png') for f in os.listdir(out)))
+
+    def test_incomplete_board_fails_run_by_default(self):
+        project = make_project(self.path('repo'), NAMES)
+        out = self.path('runs', 'incomplete')
+        res = run_render(project, out, mode='incomplete')
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn('incomplete', res.stdout)
+        self.assertFalse(os.path.exists(os.path.join(out, 'manifest.json')))
+        with open(os.path.join(out, '_FAILED.json')) as f:
+            failed = json.load(f)
+        incomplete = [x['incomplete'] for x in failed['failures'] if 'incomplete' in x][0]
+        self.assertEqual(list(incomplete), ['Alpha'])
+        self.assertTrue(os.path.exists(os.path.join(out, 'Alpha.png')), 'evidence PNG must be kept')
+
+    def test_incomplete_board_is_manifested_only_with_allow_incomplete(self):
+        project = make_project(self.path('repo'), NAMES)
+        out = self.path('runs', 'incomplete-ok')
+        res = run_render(project, out, mode='incomplete', extra=['--allow-incomplete'])
+        self.assertEqual(res.returncode, 0, res.stdout + res.stderr)
+        with open(os.path.join(out, 'manifest.json')) as f:
+            m = json.load(f)
+        self.assertEqual(list(m['incomplete']), ['Alpha'])
+        self.assertIn('Alpha', m['boards'])
+
+    def test_live_source_change_during_render_fails_run(self):
+        project = make_project(self.path('repo'), NAMES)
+        out = self.path('runs', 'drift-live')
+        res = run_render(project, out, mode='mutate_live',
+                         env_extra={'FAKE_MUTATE_PATH': os.path.join(project, 'Alpha.dc.html')})
+        self.assertNotEqual(res.returncode, 0, res.stdout)
+        self.assertFalse(os.path.exists(os.path.join(out, 'manifest.json')))
+        with open(os.path.join(out, '_FAILED.json')) as f:
+            self.assertIn('source drift during render (live project changed)', f.read())
+
+    def test_snapshot_change_during_render_fails_run(self):
+        project = make_project(self.path('repo'), NAMES)
+        out = self.path('runs', 'drift-snapshot')
+        res = run_render(project, out, mode='mutate_snapshot')
+        self.assertNotEqual(res.returncode, 0, res.stdout)
+        self.assertFalse(os.path.exists(os.path.join(out, 'manifest.json')))
+        with open(os.path.join(out, '_FAILED.json')) as f:
+            self.assertIn('source drift during render (snapshot changed)', f.read())
 
     def test_failed_rerun_cannot_reuse_a_previous_run(self):
         """A failed rerun writes a fresh directory with no manifest. Comparing it against the good run is refused."""
@@ -216,6 +274,77 @@ class RealRendererChecksTests(unittest.TestCase):
         self.assertNotEqual(res.returncode, 0)
         self.assertIn('declared boards missing on disk', res.stderr)
         self.assertFalse(os.path.exists(out))
+
+
+FIXTURES = {
+    'Clean': '<!doctype html><html><body><p>clean board</p></body></html>',
+    'MissingImage': '<!doctype html><html><body><img src="missing-image.png" alt=""><p>image board</p></body></html>',
+    'MissingFont': ('<!doctype html><html><head><style>@font-face{font-family:Missing;'
+                    'src:url(missing-font.woff2) format("woff2")}</style></head><body>'
+                    '<p style="font-family:Missing">font board</p></body></html>'),
+    'MissingCss': '<!doctype html><html><head><link rel="stylesheet" href="missing.css"></head><body><p>css board</p></body></html>',
+    # Port 9 is closed here, so the request fails at once. The board is incomplete either way: network
+    # resources are not reproducible from the manifest, whether or not they load.
+    'ExternalCss': '<!doctype html><html><head><link rel="stylesheet" href="http://127.0.0.1:9/external.css"></head><body><p>external board</p></body></html>',
+}
+INCOMPLETE_FIXTURES = ['ExternalCss', 'MissingCss', 'MissingFont', 'MissingImage']
+
+
+@unittest.skipUnless(os.path.exists(CHROME) and os.path.exists(PLAYWRIGHT),
+                     'needs Chromium and playwright (set HARNESS_CHROME and HARNESS_PLAYWRIGHT)')
+class RealBrowserTests(unittest.TestCase):
+    """The real renderer in Chromium: a missing image, font or stylesheet makes its board incomplete, never clean."""
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp(prefix='harness-browser-')
+        self.project = make_project(os.path.join(self.root, 'repo'), list(FIXTURES), bodies=FIXTURES)
+
+    def tearDown(self):
+        shutil.rmtree(self.root, ignore_errors=True)
+
+    def path(self, *p):
+        return os.path.join(self.root, *p)
+
+    def test_missing_resources_make_boards_incomplete_and_fail_the_run(self):
+        out = self.path('runs', 'real-fail')
+        res = run_real(self.project, out)
+        self.assertNotEqual(res.returncode, 0, res.stdout + res.stderr)
+        self.assertFalse(os.path.exists(os.path.join(out, 'manifest.json')))
+        with open(os.path.join(out, '_FAILED.json')) as f:
+            failed = json.load(f)
+        incomplete = [x['incomplete'] for x in failed['failures'] if 'incomplete' in x][0]
+        self.assertEqual(sorted(incomplete), INCOMPLETE_FIXTURES)
+        self.assertTrue(any('image' in r for r in incomplete['MissingImage']), incomplete['MissingImage'])
+        self.assertTrue(any('font' in r for r in incomplete['MissingFont']), incomplete['MissingFont'])
+        self.assertTrue(any('stylesheet' in r for r in incomplete['MissingCss']), incomplete['MissingCss'])
+        self.assertTrue(any('from the network' in r for r in incomplete['ExternalCss']), incomplete['ExternalCss'])
+        self.assertNotIn('Clean', incomplete)
+        for name in FIXTURES:
+            self.assertTrue(os.path.exists(os.path.join(out, f'{name}.png')), f'evidence PNG kept for {name}')
+
+    def test_allow_incomplete_manifests_the_incomplete_boards_explicitly(self):
+        out = self.path('runs', 'real-allowed')
+        res = run_real(self.project, out, extra=['--allow-incomplete'])
+        self.assertEqual(res.returncode, 0, res.stdout + res.stderr)
+        with open(os.path.join(out, 'manifest.json')) as f:
+            m = json.load(f)
+        self.assertEqual(sorted(m['incomplete']), INCOMPLETE_FIXTURES)
+        self.assertEqual(sorted(m['boards']), sorted(FIXTURES))
+
+    def test_renderer_exits_zero_for_incomplete_boards_and_reports_them(self):
+        out = self.path('runs', 'direct')
+        os.makedirs(out)
+        with open(os.path.join(out, '_RUN'), 'w') as f:
+            f.write('run-C\n')
+        res = subprocess.run(['node', RENDER_ALL, '--project', self.project, '--out', out, '--part', '0', '--parts', '1',
+                              '--run-id', 'run-C', '--chrome', CHROME, '--playwright', PLAYWRIGHT, '--settle-ms', '300'],
+                             capture_output=True, text=True)
+        self.assertEqual(res.returncode, 0, res.stdout + res.stderr)
+        with open(os.path.join(out, '_part-0.json')) as f:
+            rep = json.load(f)
+        self.assertEqual(rep['rendered'], ['Clean'])
+        self.assertEqual(sorted(e['board'] for e in rep['incomplete']), INCOMPLETE_FIXTURES)
+        self.assertEqual(rep['errors'], [])
 
 
 class CompareTests(unittest.TestCase):
@@ -334,6 +463,26 @@ class CompareTests(unittest.TestCase):
         res = run_compare(a, b)
         self.assertEqual(res.returncode, 2)
         self.assertIn('same source tree', res.stdout)
+
+    def test_incomplete_board_is_refused_unless_allowed_and_then_excluded(self):
+        repo = self.path('repo')
+        project = make_project(repo, NAMES, content='v1')
+        base = self.path('runs', 'base')
+        self.assertEqual(run_render(project, base).returncode, 0)
+        with open(os.path.join(project, 'Beta.dc.html'), 'w') as f:
+            f.write('<board Beta v2>\n')
+        git(repo, 'add', '-A')
+        git(repo, 'commit', '-q', '-m', 'v2')
+        cand = self.path('runs', 'cand')
+        self.assertEqual(run_render(project, cand, mode='incomplete', extra=['--allow-incomplete']).returncode, 0)
+        res = run_compare(base, cand)
+        self.assertEqual(res.returncode, 2, res.stdout)
+        self.assertIn('incomplete boards', res.stdout)
+        res = run_compare(base, cand, '--allow-incomplete')
+        self.assertEqual(res.returncode, 0, res.stdout + res.stderr)
+        self.assertIn('INCOMPLETE\nAlpha\tcandidate', res.stdout)
+        self.assertIn('incomplete: 1', res.stdout)
+        self.assertNotIn('Alpha\t', res.stdout.split('CHANGED\n')[1].split('UNCHANGED')[0])
 
 
 if __name__ == '__main__':

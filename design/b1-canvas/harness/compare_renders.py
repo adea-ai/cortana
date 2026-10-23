@@ -3,6 +3,8 @@
 #   - any error report (_part-*.json with errors, _errors-*.json, _FAILED.json) fails the comparison
 #   - every declared board must exist on both sides; the only exception is an explicit --unverified-baseline list
 #     that names declared boards with no baseline render, and each named board must really be missing
+#   - a board listed as incomplete in either manifest is refused, unless --allow-incomplete is given; with it,
+#     that board is reported under INCOMPLETE and is not counted as changed or unchanged
 #   - each PNG must match the sha256 recorded in its run's manifest (stale or edited images fail)
 #   - dimensions must be 1440x900
 #   - the two runs must agree on the browser, playwright, font and settle inputs, unless --allow-input-mismatch
@@ -10,7 +12,7 @@
 #
 # Usage:
 #   python3 compare_renders.py <baseline dir> <candidate dir> [--legacy-baseline]
-#       [--unverified-baseline A,B,C] [--allow-input-mismatch]
+#       [--unverified-baseline A,B,C] [--allow-input-mismatch] [--allow-incomplete]
 import argparse
 import glob
 import hashlib
@@ -99,6 +101,7 @@ def main():
     ap.add_argument('--legacy-baseline', action='store_true')
     ap.add_argument('--unverified-baseline', default='')
     ap.add_argument('--allow-input-mismatch', action='store_true')
+    ap.add_argument('--allow-incomplete', action='store_true')
     args = ap.parse_args()
 
     try:
@@ -125,6 +128,12 @@ def main():
         if base_inputs_known and input_key(base_m) != input_key(cand_m) and not args.allow_input_mismatch:
             raise Refused(f'render inputs differ: baseline {input_key(base_m)} vs candidate {input_key(cand_m)}')
 
+        cand_inc = cand_m.get('incomplete', {})
+        base_inc = base_m.get('incomplete', {}) if base_m is not None else {}
+        incomplete_any = sorted(set(cand_inc) | set(base_inc))
+        if incomplete_any and not args.allow_incomplete:
+            raise Refused(f'incomplete boards (refused without --allow-incomplete): {incomplete_any}')
+
         base_sha = base_m['boards'] if base_m is not None else {}
         cand_sha = cand_m['boards']
         base_names = set(os.path.basename(p)[:-4] for p in glob.glob(os.path.join(args.baseline, '*.png')))
@@ -137,12 +146,16 @@ def main():
             raise Refused(f'--unverified-baseline names boards that do exist in the baseline: {stale_allow}')
         extra_base = sorted(base_names - declared_set)
 
-        changed, unchanged = [], []
+        changed, unchanged, incomplete_rows = [], [], []
         for name in declared:
             check_png(os.path.join(args.candidate, f'{name}.png'), name, 'candidate', cand_sha[name]['sha256'])
             if name in allow_missing:
                 continue
             check_png(os.path.join(args.baseline, f'{name}.png'), name, 'baseline', base_sha.get(name, {}).get('sha256') if base_m is not None else None)
+            if name in incomplete_any:
+                sides = [s for s, inc in (('baseline', base_inc), ('candidate', cand_inc)) if name in inc]
+                incomplete_rows.append((name, ','.join(sides)))
+                continue
             a = np.asarray(Image.open(os.path.join(args.baseline, f'{name}.png')).convert('RGB')).astype(int)
             b = np.asarray(Image.open(os.path.join(args.candidate, f'{name}.png')).convert('RGB')).astype(int)
             pct = 100 * (np.abs(a - b).max(axis=2) > THRESHOLD).mean()
@@ -153,7 +166,7 @@ def main():
 
     print(f'baseline: {args.baseline}  ({"manifest " + base_m["runId"] + " @ " + base_m["source"]["commit"][:12] if base_m else "LEGACY, unmanifested, inputs unverified"})')
     print(f'candidate: {args.candidate}  (manifest {cand_m["runId"]} @ {cand_m["source"]["commit"][:12]})')
-    print(f'declared: {len(declared)}  compared: {len(changed) + len(unchanged)}  changed: {len(changed)}  unchanged: {len(unchanged)}  unverified (no baseline): {sorted(allow_missing)}')
+    print(f'declared: {len(declared)}  compared: {len(changed) + len(unchanged)}  changed: {len(changed)}  unchanged: {len(unchanged)}  incomplete: {len(incomplete_rows)}  unverified (no baseline): {sorted(allow_missing)}')
     if extra_base:
         print(f'baseline PNGs outside the declared set (ignored): {extra_base}')
     print('CHANGED')
@@ -165,6 +178,9 @@ def main():
     print('UNVERIFIED')
     for name in sorted(allow_missing):
         print(name)
+    print('INCOMPLETE')
+    for name, sides in incomplete_rows:
+        print(f'{name}\t{sides}')
     return 0
 
 

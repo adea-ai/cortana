@@ -8,6 +8,7 @@ Source of the composed Cortana canvas boards for the B1 repair. The live canvas 
 - 178 boards are declared in `project/canvas.json`. The 178 `.dc.html` files on disk match them exactly (checked by `inventory.test.mjs`).
 - Changed-board accounting is in the section below, "Changed-board accounting". Earlier figures of 50 listed and 51 with NavExpanded are historical and are not used.
 - Visual acceptance: none. No board is accepted on the basis of a capture alone.
+- Harness state at 170884c: the manifested run lists all 178 boards as incomplete, so no board is verified in this environment. See "Harness status at 170884c" below. The raw diff counts in the accounting section are diagnostics only.
 
 ## Live evidence
 
@@ -33,9 +34,24 @@ Against the original e8f6 baseline render (`composed/before`, the composed-route
 - Arithmetic: at bd4da55, 129 changed minus 9 captured is 120 without a capture. At 02ad20d, 128 minus 9 is 119. The two numbers are for different heads and are not interchangeable.
 - Not in the declared 178 and not counted: NavExpanded, ProposedThemeDefault, ProposedThemeOverride.
 - The earlier 50 listed / 51 with NavExpanded set described the pre-Header49 candidate. It is historical and is not used for any count.
-- Acceptance: none. The nine captured boards are all above 1% raw. Visual acceptance is not claimed for any board, and the canvas stays unpublished.
+- At 170884c, the raw diagnostic (not manifested, every board incomplete, see below) gives 175 compared, 142 changed, 33 unchanged, 3 unverified. Of the changed boards, 9 have a capture and 133 do not (142 minus 9). 112 changed boards are above 1% raw. `Rail.dc.html` is the only project source that changed since bd4da55 (one line, the 2px padding), so the move from 129 to 142 comes from that change.
+- Acceptance: none. Seven of the nine captured boards are above 1% raw. Inbox (0.688%) and Graph (0.800%) are below 1% raw, on one capture each. None is accepted. Visual acceptance is not claimed for any board, and the canvas stays unpublished.
 
-Current valid captures beyond the two above (main 6fc6d59, state-checked, unique names under `real/v2/`): SystemStatus 2.133%, MoreMenu 2.082% (live shows a focus outline the board lacks), WorkspaceMenu 2.366%, UserMenu 2.136%, AgentTools 2.049%, Inbox 0.688%, Graph 0.800%. All figures are raw full-frame on the committed sources at e42ba90 and are not accepted.
+Current valid captures beyond the two above (main 6fc6d59, state-checked, unique names under `real/v2/`): SystemStatus 2.133%, MoreMenu 2.082% (live shows a focus outline the board lacks), WorkspaceMenu 2.366%, UserMenu 2.136%, AgentTools 2.049%, Inbox 0.688%, Graph 0.800%. These figures were recorded at an earlier head and have not been re-measured at 170884c. None is accepted.
+
+## Harness status at 170884c
+
+Manifested run: `/tmp/claude-0/-home-user/fc166f53-13cb-5efd-bbbd-0d37fe395dec/scratchpad/composed/runs/170884c-harness3-20261023T223612Z` (run id in its `manifest.json`), made with `harness/render_run.py --allow-incomplete --font <Space Grotesk woff2>` at commit 170884c, clean tree.
+
+- 178 declared, 178 PNGs (all 1440x900), 0 boards clean. Every board is listed under `incomplete` in the manifest, with its reasons.
+- 28 boards have an image that fails from `/_blob/` (ERR_FILE_NOT_FOUND). 27 of them name `/_blob` in their own file. `ConfirmUpdate` is the 28th: it is not in its own file, so its reference comes from an imported file. That was not traced.
+- 178 boards request a stylesheet from the network, and 166 request a font from the network. These are Google Fonts requests. They are not pinned by the run, so each board is incomplete even when the request succeeds.
+- Because of this, nothing can be verified here. The changed-board counts above are a diagnostic: a raw pixel diff of this manifested PNG set against the composed e8f6 baseline, with no manifest on the baseline side. They are not evidence.
+- What would make boards verifiable: local copies of the font (the Google Fonts stylesheet vendored into the project) and the `/_blob` images, or a local blob map. Both change project sources, so they are out of harness scope and are not done here.
+
+## Replay dependencies
+
+- 27 listed boards reference the artifact's `/_blob/` images, which do not load under file://. Icons such as the Answer tab mark render blank in local captures. One more file, `unlisted/NavExpanded.dc.html`, also references one, so the tree has 28 in total. At 170884c the harness flags 28 listed boards, see "Harness status at 170884c".
 
 Chrome finding (measured 2026-10-23, applied in e42ba90 "design: apply the 49px header chrome to the B1 sources"):
 - Against main 6fc6d59 the composed Header is 1px short. Main's header border sits at y=48 and the composed border at y=47. The 10-19 build also had the border at 47, so this is a real change on main, not a capture artifact.
