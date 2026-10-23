@@ -10,6 +10,7 @@ import {
   setViewportAndWaitForLayout,
   waitForTransitionStylesToSettle,
 } from './knowledge-accessibility-browser.mjs'
+import { visualOrder } from './header-visual-order.mjs'
 
 const args = new Map()
 for (let index = 2; index < process.argv.length; index += 2) {
@@ -342,18 +343,19 @@ async function headerControlOrders(page) {
         return rect.width > 0 && rect.height > 0
       })
       .map((node) => {
+        // Viewport geometry, not offsetTop: see header-visual-order.mjs for the row rule.
         const rect = node.getBoundingClientRect()
         return {
           name: node.getAttribute('aria-label') ?? node.textContent?.trim() ?? node.tagName,
-          // The bar is the offset parent, so a control's offsetTop is its row
-          // within the bar.
-          row: node.offsetTop,
-          x: rect.x,
+          top: rect.top,
+          bottom: rect.bottom,
+          height: rect.height,
+          left: rect.left,
         }
       })
   })
   // The order the eye reads them: row by row, then left to right.
-  const visual = controls.toSorted((a, b) => a.row - b.row || a.x - b.x)
+  const visual = visualOrder(controls)
 
   // The order the keyboard walks the same controls in, starting at the bar's
   // first focusable control and stopping when the focus leaves the bar.
