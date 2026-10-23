@@ -30,6 +30,7 @@ Against the original e8f6 baseline render (`composed/before`, the composed-route
 
 - At committed source bd4da55, from the manifested run `20261023T221206Z-23d0d3d3` (`harness/compare_renders.py`, output in the scratchpad): 175 boards have a baseline render. 129 changed, 46 unchanged. 3 have no baseline render and are unverified: HeaderEnlarged, SearchMenu, SystemStatusWrapped. 9 changed boards have a current capture and 120 do not.
 - At 02ad20d, before the StatusBar label fix (bd4da55), the same comparison gave 128 changed, 47 unchanged, 3 unverified, with 9 captured and 119 not. The one difference is StatusBar itself, which moved from unchanged to changed.
+- Arithmetic: at bd4da55, 129 changed minus 9 captured is 120 without a capture. At 02ad20d, 128 minus 9 is 119. The two numbers are for different heads and are not interchangeable.
 - Not in the declared 178 and not counted: NavExpanded, ProposedThemeDefault, ProposedThemeOverride.
 - The earlier 50 listed / 51 with NavExpanded set described the pre-Header49 candidate. It is historical and is not used for any count.
 - Acceptance: none. The nine captured boards are all above 1% raw. Visual acceptance is not claimed for any board, and the canvas stays unpublished.
