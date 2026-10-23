@@ -1198,7 +1198,13 @@ export function SourcesSection(
                                 <strong>
                                   {sourceDisplayName(source().kind, source().name || 'New source')}
                                 </strong>
-                                <Text as="small" variant="micro" tone="muted">
+                                <Text
+                                  as="small"
+                                  variant="micro"
+                                  tone="muted"
+                                  class="source-settings-subtitle"
+                                  title={sourceSubtitle(source())}
+                                >
                                   {sourceSubtitle(source())}
                                 </Text>
                                 <Show when={accessState(source())}>
