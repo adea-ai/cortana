@@ -10,6 +10,7 @@ import {
   setViewportAndWaitForLayout,
   waitForTransitionStylesToSettle,
 } from './knowledge-accessibility-browser.mjs'
+import { visualOrder } from './header-visual-order.mjs'
 
 const args = new Map()
 for (let index = 2; index < process.argv.length; index += 2) {
@@ -342,18 +343,19 @@ async function headerControlOrders(page) {
         return rect.width > 0 && rect.height > 0
       })
       .map((node) => {
+        // Viewport geometry, not offsetTop: see header-visual-order.mjs for the row rule.
         const rect = node.getBoundingClientRect()
         return {
           name: node.getAttribute('aria-label') ?? node.textContent?.trim() ?? node.tagName,
-          // The bar is the offset parent, so a control's offsetTop is its row
-          // within the bar.
-          row: node.offsetTop,
-          x: rect.x,
+          top: rect.top,
+          bottom: rect.bottom,
+          height: rect.height,
+          left: rect.left,
         }
       })
   })
   // The order the eye reads them: row by row, then left to right.
-  const visual = controls.toSorted((a, b) => a.row - b.row || a.x - b.x)
+  const visual = visualOrder(controls)
 
   // The order the keyboard walks the same controls in, starting at the bar's
   // first focusable control and stopping when the focus leaves the bar.
@@ -999,10 +1001,11 @@ async function headerControlOrders(page) {
   // The shell top bar scales with the root font size instead of wrapping, but
   // the popover must still re-anchor on every resize or zoom: just under the
   // trigger on a single row, or below the bar if a layout ever wraps.
-  const popoverPlacement = () =>
+  // expectWrapped: true requires a two-row bar, false a single row, undefined either.
+  const popoverPlacement = (expectWrapped) =>
     popoverPage
       .waitForFunction(
-        () => {
+        (wrapped) => {
           const bar = document.querySelector('[data-slot="shell-top-bar"]')?.getBoundingClientRect()
           const trigger = document
             .querySelector('[aria-label="System status"]')
@@ -1012,16 +1015,17 @@ async function headerControlOrders(page) {
             ?.getBoundingClientRect()
           if (!bar || !trigger || !popover) return false
           const isWrapped = bar.bottom - trigger.bottom >= 24
+          if (wrapped !== undefined && isWrapped !== wrapped) return false
           return isWrapped
             ? popover.top >= bar.bottom - 2
             : popover.top >= trigger.bottom && popover.top - trigger.bottom <= 20
         },
-        undefined,
+        expectWrapped,
         { timeout: settleBudgetMs, polling: 'raf' }
       )
       .catch(() => {
         throw new Error(
-          `System status popover did not settle against its trigger within ${settleBudgetMs}ms`
+          `System status popover did not settle ${expectWrapped === undefined ? 'against its trigger' : expectWrapped ? 'below the wrapped bar' : 'under the trigger'} within ${settleBudgetMs}ms`
         )
       })
 
@@ -1043,6 +1047,17 @@ async function headerControlOrders(page) {
   await popoverPlacement()
   await popoverPage.setViewportSize({ width: 390, height: 1000 })
   await popoverPlacement()
+  // Strict wrapped case: at 320px with 200% text the bar must wrap to two rows,
+  // and the popover must settle below the second row, not over the content.
+  await popoverPage.setViewportSize({ width: 320, height: 1000 })
+  await popoverPage.evaluate(() => {
+    document.documentElement.style.fontSize = '200%'
+  })
+  await popoverPlacement(true)
+  await popoverPage.evaluate(() => {
+    document.documentElement.style.fontSize = ''
+  })
+  await popoverPlacement(false)
   await popoverContext.close()
 }
 

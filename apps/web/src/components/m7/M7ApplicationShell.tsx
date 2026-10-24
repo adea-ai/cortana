@@ -401,7 +401,7 @@ export function M7ApplicationHeader(props: M7HeaderProps) {
                 <Activity aria-hidden="true" />
               </PopoverTrigger>
               <PopoverContent
-                class="w-80 max-w-full"
+                class="system-status-popover max-w-full"
                 aria-label="System status details"
                 onClick={(event: MouseEvent) => {
                   if ((event.target as HTMLElement).closest('button, a')) setSystemOpen(false)
