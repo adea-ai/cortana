@@ -87,7 +87,7 @@ test('a cancelled job is neutral, not failed', () => {
 
 test('source subtitles describe what each connector points at', () => {
   expect(sourceSubtitle(source({ root: '/example/workspace' }))).toBe('/example/workspace')
-  expect(sourceSubtitle(source({ root: null }))).toBe('Choose a file or folder')
+  expect(sourceSubtitle(source({ root: null }))).toBe('No folder selected')
   expect(sourceSubtitle(source({ kind: 'external', root: null }))).toBe(
     'Command managed in the TOML file'
   )

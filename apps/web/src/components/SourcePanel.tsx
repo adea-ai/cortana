@@ -210,7 +210,7 @@ export function SourcePanel(props: {
             {(job) => (
               <div class="source-job-item">
                 <Spinner />
-                <span>
+                <span class="source-job-item-text">
                   {job.project} · {job.source} · {job.operation} · {job.status} ·{' '}
                   {describeSourceJobProgress(job)}
                 </span>

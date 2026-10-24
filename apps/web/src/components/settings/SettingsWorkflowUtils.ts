@@ -53,7 +53,7 @@ export function jobGlyphState(status: string): {
 export function sourceSubtitle(source: SourceSettings): string {
   if (source.kind === 'external') return 'Command managed in the TOML file'
   if (source.kind === 'filesystem' || source.kind === 'buzz') {
-    return source.root || 'Choose a file or folder'
+    return source.root || 'No folder selected'
   }
   if (source.kind === 'github') {
     return source.repositories.length
