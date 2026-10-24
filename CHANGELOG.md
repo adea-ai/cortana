@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.70.3](https://github.com/adea-ai/cortana/compare/v0.70.2...v0.70.3) (2026-10-24)
+
+
+### Maintenance
+
+* **deps:** bump pypdf from 6.21.1 to 6.21.2 in the uv group across 1 directory ([#2627](https://github.com/adea-ai/cortana/issues/2627)) ([005d75f](https://github.com/adea-ai/cortana/commit/005d75f6ed35c6019f2b58802a1fa8a159228137))
+* **deps:** update taiki-e/install-action digest to 1e29709 ([#2625](https://github.com/adea-ai/cortana/issues/2625)) ([d0e6046](https://github.com/adea-ai/cortana/commit/d0e6046358478c9be4534541fb1193daeb7af682))
+* **web:** adopt @adea-ai/ui 0.146.7; strict checks pending ([#2617](https://github.com/adea-ai/cortana/issues/2617)) ([d3a6977](https://github.com/adea-ai/cortana/commit/d3a69772e4a232bac55aabcac401356df63fe476))
+
 ## [0.70.2](https://github.com/adea-ai/cortana/compare/v0.70.1...v0.70.2) (2026-10-23)
 
 
