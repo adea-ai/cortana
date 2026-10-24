@@ -6,7 +6,10 @@ These are the fonts the B1 boards request from Google Fonts, pinned here so rend
 
 The fonts are licensed under the SIL Open Font License, Version 1.1. The licence applies to the font files in this folder. It is not the licence of the repository.
 
-- Space Grotesk: `OFL-SpaceGrotesk.txt`. Copyright 2020 The Space Grotesk Project Authors (https://github.com/floriankarsten/space-grotesk). Upstream: https://raw.githubusercontent.com/google/fonts/main/ofl/spacegrotesk/OFL.txt (sha256 564ce565c371c5e5bbf286006565a7c9aa55a9f56e7ca58d56e05d649dd61a72).
+- Space Grotesk: `OFL-SpaceGrotesk.txt`. Copyright 2020 The Space Grotesk Project Authors (https://github.com/floriankarsten/space-grotesk). Upstream: https://raw.githubusercontent.com/google/fonts/main/ofl/spacegrotesk/OFL.txt, fetched 2026-10-24 from the google/fonts `main` branch (no release tag recorded).
+  - Upstream bytes, as fetched: sha256 `564ce565c371c5e5bbf286006565a7c9aa55a9f56e7ca58d56e05d649dd61a72`. The upstream file uses CRLF line endings.
+  - Committed bytes, in this folder: sha256 `c6dec685825f73b18c20926fddc65e8315642e12986f15db0699170940a09efc`. The repository's `.gitattributes` (`* text=auto eol=lf`) converts line endings to LF on commit, so the committed file has LF line endings.
+  - The two files differ only in line endings. Removing the CR characters from the upstream file gives the committed file byte for byte. The licence text is unchanged.
 - JetBrains Mono: `OFL-JetBrainsMono.txt`. Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono). Upstream: https://raw.githubusercontent.com/google/fonts/main/ofl/jetbrainsmono/OFL.txt (sha256 b2fe5e8987594e9ffd1d2ca52a2f5d73eb8335243893c5d6254b5ad69269591d).
 
 The font files here are unmodified copies of the files Google Fonts serves for these families. Each is pinned by sha256 in `../manifest.json`. The OFL notice travels with the files.
