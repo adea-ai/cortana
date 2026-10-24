@@ -819,6 +819,12 @@ body,
   width: 100%;
 }
 
+/* The System status popover is sized in rem, so it grows with large text. Cap it at
+   the window less a gutter so it stays inside a narrow window. */
+.system-status-popover {
+  width: min(20rem, calc(100vw - 2rem));
+}
+
 /* Domain document and graph layout; shared components own appearance. */
 .canonical-document {
   min-width: 0;

@@ -32,7 +32,7 @@
     "typecheck": "vp run orch:typecheck"
   },
   "devDependencies": {
-    "@adea-ai/ui": "0.146.0",
+    "@adea-ai/ui": "0.146.7",
     "@axe-core/playwright": "^4.13.0",
     "@babel/core": "^8.0.6",
     "@babel/preset-typescript": "^8.0.1",
@@ -53,6 +53,7 @@
     "vite-plus": "1.3.0"
   },
   "overrides": {
+    "happy-dom": "21.0.4",
     "seroval": "1.6.8"
   },
   "engines": {
