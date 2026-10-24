@@ -1,0 +1,96 @@
+{
+ "schema": "b1-harness-assets/1",
+ "scope": "Public Google Fonts used by the B1 boards only. No private asset is listed here.",
+ "entries": [
+  {
+   "url": "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=JetBrains+Mono:wght@400;500&display=swap",
+   "file": "google-fonts/css2-space-grotesk-jetbrains-mono.css",
+   "sha256": "1f5bf1c4bf72695e0fd91e921ea15932cc8ef4ab3fce64273659977670054aac",
+   "contentType": "text/css; charset=utf-8",
+   "family": "Space Grotesk, JetBrains Mono",
+   "sourceUrl": "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=JetBrains+Mono:wght@400;500&display=swap",
+   "licence": "Google Fonts API response, normalized to the pinned local font files. Original sha256 a8f304f5f8392a9e265e0bd24610f4d24f6e657c6dd44515df241a8efc7d4efe, kept as google-fonts/css2-space-grotesk-jetbrains-mono.original.css"
+  },
+  {
+   "url": "https://b1-harness.invalid/fonts/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPx3cwhsk.woff2",
+   "file": "google-fonts/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPx3cwhsk.woff2",
+   "sha256": "62213be8a78b42f1e29d1452d91e2f8b3e745572a9dd98d3941e39fa00b37d76",
+   "contentType": "font/woff2",
+   "family": "JetBrains Mono",
+   "sourceUrl": "https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPx3cwhsk.woff2",
+   "licence": "SIL Open Font License 1.1"
+  },
+  {
+   "url": "https://b1-harness.invalid/fonts/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPx7cwhsk.woff2",
+   "file": "google-fonts/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPx7cwhsk.woff2",
+   "sha256": "db5ff4db83e580426280e9337a58dc57d3a83784a1b03ad80914651594441d52",
+   "contentType": "font/woff2",
+   "family": "JetBrains Mono",
+   "sourceUrl": "https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPx7cwhsk.woff2",
+   "licence": "SIL Open Font License 1.1"
+  },
+  {
+   "url": "https://b1-harness.invalid/fonts/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPxDcwg.woff2",
+   "file": "google-fonts/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPxDcwg.woff2",
+   "sha256": "83c005d49d8a6a50474c73a5a36ac0468076e9c4a29da7bdb14995d80560a5be",
+   "contentType": "font/woff2",
+   "family": "JetBrains Mono",
+   "sourceUrl": "https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPxDcwg.woff2",
+   "licence": "SIL Open Font License 1.1"
+  },
+  {
+   "url": "https://b1-harness.invalid/fonts/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPxPcwhsk.woff2",
+   "file": "google-fonts/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPxPcwhsk.woff2",
+   "sha256": "0a557721b1f8b36d3f3f84442689a71ca4a744300abcb46a1953f51bfc663b66",
+   "contentType": "font/woff2",
+   "family": "JetBrains Mono",
+   "sourceUrl": "https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPxPcwhsk.woff2",
+   "licence": "SIL Open Font License 1.1"
+  },
+  {
+   "url": "https://b1-harness.invalid/fonts/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPxTcwhsk.woff2",
+   "file": "google-fonts/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPxTcwhsk.woff2",
+   "sha256": "e17cfd15fb96909d64095015f958207063a0c07191da3512df7d560a781aebdf",
+   "contentType": "font/woff2",
+   "family": "JetBrains Mono",
+   "sourceUrl": "https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPxTcwhsk.woff2",
+   "licence": "SIL Open Font License 1.1"
+  },
+  {
+   "url": "https://b1-harness.invalid/fonts/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPx_cwhsk.woff2",
+   "file": "google-fonts/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPx_cwhsk.woff2",
+   "sha256": "c89b9cc0bc6262bd4f8d8494b6961601f3aefa829d08c2e3635f4d501d3a47c2",
+   "contentType": "font/woff2",
+   "family": "JetBrains Mono",
+   "sourceUrl": "https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPx_cwhsk.woff2",
+   "licence": "SIL Open Font License 1.1"
+  },
+  {
+   "url": "https://b1-harness.invalid/fonts/V8mDoQDjQSkFtoMM3T6r8E7mPb54C-s0.woff2",
+   "file": "google-fonts/V8mDoQDjQSkFtoMM3T6r8E7mPb54C-s0.woff2",
+   "sha256": "8895e3d49825128bfa5238e4c96e9b432d7a3dadbe5c17c6081267398305dc71",
+   "contentType": "font/woff2",
+   "family": "Space Grotesk",
+   "sourceUrl": "https://fonts.gstatic.com/s/spacegrotesk/v22/V8mDoQDjQSkFtoMM3T6r8E7mPb54C-s0.woff2",
+   "licence": "SIL Open Font License 1.1"
+  },
+  {
+   "url": "https://b1-harness.invalid/fonts/V8mDoQDjQSkFtoMM3T6r8E7mPb94C-s0.woff2",
+   "file": "google-fonts/V8mDoQDjQSkFtoMM3T6r8E7mPb94C-s0.woff2",
+   "sha256": "952dddb45d2f96f71cbf3b7f510b24379afc3c89ea02fcf89d377b45d62c0166",
+   "contentType": "font/woff2",
+   "family": "Space Grotesk",
+   "sourceUrl": "https://fonts.gstatic.com/s/spacegrotesk/v22/V8mDoQDjQSkFtoMM3T6r8E7mPb94C-s0.woff2",
+   "licence": "SIL Open Font License 1.1"
+  },
+  {
+   "url": "https://b1-harness.invalid/fonts/V8mDoQDjQSkFtoMM3T6r8E7mPbF4Cw.woff2",
+   "file": "google-fonts/V8mDoQDjQSkFtoMM3T6r8E7mPbF4Cw.woff2",
+   "sha256": "0640890476fc1198ab4de571fb658de443c4d85b66466ec09534a8737ab1ce9d",
+   "contentType": "font/woff2",
+   "family": "Space Grotesk",
+   "sourceUrl": "https://fonts.gstatic.com/s/spacegrotesk/v22/V8mDoQDjQSkFtoMM3T6r8E7mPbF4Cw.woff2",
+   "licence": "SIL Open Font License 1.1"
+  }
+ ]
+}

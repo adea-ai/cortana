@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings · Advanced</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+input::placeholder,textarea::placeholder{color:;opacity:1}
+</style>
+</helmet>
+<div style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --popover: oklch(0.2406 0.0088 300.91); --primary: oklch(0.7323 0.1668 301.69); --primary-foreground: oklch(0.1756 0.0063 300.91); --secondary: oklch(0.2106 0.0076 300.91); --muted: oklch(0.2106 0.0076 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --accent: oklch(0.2756 0.0101 300.91); --border: oklch(0.3256 0.0057 300.91); --input: oklch(0.3256 0.0057 300.91); --destructive: oklch(0.7345 0.1626 25.78); --success: oklch(0.6951 0.1809 145.62); --warning: oklch(0.7196 0.1401 79.91); --info: oklch(0.7555 0.1155 202.14); --destructive-subtle: oklch(0.2538 0.0282 312.79); --success-subtle: oklch(0.2483 0.0307 279.17); --warning-subtle: oklch(0.2518 0.025 320.37); --info-subtle: oklch(0.2568 0.0216 287.08); --ring: oklch(0.7323 0.1668 301.69); width: 1440px; height: 1021px; display: flex; flex-direction: column; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk Variable', 'Space Grotesk', sans-serif; font-size: 14px; line-height: 21.7px; overflow: hidden;">
+  <dc-import name="Header" location="Settings" workspace="Work" hint-size="1440px,48px"></dc-import>
+  <div style="flex-grow: 1; min-height: 0; display: flex;">
+    <dc-import name="Rail" active="none" height="973" hint-size="56px,973px"></dc-import>
+    <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column;">
+      <main id="main-content" style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; background: var(--background);">
+<header style="display: flex; box-sizing: border-box; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; row-gap: 12px; column-gap: 16px; flex-shrink: 0; padding: 20px 20px 16px 20px;">
+  <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+    <span style="display: block; font-size: 11px; font-weight: 500; line-height: 15.95px; letter-spacing: 0.275px; text-transform: uppercase; color: var(--muted-foreground);">Control plane</span>
+    <h1 style="margin: 0px; font-size: 20px; font-weight: 600; line-height: 27px; letter-spacing: -0.5px; font-style: normal; color: var(--foreground);">Settings</h1>
+    <p style="max-width: 583.308px; margin: 0px; color: var(--muted-foreground); text-wrap: pretty;">Changes are written locally and audited. Secret values never return to this window.</p>
+    <p style="min-width: 0; margin: 0px; font-size: 11px; line-height: 17.05px; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-wrap-mode: nowrap;">Config 
+      <code title="/example/cortana/config.toml" style="box-sizing: border-box; padding: 1.65px 4.4px; border-radius: 6px; background: var(--card); font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 11px; font-weight: 400; line-height: 17.05px; font-style: normal; color: var(--foreground); overflow-wrap: anywhere;">/example/cortana/config.toml</code></p></div>
+  <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+    <button type="button" style="display: flex; box-sizing: border-box; justify-content: center; align-items: center; gap: 6px; flex-shrink: 0; width: 120.08px; height: 28px; padding: 0px 10px; border: 0; border-radius: 8px; background: var(--primary); font-family: 'Space Grotesk Variable', 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--background); text-align: center; white-space: nowrap; text-wrap-mode: nowrap; opacity: 0.5; appearance: button; cursor: pointer;"><svg width="14" height="14" style="flex-shrink: 0;" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"></path><path d="M7 3v4a1 1 0 0 0 1 1h7"></path></svg> Save changes</button></div></header><hr style="box-sizing: border-box; flex-shrink: 0; margin: 0px; border: 0; border-top: 1px solid var(--border); background: var(--border); overflow: hidden;">
+<div style="display: flex; flex-grow: 1; flex-basis: 0%; min-width: 0;">
+<dc-import name="SettingsNav" active="Advanced" height="814" hint-size="256px,814px"></dc-import>
+  <div style="box-sizing: border-box; flex-grow: 1; flex-basis: 0%; min-width: 0; padding: 16px; overflow: auto;">
+    <div id="settings-form" style="padding: 0px 0px 72px 0px;">
+      <div role="tabpanel">
+        <section style="display: flex; box-sizing: border-box; flex-direction: column; gap: 16px; padding: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;">
+            <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
+              <h2 style="margin: 0px; font-size: 16px; font-weight: 600; line-height: 24px; letter-spacing: -0.4px; font-style: normal; color: var(--foreground);">Local runtime</h2>
+              <p style="max-width: 583.308px; margin: 0px; color: var(--muted-foreground); text-wrap: pretty;">Storage and audit configuration for this machine. Moving the data directory requires a restart and does not copy existing data.</p></div></div>
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr));">
+              <div style="display: flex; flex-direction: column; gap: 6px; grid-column: 1 / -1;">
+                <label style="display: flex; align-items: center; gap: 8px; font-weight: 500; line-height: 14px;">Effective secret file</label><input title="/example/cortana/secrets.env" type="text" value="/example/cortana/secrets.env" readonly style="display: block; box-sizing: border-box; min-width: 0; width: 1056px; height: 32px; padding: 4px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--accent); font-family: 'Space Grotesk Variable', 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 400; line-height: 21.7px; color: var(--foreground); overflow: clip;">
+                <p style="margin: 0px; color: var(--muted-foreground);">Owner-only Desktop-managed path for provider, connector, and agent tokens</p></div>
+              <div style="display: flex; flex-direction: column; gap: 6px; grid-column: 1 / -1;">
+                <label style="display: flex; align-items: center; gap: 8px; font-weight: 500; line-height: 14px;">Data directory</label><input type="text" value="/example/cortana/data" style="display: block; box-sizing: border-box; min-width: 0; width: 1056px; height: 32px; padding: 4px 12px; border: 1px solid var(--border); border-radius: 8px; background: transparent; font-family: 'Space Grotesk Variable', 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 400; line-height: 21.7px; color: var(--foreground); overflow: clip;"></div>
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-weight: 500; line-height: 14px;">Connector timeout</label><input type="number" value="21600" style="display: block; box-sizing: border-box; min-width: 0; width: 520px; height: 32px; padding: 4px 12px; border: 1px solid var(--border); border-radius: 8px; background: transparent; font-family: 'Space Grotesk Variable', 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 400; line-height: 21.7px; color: var(--foreground); overflow: clip;"></div>
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-weight: 500; line-height: 14px;">Audit event limit</label><input type="number" value="10000" style="display: block; box-sizing: border-box; min-width: 0; width: 520px; height: 32px; padding: 4px 12px; border: 1px solid var(--border); border-radius: 8px; background: transparent; font-family: 'Space Grotesk Variable', 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 400; line-height: 21.7px; color: var(--foreground); overflow: clip;"></div></div>
+            <div style="display: flex; box-sizing: border-box; flex-direction: column; gap: 12px; padding: 12px 0px; border: 1px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: oklch(0 0 0 / 0.2) 0px 1px 2px 0px;">
+              <div style="display: flex; box-sizing: border-box; flex-direction: column; gap: 4px; padding: 0px 12px;">
+                <div style="font-size: 16px; font-weight: 600; line-height: 16px; letter-spacing: -0.4px;">Redacted settings backup</div>
+                <div style="color: var(--muted-foreground);">Export configuration without secret values or executable connector commands. Import validates a bounded preview and never writes until you save.</div></div>
+              <div style="display: flex; box-sizing: border-box; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0px 12px;">
+                <button type="button" style="display: flex; box-sizing: border-box; justify-content: center; align-items: center; gap: 6px; flex-shrink: 0; width: 79.05px; height: 28px; padding: 0px 10px; border: 0; border-radius: 8px; background: var(--card); font-family: 'Space Grotesk Variable', 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--foreground); text-align: center; white-space: nowrap; text-wrap-mode: nowrap; appearance: button; cursor: pointer;"><svg width="14" height="14" style="flex-shrink: 0;" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"></path><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path></svg>Export</button>
+                <button type="button" style="display: flex; box-sizing: border-box; justify-content: center; align-items: center; gap: 6px; flex-shrink: 0; width: 126.58px; height: 28px; padding: 0px 10px; border: 0; border-radius: 8px; background: var(--card); font-family: 'Space Grotesk Variable', 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--foreground); text-align: center; white-space: nowrap; text-wrap-mode: nowrap; appearance: button; cursor: pointer;"><svg width="14" height="14" style="flex-shrink: 0;" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m17 8-5-5-5 5"></path><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path></svg>Import preview</button>
+                <button type="button" style="display: flex; box-sizing: border-box; justify-content: center; align-items: center; gap: 6px; flex-shrink: 0; width: 131.52px; height: 28px; padding: 0px 10px; border: 0; border-radius: 8px; background: var(--card); font-family: 'Space Grotesk Variable', 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--foreground); text-align: center; white-space: nowrap; text-wrap-mode: nowrap; appearance: button; cursor: pointer;"><svg width="14" height="14" style="flex-shrink: 0;" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"></path></svg>Open secret file</button>
+                <button type="button" style="display: flex; box-sizing: border-box; justify-content: center; align-items: center; gap: 6px; flex-shrink: 0; width: 190.36px; height: 28px; padding: 0px 10px; border: 0; border-radius: 8px; background: var(--card); font-family: 'Space Grotesk Variable', 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--foreground); text-align: center; white-space: nowrap; text-wrap-mode: nowrap; appearance: button; cursor: pointer;"><svg width="14" height="14" style="flex-shrink: 0;" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"></path><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"></circle></svg>Migrate to secure storage</button></div></div>
+            <div style="display: flex; box-sizing: border-box; flex-direction: column; gap: 12px; padding: 12px 0px; border: 1px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: oklch(0 0 0 / 0.2) 0px 1px 2px 0px;">
+              <div style="display: flex; box-sizing: border-box; flex-direction: column; gap: 4px; padding: 0px 12px;">
+                <div style="font-size: 16px; font-weight: 600; line-height: 16px; letter-spacing: -0.4px;">Derived Obsidian vault</div>
+                <div style="color: var(--muted-foreground);">Export authorized canonical documents as deterministic Markdown. The vault is a read-only projection from Cortana’s perspective and can be removed or rebuilt at any time.</div></div>
+              <div style="box-sizing: border-box; padding: 0px 12px;">
+                <fieldset style="display: flex; flex-direction: column; gap: 16px; min-width: min-content; max-width: 576px; padding: 0px; margin: 0px; border: 0;">
+                  <legend style="padding: 0px; margin: 0px 0px 4px 0px; font-size: 16px; font-weight: 600; line-height: 24px; letter-spacing: -0.4px; font-style: normal; color: var(--foreground);">Workspaces to export</legend>
+                  <div role="group" style="display: flex; align-items: flex-start; gap: 10px;">
+                    <div style="display: flex; box-sizing: border-box; justify-content: center; align-items: center; flex-shrink: 0; width: 16px; height: 16px; border: 1px solid var(--primary); border-radius: 6px; background: var(--primary); color: var(--background);">
+                      <div style="display: flex; justify-content: center; align-items: center;"><svg width="12" height="12" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></div></div>
+                    <div style="display: grid; gap: 2px; grid-template-columns: repeat(1, minmax(0, 1fr));">
+                      <label style="display: block; font-weight: 500;">Work</label></div></div>
+                  <div role="group" style="display: flex; align-items: flex-start; gap: 10px;">
+                    <div style="display: flex; box-sizing: border-box; justify-content: center; align-items: center; flex-shrink: 0; width: 16px; height: 16px; border: 1px solid var(--primary); border-radius: 6px; background: var(--primary); color: var(--background);">
+                      <div style="display: flex; justify-content: center; align-items: center;"><svg width="12" height="12" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></div></div>
+                    <div style="display: grid; gap: 2px; grid-template-columns: repeat(1, minmax(0, 1fr));">
+                      <label style="display: block; font-weight: 500;">Personal</label></div></div></fieldset></div>
+              <div style="display: flex; box-sizing: border-box; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0px 12px;">
+                <button type="button" style="display: flex; box-sizing: border-box; justify-content: center; align-items: center; gap: 6px; flex-shrink: 0; width: 158.64px; height: 28px; padding: 0px 10px; border: 0; border-radius: 8px; background: var(--card); font-family: 'Space Grotesk Variable', 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--foreground); text-align: center; white-space: nowrap; text-wrap-mode: nowrap; appearance: button; cursor: pointer;"><svg width="14" height="14" style="flex-shrink: 0;" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"></path><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path></svg> Preview vault export</button>
+                <button type="button" style="display: flex; box-sizing: border-box; justify-content: center; align-items: center; gap: 6px; flex-shrink: 0; width: 111.17px; height: 28px; padding: 0px 10px; border: 0; border-radius: 8px; background: var(--card); font-family: 'Space Grotesk Variable', 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--foreground); text-align: center; white-space: nowrap; text-wrap-mode: nowrap; appearance: button; cursor: pointer;"><svg width="14" height="14" style="flex-shrink: 0;" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"></path></svg>Export vault</button></div></div></div></section></div></div></div></div>
+      </main>
+      <dc-import name="StatusBar" hint-size="1384px,28px"></dc-import>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1021}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Inbox · Cancelling, succeeded and cancelled jobs</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); --primary: oklch(0.7323 0.1668 301.69); --primary-foreground: oklch(0.1756 0.0063 300.91); --warning: oklch(0.7196 0.1401 79.91); --destructive: oklch(0.7345 0.1626 25.78); --info: oklch(0.7555 0.1155 202.14); --success: oklch(0.6951 0.1809 145.62); width: 1440px; height: 900px; display: flex; flex-direction: column; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 1.55; text-rendering: optimizeLegibility; overflow: hidden;">
+  <dc-import name="Header" location="Inbox" workspace="Work" hint-size="1440px,48px"></dc-import>
+  <div style="flex-grow: 1; min-height: 0; display: flex;">
+    <dc-import name="Rail" active="inbox" height="852" hint-size="56px,852px"></dc-import>
+    <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column;">
+      <main id="main-content" style="flex-grow: 1; min-height: 0; overflow: hidden; background: var(--background); display: flex; flex-direction: column;">
+        <header style="flex-shrink: 0; padding: 20px 20px 16px; display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px 16px;">
+          <div style="min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+            <span style="display: block; font-size: 11px; font-weight: 500; line-height: 1.45; letter-spacing: 0.275px; text-transform: uppercase; color: var(--muted-foreground);">Attention</span>
+            <h1 style="margin: 0; font-size: 20px; font-weight: 600; line-height: 1.35; letter-spacing: -0.5px;">Inbox</h1>
+            <p style="margin: 0; color: var(--muted-foreground); line-height: 1.55;">Current sync health and source-job activity. Nothing here is fabricated history.</p>
+          </div>
+        </header>
+        <div role="separator" style="flex-shrink: 0; height: 1px; background: var(--border);"></div>
+        <div style="box-sizing: border-box; padding: 20px 20px 56px; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 28px;">
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+            <section aria-labelledby="m7-active-source-jobs" style="display: flex; flex-direction: column; gap: 12px;">
+              <h2 id="m7-active-source-jobs" style="margin: 0; font-size: 18px; font-weight: 600; line-height: 1.4; letter-spacing: -0.45px;">Active source jobs</h2>
+              <div style="display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px;">
+                <div style="box-sizing: border-box; padding: 16px 0; border: 1px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: 0 1px 2px oklch(0 0 0 / 0.2); display: flex; flex-direction: column; gap: 16px;">
+                  <div style="padding: 0 16px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+                    <div style="min-width: 0; flex-grow: 1; display: flex; flex-direction: column; gap: 8px;">
+                      <div style="display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; line-height: 1; letter-spacing: -0.4px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
+                        <span>work-drive · Initial sync</span>
+                      </div>
+                      <div style="color: var(--muted-foreground);">work · started 7/29/2026, 2:34:20 PM</div>
+                    </div>
+                    <span style="padding-top: 2px; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; line-height: 1.5; white-space: nowrap;"><span style="width: 8px; height: 8px; flex-shrink: 0; border-radius: 9999px; background: var(--info);"></span><span>Cancelling…</span></span>
+                  </div>
+                  <div style="padding: 0 16px;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                      <p style="margin: 0; min-width: 0; flex-grow: 1; color: var(--muted-foreground);">6m 44s / 15m</p>
+                      <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px; white-space: nowrap; flex-shrink: 0;"><div role="progressbar" style="width: 192px; height: 6px; border-radius: 9999px; background: var(--border); overflow: hidden;"><div style="width: 25%; height: 6px; border-radius: 9999px; background: var(--primary);"></div></div><button type="button" aria-label="Cancel" style="height: 24px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; font-size: 12px; font-weight: 500; line-height: 1.5; display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; cursor: pointer; opacity: 0.5;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><rect x="9" y="9" width="6" height="6" rx="1"></rect></svg>Cancel</button></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section aria-labelledby="m7-recent-source-jobs" style="display: flex; flex-direction: column; gap: 12px;">
+              <h2 id="m7-recent-source-jobs" style="margin: 0; font-size: 18px; font-weight: 600; line-height: 1.4; letter-spacing: -0.45px;">Recent source jobs</h2>
+              <div style="display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px;">
+                <div style="box-sizing: border-box; padding: 16px 0; border: 1px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: 0 1px 2px oklch(0 0 0 / 0.2); display: flex; flex-direction: column; gap: 16px;">
+                  <div style="padding: 0 16px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+                    <div style="min-width: 0; flex-grow: 1; display: flex; flex-direction: column; gap: 8px;">
+                      <div style="display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; line-height: 1; letter-spacing: -0.4px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><path d="m16 9-5.5 5.5L8 12"></path></svg>
+                        <span>team-slack · Connection check</span>
+                      </div>
+                      <div style="color: var(--muted-foreground);">work · started 7/29/2026, 2:26:00 PM</div>
+                    </div>
+                    <span style="padding-top: 2px; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; line-height: 1.5; white-space: nowrap;"><span style="width: 8px; height: 8px; flex-shrink: 0; border-radius: 9999px; background: var(--success);"></span><span>Succeeded</span></span>
+                  </div>
+                  <div style="padding: 0 16px;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                      <p style="margin: 0; min-width: 0; flex-grow: 1; color: var(--muted-foreground);">20s elapsed</p>
+                      <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px; white-space: nowrap; flex-shrink: 0;"><p style="margin: 0; font-size: 12px; line-height: 1.5; color: var(--muted-foreground); text-align: right; white-space: nowrap;">Completed in 20 seconds</p></div>
+                    </div>
+                  </div>
+                </div>
+                <div style="box-sizing: border-box; padding: 16px 0; border: 1px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: 0 1px 2px oklch(0 0 0 / 0.2); display: flex; flex-direction: column; gap: 16px;">
+                  <div style="padding: 0 16px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+                    <div style="min-width: 0; flex-grow: 1; display: flex; flex-direction: column; gap: 8px;">
+                      <div style="display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; line-height: 1; letter-spacing: -0.4px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></svg>
+                        <span>personal-notes · Trial sync</span>
+                      </div>
+                      <div style="color: var(--muted-foreground);">personal · started 7/29/2026, 2:16:00 PM</div>
+                    </div>
+                    <span style="padding-top: 2px; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; line-height: 1.5; white-space: nowrap;"><span style="width: 8px; height: 8px; flex-shrink: 0; border-radius: 9999px; background: var(--destructive);"></span><span>Cancelled</span></span>
+                  </div>
+                  <div style="padding: 0 16px;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                      <p style="margin: 0; min-width: 0; flex-grow: 1; color: var(--muted-foreground);">1m / 5m</p>
+                      <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px; white-space: nowrap; flex-shrink: 0;"><p style="margin: 0; font-size: 12px; line-height: 1.5; color: var(--muted-foreground); text-align: right; white-space: nowrap;">Completed in 60 seconds</p></div>
+                    </div>
+                  </div>
+                </div>
+                <div style="box-sizing: border-box; padding: 16px 0; border: 1px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: 0 1px 2px oklch(0 0 0 / 0.2); display: flex; flex-direction: column; gap: 16px;">
+                  <div style="padding: 0 16px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+                    <div style="min-width: 0; flex-grow: 1; display: flex; flex-direction: column; gap: 8px;">
+                      <div style="display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; line-height: 1; letter-spacing: -0.4px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+                        <span>work-code · Authorization</span>
+                      </div>
+                      <div style="color: var(--muted-foreground);">work · started 7/29/2026, 2:07:40 PM</div>
+                    </div>
+                    <span style="padding-top: 2px; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; line-height: 1.5; white-space: nowrap;"><span style="width: 8px; height: 8px; flex-shrink: 0; border-radius: 9999px; background: var(--destructive);"></span><span>Failed</span></span>
+                  </div>
+                  <div style="padding: 0 16px;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                      <p style="margin: 0; min-width: 0; flex-grow: 1; color: var(--muted-foreground);">10s / 5m</p>
+                      <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px; white-space: nowrap; flex-shrink: 0;"><p style="margin: 0; font-size: 12px; line-height: 1.5; color: var(--muted-foreground); text-align: right; white-space: nowrap;">Completed in 10 seconds</p></div>
+                    </div>
+        <div style="margin-top: 12px; display: flex; flex-direction: column;">
+          <h3 style="margin: 0; display: flex;"><button type="button" aria-expanded="false" style="flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 0; border: 0; background: transparent; color: var(--foreground); font: inherit; font-size: 14px; font-weight: 500; line-height: 1.55; text-align: left; cursor: pointer;">View job log<span style="display: flex; color: var(--muted-foreground);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="m6 9 6 6 6-6"></path></svg></span></button></h3>
+        </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <button type="button" style="height: 28px; box-sizing: border-box; padding: 0 10px; border: 0; border-radius: 8px; background: var(--card); color: var(--foreground); font: inherit; font-size: 12px; font-weight: 500; line-height: 1.5; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; text-decoration: none; cursor: pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"></path><circle cx="12" cy="12" r="3"></circle></svg>Manage ingestion in settings</button>
+          </div>
+        </div>
+      </main>
+      <footer aria-label="Application status" style="width: 1384px; height: 28px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-top: 1px solid var(--border); background: var(--background); color: var(--muted-foreground); font-size: 11px; line-height: 1.45; white-space: nowrap; flex-shrink: 0; overflow: hidden;">
+    <span style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">Index online</span>
+    <span title="openai-compatible:Qwen/Qwen3-Embedding-0.6B:1024" style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">Embedding: Qwen/Qwen3-Embedding-0.6B · 1024d</span>
+    <span style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">Query: synthesized</span>
+    <span style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-right: 4px;"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+      <span>Docs: 9,834</span>
+    </span>
+    <span style="display: flex; align-items: center; gap: 6px; color: var(--foreground); font-size: 12px; font-weight: 500; line-height: 1.5; flex-shrink: 0;">
+      <span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 999px; background: var(--muted-foreground); flex-shrink: 0;"></span>
+      <span>Ingestion: paused · manual</span>
+    </span>
+    <span aria-hidden="true" style="flex-grow: 1;"></span>
+  </footer>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

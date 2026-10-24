@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Conversations · The brain is unreachable</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); --primary: oklch(0.7323 0.1668 301.69); --primary-foreground: oklch(0.1756 0.0063 300.91); --warning: oklch(0.7196 0.1401 79.91); --destructive: oklch(0.7345 0.1626 25.78); --info: oklch(0.7555 0.1155 202.14); --success: oklch(0.6951 0.1809 145.62); width: 1440px; height: 900px; display: flex; flex-direction: column; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 1.55; text-rendering: optimizeLegibility; overflow: hidden;">
+  <header aria-label="Cortana toolbar" style="height: 48px; box-sizing: border-box; flex-shrink: 0; padding: 0 12px; background: oklch(0.1756 0.0063 300.91 / 0.9); border-bottom: 1px solid var(--border); box-shadow: inset 0 1px 0 0 oklch(1 0 0 / 0.08); display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); column-gap: 8px; align-items: center;">
+  <div style="min-width: 0; display: flex; align-items: center; gap: 8px; overflow: hidden;">
+    <a href="#" aria-label="Toggle navigation" title="Toggle navigation" style="width: 28px; height: 28px; box-sizing: border-box; padding: 0; border: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: transparent; color: var(--foreground); flex-shrink: 0; text-decoration: none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M9 3v18"></path></svg></a>
+    <a href="#" aria-label="Switch workspace" style="height: 28px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; display: flex; align-items: center; gap: 6px; color: var(--foreground); text-decoration: none; font-size: 12px; font-weight: 500; line-height: 1.5; white-space: nowrap; flex-shrink: 0;">
+      <span role="img" aria-label="?" style="width: 20px; height: 20px; box-sizing: border-box; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--muted-foreground); font-size: 11px; font-weight: 600; line-height: 1.45; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">?</span>
+      <span>Choose workspace</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+    </a>
+    <div style="min-width: 0; display: flex; align-items: center; gap: 4px; overflow: hidden;">
+      <div role="group" aria-label="Search history" style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+        <button type="button" aria-label="Previous search query" style="width: 28px; height: 28px; box-sizing: border-box; padding: 0; border: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: transparent; color: var(--foreground); flex-shrink: 0; opacity: 0.5;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg></button>
+        <button type="button" aria-label="Next search query" style="width: 28px; height: 28px; box-sizing: border-box; padding: 0; border: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: transparent; color: var(--foreground); flex-shrink: 0; opacity: 0.5;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></button>
+      </div>
+      <nav aria-label="Breadcrumb" style="min-width: 0;">
+        <ol style="margin: 0; padding: 0; list-style: none; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; color: var(--muted-foreground); font-size: 14px; line-height: 1.55;">
+          <li style="display: flex; align-items: center; gap: 6px;">Workspace</li>
+          <li role="presentation" aria-hidden="true" style="display: flex; align-items: center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></li>
+          <li style="display: flex; align-items: center; gap: 6px;"><span aria-current="page" style="font-weight: 500; color: var(--foreground);">Conversations</span></li>
+        </ol>
+      </nav>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0;">
+    <form style="margin: 0; min-width: 0;">
+      <label style="width: 377px; height: 32px; box-sizing: border-box; border-radius: 8px; border: 1px solid var(--border); display: flex; align-items: center; gap: 6px; padding: 0 10px; position: relative;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg>
+        <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;">Search your knowledge</span>
+        <input type="text" value="How do releases work?" style="flex-grow: 1; min-width: 0; height: 30px; border: 0; outline: none; background: transparent; color: var(--foreground); font: inherit; font-size: 14px; padding: 0;">
+        <kbd style="height: 20px; box-sizing: border-box; padding: 0 4px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--muted-foreground); font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; font-weight: 500; line-height: 1.5; display: flex; align-items: center; gap: 4px; flex-shrink: 0;">Ctrl K</kbd>
+      </label>
+    </form>
+    <button type="button" aria-label="Reflect on this objective" title="Reflect on this objective" style="height: 24px; box-sizing: border-box; padding: 0 8px; border: 0; border-radius: 8px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 12px; font-weight: 500; line-height: 1.5; display: flex; align-items: center; gap: 4px; flex-shrink: 0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg><span>Reflect</span></button>
+  </div>
+  <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0;">
+    <a href="#" aria-label="System status" title="System status" style="width: 28px; height: 28px; box-sizing: border-box; padding: 0; border: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: transparent; color: var(--foreground); flex-shrink: 0; text-decoration: none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"></path></svg></a>
+    <a href="#" aria-label="Actions" title="Actions" style="width: 28px; height: 28px; box-sizing: border-box; padding: 0; border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; background: transparent; color: var(--foreground); flex-shrink: 0; text-decoration: none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></a>
+  </div>
+  </header>
+  <div style="flex-grow: 1; min-height: 0; display: flex;">
+    <dc-import name="Rail" active="conversations" height="852" hint-size="56px,852px"></dc-import>
+    <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column;">
+      <main id="main-content" style="flex-grow: 1; min-height: 0; overflow: hidden; background: var(--background); display: flex; flex-direction: column;">
+        <header style="flex-shrink: 0; padding: 20px 20px 16px; display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px 16px;">
+          <div style="min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+            <span style="display: block; font-size: 11px; font-weight: 500; line-height: 1.45; letter-spacing: 0.275px; text-transform: uppercase; color: var(--muted-foreground);">Session</span>
+            <h1 style="margin: 0; font-size: 20px; font-weight: 600; line-height: 1.35; letter-spacing: -0.5px;">Conversations</h1>
+            <p style="margin: 0; color: var(--muted-foreground); line-height: 1.55;">The live query, answer, and evidence state of this workspace session.</p>
+          </div>
+        </header>
+        <div role="separator" style="flex-shrink: 0; height: 1px; background: var(--border);"></div>
+        <div style="box-sizing: border-box; padding: 20px 20px 56px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 28px;">
+            <div data-slot="empty" style="box-sizing: border-box; min-height: 160px; padding: 40px 24px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; text-wrap: balance;">
+              <div style="max-width: 384px; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                <div style="width: 36px; height: 36px; border-radius: 10px; background: var(--card); color: var(--muted-foreground); display: flex; align-items: center; justify-content: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></div>
+                <div role="heading" aria-level="3" style="font-size: 14px; font-weight: 500; line-height: 1.55; letter-spacing: -0.025em;">The brain is unreachable</div>
+                <div style="color: var(--muted-foreground); font-size: 14px; line-height: 1.55;">Failed to fetch Start the Rust API or add ?demo=1 to preview the workspace.</div>
+              </div>
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <button type="button" style="height: 28px; box-sizing: border-box; padding: 0 10px; border: 0; border-radius: 8px; background: var(--card); color: var(--foreground); font: inherit; font-size: 12px; font-weight: 500; line-height: 1.5; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; text-decoration: none; cursor: pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg>Search the brain</button>
+              </div>
+            </div>
+        </div>
+      </main>
+      <footer aria-label="Application status" style="width: 1384px; height: 28px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-top: 1px solid var(--border); background: var(--background); color: var(--muted-foreground); font-size: 11px; line-height: 1.45; white-space: nowrap; flex-shrink: 0; overflow: hidden;">
+    <span style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">Index offline</span>
+    <span style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">Embedding: —</span>
+    <span style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">Query: —</span>
+    <span style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-right: 4px;"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+      <span>Docs: —</span>
+    </span>
+    <span style="display: flex; align-items: center; gap: 6px; color: var(--muted-foreground); font-size: 12px; font-weight: 500; line-height: 1.5; flex-shrink: 0;">
+      <span aria-hidden="true" style="width: 8px; height: 8px; box-sizing: border-box; border-radius: 999px; border: 1px solid var(--muted-foreground); background: transparent; flex-shrink: 0;"></span>
+      <span>Ingestion: checking</span>
+    </span>
+    <span aria-hidden="true" style="flex-grow: 1;"></span>
+  </footer>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

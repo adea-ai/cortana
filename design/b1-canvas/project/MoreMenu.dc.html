@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>More menu</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --popover: oklch(0.2406 0.0088 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); position: relative; width: 1440px; height: 900px; overflow: hidden; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 1.55;">
+  <dc-import name="KnowledgeEmpty" hint-size="1440px,900px"></dc-import>
+
+  <!-- DropdownMenuContent align="end" under the "Actions" trigger (1400,10 28x28): 203.56 wide, right edge 1428; the shortcut is a DropdownMenuShortcut -->
+  <div role="menu" aria-label="Actions" style="position: absolute; left: 1224px; top: 38px; width: 203.56px; box-sizing: border-box; padding: 4px; border: 1px solid var(--border); border-radius: 14px; background: var(--popover); box-shadow: 0 12px 28px oklch(0 0 0 / 0.35);">
+    <sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+      <sc-if value="{{g.sep}}" hint-placeholder-val="{{ false }}"><div role="separator" style="height: 1px; margin: 4px -4px; background: var(--border);"></div></sc-if>
+      <div role="group">
+        <div style="height: 21.7px; padding: 0 8px; text-align: right; font-size: 11px; line-height: 21.7px; font-weight: 500; letter-spacing: 0.275px; text-transform: uppercase; color: var(--muted-foreground);">{{g.title}}</div>
+        <sc-for list="{{g.items}}" as="i" hint-placeholder-count="4">
+          <a role="menuitem" href="{{i.href}}" aria-disabled="{{i.disabled}}" style="height: 33.7px; box-sizing: border-box; padding: 6px 8px; border-radius: 6px; display: flex; align-items: center; gap: 8px; color: {{i.fg}}; text-decoration: none;">
+            <span>{{i.label}}</span>
+            <sc-if value="{{i.hasKbd}}" hint-placeholder-val="{{ false }}"><span style="margin-left: auto; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; line-height: 18px; letter-spacing: 1.2px;">{{i.kbd}}</span></sc-if>
+          </a>
+        </sc-for>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const fg = 'oklch(0.942 0.0054 297.72)', muted = 'oklch(0.6967 0.0057 298.74)';
+    const I = (label, href, o = {}) => ({ label, href, kbd: o.kbd || '', hasKbd: !!o.kbd, disabled: o.disabled ? 'true' : 'false', fg: o.disabled ? muted : fg });
+    return {
+      groups: [
+        { title: 'Workspace', sep: false, items: [
+          I('Open sources', 'KnowledgeDocument.dc.html'),
+          I('Filter documents', 'KnowledgeEmpty.dc.html'),
+          I('Open agent context', 'KnowledgeEmpty.dc.html'),
+          I('Open conversations', 'Conversations.dc.html')
+        ] },
+        { title: 'Search history', sep: true, items: [
+          I('Previous query', '#', { disabled: true }),
+          I('Next query', '#', { disabled: true }),
+          I('Command palette', 'CommandPalette.dc.html', { kbd: 'Ctrl P' })
+        ] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

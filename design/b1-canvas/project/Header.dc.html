@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cortana top bar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<header aria-label="Cortana toolbar" style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --secondary: oklch(0.2106 0.0076 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); --primary: oklch(0.7323 0.1668 301.69); --primary-foreground: oklch(0.1756 0.0063 300.91); width: {{width}}px; height: {{height}}px; flex-shrink: 0; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; align-content: flex-start; padding: 0 12px; background: var(--card); border-bottom: 1px solid var(--border); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 1.55;">
+
+  <!-- Leading half (ShellTopBar): search history arrows, then the sidebar toggle, then the workspace switcher. With the Sources sidebar open at 800px and up it spans the rail and the sidebar (56 + 270 − 12 padding) so the divider lands on the sidebar's edge. -->
+  <div data-slot="shell-top-bar-leading" style="width: {{leadWidth}}; height: 47px; box-sizing: border-box; min-width: 0; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding-right: 12px; overflow: hidden;">
+    <sc-if value="{{showHistory}}" hint-placeholder-val="{{ true }}">
+    <div role="group" aria-label="Search history" style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+      <button type="button" aria-label="Previous search query" title="No previous search query" disabled style="width: 28px; height: 28px; border: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: transparent; color: var(--foreground); opacity: 0.5; padding: 0;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+      </button>
+      <button type="button" aria-label="Next search query" title="No next search query" disabled style="width: 28px; height: 28px; border: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: transparent; color: var(--foreground); opacity: 0.5; padding: 0;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+      </button>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{showToggle}}" hint-placeholder-val="{{ true }}">
+    <a href="{{sidebarHref}}" aria-label="{{toggleLabel}}" title="{{toggleLabel}}" aria-expanded="{{toggleExpanded}}" style="width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--foreground); text-decoration: none; flex-shrink: 0;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <sc-if value="{{mobile}}" hint-placeholder-val="{{ false }}"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M9 3v18"></path></sc-if>
+        <sc-if value="{{sidebarOpen}}" hint-placeholder-val="{{ true }}"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M9 3v18"></path><path d="m16 15-3-3 3-3"></path></sc-if>
+        <sc-if value="{{sidebarClosed}}" hint-placeholder-val="{{ false }}"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M9 3v18"></path><path d="m14 9 3 3-3 3"></path></sc-if>
+      </svg>
+    </a>
+    </sc-if>
+
+    <sc-if value="{{showPicker}}" hint-placeholder-val="{{ true }}">
+    <a href="WorkspaceMenu.dc.html" aria-label="Switch workspace, current: {{workspace}}" title="Workspace: {{workspace}}" style="height: 28px; padding: 0 10px; border-radius: 8px; display: flex; align-items: center; gap: 6px; color: var(--foreground); text-decoration: none; font-size: 12px; font-weight: 500; line-height: 18px; min-width: 0; flex-shrink: 1;">
+      <span role="img" aria-label="{{workspace}}" style="width: 20px; height: 20px; flex-shrink: 0; box-sizing: border-box; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--muted-foreground); display: flex; align-items: center; justify-content: center;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
+      </span>
+      <span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{workspace}}</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="m6 9 6 6 6-6"></path></svg>
+    </a>
+    </sc-if>
+  </div>
+
+  <div aria-hidden="true" style="width: 1px; height: 20px; flex-shrink: 0; background: var(--border);"></div>
+
+  <!-- Breadcrumb: the workspace is named by the switcher, so the trail is only the view (hidden under 1024px). -->
+  <div style="flex: 1 1 0%; min-width: 0; height: 47px; display: flex; align-items: center; padding-left: 12px; overflow: hidden;">
+    <sc-if value="{{showCrumb}}" hint-placeholder-val="{{ true }}">
+    <nav aria-label="Breadcrumb" style="min-width: 0;">
+      <ol style="margin: 0; padding: 0; list-style: none; display: flex; align-items: center; gap: 6px; white-space: nowrap; color: var(--muted-foreground);">
+        <li style="display: flex; align-items: center;"><span aria-current="page" style="font-weight: 500; color: var(--foreground);">{{location}}</span></li>
+      </ol>
+    </nav>
+    </sc-if>
+  </div>
+
+  <div data-slot="shell-top-bar-actions" style="height: 47px; flex-shrink: 0; display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; padding-left: 4px;">
+    <a href="SearchMenu.dc.html" aria-label="Search and reflect" aria-keyshortcuts="Meta+K Control+K" title="Search your knowledge or reflect on this objective (⌘ K)." style="width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--foreground); text-decoration: none; flex-shrink: 0;">
+      <sc-if value="{{searching}}" hint-placeholder-val="{{ false }}">
+        <svg role="status" aria-label="Searching" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
+      </sc-if>
+      <sc-if value="{{idle}}" hint-placeholder-val="{{ true }}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg>
+      </sc-if>
+    </a>
+    <a href="SystemStatus.dc.html" aria-label="System status" title="System status" style="width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--foreground); text-decoration: none;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"></path></svg>
+    </a>
+    <a href="MoreMenu.dc.html" aria-label="Actions" title="Actions" style="width: 28px; height: 28px; box-sizing: border-box; border-radius: 8px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--foreground); text-decoration: none;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+    </a>
+  </div>
+</header>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"workspace":{"editor":"enum","options":["Work","Personal"],"default":"Work"},"location":{"editor":null,"default":"Knowledge"},"searching":{"editor":"boolean","default":false},"sidebar":{"editor":"enum","options":["open","closed"],"default":"open"},"width":{"editor":null,"default":1440},"$preview":{"width":1440,"height":49}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const workspace = this.props.workspace ?? 'Work';
+    const searching = this.props.searching === true || this.props.searching === 'true';
+    const sidebarProp = this.props.sidebar ?? 'open';
+    const width = Number(this.props.width ?? 1440);
+    // M7ApplicationHeader on the shared ShellTopBar (ui 0.143): the leading half holds the search
+    // history arrows, the sidebar toggle and the workspace switcher; a vertical divider follows;
+    // the breadcrumb takes the free space, then the actions: the search menu trigger (the search
+    // box and Reflect live in that menu; the rail's search entry and the search shortcut open it
+    // too), System status and Actions. The bar paints the card colour, the same as Adea's. The
+    // workspace switcher and the history arrows show from 800px; below that only the navigation
+    // toggle remains on the left and it opens the navigation sheet. From 800px the toggle
+    // collapses the Sources sidebar, not the rail, and with the sidebar open the divider sits on
+    // the sidebar's trailing edge (rail 56 + sidebar 270 - the bar's 12px padding). The
+    // breadcrumb is `hidden lg:block` (from 1024px). Only the Knowledge view has a Sources
+    // sidebar (hasSidebar); on the other views the toggle is hidden at desktop widths and the
+    // divider hugs the leading controls.
+    const desktop = width >= 800;
+    const hasSidebar = (this.props.location ?? 'Knowledge') === 'Knowledge';
+    const open = desktop && hasSidebar && sidebarProp !== 'closed';
+    const closed = desktop && hasSidebar && sidebarProp === 'closed';
+    return {
+      width,
+      height: 49,
+      leadWidth: open ? '314px' : 'auto',
+      showHistory: desktop,
+      showToggle: !desktop || hasSidebar,
+      mobile: !desktop,
+      sidebarOpen: open,
+      sidebarClosed: closed,
+      toggleLabel: desktop ? (open ? 'Collapse sidebar' : 'Expand sidebar') : 'Toggle navigation',
+      toggleExpanded: desktop ? (open ? 'true' : 'false') : 'false',
+      sidebarHref: desktop ? (open ? 'SidebarCollapsed.dc.html' : 'KnowledgeAnswer.dc.html') : 'MobileNav.dc.html',
+      showPicker: desktop,
+      showCrumb: width >= 1024,
+      searching,
+      idle: !searching,
+      workspace,
+      location: this.props.location ?? 'Knowledge'
+    };
+  }
+}
+</script>
+</body>
+</html>

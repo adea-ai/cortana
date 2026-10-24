@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crash · Cortana needs a reload (workspace error)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<!-- AppErrorBoundary: a component under the theme provider threw. Reached by making window.matchMedia throw at start-up. The whole window is replaced; the shell, sheets and status bar are gone. -->
+<div style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); --primary: oklch(0.7323 0.1668 301.69); --primary-foreground: oklch(0.1756 0.0063 300.91); --warning: oklch(0.7196 0.1401 79.91); --destructive: oklch(0.7345 0.1626 25.78); position: relative; width: 1440px; height: 900px; display: flex; flex-direction: column; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 1.55; overflow: hidden;">
+  <main style="flex-grow: 1; min-height: 0; display: flex;">
+    <div role="alert" style="box-sizing: border-box; flex-grow: 1; padding: 40px 24px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; text-wrap: balance;">
+      <div style="width: 384px; max-width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+        <div style="width: 36px; height: 36px; border-radius: 10px; background: var(--card); color: var(--muted-foreground); display: flex; align-items: center; justify-content: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></div>
+        <div role="heading" aria-level="2" style="font-size: 14px; font-weight: 500; line-height: 21.7px; letter-spacing: -0.35px;">Cortana needs a reload</div>
+        <div style="color: var(--muted-foreground); font-size: 14px; line-height: 21.7px;">The workspace hit an unexpected renderer error. Your local index and settings are safe.</div>
+      </div>
+      <button type="button" style="height: 32px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 8px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 14px; font-weight: 500; line-height: 21.7px; display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; cursor: pointer;">Reload workspace</button>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

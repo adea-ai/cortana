@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Initial sync</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+input::placeholder,textarea::placeholder{color:var(--muted-foreground);opacity:1}
+</style>
+</helmet>
+<div style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --popover: oklch(0.2406 0.0088 300.91); --primary: oklch(0.7323 0.1668 301.69); --primary-foreground: oklch(0.1756 0.0063 300.91); --secondary: oklch(0.2106 0.0076 300.91); --muted: oklch(0.2106 0.0076 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --accent: oklch(0.2756 0.0101 300.91); --border: oklch(0.3256 0.0057 300.91); --input: oklch(0.3256 0.0057 300.91); --destructive: oklch(0.7345 0.1626 25.78); --success: oklch(0.6951 0.1809 145.62); --warning: oklch(0.7196 0.1401 79.91); --info: oklch(0.7555 0.1155 202.14); --destructive-subtle: oklch(0.2538 0.0282 312.79); --success-subtle: oklch(0.2483 0.0307 279.17); --warning-subtle: oklch(0.2518 0.025 320.37); --info-subtle: oklch(0.2568 0.0216 287.08); --ring: oklch(0.7323 0.1668 301.69); position: relative; width: 1440px; height: 900px; overflow: hidden; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk Variable', 'Space Grotesk', sans-serif; font-size: 14px; line-height: 21.7px;">
+  <dc-import name="SetSources" hint-size="1440px,900px"></dc-import>
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: oklab(0.1919 -0.00230926 -0.0248931 / 0.5); backdrop-filter: blur(4px);"></div>
+
+<div role="dialog" style="position: absolute; left: 336px; top: 271px; width: 768px; display: grid; box-sizing: border-box; gap: 16px; grid-template-columns: repeat(1, minmax(0, 1fr)); padding: 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--background); box-shadow: oklch(0 0 0 / 0.35) 0px 12px 28px 0px;">
+  <div style="display: flex; flex-direction: column; gap: 6px; padding: 0px 24px 0px 0px;">
+    <h2 style="margin: 0px; font-size: 16px; font-weight: 600; line-height: 16px; letter-spacing: -0.4px; font-style: normal; color: var(--foreground);">Initial sync</h2>
+    <p style="margin: 0px; color: var(--muted-foreground);">
+      <span style="display: flex; align-items: center; gap: 7px; margin: 0px 0px 17px 0px; font-size: 11px; font-weight: 500; line-height: 15.95px; letter-spacing: 0.275px; text-transform: uppercase;">Guided initial sync</span> Review the bounded first-import plan for work-code. Check the connection first, then start the sync only when the selected budget is covered by a successful validation.</p></div>
+  <section aria-label="Initial sync plan for work-code" style="display: flex; box-sizing: border-box; flex-direction: column; gap: 13px; padding: 15px 17px; border: 1px solid var(--border); background: var(--warning-subtle);">
+    <div role="radiogroup" aria-label="Initial sync budget" style="display: grid; gap: 8px; grid-template-columns: 224.656px 224.672px 224.672px;">
+      <div role="group" style="display: flex; position: relative; box-sizing: border-box; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--primary); border-radius: 10px; background: var(--card);">
+        <div style="display: flex; box-sizing: border-box; justify-content: center; align-items: center; flex-shrink: 0; width: 16px; height: 16px; border: 1px solid var(--primary); border-radius: 9999px; color: var(--primary);">
+          <div style="display: flex; justify-content: center; align-items: center;"><svg width="8" height="8" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle></svg></div></div>
+        <div style="display: grid; gap: 2px; grid-template-columns: repeat(1, minmax(0, 1fr)); line-height: 14px;">
+          <label style="display: block; font-weight: 500; line-height: 21.7px;">Small</label>
+          <div style="line-height: 21.7px; color: var(--muted-foreground);">100 documents or 25 MiB for up to 15 minutes</div></div></div>
+      <div role="group" style="display: flex; position: relative; box-sizing: border-box; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card);">
+        <div style="display: flex; box-sizing: border-box; justify-content: center; align-items: center; flex-shrink: 0; width: 16px; height: 16px; border: 1px solid var(--border); border-radius: 9999px;"></div>
+        <div style="display: grid; gap: 2px; grid-template-columns: repeat(1, minmax(0, 1fr)); line-height: 14px;">
+          <label style="display: block; font-weight: 500; line-height: 21.7px;">Medium</label>
+          <div style="line-height: 21.7px; color: var(--muted-foreground);">500 documents or 64 MiB for up to 30 minutes</div></div></div>
+      <div role="group" style="display: flex; position: relative; box-sizing: border-box; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card);">
+        <div style="display: flex; box-sizing: border-box; justify-content: center; align-items: center; flex-shrink: 0; width: 16px; height: 16px; border: 1px solid var(--border); border-radius: 9999px;"></div>
+        <div style="display: grid; gap: 2px; grid-template-columns: repeat(1, minmax(0, 1fr)); line-height: 14px;">
+          <label style="display: block; font-weight: 500; line-height: 21.7px;">Large</label>
+          <div style="line-height: 21.7px; color: var(--muted-foreground);">2,000 documents or 128 MiB for up to 60 minutes</div></div></div></div>
+    <div role="alert" style="display: grid; position: relative; box-sizing: border-box; align-items: flex-start; row-gap: 4px; column-gap: 12px; grid-template-columns: 16px 636px; padding: 10px 12px; margin: 20px 0px 0px 0px; border: 1px solid oklab(0.7345 0.146417 0.0707175 / 0.3); border-radius: 10px; background: var(--destructive-subtle);">
+      <span style="display: block; box-sizing: border-box; grid-row: span 2 / span 2; padding: 2px 0px 0px 0px; color: var(--destructive);"><svg width="16" height="16" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line></svg></span>
+      <div style="grid-column: 2 / auto;">Initial sync is available in Cortana Desktop</div></div></section>
+  <button aria-label="Close" type="button" style="display: block; position: absolute; top: 14px; right: 14px; bottom: 318.062px; left: 728px; box-sizing: border-box; min-width: 0; width: 24px; height: 24px; padding: 4px; border: 0; border-radius: 8px; background: transparent; font-family: 'Space Grotesk Variable', 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 400; line-height: 21.7px; color: var(--muted-foreground); text-align: center; appearance: button; cursor: pointer;"><svg width="16" height="16" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

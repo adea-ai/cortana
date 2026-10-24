@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cortana settings nav</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<!-- @adea-ai/ui 0.119 SettingsLayout tab rail (SettingsView.tsx SETTINGS_NAV_GROUPS): role=tablist "Settings sections", groups Runtime / Configuration. -->
+<div role="tablist" aria-label="Settings sections" aria-orientation="vertical" style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --muted-foreground: oklch(0.6967 0.0057 298.74); --primary: oklch(0.7323 0.1668 301.69); --primary-subtle: oklch(0.7323 0.1668 301.69 / 0.16); width: 256px; height: {{height}}px; box-sizing: border-box; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; padding: 8px; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 21.7px; overflow: hidden;">
+  <sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+    <div role="none" style="display: flex; flex-direction: column; gap: 2px;">
+      <span style="display: block; height: 28px; box-sizing: border-box; padding: 6px 8px; font-size: 11px; font-weight: 500; line-height: 15.95px; letter-spacing: 0.275px; text-transform: uppercase; color: var(--muted-foreground);">{{g.label}}</span>
+      <sc-for list="{{g.items}}" as="s" hint-placeholder-count="4">
+        <a role="tab" href="{{s.href}}" aria-selected="{{s.selected}}" style="height: 36px; flex-shrink: 0; box-sizing: border-box; border-radius: 8px; display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 8px 12px; background: {{s.bg}}; color: {{s.color}}; font-size: 14px; font-weight: 500; line-height: 21.7px; white-space: nowrap; text-decoration: none;"><span>{{s.label}}</span></a>
+      </sc-for>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"active":{"editor":"enum","options":["Services","Workspaces","Sources","Readiness","Access","Audit","Embedding","Query","Ingestion","Advanced","Memory"],"default":"Readiness"},"height":{"editor":null,"default":783},"$preview":{"width":256,"height":783}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const active = this.props.active ?? 'Readiness';
+    const mk = (label) => ({
+      label,
+      href: 'Set' + label + '.dc.html',
+      selected: label === active ? 'true' : 'false',
+      bg: label === active ? 'var(--primary-subtle)' : 'transparent',
+      color: label === active ? 'var(--foreground)' : 'var(--muted-foreground)'
+    });
+    return {
+      height: Number(this.props.height ?? 783),
+      groups: [
+        { label: 'Runtime', items: ['Services', 'Workspaces', 'Sources', 'Readiness'].map(mk) },
+        { label: 'Configuration', items: ['Access', 'Audit', 'Embedding', 'Query', 'Ingestion', 'Advanced', 'Memory'].map(mk) }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

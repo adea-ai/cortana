@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Confirm · Enable or disable a source</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); --scrim: oklch(0.1919 0.025 264.7); position: relative; width: 1440px; height: 900px; overflow: hidden; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 1.55;">
+  <dc-import name="KnowledgeEmpty" hint-size="1440px,900px"></dc-import>
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: oklch(0.1919 0.025 264.7 / 0.5); backdrop-filter: blur(4px);"></div>
+
+  <!-- SettingsConfirm (settings/SettingsConfirm.tsx): @adea-ai/ui AlertDialog, max-w-md (448), centered; no close X. Redrawn from cortana main e86eed9 (#2579): every confirmation in the shell goes through this one dialog, only the description changes. Opened from the source switch in the sources panel (App.tsx toggleSource). Cancel / Continue render as bare text buttons exactly as shipped. The first focus lands on Cancel. -->
+  <div role="alertdialog" aria-labelledby="confirm-title" aria-describedby="confirm-desc" style="position: absolute; left: 496px; top: 355.8px; width: 448px; box-sizing: border-box; padding: 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--background); box-shadow: 0 12px 28px oklch(0 0 0 / 0.35); display: flex; flex-direction: column; gap: 16px;">
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <h2 id="confirm-title" style="margin: 0; font-size: 16px; line-height: 16px; font-weight: 600; letter-spacing: -0.4px;">Confirm this action</h2>
+      <p id="confirm-desc" style="margin: 0; color: var(--muted-foreground); line-height: 21.7px; white-space: pre-line;">Enable work-code in work?
+
+This changes future ingestion only. Existing indexed data remains queryable and is not deleted.</p>
+    </div>
+    <div style="display: flex; justify-content: flex-end; gap: 8px;">
+      <a href="#" style="padding: 0; color: var(--foreground); font-size: 14px; line-height: 21.7px; font-weight: 400; text-decoration: none; cursor: pointer;">Cancel</a>
+      <a href="#" style="padding: 0; color: var(--foreground); font-size: 14px; line-height: 21.7px; font-weight: 400; text-decoration: none; cursor: pointer;">Continue</a>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

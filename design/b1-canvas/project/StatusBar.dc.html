@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cortana status bar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<footer aria-label="Application status" style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --secondary: oklch(0.2106 0.0076 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); --warning: oklch(0.7196 0.1401 79.91); width: {{width}}px; height: 28px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-top: 1px solid var(--border); background: var(--background); color: var(--muted-foreground); font-family: 'Space Grotesk', sans-serif; font-size: 11px; line-height: 15.95px; white-space: nowrap; flex-shrink: 0; overflow: hidden;">
+  <div style="flex-grow: 1; min-width: 0; display: flex; align-items: center; gap: 12px;">
+    <span style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">{{indexLabel}}</span>
+    <span title="{{embeddingTitle}}" style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">{{embeddingLabel}}</span>
+    <span style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">{{queryLabel}}</span>
+    <span style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right: 4px; flex-shrink: 0;"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+      <span>{{docsLabel}}</span>
+    </span>
+    <span style="display: flex; align-items: center; gap: 6px; color: {{chipColor}}; font-size: 12px; font-weight: 500; line-height: 18px; flex-shrink: 0;">
+      <span aria-hidden="true" style="width: 8px; height: 8px; box-sizing: border-box; border-radius: 999px; border: {{dotBorder}}; background: {{dotBg}}; flex-shrink: 0;"></span>
+      <span>{{ingestionLabel}}</span>
+    </span>
+    <span aria-hidden="true" style="flex-grow: 1;"></span>
+    <sc-if value="{{demo}}" hint-placeholder-val="{{ true }}">
+      <span style="height: 20px; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid transparent; background: var(--secondary); color: var(--foreground); font-size: 12px; font-weight: 500; line-height: 18px; display: flex; align-items: center; gap: 4px; flex-shrink: 0;">Demo data</span>
+    </sc-if>
+  </div>
+</footer>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"width":{"editor":null,"default":1384},"state":{"editor":"enum","options":["online","offline"],"default":"online"},"$preview":{"width":1384,"height":28}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // online: the demo build (status answered). offline: no API, no ?demo (App.tsx
+    // M7StatusBar children): status missing, so the labels fall back to the em dash
+    // and the Ingestion chip reads "checking" with the unknown tone (hollow dot,
+    // muted text); the Demo data badge only renders in ?demo.
+    const offline = (this.props.state ?? 'online') === 'offline';
+    return {
+      width: Number(this.props.width ?? 1384),
+      offline,
+      demo: !offline,
+      indexLabel: offline ? 'Index offline' : 'Index online',
+      embeddingLabel: offline ? 'Embedding: —' : 'Embedding: Qwen/Qwen3-Embedding-0.6B · 1024d',
+      embeddingTitle: offline ? '' : 'openai-compatible:Qwen/Qwen3-Embedding-0.6B:1024',
+      queryLabel: offline ? 'Query: —' : 'Query: synthesized',
+      docsLabel: offline ? 'Docs: —' : 'Docs: 9,834',
+      ingestionLabel: offline ? 'Ingestion: checking' : 'Ingestion: 1 needs attention',
+      chipColor: offline ? 'var(--muted-foreground)' : 'var(--foreground)',
+      dotBorder: offline ? '1px solid var(--muted-foreground)' : '0',
+      dotBg: offline ? 'transparent' : 'var(--warning)'
+    };
+  }
+}
+</script>
+</body>
+</html>

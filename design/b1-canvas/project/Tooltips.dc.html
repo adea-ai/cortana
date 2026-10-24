@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tooltips</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+input::placeholder,textarea::placeholder{color:var(--muted-foreground);opacity:1}
+</style>
+</helmet>
+<div style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --popover: oklch(0.2406 0.0088 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); --primary: oklch(0.7323 0.1668 301.69); --accent: oklch(0.2756 0.0101 300.91); --destructive: oklch(0.7345 0.1626 25.78); --success: oklch(0.6951 0.1809 145.62); --warning: oklch(0.7196 0.1401 79.91); --info: oklch(0.7555 0.1155 202.14); --destructive-subtle: oklch(0.2538 0.0282 312.79); --success-subtle: oklch(0.2483 0.0307 279.17); --warning-subtle: oklch(0.2518 0.025 320.37); --info-subtle: oklch(0.2568 0.0216 287.08); position: relative; width: 1440px; height: 900px; overflow: hidden; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 21.7px;">
+  <dc-import name="KnowledgeEmpty" hint-size="1440px,900px"></dc-import>
+  <!-- Reference composite: the shared tooltip pattern. ActionButton tooltips (Toggle navigation, System status) and the tab tooltip use TooltipContent (bg-card, 1px border, 8px radius, 14px/500, shadow-lg, 4px 8px padding); the SideRail item tip adds its icon. Each tooltip is captured from its own hover; the app only ever shows one at a time, so they are composed here at their real positions. -->
+  <div style="position: absolute; left: 8px; top: 38px;">
+<div role="tooltip" style="color: var(--foreground); font-family: 'Space Grotesk Variable', 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 500; font-style: normal; line-height: 21.7px; letter-spacing: normal; text-transform: none; text-align: start; white-space: normal; text-wrap: balance; font-variant-numeric: normal; box-sizing: border-box; grid-column: auto; grid-row: auto; padding: 4px 8px; margin: 0px; border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); border-left: 1px solid var(--border); border-radius: 8px; background-color: var(--card); box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklch(0 0 0 / 0.35) 0px 12px 28px 0px; z-index: 160; pointer-events: none; position: relative; width: 138.03px; height: 31.69px">Toggle navigation</div>
+  </div>
+  <div style="position: absolute; left: 1176px; top: 38px;">
+<div role="tooltip" style="color: var(--foreground); font-family: 'Space Grotesk Variable', 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 500; font-style: normal; line-height: 21.7px; letter-spacing: normal; text-transform: none; text-align: start; white-space: normal; text-wrap: balance; font-variant-numeric: normal; box-sizing: border-box; grid-column: auto; grid-row: auto; padding: 4px 8px; margin: 0px; border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); border-left: 1px solid var(--border); border-radius: 8px; background-color: var(--card); box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklch(0 0 0 / 0.35) 0px 12px 28px 0px; z-index: 160; pointer-events: none; position: relative; width: 256px; height: 53.38px">Review source jobs, service health, installation, and update status.</div>
+  </div>
+  <div style="position: absolute; left: 55px; top: 94px;">
+<div aria-hidden="true" style="color: var(--foreground); font-family: 'Space Grotesk Variable', 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 500; font-style: normal; line-height: 21.7px; letter-spacing: normal; text-transform: none; text-align: start; white-space: nowrap; text-wrap: nowrap; font-variant-numeric: normal; display: flex; box-sizing: border-box; align-items: center; grid-column: auto; grid-row: auto; gap: 10px; padding: 0px 12px; margin: 0px; border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); border-left: 1px solid var(--border); border-radius: 8px; background-color: var(--card); box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklch(0 0 0 / 0.35) 0px 12px 28px 0px; z-index: 160; pointer-events: none; position: relative; width: 96.14px; height: 36px"><span style="display: flex; box-sizing: border-box; flex-shrink: 0; align-items: center; justify-content: center; grid-column: auto; grid-row: auto; padding: 0px; margin: 0px; pointer-events: none; width: 20px; height: 20px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width: 20px; height: 20px; flex-shrink: 1; display: block"><circle cx="12" cy="18" r="3" key="1mpf1b"></circle><circle cx="6" cy="6" r="3" key="1lh9wr"></circle><circle cx="18" cy="6" r="3" key="1h7g24"></circle><path d="M18 9v2c0 .6-.4 1-1 1H7c-.6 0-1-.4-1-1V9" key="1uq4wg"></path><path d="M12 12v3" key="158kv8"></path></svg></span>Graph</div>
+  </div>
+  <div style="position: absolute; left: 266px; top: 96px;">
+<div role="tooltip" style="color: var(--foreground); font-family: 'Space Grotesk Variable', 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 500; font-style: normal; line-height: 21.7px; letter-spacing: normal; text-transform: none; text-align: start; white-space: normal; text-wrap: balance; font-variant-numeric: normal; box-sizing: border-box; grid-column: auto; grid-row: auto; padding: 4px 8px; margin: 0px; border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); border-left: 1px solid var(--border); border-radius: 8px; background-color: var(--card); box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklch(0 0 0 / 0.35) 0px 12px 28px 0px; z-index: 160; pointer-events: none; position: relative; width: 230.03px; height: 31.69px">Show document for this search</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings · Readiness</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<!-- Settings after cortana#2538 (@adea-ai/ui 0.119.1 SettingsLayout + PageHeader). ?demo › User settings › Settings (opens on Readiness). -->
+<div style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --secondary: oklch(0.2106 0.0076 300.91); --popover: oklch(0.2406 0.0088 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); --primary: oklch(0.7323 0.1668 301.69); --primary-foreground: oklch(0.1756 0.0063 300.91); --success: oklch(0.6951 0.1809 145.62); --warning: oklch(0.7196 0.1401 79.91); --destructive: oklch(0.7345 0.1626 25.78); --destructive-foreground: oklch(0.1756 0.0063 300.91); width: 1440px; height: 990px; display: flex; flex-direction: column; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 21.7px; overflow: hidden;">
+  <dc-import name="Header" location="Settings" workspace="Work" hint-size="1440px,48px"></dc-import>
+  <div style="flex-grow: 1; min-height: 0; display: flex;">
+    <dc-import name="Rail" active="none" height="942" hint-size="56px,942px"></dc-import>
+    <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column;">
+      <main id="main-content" style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; background: var(--background); overflow: hidden;">
+        <header style="flex-shrink: 0; box-sizing: border-box; padding: 20px 20px 16px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px 16px;">
+          <div style="min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-size: 11px; font-weight: 500; line-height: 15.95px; letter-spacing: 0.275px; text-transform: uppercase; color: var(--muted-foreground);">Control plane</span>
+            <h1 style="margin: 0; font-size: 20px; font-weight: 600; line-height: 27px; letter-spacing: -0.5px;">Settings</h1>
+            <p style="margin: 0; color: var(--muted-foreground);">Changes are written locally and audited. Secret values never return to this window.</p>
+            <p style="margin: 0; font-size: 11px; line-height: 17.05px; color: var(--muted-foreground); white-space: nowrap; overflow: hidden;">Config <code title="/example/cortana/config.toml" style="padding: 1.65px 4.4px; border-radius: 6px; background: var(--secondary); color: var(--foreground); font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 11px; line-height: 17.05px;">/example/cortana/config.toml</code></p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+            <button type="button" disabled style="height: 28px; padding: 0 10px; gap: 6px; font-size: 12px; line-height: 18px; box-sizing: border-box; flex-shrink: 0; border: 0; border-radius: 8px; background: var(--primary); color: var(--primary-foreground); font-family: inherit; font-weight: 500; display: flex; align-items: center; justify-content: center; white-space: nowrap; text-decoration: none; opacity: 0.5;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"></path><path d="M7 3v4a1 1 0 0 0 1 1h7"></path></svg>Save changes</button>
+          </div>
+        </header>
+        <hr style="margin: 0; height: 1px; box-sizing: border-box; flex-shrink: 0; border: 0; border-top: 1px solid var(--border); background: var(--border);">
+        
+        <div style="flex-grow: 1; min-height: 0; display: flex;">
+          <dc-import name="SettingsNav" active="Readiness" height="783" hint-size="256px,783px"></dc-import>
+          <div role="tabpanel" aria-label="Readiness" style="flex-grow: 1; min-width: 0; box-sizing: border-box; padding: 16px;">
+            <form style="margin: 0; padding: 0 0 72px;">
+              <section aria-label="System readiness" style="padding: 20px; display: flex; flex-direction: column; gap: 16px;"><div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;"><div style="max-width: 583px; display: flex; flex-direction: column; gap: 2px;"><h2 style="margin: 0; font-size: 16px; font-weight: 600; line-height: 24px; letter-spacing: -0.4px;">System readiness</h2><p style="margin: 0; color: var(--muted-foreground);">A read-only scan checks local tools and Cortana's production gates. The first Connector environment install needs explicit approval here; previously installed environments are maintained automatically after Desktop updates. This scan never starts a connector, installs a schedule, or writes indexed data.</p></div></div><div style="display: flex; flex-direction: column; gap: 16px;"><div style="margin: 22px 0 16px; display: flex; align-items: center; gap: 12px;"><button type="button" style="height: 28px; padding: 0 10px; gap: 6px; font-size: 12px; line-height: 18px; box-sizing: border-box; flex-shrink: 0; border: 0; border-radius: 8px; background: var(--secondary); color: var(--foreground); font-family: inherit; font-weight: 500; display: flex; align-items: center; justify-content: center; white-space: nowrap; text-decoration: none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg>Run again</button><span style="font-size: 11px; line-height: 17.05px; color: var(--muted-foreground);">Last checked 11:06:40 PM</span></div><div style="box-sizing: border-box; border: 1px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: 0 1px 2px 0 oklch(0 0 0 / 0.2); padding: 12px 0; display: flex; flex-direction: column; gap: 12px; "><div style="padding: 0 12px; "><div style="display: flex; align-items: flex-start; gap: 12px;"><span role="img" aria-label="Passed" style="display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap;"><span style="width: 8px; height: 8px; border-radius: 9999px; background: var(--success); flex-shrink: 0;"></span><span>Passed</span></span><div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;"><strong style="font-weight: 700;">Local tools ready</strong><span>0 required components missing</span></div></div></div></div><div style="margin-top: 12px; display: flex; flex-direction: column; gap: 12px;"><div role="article" style="box-sizing: border-box; border: 1px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: 0 1px 2px 0 oklch(0 0 0 / 0.2); padding: 12px 0; display: flex; flex-direction: column; gap: 12px; "><div style="padding: 0 12px; "><div style="display: flex; align-items: flex-start; gap: 12px;"><span role="img" aria-label="Passed" style="display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap;"><span style="width: 8px; height: 8px; border-radius: 9999px; background: var(--success); flex-shrink: 0;"></span><span>Passed</span></span><div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;"><strong style="font-size: 12px; font-weight: 600; line-height: 18.6px;">Connector runtime</strong><span>demo</span><code style="font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 11px; line-height: 17.05px; color: var(--muted-foreground);">/example/cortana/connectors</code></div></div></div></div></div><div style="margin-top: 24px; display: flex; flex-direction: column; gap: 12px;"><h3 style="margin: 0 0 9px; font-size: 14px; font-weight: 400; line-height: 21.7px;">Production gates</h3><div role="article" style="box-sizing: border-box; border: 1px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: 0 1px 2px 0 oklch(0 0 0 / 0.2); padding: 12px 0; display: flex; flex-direction: column; gap: 12px; "><div style="padding: 0 12px; "><div style="display: flex; align-items: flex-start; gap: 12px;"><span role="img" aria-label="Passed" style="display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap;"><span style="width: 8px; height: 8px; border-radius: 9999px; background: var(--success); flex-shrink: 0;"></span><span>Passed</span></span><div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;"><strong style="font-size: 12px; font-weight: 600; line-height: 18.6px;">API health</strong><span>Local API is ready.</span></div></div></div></div><div role="article" style="box-sizing: border-box; border: 1px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: 0 1px 2px 0 oklch(0 0 0 / 0.2); padding: 12px 0; display: flex; flex-direction: column; gap: 12px; "><div style="padding: 0 12px; "><div style="display: flex; align-items: flex-start; gap: 12px;"><span role="img" aria-label="Passed" style="display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap;"><span style="width: 8px; height: 8px; border-radius: 9999px; background: var(--success); flex-shrink: 0;"></span><span>Passed</span></span><div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;"><strong style="font-size: 12px; font-weight: 600; line-height: 18.6px;">Embedding health</strong><span>Embedding runtime is ready.</span></div></div></div></div></div></div></section>
+            </form>
+          </div>
+        </div>
+      </main>
+      <dc-import name="StatusBar" hint-size="1384px,28px"></dc-import>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":990}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

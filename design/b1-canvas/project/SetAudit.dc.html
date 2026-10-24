@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings · Audit</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<!-- Settings after cortana#2538 (@adea-ai/ui 0.119.1 SettingsLayout + PageHeader).  -->
+<div style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --secondary: oklch(0.2106 0.0076 300.91); --popover: oklch(0.2406 0.0088 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); --primary: oklch(0.7323 0.1668 301.69); --primary-foreground: oklch(0.1756 0.0063 300.91); --success: oklch(0.6951 0.1809 145.62); --warning: oklch(0.7196 0.1401 79.91); --destructive: oklch(0.7345 0.1626 25.78); --destructive-foreground: oklch(0.1756 0.0063 300.91); width: 1440px; height: 1067px; display: flex; flex-direction: column; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 21.7px; overflow: hidden;">
+  <dc-import name="Header" location="Settings" workspace="Work" hint-size="1440px,48px"></dc-import>
+  <div style="flex-grow: 1; min-height: 0; display: flex;">
+    <dc-import name="Rail" active="none" height="1019" hint-size="56px,1019px"></dc-import>
+    <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column;">
+      <main id="main-content" style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; background: var(--background); overflow: hidden;">
+        <header style="flex-shrink: 0; box-sizing: border-box; padding: 20px 20px 16px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px 16px;">
+          <div style="min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-size: 11px; font-weight: 500; line-height: 15.95px; letter-spacing: 0.275px; text-transform: uppercase; color: var(--muted-foreground);">Control plane</span>
+            <h1 style="margin: 0; font-size: 20px; font-weight: 600; line-height: 27px; letter-spacing: -0.5px;">Settings</h1>
+            <p style="margin: 0; color: var(--muted-foreground);">Changes are written locally and audited. Secret values never return to this window.</p>
+            <p style="margin: 0; font-size: 11px; line-height: 17.05px; color: var(--muted-foreground); white-space: nowrap; overflow: hidden;">Config <code title="/example/cortana/config.toml" style="padding: 1.65px 4.4px; border-radius: 6px; background: var(--secondary); color: var(--foreground); font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 11px; line-height: 17.05px;">/example/cortana/config.toml</code></p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+            <button type="button" disabled style="height: 28px; padding: 0 10px; gap: 6px; font-size: 12px; line-height: 18px; box-sizing: border-box; flex-shrink: 0; border: 0; border-radius: 8px; background: var(--primary); color: var(--primary-foreground); font-family: inherit; font-weight: 500; display: flex; align-items: center; justify-content: center; white-space: nowrap; text-decoration: none; opacity: 0.5;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"></path><path d="M7 3v4a1 1 0 0 0 1 1h7"></path></svg>Save changes</button>
+          </div>
+        </header>
+        <hr style="margin: 0; height: 1px; box-sizing: border-box; flex-shrink: 0; border: 0; border-top: 1px solid var(--border); background: var(--border);">
+        
+        <div style="flex-grow: 1; min-height: 0; display: flex;">
+          <dc-import name="SettingsNav" active="Audit" height="860" hint-size="256px,860px"></dc-import>
+          <div role="tabpanel" aria-label="Audit" style="flex-grow: 1; min-width: 0; box-sizing: border-box; padding: 16px;">
+            <form style="margin: 0; padding: 0 0 72px;">
+              <section aria-label="Audit trail" style="padding: 20px; display: flex; flex-direction: column; gap: 16px;"><div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;"><div style="max-width: 583px; display: flex; flex-direction: column; gap: 2px;"><h2 style="margin: 0; font-size: 16px; font-weight: 600; line-height: 24px; letter-spacing: -0.4px;">Audit trail</h2><p style="margin: 0; color: var(--muted-foreground);">Bounded metadata-only runtime and Desktop events. Queries, document contents, bearer tokens, and secret values are excluded.</p></div></div><div style="display: flex; flex-direction: column; gap: 16px;"><div style="margin: 22px 0 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 11px; line-height: 17.05px; color: var(--muted-foreground);"><span>0 runtime · 0 Desktop events</span><div style="display: flex; gap: 6px;"><button type="button" style="height: 24px; padding: 0 8px; gap: 4px; font-size: 12px; line-height: 18px; box-sizing: border-box; flex-shrink: 0; border: 0; border-radius: 8px; background: var(--secondary); color: var(--foreground); font-family: inherit; font-weight: 500; display: flex; align-items: center; justify-content: center; white-space: nowrap; text-decoration: none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg>Refresh</button><button type="button" style="height: 24px; padding: 0 8px; gap: 4px; font-size: 12px; line-height: 18px; box-sizing: border-box; flex-shrink: 0; border: 0; border-radius: 8px; background: var(--secondary); color: var(--foreground); font-family: inherit; font-weight: 500; display: flex; align-items: center; justify-content: center; white-space: nowrap; text-decoration: none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M12 15V3"></path><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path></svg>Export</button></div></div><div style="margin-top: 20px;"><div role="alert" style="box-sizing: border-box; border: 1px solid oklch(0.7345 0.1626 25.78 / 0.3); border-radius: 10px; background: oklch(0.2538 0.0282 312.79); padding: 10px 12px 14px; display: grid; grid-template-columns: 16px minmax(0, 1fr); column-gap: 12px; row-gap: 4px; align-items: start;"><span style="padding-top: 2px; display: flex; color: var(--destructive);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line></svg></span><div>Audit is available in Cortana Desktop</div></div></div><div style="margin: 20px 0 14px; display: flex; flex-direction: column; gap: 12px;"><h3 style="margin: 0; font-size: 14px; font-weight: 600; line-height: 21.7px;">Runtime retrieval</h3><div style="box-sizing: border-box; min-height: 160px; padding: 40px 24px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; text-wrap: balance;"><div style="max-width: 384px; display: flex; flex-direction: column; align-items: center; gap: 6px;"><div role="heading" style="font-weight: 500; letter-spacing: -0.35px;">No events available.</div><div style="color: var(--muted-foreground);">Retrieval requests handled by the runtime are recorded here.</div></div></div></div><div style="margin: 20px 0 14px; display: flex; flex-direction: column; gap: 12px;"><h3 style="margin: 0; font-size: 14px; font-weight: 600; line-height: 21.7px;">Desktop actions</h3><div style="box-sizing: border-box; min-height: 160px; padding: 40px 24px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; text-wrap: balance;"><div style="max-width: 384px; display: flex; flex-direction: column; align-items: center; gap: 6px;"><div role="heading" style="font-weight: 500; letter-spacing: -0.35px;">No events available.</div><div style="color: var(--muted-foreground);">Actions taken in Cortana Desktop are recorded here.</div></div></div></div></div></section>
+            </form>
+          </div>
+        </div>
+      </main>
+      <dc-import name="StatusBar" hint-size="1384px,28px"></dc-import>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1067}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

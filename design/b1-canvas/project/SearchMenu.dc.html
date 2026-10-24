@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Search menu</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="--background: oklch(0.1756 0.0063 300.91); --foreground: oklch(0.942 0.0054 297.72); --card: oklch(0.2106 0.0076 300.91); --popover: oklch(0.2406 0.0088 300.91); --muted-foreground: oklch(0.6967 0.0057 298.74); --border: oklch(0.3256 0.0057 300.91); --primary: oklch(0.7323 0.1668 301.69); position: relative; width: 1440px; height: 900px; overflow: hidden; background: var(--background); color: var(--foreground); font-family: 'Space Grotesk', sans-serif; font-size: 14px; line-height: 1.55;">
+  <dc-import name="KnowledgeEmpty" hint-size="1440px,900px"></dc-import>
+
+  <!-- Search menu (ui 0.143 Popover) under the "Search and reflect" trigger (1328,10 28x28), right-aligned to it: w-96 (384), padding 12, rounded, caret toward the trigger. The search box is focused and holds the query; Reflect sits below it and needs a query. Submitting closes the menu and shows the answer. The rail's search entry and the search shortcut open this same menu with the box focused. -->
+  <div role="dialog" aria-label="Search and reflect" style="position: absolute; left: 972px; top: 54px; width: 384px; box-sizing: border-box; padding: 12px; border: 1px solid var(--border); border-radius: 14px; background: var(--popover); box-shadow: 0 12px 28px oklch(0 0 0 / 0.35); display: flex; flex-direction: column; gap: 8px;">
+    <span aria-hidden="true" style="position: absolute; top: -6px; right: 14px; width: 10px; height: 10px; box-sizing: border-box; background: var(--popover); border-left: 1px solid var(--border); border-top: 1px solid var(--border); transform: rotate(45deg);"></span>
+    <div style="font-size: 14px; font-weight: 500; line-height: 21.7px;">Search</div>
+    <form style="margin: 0; display: flex; flex-direction: column; gap: 8px;">
+      <label style="width: 100%; height: 32px; box-sizing: border-box; border-radius: 8px; border: 1px solid var(--primary); box-shadow: 0 0 0 3px oklch(0.7323 0.1668 301.69 / 0.16); display: flex; align-items: center; gap: 6px; padding: 0 10px; position: relative;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg>
+        <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Search your knowledge</span>
+        <input type="text" value="How do releases work?" style="flex-grow: 1; min-width: 0; height: 30px; border: 0; outline: none; background: transparent; color: var(--foreground); font: inherit; font-size: 14px; padding: 0;">
+        <kbd style="height: 20px; box-sizing: border-box; padding: 0 4px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--muted-foreground); font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; font-weight: 500; line-height: 18px; display: flex; align-items: center; gap: 4px; flex-shrink: 0;">⌘ K</kbd>
+      </label>
+      <a href="KnowledgeReflection.dc.html" aria-label="Reflect on this objective" title="Reflect on this objective" style="align-self: flex-end; height: 24px; padding: 0 8px; border-radius: 8px; background: var(--primary); color: var(--primary-foreground); font-size: 12px; font-weight: 500; line-height: 18px; display: flex; align-items: center; gap: 4px; text-decoration: none;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg>
+        <span>Reflect</span>
+      </a>
+    </form>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
